@@ -3239,12 +3239,12 @@ function updateSuggestions() {
 
   suggestionsBox.innerHTML = `
     ${suggestions.map((s, i) => `
-      <div class="suggestion p-2 text-sm cursor-pointer " data-index="${i}" data-text="${s.text}">
+      <div class="suggestion p-2 text-sm cursor-pointer glass" data-index="${i}" data-text="${s.text}">
         🔍 ${s.text}
       </div>
     `).join('')}
     ${txMatches.map((t, i) => `
-      <div class="suggestion p-2 cursor-pointer" data-index="${suggestions.length + i}" data-text="${t.note || ''}">
+      <div class="suggestion p-2 cursor-pointer glass" data-index="${suggestions.length + i}" data-text="${t.note || ''}">
         <div class="flex justify-between text-sm ">
           <span>${t.note || '(No Note)'}</span>
           <span class="${t.type === 'in' ? 'text-emerald-400' : 'text-rose-400'} font-semibold">
