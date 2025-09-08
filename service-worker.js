@@ -1,6 +1,8 @@
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open('ledgermate-cache').then(cache => {
+const CACHE_NAME = 'ledgermate-cache-v2';
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
       return cache.addAll([
         './index.html',
         './manifest.json',
@@ -8,40 +10,43 @@ self.addEventListener('install', e => {
         './icons/icon-192.png',
         './libs/tailwind.min.js',
         './libs/chart.min.js',
-        // add any other CSS/JS/images you use
+        './Js/Common.js'
       ]);
     })
   );
 });
 
-/*self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(response => {
-      // Return cache first, fallback to network (for local fetch, network will fail gracefully)
-      return response || fetch(e.request).catch(() => {
-        // Optional: fallback offline page if request not in cache
-        if (e.request.mode === 'navigate') {
-          return caches.match('/index.html');
-        }
-      });
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys.map(key => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      );
     })
-  );
-});*/
-
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        // Save a copy in cache for later
-        return caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, response.clone());
-          return response;
-        });
-      })
-      .catch(() => {
-        // If offline, serve from cache
-        return caches.match(event.request);
-      })
   );
 });
 
+self.addEventListener('fetch', event => {
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          return caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, response.clone());
+            return response;
+          });
+        })
+        .catch(() => caches.match(event.request))
+    );
+  } else {
+    event.respondWith(
+      caches.match(event.request).then(response => {
+        return response || fetch(event.request);
+      })
+    );
+  }
+});
