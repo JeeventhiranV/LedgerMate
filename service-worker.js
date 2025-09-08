@@ -14,7 +14,7 @@ self.addEventListener('install', e => {
   );
 });
 
-self.addEventListener('fetch', e => {
+/*self.addEventListener('fetch', e => {
   e.respondWith(
     caches.match(e.request).then(response => {
       // Return cache first, fallback to network (for local fetch, network will fail gracefully)
@@ -26,4 +26,22 @@ self.addEventListener('fetch', e => {
       });
     })
   );
+});*/
+
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        // Save a copy in cache for later
+        return caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, response.clone());
+          return response;
+        });
+      })
+      .catch(() => {
+        // If offline, serve from cache
+        return caches.match(event.request);
+      })
+  );
 });
+
