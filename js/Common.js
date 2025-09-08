@@ -1926,6 +1926,7 @@ function renderKPIs(){
   document.getElementById('kpiBalance').innerText = fmtINR(balance);
   document.getElementById('kpiRangeLabel').innerText = range+'d';
   document.getElementById('kpiRangeLabel2').innerText = range+'d';
+  renderAccountSummaries();
 }
 
 function parseKpiRange(){
@@ -3344,6 +3345,51 @@ const themeToggle = document.getElementById('themeToggle');
       localStorage.setItem('theme', 'light');
     }
   });
+function getAccountSummaries() {
+  const summaries = {};
+  
+  state.transactions.forEach(t => {
+    if (!summaries[t.account]) {
+      summaries[t.account] = { income: 0, expense: 0, balance: 0 };
+    }
+    if (t.type === 'in') {
+      summaries[t.account].income += Number(t.amount);
+      summaries[t.account].balance += Number(t.amount);
+    } else if (t.type === 'out') {
+      summaries[t.account].expense += Number(t.amount);
+      summaries[t.account].balance -= Number(t.amount);
+    }
+  });
+  
+  return summaries;
+}
+function renderAccountSummaries() {
+  const summaries = getAccountSummaries();
+  const container = document.getElementById('accountSummaries');
+  container.innerHTML = ''; // Clear previous content
+  
+  const grid = document.createElement('div');
+  grid.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4';
+  
+  for (const account in summaries) {
+    const summary = summaries[account];
+    
+    const div = document.createElement('div');
+    div.className = 'glass p-3 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer';
+    div.innerHTML = `
+      <h3 class="text-sm font-semibold mb-2 truncate">${account}</h3>
+      <div class="text-xs text-green-500">Income: ${fmtINR(summary.income)}</div>
+      <div class="text-xs text-red-500">Expense: ${fmtINR(summary.expense)}</div>
+      <div class="text-sm font-bold text-blue-500 mt-2">Balance: ${fmtINR(summary.balance)}</div>
+    `;
+    
+    grid.appendChild(div);
+  }
+  
+  container.appendChild(grid);
+}
+
+
 
 
 // ----------------------------
