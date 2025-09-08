@@ -77,26 +77,36 @@
              <button  id="clearData" class="px-3 py-1 rounded-lg bg-emerald-500 text-slate-900">🧹Wipe</button>
           </div>
         </div>
-<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-  <div class="card bg-gradient-to-br from-blue-700 to-blue-500">
-    <div class="text-sm text-blue-100">Balance</div>
-    <div id="kpiBalance" class="text-2xl font-semibold  ">₹0</div>
-    <div id="kpiBalanceSub" class="text-xs text-blue-200">As of today</div>
+		<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2">
+  <!-- Balance Box -->
+  <div class="bg-gradient-to-br from-blue-600 to-blue-400 text-white rounded-lg p-2 shadow-md text-center hover:scale-105 transform transition-transform duration-200">
+    <div class="text-xs font-semibold uppercase">Balance</div>
+    <div id="kpiBalance" class="text-lg font-bold mt-1">₹0</div>
+    <div id="kpiBalanceSub" class="text-[10px] text-blue-200 mt-0.5">As of today</div>
   </div>
-  <div class="card bg-gradient-to-br from-emerald-600 to-emerald-400">
-    <div class="text-sm text-emerald-100">Income (<span id="kpiRangeLabel">30d</span>)</div>
-    <div id="kpiIncome" class="text-2xl font-semibold  ">₹0</div>
+
+  <!-- Income Box -->
+  <div class="bg-gradient-to-br from-emerald-500 to-emerald-300 text-white rounded-lg p-2 shadow-md text-center hover:scale-105 transform transition-transform duration-200">
+    <div class="text-xs font-semibold uppercase">Income (<span id="kpiRangeLabel">30d</span>)</div>
+    <div id="kpiIncome" class="text-lg font-bold mt-1">₹0</div>
   </div>
-  <div class="card bg-gradient-to-br from-rose-600 to-rose-400">
-    <div class="text-sm text-rose-100">Expense (<span id="kpiRangeLabel2">30d</span>)</div>
-    <div id="kpiExpense" class="text-2xl font-semibold  ">₹0</div>
+
+  <!-- Expense Box -->
+  <div class="bg-gradient-to-br from-rose-500 to-rose-300 text-white rounded-lg p-2 shadow-md text-center hover:scale-105 transform transition-transform duration-200">
+    <div class="text-xs font-semibold uppercase">Expense (<span id="kpiRangeLabel2">30d</span>)</div>
+    <div id="kpiExpense" class="text-lg font-bold mt-1">₹0</div>
   </div>
-  <div class="card bg-gradient-to-br from-purple-700 to-purple-500">
-    <div class="text-sm text-purple-100">P & L</div>
-    <div id="kpiPL" class="text-2xl font-semibold  ">₹0</div>
+
+  <!-- P & L Box -->
+  <div class="bg-gradient-to-br from-purple-600 to-purple-400 text-white rounded-lg p-2 shadow-md text-center hover:scale-105 transform transition-transform duration-200">
+    <div class="text-xs font-semibold uppercase">P & L</div>
+    <div id="kpiPL" class="text-lg font-bold mt-1">₹0</div>
   </div>
 </div>
-      
+
+
+    
+
       </section>
 <button id="fabAddTx"
   class="fixed bottom-6 right-6 z-50 rounded-full bg-emerald-500 hover:bg-emerald-600 shadow-lg w-12 h-12 flex items-center justify-center text-4xl text-slate-900 transition-all"
@@ -106,8 +116,10 @@
     <path stroke="#1e293b" stroke-width="2" stroke-linecap="round" d="M12 8v8M8 12h8"/>
   </svg>
 </button>
+
       <!-- Main grid: Make it a single column on all screens for best mobile UX -->
 <div class="space-y-6">
+ 
   <!-- Dashboards Card (collapsible) -->
    <div class="card w-full text-left p-2 rounded-lg glass">
     <div class="flex items-center justify-between mb-2" id="toggleDashboards">
@@ -119,6 +131,11 @@
       </button>
     </div>
     <div id="dashboardsSection" class="space-y-4 transition-all duration-300">
+	  <h4 class="font-semibold mb-1 text-blue-500 flex items-center gap-2">
+          <svg class="w-4 h-4 text-blue-500  " fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/></svg>
+          Account summary
+        </h4>
+	 <div id="accountSummaries"></div>
       <!-- Dashboard 1: Net Cashflow -->
       <div>
         <h4 class="font-semibold mb-1 text-blue-300 flex items-center gap-2">
