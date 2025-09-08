@@ -10,6 +10,7 @@ self.addEventListener('install', event => {
         './icons/icon-192.png',
         './libs/tailwind.min.js',
         './libs/chart.min.js',
+        './css/style.css',
         './js/Common.js'
       ]);
     })
