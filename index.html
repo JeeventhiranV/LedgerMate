@@ -1795,9 +1795,10 @@ function checkAllNotifications() {
 
   // 🔥 Show notifications in batches of 2
   function processNotifications() {
+     enableNotifications();
     const batch = notifications.splice(0, 2);
     batch.forEach((n) => {
-      showToast(n.message, n.type);
+      showToast(n.message, n.type); 
       sendBrowserNotification(n.title, n.message);
     });
     if (notifications.length > 0) {
@@ -1810,18 +1811,23 @@ function checkAllNotifications() {
 
 //  Helper for browser notifications
 function sendBrowserNotification(title, message) {
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, {
-      body: message,
-      icon: '📢', // You can change this to your app icon
+  if (Notification.permission === 'granted') {
+    navigator.serviceWorker.ready.then(registration => {
+      registration.showNotification(title, {
+        body: message,
+        icon: 'icons/icon-512.png'
+      });
     });
   }
 }
-
 //  Ask for permission once
 function enableNotifications() {
-  if ('Notification' in window && Notification.permission !== 'granted') {
-    Notification.requestPermission();
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().then(permission => {
+      if (permission === 'granted') {
+        console.log('Notifications enabled.');
+      }
+    });
   }
 }
  
@@ -3570,3 +3576,4 @@ searchInput.addEventListener('blur', () => setTimeout(() => suggestionsBox.class
 </body>
 
 </html>
+
