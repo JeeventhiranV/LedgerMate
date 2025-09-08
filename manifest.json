@@ -1,0 +1,31 @@
+{
+  "packageId": "com.jeeva.ledgermate",
+  "host": "appassets.androidplatform.net",
+  "name": "LedgerMate",
+  "launcherName": "LedgerMate",
+  "display": "standalone",
+  "themeColor": "#10b981",
+  "navigationColor": "#10b981",
+  "backgroundColor": "#1e293b",
+  "enableNotifications": false,
+  "startUrl": "/index.html", 
+  "orientation": "portrait",
+  "fingerprints": [],
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "signingKey": {
+    "path": "android.keystore",
+    "alias": "LedgermateJeeva"
+  },
+  "icons": [ 
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+
+}
+
+ 
