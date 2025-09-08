@@ -1,0 +1,168 @@
+ :root {
+  --bg: #f8fafc;
+  --text: #1f2937;
+  --glass-bg: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --btn-green: #10b981;
+  --btn-blue: #3b82f6;
+  --input-focus: rgba(16, 185, 129, 0.5);
+  --text-muted: #4b5563; /* dark gray for light theme */
+  --input-bg: #f8fafc;
+  --input-text: #1f2937;
+  --input-border: rgba(0, 0, 0, 0.2);
+}
+
+.dark {
+  --bg: #0f172a;
+  --text: #f8fafc;
+  --glass-bg: rgba(0, 0, 0, 0.02);
+  --glass-border: rgba(255, 255, 255, 0.25);
+  --btn-green: #22c55e;
+  --btn-blue: #3b82f6;
+  --input-focus: rgba(16, 185, 129, 0.5);
+  --text-muted: #9ca3af; /* lighter gray for dark theme */
+  --input-bg: #1e293b;
+  --input-text: #f8fafc;
+  --input-border: rgba(255, 255, 255, 0.2);
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.btn-green {
+  background-color: var(--btn-green);
+  color: var(--text);
+  transition: all 0.3s ease;
+}
+
+.btn-green:hover {
+  filter: brightness(0.9);
+}
+
+.btn-blue {
+  background-color: var(--btn-blue);
+  color: var(--text);
+  transition: all 0.3s ease;
+}
+
+.btn-blue:hover {
+  filter: brightness(0.9);
+}
+
+input {
+  background-color: var(--glass-bg);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+}
+
+input:focus, select:focus {
+  box-shadow: 0 0 0 3px var(--input-focus);
+  transform: scale(1.02);
+  outline: none;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+  .alert-red {
+    background-color: rgba(220, 38, 38, 0.15); /* light red background */
+    border: 1px solid rgba(220, 38, 38, 0.35); /* defined border */
+    color: #b91c1c; /* red text for good contrast */
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+  }
+
+  /* Dark mode version, scoped only to the alert */
+  .dark .alert-red {
+    background-color: rgba(220, 38, 38, 0.25);
+    border: 1px solid rgba(220, 38, 38, 0.6);
+    color: #f87171;
+  }
+  .text-muted {
+  color: var(--text-muted);
+  transition: color 0.3s ease;
+}
+  select {
+  background-color: var(--input-bg);
+  color: var(--input-text);
+  border: 1px solid var(--input-border);
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  appearance: none;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+option {
+  background-color: var(--input-bg);
+  color: var(--input-text);
+}
+  
+  /* Animations */
+  @keyframes scaleIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .animate-scaleIn {
+    animation: scaleIn 0.4s ease-out forwards;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+  .fab-pulse {
+    animation: pulse 1.5s infinite ease-in-out;
+  }
+
+  @keyframes fadeInOut {
+    0% { opacity: 0; transform: translateY(10px); }
+    10% { opacity: 1; transform: translateY(0); }
+    90% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(10px); }
+  }
+  .toast {
+    animation: fadeInOut 3s ease forwards;
+  }
+
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 5px rgba(220, 38, 38, 0.3); }
+    50% { box-shadow: 0 0 15px rgba(220, 38, 38, 0.6); }
+  }
+  .overdue {
+    animation: glow 1.5s infinite ease-in-out;
+  }
+
+  /* Section transitions */
+  .transition-section {
+    transition: all 0.3s ease;
+  }
