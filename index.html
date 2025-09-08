@@ -1,38 +1,5 @@
 <!doctype html>
-<html lang="en">
-<!--<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>LedgerMate — Offline Finance Tracker</title>
-  <link rel="manifest" href="./manifest.json" />
-  <meta name="theme-color" content="#4F46E5" />
-  
-  <script src="https://cdn.tailwindcss.com"></script>
-   
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
-  <style>
-    html,body,#app{height:100%}
-    .glass { background: rgba(255,255,255,0.06); backdrop-filter: blur(6px); }
-    .card { @apply p-4 rounded-2xl shadow-md glass; }
-    .scrollbar-thin::-webkit-scrollbar{height:6px;width:6px}
-    @keyframes scaleIn {
-      from { transform: scale(0.9); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-    .animate-scaleIn { animation: scaleIn 0.25s ease-out; }
-  </style>
-
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-          .then(reg => console.log('Service worker registered', reg))
-          .catch(err => console.error('SW registration failed', err));
-      });
-    }
-  </script>
-</head> -->
+<html lang="en"> 
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -44,17 +11,10 @@
   <meta name="theme-color" content="#4F46E5">
   
   <!-- Local CSS / JS -->
+  <link rel="stylesheet" href="./css/style.css">
   <script src="./libs/tailwind.min.js"></script>
   <script src="./libs/chart.min.js"></script>
-
-  <style>
-    html, body, #app { height: 100%; }
-    .glass { background: rgba(255,255,255,0.06); backdrop-filter: blur(6px); }
-    .card { @apply p-4 rounded-2xl shadow-md glass; }
-    .scrollbar-thin::-webkit-scrollbar { height:6px; width:6px; }
-    @keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-    .animate-scaleIn { animation: scaleIn 0.25s ease-out; }
-  </style>
+ 
 
   <script>
     if ('serviceWorker' in navigator) {
@@ -66,33 +26,33 @@
     }
   </script>
 </head>
-<body data-theme="dark" class="bg-slate-900 text-slate-100 antialiased dark:bg-slate-900 dark:text-slate-100">
+<body  class="  transition-all duration-300">
   <div id="app" class="min-h-screen p-4 md:p-6 lg:p-10">
     <div class="max-w-5xl mx-auto">
       <!-- Header -->
       <header class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xl font-bold" >JK</div>
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center glass text-xl font-bold" >JK</div>
           
         </div>
         <div class="flex items-center gap-3">
           
-          <button id="btnSetFolder" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700"><div id="folderStatus" class="text-sm text-slate-300">Fol: <span id="folderLabel">None</span></div></button>
-          <button id="btnFullExport" class="px-3 py-2 rounded-lg bg-amber-500 text-slate-900">📤</button>
+          <button id="btnSetFolder" class="px-3 py-2 rounded-lg    "><div id="folderStatus" class="text-sm ">Fol: <span id="folderLabel">None</span></div></button>
+          <button id="btnFullExport" class="px-3 py-2 rounded-lg ">📤</button>
           <div class="relative">
-            <button id="notifBell" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700">
+            <button id="notifBell" class="p-2 rounded-lg glass  ">
               🔔<span id="notifCount" class="ml-1 text-xs text-amber-400">0</span>
             </button>
-            <div id="notifPanel" class="hidden absolute right-0 mt-2 w-80 bg-slate-800 rounded-xl p-1 shadow-lg z-50">
+            <div id="notifPanel" class="hidden absolute right-0 mt-2 w-80 glass rounded-xl p-1 shadow-lg z-50">
               <h3 class="text-sm font-semibold mb-2">Notifications</h3>
-              <div id="notifList" class="text-sm text-slate-300"></div>
+              <div id="notifList" class="text-sm "></div>
             </div>
           </div>
-          <button id="btnImport" class="px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600">📥</button>
-          <!-- Improved theme toggle  
-           <button id="btnToggleTheme" onclick="toggleTheme()" class="ml-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors">
+          <button id="btnImport" class="px-3 py-2 rounded-lg glass ">📥</button>
+          <!-- Improved theme toggle
+           <button id="themeToggle" onclick="" class="ml-2 flex items-center gap-2 px-3 py-2 rounded-lg glass hover:glass transition-colors">
             <span id="themeIcon" class="text-lg">🌙</span>
-          </button> -->
+          </button>   --> 
         </div>
       </header>
 
@@ -100,40 +60,40 @@
       <section class="mb-4">
         <div class="flex gap-3 items-center mb-3">
           <div class="flex gap-2 items-center">
-            <label class="text-sm text-slate-300">KPI:</label>
-            <select id="kpiRange" class="rounded-lg bg-slate-800 p-2 text-sm">
+            <label class="text-sm ">KPI:</label>
+            <select id="kpiRange" class="rounded-lg   p-2 text-sm">
               <option value="7">7d</option>
               <option value="10">10d</option>
               <option value="30" selected>30d</option>
               <option value="90">90d</option>
               <option value="custom">Custom</option>
             </select>
-            <input id="customFrom" type="date" class="hidden rounded-lg bg-slate-800 p-2 text-sm"/>
-            <input id="customTo" type="date" class="hidden rounded-lg bg-slate-800 p-2 text-sm"/>
+            <input id="customFrom" type="date" class="hidden rounded-lg glass p-2 text-sm"/>
+            <input id="customTo" type="date" class="hidden rounded-lg glass p-2 text-sm"/>
           </div>
 
           <div class="ml-auto flex gap-2">
-            <button style="display: none;" id="btnToggleTheme1" onclick="toggleTheme1()" class="px-3 py-2 rounded-lg bg-slate-800">Theme</button>
+            <button id="themeToggle" onclick="" class="px-3 py-2 rounded-lg glass">🌙</button>
              <button  id="clearData" class="px-3 py-1 rounded-lg bg-emerald-500 text-slate-900">🧹Wipe</button>
           </div>
         </div>
 <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
   <div class="card bg-gradient-to-br from-blue-700 to-blue-500">
     <div class="text-sm text-blue-100">Balance</div>
-    <div id="kpiBalance" class="text-2xl font-semibold text-white">₹0</div>
+    <div id="kpiBalance" class="text-2xl font-semibold  ">₹0</div>
     <div id="kpiBalanceSub" class="text-xs text-blue-200">As of today</div>
   </div>
   <div class="card bg-gradient-to-br from-emerald-600 to-emerald-400">
     <div class="text-sm text-emerald-100">Income (<span id="kpiRangeLabel">30d</span>)</div>
-    <div id="kpiIncome" class="text-2xl font-semibold text-white">₹0</div>
+    <div id="kpiIncome" class="text-2xl font-semibold  ">₹0</div>
   </div>
   <div class="card bg-gradient-to-br from-rose-600 to-rose-400">
     <div class="text-sm text-rose-100">Expense (<span id="kpiRangeLabel2">30d</span>)</div>
-    <div id="kpiExpense" class="text-2xl font-semibold text-white">₹0</div>
+    <div id="kpiExpense" class="text-2xl font-semibold  ">₹0</div>
   </div>
   <div class="card bg-gradient-to-br from-purple-700 to-purple-500">
     <div class="text-sm text-purple-100">P & L</div>
-    <div id="kpiPL" class="text-2xl font-semibold text-white">₹0</div>
+    <div id="kpiPL" class="text-2xl font-semibold  ">₹0</div>
   </div>
 </div>
       
@@ -149,11 +109,11 @@
       <!-- Main grid: Make it a single column on all screens for best mobile UX -->
 <div class="space-y-6">
   <!-- Dashboards Card (collapsible) -->
-   <div class="card w-full text-left p-2 rounded-lg bg-slate-800">
+   <div class="card w-full text-left p-2 rounded-lg glass">
     <div class="flex items-center justify-between mb-2" id="toggleDashboards">
       <h3 class="font-semibold" >Dashboards</h3>
       <button
-        class="text-xs px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 transition"
+        class="text-xs px-2 py-1 rounded glass  transition"
         aria-label="Toggle Dashboards">
         <span id="dashboardsToggleIcon">−</span>
       </button>
@@ -207,38 +167,38 @@
       <h3 class="font-semibold">Quick Actions</h3>
     </div>
     <div class="space-y-2">
-      <button id="openBudgets" class="w-full text-left p-2 rounded-lg bg-slate-800">Budgets</button>
-      <button id="openLoans" class="w-full text-left p-2 rounded-lg bg-slate-800">Loans</button>
-      <button id="openGoals" class="w-full text-left p-2 rounded-lg bg-slate-800">Savings Goals</button>
-      <button id="openRemainders" class="w-full text-left p-2 rounded-lg bg-slate-800">Remainders</button>
+      <button id="openBudgets" class="w-full text-left p-2 card ">Budgets</button>
+      <button id="openLoans" class="w-full text-left p-2 card">Loans</button>
+      <button id="openGoals" class="w-full text-left p-2  card">Savings Goals</button>
+      <button id="openRemainders" class="w-full text-left p-2  card">Remainders</button>
     </div>
   </div>
 
   <!-- Transactions History Card (collapsible) -->
-  <div class="card w-full text-left p-2 rounded-lg bg-slate-800" id="toggleRecentTxCard">
+  <div class="card w-full text-left p-2 rounded-lg card" id="toggleRecentTxCard">
     <div class="flex items-center justify-between mb-2">
       <h3 class="font-semibold" id="toggleRecentTxHDR">Transactions History</h3>
-      <select id="accountFilter" class="rounded-lg bg-slate-800 p-2 text-sm ml-2"></select>
+      <select id="accountFilter" class="rounded-lg   p-2 text-sm ml-2"></select>
       <button
         id="toggleRecentTx"
-        class="text-xs px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 transition"
+        class="text-xs px-2 py-1 rounded   transition"
         aria-label="Toggle Transactions History">
         <span id="recentTxToggleIcon">−</span>
       </button>
     </div>
     <div id="recentTxSection" class="transition-all duration-300">
-      <input id="searchTx" placeholder="Search..." class="w-full mb-2 rounded-lg bg-slate-800 p-2 text-sm" />
+      <input id="searchTx" placeholder="Search..." class="w-full mb-2 rounded-lg   p-2 text-sm" />
       <div id="searchSuggestions" class="absolute left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-lg z-50 hidden max-h-48 overflow-y-auto"></div>
       <div id="recentList" class="max-h-64 overflow-auto text-sm"></div>
     </div>
   </div>
 
   <!-- Dropdown Manager Card (collapsible) -->
-  <div class="card w-full text-left p-2 rounded-lg bg-slate-800">
+  <div class="card w-full text-left p-2 rounded-lg card">
     <div class="flex items-center justify-between mb-2" id="toggleDropdownManager">
       <h3 class="font-semibold" >Dropdown Manager</h3>
       <button
-        class="text-xs px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 transition"
+        class="text-xs px-2 py-1 rounded transition"
         aria-label="Toggle Dropdown Manager">
         <span id="dropdownManagerToggleIcon">−</span>
       </button>
@@ -258,9 +218,5 @@
     </div>
   </div> 
   <script src="./js/Common.js"></script>
-</body>
-
+</body> 
 </html>
-
-
-
