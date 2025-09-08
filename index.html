@@ -1691,7 +1691,7 @@ const persons = state.dropdowns.persons || [];
     const batch = notifications.splice(0, 2); // Take 2 at a time
     batch.forEach((n) => {
       showToast(n.message, n.type);
-      //enableNotifications();
+      enableNotifications();
       sendBrowserNotification(n.title, n.message);
     });
     if (notifications.length > 0) {
@@ -3568,4 +3568,5 @@ searchInput.addEventListener('blur', () => setTimeout(() => suggestionsBox.class
 })();
 </script> 
 </body>
+
 </html>
