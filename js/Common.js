@@ -271,15 +271,15 @@ function showBudgetsModal() {
   const rows = state.budgets
     .filter(b => b.month === month)
     .map(b => `
-      <div class="flex justify-between items-center bg-slate-800/60 rounded-lg p-3 mb-2 shadow-sm">
+      <div class="flex justify-between items-center  rounded-lg p-3 mb-2 shadow-sm">
         <div>
-          <div class="text-sm font-semibold text-white">${b.category}</div>
-          <div class="text-xs text-slate-400">
+          <div class="text-sm font-semibold ">${b.category}</div>
+          <div class="text-xs text-muted">
             Limit: ${fmtINR(b.limit)} • Alert at ${Math.round((b.alertThreshold || 0.8) * 100)}%
           </div>
         </div>
         <button 
-          class="px-3 py-1 rounded-md bg-rose-500 hover:bg-rose-600 text-white text-xs delBudget" 
+          class="px-3 py-1 rounded-md bg-rose-500 hover:bg-rose-600  text-xs delBudget" 
           data-id="${b.id}">
           🗑️ Delete
         </button>
@@ -295,13 +295,13 @@ function showBudgetsModal() {
     addForm = `
       <form id="addBudgetForm" class="mt-4 space-y-2">
         <div class="flex gap-2">
-          <select id="budgetCat" class="flex-1 p-2 rounded-lg bg-slate-800 border border-slate-700 text-white">
+          <select id="budgetCat" class="flex-1 p-2 rounded-lg glass border  ">
             ${unusedCats.map(c => `<option>${c}</option>`).join('')}
           </select>
           <input 
             id="budgetLimit" type="number" min="1" 
             placeholder="Limit ₹" 
-            class="flex-1 p-2 rounded-lg bg-slate-800 border border-slate-700 text-white" 
+            class="flex-1 p-2 rounded-lg glass border  " 
             required 
           />
         </div>
@@ -318,7 +318,7 @@ function showBudgetsModal() {
     '📊 Budgets (This Month)',
     `
       <div class="space-y-3">
-        ${rows || `<div class="text-center text-slate-400 text-sm">No budgets set</div>`}
+        ${rows || `<div class="text-center text-muted text-sm">No budgets set</div>`}
         ${addForm}
       </div>
     `
@@ -394,7 +394,7 @@ async function handleLoanTransaction(loan, shouldAdd) {
       date: nowISO1().split('T')[0],
       type: loan.type === 'given' ? 'in' : 'out', // collected -> money in if they give you money, etc.
       amount: loan.amount,
-      account: (state.dropdowns.accounts && state.dropdowns.accounts[0]) || 'Bank',
+      account: loan.loanAccount ,
       category: loan.category || 'Loan',
       recurrence: '',
       note: transactionNote,
@@ -415,6 +415,40 @@ async function handleLoanTransaction(loan, shouldAdd) {
     }
   }
 
+  refreshRecentList();
+  renderAll();
+}
+
+async function handleLoanTransaction_V1(loan, shouldAdd) {
+  // canonical note to find transaction
+  const transactionNote = `Loan ${loan.type === 'given' ? 'from' : 'to'} ${loan.person}${loan.note ? `: ${loan.note}` : ''}`;
+
+  if (shouldAdd) {
+    const transaction = {
+      id: uid('tx'),
+      date: nowISO1().split('T')[0],
+      type: loan.type === 'given' ? 'out' : 'in',  
+      amount: loan.amount,
+      account: loan.loanAccount ,
+      category: loan.category || 'Loan',
+      recurrence: '',
+      note: transactionNote,
+      createdAt: nowISO1()
+    };
+    await put('transactions', transaction);
+    state.transactions.push(transaction);
+  } else {
+    const idx = state.transactions.findIndex(t =>
+      t.note === transactionNote &&
+      Number(t.amount) === Number(loan.amount) &&
+      (t.category || 'Loan') === (loan.category || 'Loan')
+    );
+    if (idx !== -1) {
+      const id = state.transactions[idx].id;
+      await del('transactions', id);
+      state.transactions.splice(idx, 1);
+    }
+  } 
   refreshRecentList();
   renderAll();
 }
@@ -645,44 +679,45 @@ function showLoansModal(prefill = {}) {
         return new Date(a.dueDate || '2100-01-01') - new Date(b.dueDate || '2100-01-01');
       })
       .map(l => {
-        const collectedBtnClass = l.collected ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-yellow-500 hover:bg-yellow-600 text-black';
+        const collectedBtnClass = l.collected ? 'bg-emerald-500 hover:bg-emerald-600 ' : 'bg-yellow-500 hover:bg-yellow-600 text-black';
         const collectedBtnText = l.collected ? '✅' : '⏳';
         const loanAmountColor = l.type === 'given' ? 'text-rose-400' : 'text-emerald-400';
         const loanSign = l.type === 'given' ? '-' : '+';
         const recurrenceLabel = l.recurrence && l.recurrence !== 'None' ? `🔁 ${l.recurrence}` : '';
         const isOverdue = !l.collected && l.dueDate && new Date(l.dueDate) < new Date();
-        const overdueClass = isOverdue ? 'border border-rose-500 bg-rose-900/30' : '';
+        const overdueClass = isOverdue ? 'border alert-red' : '';
         const lastDone = (l.completedLog && l.completedLog.length) ? `Last done: ${l.completedLog[l.completedLog.length-1].time}` : '';
         return `
-          <div class="flex justify-between items-center bg-slate-900/60 rounded p-2 shadow-sm ${overdueClass}">
+          <div class="flex justify-between items-center glass/60 rounded p-2 shadow-sm ${overdueClass}">
             <div>
-              <div class="text-xs text-slate-400">
-                Due: ${l.dueDate || 'N/A'} ${l.collected ? '• Collected: ' + (l.collectedAt ? new Date(l.collectedAt).toLocaleString() : '') : ''} ${l.createdAt ? '• Added: ' + new Date(l.createdAt).toLocaleString() : ''}
+              <div class="text-xs text-muted">
+                Due: ${l.dueDate || 'N/A'} ${l.collected ? '• Collected: ' + (l.collectedAt ? new Date(l.collectedAt).toLocaleString() : '') : ''} ${l.createdAt ? '• ' + new Date(l.createdAt).toLocaleString() : ''}
                 ${recurrenceLabel}
               </div>
-              <div class="text-sm ${loanAmountColor}">${loanSign}${fmtINR(l.amount)} <span class="text-xs text-slate-400">${l.note || ''}</span></div>
+              <div class="text-sm ${loanAmountColor}">${loanSign}${fmtINR(l.amount)} <span class="text-xs text-muted">${l.note || ''}</span></div>
               ${l.category ? `<div class="text-xs text-slate-500">🏷️ ${l.category} ${lastDone ? ' • ' + lastDone : ''}</div>` : ''}
             </div>
             <div class="flex gap-1">
-              <button class="editLoan px-2 py-1 rounded bg-sky-500 hover:bg-sky-600 text-white text-xs" data-id="${l.id}">✏️</button>
+              <button class="editLoan px-2 py-1 rounded bg-sky-500 hover:bg-sky-600  text-xs" data-id="${l.id}">✏️</button>
               <button class="markCollected px-2 py-1 rounded ${collectedBtnClass} text-xs" data-id="${l.id}">${collectedBtnText}</button>
-              <button class="delLoan px-2 py-1 rounded bg-rose-500 hover:bg-rose-600 text-white text-xs" data-id="${l.id}">🗑️</button>
+              <button class="delLoan px-2 py-1 rounded bg-rose-500 hover:bg-rose-600  text-xs" data-id="${l.id}">🗑️</button>
             </div>
           </div>
         `;
       }).join('');
    return `
-  <div class="mb-3 p-3 rounded-xl bg-slate-800/70 shadow">
+  <div class="mb-3 p-3 rounded-xl  glass   shadow">
     <div class="flex justify-between items-center mb-2">
       <div>
-        <span class="font-semibold text-white">${group.person || 'Unknown'}</span>
-        <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-slate-700 text-slate-300">${typeLabel}</span>
-        <div class="text-xs text-slate-400">
-          P: ${fmtINR(Math.abs(group.pendingTotal))} | C: ${fmtINR(Math.abs(group.collectedTotal))}
+        <span class="font-semibold ">${group.person || 'Unknown'}</span>
+		<div class="text-xs text-muted font-semibold ">P: ${fmtINR(Math.abs(group.pendingTotal))} | C: ${fmtINR(Math.abs(group.collectedTotal))}
+		  <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-slate-700 ">${typeLabel}</span>
         </div>
+        
+        
       </div>
       <button 
-        class="delLoanGroup px-2 py-1 rounded bg-rose-500 hover:bg-rose-600 text-white text-xs" 
+        class="delLoanGroup px-2 py-1 rounded bg-rose-500 hover:bg-rose-600  text-xs" 
         data-person="${group.person}" 
         data-type="${group.type}">
         🗑️
@@ -691,42 +726,46 @@ function showLoansModal(prefill = {}) {
     <div class="space-y-2">${loansHtml}</div>
   </div>
 `; 
-  }).join('') || `<div class="text-center text-slate-400">No loans added</div>`;
+  }).join('') || `<div class="text-center text-muted">No loans added</div>`;
 
   // Summary + Add form (categories/recurrences from dropdown manager)
   const summaryHtml = `
-    <div class="mb-4 p-3 rounded-xl bg-slate-800/70 shadow">
-      <h3 class="text-md font-semibold text-white mb-2">💰 Loan Summary</h3>
-      <div class="flex justify-between"><span class="text-sm text-slate-300">Total Given:</span><span class="font-bold text-rose-400">-${fmtINR(totalGiven)}</span></div>
-      <div class="flex justify-between"><span class="text-sm text-slate-300">Total Taken:</span><span class="font-bold text-emerald-400">+${fmtINR(totalTaken)}</span></div>
-      <div class="flex justify-between border-t border-slate-700 pt-2"><span class="text-sm ${totalOutstanding>=0?'text-emerald-300':'text-rose-300'}">${totalOutstanding>=0?'Net Owed to You:':'Net You Owe:'}</span><span class="text-lg font-bold ${totalOutstanding>=0?'text-emerald-400':'text-rose-400'}">${totalOutstanding>=0?'+':''}${fmtINR(totalOutstanding)}</span></div>
+    <div class="mb-4 p-3 rounded-xl  glass shadow">
+      <h3 class="text-md font-semibold  mb-2">💰 Loan Summary</h3>
+      <div class="flex justify-between"><span class="text-sm ">Total Given:</span><span class="font-bold text-rose-400">-${fmtINR(totalGiven)}</span></div>
+      <div class="flex justify-between"><span class="text-sm ">Total Taken:</span><span class="font-bold text-emerald-400">+${fmtINR(totalTaken)}</span></div>
+      <div class="flex justify-between border-t  pt-2"><span class="text-sm ${totalOutstanding>=0?'text-emerald-300':'text-rose-300'}">${totalOutstanding>=0?'Net Owed to You:':'Net You Owe:'}</span><span class="text-lg font-bold ${totalOutstanding>=0?'text-emerald-400':'text-rose-400'}">${totalOutstanding>=0?'+':''}${fmtINR(totalOutstanding)}</span></div>
     </div>`;
 
   const persons = state.dropdowns.persons || [];
   const categories = state.dropdowns.categories || [];
+  const loanAccount = state.dropdowns.accounts || [];
   const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.length ? state.dropdowns.recurrences : ['None','daily','weekly','monthly','yearly'];
 
   const addForm = `
     <form id="addLoanForm" class="mt-4 space-y-2">
-      <select id="loanType" class="w-full p-2 rounded bg-slate-800 border border-slate-700 text-white">
+      <select id="loanType" class="w-full p-2 rounded glass border  ">
         <option value="given">💸 Given</option>
         <option value="taken">📥 Taken</option>
       </select>
-      <div id="loanPersonCheckboxes" class="space-y-1 p-2 rounded bg-slate-800 border border-slate-700 max-h-40 overflow-y-auto">
-        ${persons.map(p=>`<label class="flex items-center"><input type="checkbox" value="${p}" class="personCheckbox"><span class="ml-2 text-sm text-slate-300">${p}</span></label>`).join('')}
+      <div id="loanPersonCheckboxes" class="space-y-1 p-2 rounded glass border  max-h-40 overflow-y-auto">
+        ${persons.map(p=>`<label class="flex items-center"><input type="checkbox" value="${p}" class="personCheckbox"><span class="ml-2 text-sm ">${p}</span></label>`).join('')}
       </div>
-      <input id="loanAmount" type="number" min="1" placeholder="Amount ₹" class="w-full p-2 rounded bg-slate-800 border border-slate-700 text-white" required />
-      <input id="loanDueDate" type="date" class="w-full p-2 rounded bg-slate-800 border border-slate-700 text-white" required />
-      <input id="loanNote" placeholder="Note" class="w-full p-2 rounded bg-slate-800 border border-slate-700 text-white" />
-      <select id="loanCategory" class="w-full p-2 rounded bg-slate-800 border border-slate-700 text-white">
+	   <select id="loanAccount" class="w-full p-2 rounded glass border  ">
+        ${loanAccount.map(a=>`<option value="${(a||'').toString()}">${a}</option>`).join('')}
+      </select>
+      <input id="loanAmount" type="number" min="1" placeholder="Amount ₹" class="w-full p-2 rounded glass border  " required />
+      <input id="loanDueDate" type="date" class="w-full p-2 rounded glass border  " required />
+      <input id="loanNote" placeholder="Note" class="w-full p-2 rounded glass border  " />
+      <select id="loanCategory" class="w-full p-2 rounded glass border  ">
         ${categories.map(c=>`<option value="${c}">${c}</option>`).join('')}
       </select>
-      <select id="loanRecurrence" class="w-full p-2 rounded bg-slate-800 border border-slate-700 text-white">
+      <select id="loanRecurrence" class="w-full p-2 rounded glass border  ">
         ${recurrences.map(r=>`<option value="${(r||'').toString().toLowerCase()}">${r}</option>`).join('')}
       </select>
-      <label class="flex items-center p-2 rounded bg-slate-800 border border-slate-700">
+      <label class="flex items-center p-2 rounded glass border ">
         <input type="checkbox" id="addReminder" class="mr-2" />
-        <span class="text-sm text-slate-300">Add reminder notification</span>
+        <span class="text-sm ">Add reminder notification</span>
       </label>
       <button class="w-full py-2 rounded bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400" type="submit">➕ Add Loan</button>
     </form>`;
@@ -742,8 +781,10 @@ function showLoansModal(prefill = {}) {
     const dueDate = document.getElementById('loanDueDate').value;
     const note = document.getElementById('loanNote').value.trim();
     const category = document.getElementById('loanCategory').value || 'Loan';
+	const loanAccount = document.getElementById('loanAccount').value || 'Cash';
     const recurrence = document.getElementById('loanRecurrence').value || 'None';
     const addReminder = document.getElementById('addReminder').checked;
+	
 
     if (!selectedPersons.length || !amount || !dueDate) { showToast('Select person(s), amount and due date','error'); return; }
 
@@ -751,7 +792,7 @@ function showLoansModal(prefill = {}) {
 
     for (const person of selectedPersons) {
       const candidate = {
-        person, type, amount: splitAmount, dueDate, note, category, recurrence
+        person, type, amount: splitAmount, dueDate, note, category, recurrence,loanAccount
       };
       const key = loanKey(candidate);
       const exists = (state.loans || []).some(l => loanKey(l) === key);
@@ -767,7 +808,7 @@ function showLoansModal(prefill = {}) {
       };
       await put('loans', newLoan);
       state.loans.push(newLoan);
-
+	 await handleLoanTransaction_V1(newLoan, true);
       if (addReminder) {
         const rem = { id: uid('rem'), title: `Loan due: ${person}`, dueDate, note: `Loan of ${fmtINR(splitAmount)} due for ${person}`, recurrence, completed: false, completedLog: []};
         await put('reminders', rem);
@@ -804,7 +845,8 @@ function showLoansModal(prefill = {}) {
       for (const r of state.reminders) await put('reminders', r);
 
       // remove transaction if collected
-      if (loan && loan.collected) await handleLoanTransaction(loan, false);
+      //if (loan && loan.collected) 
+		  await handleLoanTransaction(loan, false);
 
       autoBackup();
       showToast('Loan deleted!', 'success');
@@ -838,28 +880,32 @@ function showLoansModal(prefill = {}) {
       if (!loan) return;
       const persons = state.dropdowns.persons || [];
       const categories = state.dropdowns.categories || [];
+	  const loanAccounts = state.dropdowns.accounts || [];
       const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.length ? state.dropdowns.recurrences : ['None','daily','weekly','monthly','yearly'];
 
       const editHtml = `
         <form id="editLoanForm" class="space-y-2">
-          <select id="editLoanType" class="w-full p-2 rounded bg-slate-800 border border-slate-700 text-white">
+          <select id="editLoanType" class="w-full p-2 rounded glass border  ">
             <option value="given" ${loan.type==='given'?'selected':''}>💸 Given</option>
             <option value="taken" ${loan.type==='taken'?'selected':''}>📥 Taken</option>
           </select>
-          <select id="editLoanPerson" class="w-full p-2 rounded bg-slate-800 border border-slate-700 text-white">
+          <select id="editLoanPerson" class="w-full p-2 rounded glass border  ">
             ${persons.map(p=>`<option value="${p}" ${loan.person===p?'selected':''}>${p}</option>`).join('')}
           </select>
-          <input id="editLoanAmount" type="number" value="${loan.amount}" class="w-full p-2 rounded bg-slate-800 border border-slate-700 text-white" />
-          <input id="editLoanDueDate" type="date" value="${loan.dueDate}" class="w-full p-2 rounded bg-slate-800 border border-slate-700 text-white" />
-          <input id="editLoanNote" value="${loan.note||''}" class="w-full p-2 rounded bg-slate-800 border border-slate-700 text-white" />
-          <select id="editLoanCategory" class="w-full p-2 rounded bg-slate-800 border border-slate-700 text-white">
+		   <select id="editloanAccount" class="w-full p-2 rounded glass border  ">
+        ${loanAccounts.map(a=>`<option value="${a}" ${loan.loanAccount===a?'selected':''}>${a}</option>`).join('')}
+      </select>
+          <input id="editLoanAmount" type="number" value="${loan.amount}" class="w-full p-2 rounded glass border  " />
+          <input id="editLoanDueDate" type="date" value="${loan.dueDate}" class="w-full p-2 rounded glass border  " />
+          <input id="editLoanNote" value="${loan.note||''}" class="w-full p-2 rounded glass border  " />
+          <select id="editLoanCategory" class="w-full p-2 rounded glass border  ">
             ${categories.map(c=>`<option value="${c}" ${loan.category===c?'selected':''}>${c}</option>`).join('')}
           </select>
-          <select id="editLoanRecurrence" class="w-full p-2 rounded bg-slate-800 border border-slate-700 text-white">
+          <select id="editLoanRecurrence" class="w-full p-2 rounded glass border  ">
             ${recurrences.map(r=>`<option value="${(r||'').toString().toLowerCase()}" ${loan.recurrence=== (r||'').toString().toLowerCase() ? 'selected' : ''}>${r}</option>`).join('')}
           </select>
           ${loan.recurrence && loan.recurrence !== 'None' ? `
-            <select id="editScope" class="w-full p-2 rounded bg-slate-800 border border-slate-700 text-white">
+            <select id="editScope" class="w-full p-2 rounded glass border  ">
               <option value="this">Only This Loan</option>
               <option value="future">This and Future Loans</option>
               <option value="all">All Loans in Series</option>
@@ -867,7 +913,7 @@ function showLoansModal(prefill = {}) {
           ` : ''}
           <label class="flex items-center space-x-2">
             <input type="checkbox" id="editLoanCollected" ${loan.collected ? 'checked' : ''} />
-            <span class="text-slate-300">Collected</span>
+            <span class="">Collected</span>
           </label>
           <button class="w-full py-2 rounded bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400" type="submit">💾 Save</button>
         </form>
@@ -887,7 +933,8 @@ function showLoansModal(prefill = {}) {
           category: document.getElementById('editLoanCategory').value || 'Loan',
           recurrence: document.getElementById('editLoanRecurrence').value || 'None',
           collected: document.getElementById('editLoanCollected').checked,
-          createdAt: nowISO1()
+		  Modified: nowISO1(),
+		  loanAccount : document.getElementById('editloanAccount').value || 'Cash'
         };
         const scope = document.getElementById('editScope') ? document.getElementById('editScope').value : 'this';
 
@@ -921,7 +968,8 @@ if (btn.classList.contains('delLoanGroup')) {
     await removeLoanReminders(loan);
 
     // remove transaction if collected
-    if (loan.collected) await handleLoanTransaction(loan, false);
+//    if (loan.collected)
+		await handleLoanTransaction(loan, false);
   }
 
   state.loans = state.loans.filter(l => !(l.person === person && l.type === type));
@@ -990,11 +1038,11 @@ const sortedGroups = Object.values(grouped).sort((a, b) => {
     const totalSign = group.type === 'given' ? '-' : '+';
 
     return `
-      <div class="mb-3 p-3 rounded-xl bg-slate-800/70 shadow">
+      <div class="mb-3 p-3 rounded-xl glass/70 shadow">
         <div class="flex justify-between items-center mb-2">
           <div>
-            <span class="font-semibold text-white">${group.person || 'Unknown'}</span>
-            <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-slate-700 text-slate-300">${typeLabel}</span>
+            <span class="font-semibold ">${group.person || 'Unknown'}</span>
+            <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-slate-700 ">${typeLabel}</span>
           </div>
           <div class="text-lg font-bold ${totalColor}">
             ${totalSign}${fmtINR(Math.abs(group.total))}
@@ -1008,7 +1056,7 @@ const sortedGroups = Object.values(grouped).sort((a, b) => {
       return new Date(a.dueDate || '2100-01-01') - new Date(b.dueDate || '2100-01-01');
     }).map(l => {
             const collectedBtnClass = l.collected
-              ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+              ? 'bg-emerald-500 hover:bg-emerald-600 '
               : 'bg-yellow-500 hover:bg-yellow-600 text-black';
             const collectedBtnText = l.collected ? '✅' : '⏳';
             
@@ -1019,15 +1067,15 @@ const sortedGroups = Object.values(grouped).sort((a, b) => {
   const isOverdue = !l.collected && l.dueDate && new Date(l.dueDate) < today;
   const overdueClass = isOverdue ? 'border border-rose-500 bg-rose-900/30' : '';
             return `
-              <div class="flex justify-between items-center bg-slate-900/60 rounded p-2 shadow-sm ${overdueClass}">
+              <div class="flex justify-between items-center glass/60 rounded p-2 shadow-sm ${overdueClass}">
                 <div>
-                  <div class="text-xs text-slate-400">Due: ${l.dueDate || 'N/A'} ${l.collected ? '✅' + (l.collectedAt ? new Date(l.collectedAt).toLocaleString() : '') : ''} ${l.createdAt ? 'Added: ' + new Date(l.createdAt).toLocaleString() : ''}</div>
-                  <div class="text-sm ${loanAmountColor}">${loanSign}${fmtINR(l.amount)} <span class="text-xs text-slate-400">${l.note || ''}</span></div>
+                  <div class="text-xs text-muted">Due: ${l.dueDate || 'N/A'} ${l.collected ? '✅' + (l.collectedAt ? new Date(l.collectedAt).toLocaleString() : '') : ''} ${l.createdAt ? 'Added: ' + new Date(l.createdAt).toLocaleString() : ''}</div>
+                  <div class="text-sm ${loanAmountColor}">${loanSign}${fmtINR(l.amount)} <span class="text-xs text-muted">${l.note || ''}</span></div>
                 </div>
                 <div class="flex gap-1">
-                  <button class="editLoan px-2 py-1 rounded bg-sky-500 hover:bg-sky-600 text-white text-xs" data-id="${l.id}">✏️</button>
+                  <button class="editLoan px-2 py-1 rounded bg-sky-500 hover:bg-sky-600  text-xs" data-id="${l.id}">✏️</button>
                   <button class="markCollected px-2 py-1 rounded ${collectedBtnClass} text-xs" data-id="${l.id}">${collectedBtnText}</button>
-                  <button class="delLoan px-2 py-1 rounded bg-rose-500 hover:bg-rose-600 text-white text-xs" data-id="${l.id}">🗑️</button>
+                  <button class="delLoan px-2 py-1 rounded bg-rose-500 hover:bg-rose-600  text-xs" data-id="${l.id}">🗑️</button>
                 </div>
               </div>
             `;
@@ -1035,21 +1083,21 @@ const sortedGroups = Object.values(grouped).sort((a, b) => {
         </div>
       </div>
     `;
-  }).join('') || `<div class="text-center text-slate-400">No loans added</div>`;
+  }).join('') || `<div class="text-center text-muted">No loans added</div>`;
 
   // Add summary section (more compact)
   const summaryHtml = `
-    <div class="mb-4 p-3 rounded-xl bg-slate-800/70 shadow">
-      <h3 class="text-md font-semibold text-white mb-2">💰 Loan Summary</h3>
+    <div class="mb-4 p-3 rounded-xl glass/70 shadow">
+      <h3 class="text-md font-semibold  mb-2">💰 Loan Summary</h3>
       <div class="flex justify-between items-center mb-2">
-        <span class="text-sm text-slate-300">Total Given:</span>
+        <span class="text-sm ">Total Given:</span>
         <span class="text-md font-bold text-rose-400">-${fmtINR(totalGiven)}</span>
       </div>
       <div class="flex justify-between items-center mb-2">
-        <span class="text-sm text-slate-300">Total Taken:</span>
+        <span class="text-sm ">Total Taken:</span>
         <span class="text-md font-bold text-emerald-400">+${fmtINR(totalTaken)}</span>
       </div>
-      <div class="flex justify-between items-center pt-2 border-t border-slate-700">
+      <div class="flex justify-between items-center pt-2 border-t ">
         <span class="text-sm ${totalOutstanding >= 0 ? 'text-emerald-300' : 'text-rose-300'}">
           ${totalOutstanding >= 0 ? 'Net Owed to You:' : 'Net You Owe:'}
         </span>
@@ -1065,32 +1113,32 @@ const sortedGroups = Object.values(grouped).sort((a, b) => {
   //const personOptions = persons.map(p => `<option value="${p}">${p}</option>`).join('');
   const addForm = `
     <form id="addLoanForm" class="mt-4 space-y-2">
-      <select id="loanType" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white">
+      <select id="loanType" class="w-full p-2 rounded-lg glass border  ">
         <option value="given">💸 Given</option>
         <option value="taken">📥 Taken</option>
       </select>
-      <div id="loanPersonCheckboxes" class="space-y-1 p-2 rounded-lg bg-slate-800 border border-slate-700 max-h-40 overflow-y-auto">
+      <div id="loanPersonCheckboxes" class="space-y-1 p-2 rounded-lg glass border  max-h-40 overflow-y-auto">
   ${persons.map(p => `
     <label class="flex items-center space-x-2">
       <input type="checkbox" value="${p}" class="personCheckbox">
-      <span class="text-sm text-slate-300">${p}</span>
+      <span class="text-sm ">${p}</span>
     </label>
   `).join('')}
 </div>
-<p class="text-xs text-slate-400">Tap to select one or more people</p>
+<p class="text-xs text-muted">Tap to select one or more people</p>
 
-      <input id="loanAmount" type="number" min="1" placeholder="Amount ₹" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white" required />
-      <input id="loanDueDate" type="date" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white" required />
-      <input id="loanNote" placeholder="Note" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white" />
-      <select id="loanCategory" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white">
+      <input id="loanAmount" type="number" min="1" placeholder="Amount ₹" class="w-full p-2 rounded-lg glass border  " required />
+      <input id="loanDueDate" type="date" class="w-full p-2 rounded-lg glass border  " required />
+      <input id="loanNote" placeholder="Note" class="w-full p-2 rounded-lg glass border  " />
+      <select id="loanCategory" class="w-full p-2 rounded-lg glass border  ">
         ${state.dropdowns.categories.map(c => `<option ${c === prefill.category ? 'selected' : ''}>${c}</option>`).join('')}
       </select>
-      <select id="loanRecurrence" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white">
+      <select id="loanRecurrence" class="w-full p-2 rounded-lg glass border  ">
         ${state.dropdowns.recurrences.map(r => `<option ${r === prefill.recurrence ? 'selected' : ''}>${r}</option>`).join('')}
       </select>
-      <label class="flex items-center space-x-2 p-2 rounded-lg bg-slate-800 border border-slate-700">
+      <label class="flex items-center space-x-2 p-2 rounded-lg glass border ">
         <input type="checkbox" id="addReminder" class="rounded bg-slate-700 border-slate-600 text-emerald-400 focus:ring-emerald-400"  />
-        <span class="text-sm text-slate-300">Add reminder notification</span>
+        <span class="text-sm ">Add reminder notification</span>
       </label>
       <button class="w-full py-2 rounded-lg bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400 transition" type="submit">
         ➕ Add Loan
@@ -1267,37 +1315,37 @@ const persons = state.dropdowns.persons || [];
     if (btn.classList.contains('editLoan')) {
       showSimpleModal('✏️ Edit Loan', `
         <form id="editLoanForm" class="space-y-2">
-          <select id="editLoanType" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white">
+          <select id="editLoanType" class="w-full p-2 rounded-lg glass border  ">
             <option value="given" ${loan.type === 'given' ? 'selected' : ''}>💸 Given</option>
             <option value="taken" ${loan.type === 'taken' ? 'selected' : ''}>📥 Taken</option>
           </select>
-          <select id="editLoanPerson" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white">
+          <select id="editLoanPerson" class="w-full p-2 rounded-lg glass border  ">
             ${persons.map(p => `<option value="${p}" ${p === loan.person ? 'selected' : ''}>${p}</option>`).join('')}
           </select> 
-      <select id="editLoanCategory" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white">
+      <select id="editLoanCategory" class="w-full p-2 rounded-lg glass border  ">
         ${categories.map(c => `<option value="${c}" ${c === loan.category ? 'selected' : ''}>${c}</option>`).join('')}
       </select> 
-          <input id="editLoanAmount" type="number" value="${loan.amount}" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white" />
-          <input id="editLoanDueDate" type="date" value="${loan.dueDate}" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white" />
-          <input id="editLoanNote" value="${loan.note || ''}" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white" />
-          <select id="editLoanRecurrence" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white">
+          <input id="editLoanAmount" type="number" value="${loan.amount}" class="w-full p-2 rounded-lg glass border  " />
+          <input id="editLoanDueDate" type="date" value="${loan.dueDate}" class="w-full p-2 rounded-lg glass border  " />
+          <input id="editLoanNote" value="${loan.note || ''}" class="w-full p-2 rounded-lg glass border  " />
+          <select id="editLoanRecurrence" class="w-full p-2 rounded-lg glass border  ">
          ${recurrence.map(d => `<option value="${d}" ${d === loan.recurrence ? 'selected' : ''}>${d}</option>`).join('')}
       </select> 
           ${loan.recurrence ? `
-      <select id="editScope" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white">
+      <select id="editScope" class="w-full p-2 rounded-lg glass border  ">
         <option value="this">Only This Loan</option>
         <option value="future">This and Future Loans</option>
         <option value="all">All Loans in Series</option>
       </select>
     ` : ''} 
          
-          <label class="flex items-center space-x-2 p-2 rounded-lg bg-slate-800 border border-slate-700">
+          <label class="flex items-center space-x-2 p-2 rounded-lg glass border ">
             <input type="checkbox" id="editAddReminder" class="rounded bg-slate-700 border-slate-600 text-emerald-400 focus:ring-emerald-400" />
-            <span class="text-sm text-slate-300">Add/Update reminder notification</span>
+            <span class="text-sm ">Add/Update reminder notification</span>
           </label>
           <label class="flex items-center space-x-2">
             <input type="checkbox" id="editLoanCollected" ${loan.collected ? 'checked' : ''} />
-            <span class="text-slate-300">Collected</span>
+            <span class="">Collected</span>
           </label>
           <button class="w-full py-2 rounded-lg bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400" type="submit">💾 Save</button>
         </form>
@@ -1573,13 +1621,13 @@ function enableNotifications() {
 
 function showGoalsModal() {
   const rows = (state.savings || []).map(g => `
-    <div class="flex justify-between items-center bg-slate-800/60 rounded-lg p-3 mb-2 shadow-sm">
+    <div class="flex justify-between items-center  rounded-lg p-3 mb-2 shadow-sm">
       <div>
-        <div class="text-sm font-semibold text-white">${g.name || 'Goal'}</div>
-        <div class="text-xs text-slate-400">Target: ₹${fmtINR(g.target)} | Saved: ₹${fmtINR(g.current)}</div>
+        <div class="text-sm font-semibold ">${g.name || 'Goal'}</div>
+        <div class="text-xs text-muted">Target: ₹${fmtINR(g.target)} | Saved: ₹${fmtINR(g.current)}</div>
       </div>
       <button 
-        class="px-3 py-1 rounded-md bg-rose-500 hover:bg-rose-600 text-white text-xs delGoal" 
+        class="px-3 py-1 rounded-md bg-rose-500 hover:bg-rose-600  text-xs delGoal" 
         data-id="${g.id}">
         🗑️ Delete
       </button>
@@ -1588,8 +1636,8 @@ function showGoalsModal() {
 
   const addForm = `
     <form id="addGoalForm" class="mt-4 space-y-2">
-      <input id="goalName" placeholder="Goal Name" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white" required />
-      <input id="goalTarget" type="number" min="1" placeholder="Target ₹" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white" required />
+      <input id="goalName" placeholder="Goal Name" class="w-full p-2 rounded-lg glass border  " required />
+      <input id="goalTarget" type="number" min="1" placeholder="Target ₹" class="w-full p-2 rounded-lg glass border  " required />
       <button class="w-full py-2 rounded-lg bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400 transition" type="submit">
         ➕ Add Goal
       </button>
@@ -1598,7 +1646,7 @@ function showGoalsModal() {
 
   showSimpleModal(
     '🎯 Savings Goals',
-    `<div class="space-y-3">${rows || `<div class="text-center text-slate-400">No goals added</div>`}${addForm}</div>`
+    `<div class="space-y-3">${rows || `<div class="text-center text-muted">No goals added</div>`}${addForm}</div>`
   );
 
   document.getElementById('addGoalForm').onsubmit = async (e) => {
@@ -1633,16 +1681,16 @@ function showGoalsModal() {
 /*
 function showRemindersModal() {
   const rows = (state.reminders || []).map(r => `
-    <div class="flex justify-between items-center bg-slate-800/60 rounded-lg p-3 mb-2 shadow-sm">
+    <div class="flex justify-between items-center  rounded-lg p-3 mb-2 shadow-sm">
       <div>
-        <div class="text-sm font-semibold text-white">${r.title}</div>
-        <div class="text-xs text-slate-400">
+        <div class="text-sm font-semibold ">${r.title}</div>
+        <div class="text-xs text-muted">
           📅 ${r.dueDate || 'N/A'} ${r.dueTime || ''} • 🔁 ${r.recurrence || 'None'} • 
           ${r.completed ? '✅ Completed' : '⏳ Pending'}
         </div>
       </div>
       <button 
-        class="px-3 py-1 rounded-md bg-rose-500 hover:bg-rose-600 text-white text-xs delRem" 
+        class="px-3 py-1 rounded-md bg-rose-500 hover:bg-rose-600  text-xs delRem" 
         data-id="${r.id}">
         🗑️ Delete
       </button>
@@ -1651,10 +1699,10 @@ function showRemindersModal() {
 
   const addForm = `
     <form id="addReminderForm" class="mt-4 space-y-2">
-      <input id="reminderTitle" placeholder="Title" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white" required />
-      <input id="reminderDate" type="date" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white" required />
-      <input id="reminderTime" type="time" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white" />
-      <select id="reminderRecurrence" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white">
+      <input id="reminderTitle" placeholder="Title" class="w-full p-2 rounded-lg glass border  " required />
+      <input id="reminderDate" type="date" class="w-full p-2 rounded-lg glass border  " required />
+      <input id="reminderTime" type="time" class="w-full p-2 rounded-lg glass border  " />
+      <select id="reminderRecurrence" class="w-full p-2 rounded-lg glass border  ">
         <option value="">None</option>
         <option value="daily">Daily</option>
         <option value="weekly">Weekly</option>
@@ -1668,7 +1716,7 @@ function showRemindersModal() {
 
   showSimpleModal(
     '🔔 Reminders',
-    `<div class="space-y-3">${rows || `<div class="text-center text-slate-400">No reminders</div>`}${addForm}</div>`
+    `<div class="space-y-3">${rows || `<div class="text-center text-muted">No reminders</div>`}${addForm}</div>`
   );
 
   document.getElementById('addReminderForm').onsubmit = async (e) => {
@@ -1713,23 +1761,23 @@ function showRemindersModal() {
       .join('');
 
     return `
-      <div class="flex flex-col bg-slate-800/60 rounded-lg p-3 mb-2 shadow-sm">
+      <div class="flex flex-col  rounded-lg p-3 mb-2 shadow-sm">
         <div class="flex justify-between items-center">
           <div>
-            <div class="text-sm font-semibold text-white">${r.title}</div>
-            <div class="text-xs text-slate-400">
+            <div class="text-sm font-semibold ">${r.title}</div>
+            <div class="text-xs text-muted">
               📅 ${r.dueDate || 'N/A'} ${r.dueTime || ''} • 🔁 ${r.recurrence || 'None'} • 
               ${r.completed ? '✅ Completed' : '⏳ Pending'}
             </div>
           </div>
           <div class="flex gap-2">
             <button 
-              class="px-2 py-1 rounded-md ${r.completed ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-emerald-500 hover:bg-emerald-600'} text-white text-xs toggleRem" 
+              class="px-2 py-1 rounded-md ${r.completed ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-emerald-500 hover:bg-emerald-600'}  text-xs toggleRem" 
               data-id="${r.id}">
               ${r.completed ? '↩️' : '✅'}
             </button>
             <button 
-              class="px-2 py-1 rounded-md bg-rose-500 hover:bg-rose-600 text-white text-xs delRem" 
+              class="px-2 py-1 rounded-md bg-rose-500 hover:bg-rose-600  text-xs delRem" 
               data-id="${r.id}">
               🗑️
             </button>
@@ -1742,10 +1790,10 @@ function showRemindersModal() {
 
   const addForm = `
     <form id="addReminderForm" class="mt-4 space-y-2">
-      <input id="reminderTitle" placeholder="Title" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white" required />
-      <input id="reminderDate" type="date" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white" required />
-      <input id="reminderTime" type="time" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white" />
-      <select id="reminderRecurrence" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 text-white">
+      <input id="reminderTitle" placeholder="Title" class="w-full p-2 rounded-lg glass border  " required />
+      <input id="reminderDate" type="date" class="w-full p-2 rounded-lg glass border  " required />
+      <input id="reminderTime" type="time" class="w-full p-2 rounded-lg glass border  " />
+      <select id="reminderRecurrence" class="w-full p-2 rounded-lg glass border  ">
         <option value="">None</option>
         <option value="daily">Daily</option>
         <option value="weekly">Weekly</option>
@@ -1759,7 +1807,7 @@ function showRemindersModal() {
 
   showSimpleModal(
     '🔔 Reminders',
-    `<div class="space-y-3">${rows || `<div class="text-center text-slate-400">No reminders</div>`}${addForm}</div>`
+    `<div class="space-y-3">${rows || `<div class="text-center text-muted">No reminders</div>`}${addForm}</div>`
   );
 
   // Add Reminder
@@ -1833,10 +1881,10 @@ function showSimpleModal(title, html) {
   modals.innerHTML = `
     <div class='fixed inset-0 flex items-center justify-center z-50'>
       <div class='absolute inset-0 bg-black/50' onclick="document.getElementById('modals').innerHTML=''"></div>
-      <div class='bg-slate-900 rounded-2xl p-4 w-11/12 max-w-2xl z-50'>
+      <div class='glass rounded-2xl p-4 w-11/12 max-w-2xl z-50'>
         <div class="flex justify-between items-center mb-2">
           <h3 class='font-semibold'>${title}</h3>
-          <button onclick="document.getElementById('modals').innerHTML=''" class="text-slate-400 hover:text-white">&times;</button>
+          <button onclick="document.getElementById('modals').innerHTML=''" class="text-muted hover:">&times;</button>
         </div>
         <div class='overflow-auto max-h-[60vh]'>${html}</div>
       </div>
@@ -2087,7 +2135,7 @@ const today = new Date();
 
 
     if (items.length === 0) {
-        list.innerHTML = '<div class="text-center text-slate-400 p-4">No transactions found</div>';
+        list.innerHTML = '<div class="text-center text-muted p-4">No transactions found</div>';
         return;
     }
 
@@ -2095,31 +2143,31 @@ const today = new Date();
     const row = document.createElement('div');
     row.className = `
       flex items-center justify-between p-3 mb-2 rounded-xl shadow 
-      bg-slate-800/50 backdrop-blur-md transition hover:scale-[1.02] hover:bg-slate-800 cursor-pointer
+      glass/50 backdrop-blur-md transition hover:scale-[1.02] hover:glass cursor-pointer
     `;
     const amountColor = t.type === 'in' ? 'text-emerald-400' : 'text-rose-400';
     const sign = t.type === 'in' ? '+' : '-';
     // Recurrence badge
     let recurrenceBadge = '';
     if (t.recurrence) {
-      recurrenceBadge = `<span class="ml-2 px-2 py-0.5 rounded-full bg-amber-600 text-xs text-white">${t.recurrence.charAt(0).toUpperCase() + t.recurrence.slice(1)}</span>`;
+      recurrenceBadge = `<span class="ml-2 px-2 py-0.5 rounded-full bg-amber-600 text-xs ">${t.recurrence.charAt(0).toUpperCase() + t.recurrence.slice(1)}</span>`;
     }
     // Auto-generated badge
     let autoBadge = '';
     if (t.recurringOrigin) {
-      autoBadge = `<span class="ml-2 px-2 py-0.5 rounded-full bg-sky-700 text-xs text-white" title="Auto">⟳</span>`;
+      autoBadge = `<span class="ml-2 px-2 py-0.5 rounded-full bg-sky-700 text-xs " title="Auto">⟳</span>`;
     }
 
     row.innerHTML = `
       <div class="flex flex-col">
         <div class="flex items-center space-x-2">
-          <span class="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">${t.category}</span>
-          <span class="text-sm text-slate-400">${t.date} <span class="text-xs text-slate-500">${t.createdAt ? new Date(t.createdAt).toLocaleString() : '(no timestamp)'}</span></span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-slate-500 ">${t.category}</span>
+          <span class="text-sm text-muted">${t.date} </span>
           ${recurrenceBadge}
           ${autoBadge}
         </div>
-        <div class="text-base font-semibold text-white">${t.note || '(No Note)'}</div>
-        <div class="text-xs text-slate-400">${t.account}</div>
+        <div class="text-base font-semibold ">${t.note || '(No Note)'}</div>
+        <div class="text-xs text-muted">${t.account} <span class="text-xs text-slate-500">${t.createdAt ? new Date(t.createdAt).toLocaleString() : '(no timestamp)'}</span></div>
       </div>
       <div class="flex flex-col items-end">
         <div class="text-lg font-bold ${amountColor}">${sign}${fmtINR(t.amount)}</div>
@@ -2164,50 +2212,50 @@ function openEditTransactionModal(id) {
       <!-- Overlay -->
       <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="closeModal"></div>
       <!-- Modal Box -->
-      <div class="bg-slate-900 rounded-2xl p-6 w-11/12 max-w-md z-50 shadow-lg transition-all animate-scaleIn">
+      <div class="glass rounded-2xl p-6 w-11/12 max-w-md z-50 shadow-lg transition-all animate-scaleIn">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-white">✏️ Edit Transaction</h3>
-          <button id="closeModalBtn" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+          <h3 class="text-lg font-semibold ">✏️ Edit Transaction</h3>
+          <button id="closeModalBtn" class="text-muted hover: text-2xl">&times;</button>
         </div>
         <div class="space-y-3">
           <div>
-            <label class="block text-xs text-slate-400 mb-1">Date</label>
+            <label class="block text-xs text-muted mb-1">Date</label>
             <input id="tx_date" type="date"
-              class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+              class="w-full p-3 rounded-lg glass border  "
               value="${t.date}" />
           </div>
           <div>
-            <label class="block text-xs text-slate-400 mb-1">Type</label>
+            <label class="block text-xs text-muted mb-1">Type</label>
             <select id="tx_type"
-              class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white">
+              class="w-full p-3 rounded-lg glass border  ">
               <option value="out" ${t.type === 'out' ? 'selected' : ''}>Expense</option>
               <option value="in" ${t.type === 'in' ? 'selected' : ''}>Income</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs text-slate-400 mb-1">Amount</label>
+            <label class="block text-xs text-muted mb-1">Amount</label>
             <input id="tx_amount" type="number" step="0.01"
-              class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+              class="w-full p-3 rounded-lg glass border  "
               value="${t.amount}" placeholder="Enter amount" />
           </div>
           <div>
-            <label class="block text-xs text-slate-400 mb-1">Account</label>
+            <label class="block text-xs text-muted mb-1">Account</label>
             <select id="tx_account"
-              class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white">
+              class="w-full p-3 rounded-lg glass border  ">
               ${state.dropdowns.accounts.map(a => `<option ${a===t.account?'selected':''}>${a}</option>`).join('')}
             </select>
           </div>
           <div>
-            <label class="block text-xs text-slate-400 mb-1">Category</label>
+            <label class="block text-xs text-muted mb-1">Category</label>
             <select id="tx_category"
-              class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white">
+              class="w-full p-3 rounded-lg glass border  ">
               ${state.dropdowns.categories.map(c => `<option ${c===t.category?'selected':''}>${c}</option>`).join('')}
             </select>
           </div>
           <div>
-            <label class="block text-xs text-slate-400 mb-1">Recurrence</label>
+            <label class="block text-xs text-muted mb-1">Recurrence</label>
             <select id="tx_recurrence"
-              class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white">
+              class="w-full p-3 rounded-lg glass border  ">
               <option value="">None</option>
               <option value="daily" ${t.recurrence === 'daily' ? 'selected' : ''}>Daily</option>
               <option value="weekly" ${t.recurrence === 'weekly' ? 'selected' : ''}>Weekly</option>
@@ -2216,9 +2264,9 @@ function openEditTransactionModal(id) {
             </select>
           </div>
           <div>
-            <label class="block text-xs text-slate-400 mb-1">Note</label>
+            <label class="block text-xs text-muted mb-1">Note</label>
             <input id="tx_note"
-              class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white"
+              class="w-full p-3 rounded-lg glass border  "
               value="${t.note||''}" placeholder="Optional note" />
           </div>
         </div>
@@ -2228,7 +2276,7 @@ function openEditTransactionModal(id) {
             ✅ Update
           </button>
           <button id="cancelTx"
-            class="flex-1 py-3 rounded-lg bg-slate-700 text-white font-semibold hover:bg-slate-600 transition">
+            class="flex-1 py-3 rounded-lg bg-slate-700  font-semibold hover:bg-slate-600 transition">
             Cancel
           </button>
         </div>
@@ -2253,7 +2301,8 @@ function openEditTransactionModal(id) {
     t.category = document.getElementById('tx_category').value;
     t.recurrence = document.getElementById('tx_recurrence').value;
     t.note = document.getElementById('tx_note').value || '';
-    t.createdAt = nowISO1();
+    t.Modified= nowISO1();
+	//t.createdAt = nowISO1();
     try {
       await put('transactions', t);
       renderAll();
@@ -2303,7 +2352,7 @@ function processToastQueue() {
   // Create toast element
   const toast = document.createElement('div');
   toast.className = `
-    max-w-xs px-4 py-3 rounded-lg shadow-lg text-white font-medium
+    max-w-xs px-4 py-3 rounded-lg shadow-lg  font-medium
     transition-all transform duration-300 ease-out opacity-0 translate-x-6
     ${colors[type] || colors.info}
   `;
@@ -2340,24 +2389,24 @@ const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.l
   const html = `
     <div class="fixed inset-0 flex items-center justify-center z-50">
       <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
-      <div class="bg-slate-900 rounded-2xl shadow-2xl p-5 w-11/12 max-w-md z-50 animate-fadeIn">
-        <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+      <div class="glass rounded-2xl shadow-2xl p-5 w-11/12 max-w-md z-50 animate-fadeIn">
+        <h3 class="text-lg font-semibold  mb-4 flex items-center gap-2">
           ➕ Add Transaction
         </h3>
-        <div class="space-y-3 text-sm text-white">
+        <div class="space-y-3 text-sm ">
           
           <!-- Date -->
           <label class="block">
-            <span class="text-xs text-slate-400">Date</span>
+            <span class="text-xs text-muted">Date</span>
             <input id="tx_date" type="date" value="${today}"
-              class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+              class="w-full p-2 rounded-lg glass border  focus:outline-none focus:ring-2 focus:ring-emerald-400" />
           </label>
 
           <!-- Type -->
           <label class="block">
-            <span class="text-xs text-slate-400">Type</span>
+            <span class="text-xs text-muted">Type</span>
             <select id="tx_type"
-              class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400">
+              class="w-full p-2 rounded-lg glass border  focus:outline-none focus:ring-2 focus:ring-emerald-400">
               <option value="out" ${prefill.type === 'out' ? 'selected' : ''}>💸 Expense</option>
               <option value="in" ${prefill.type === 'in' ? 'selected' : ''}>💰 Income</option>
             </select>
@@ -2365,44 +2414,44 @@ const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.l
 
           <!-- Amount -->
           <label class="block">
-            <span class="text-xs text-slate-400">Amount</span>
+            <span class="text-xs text-muted">Amount</span>
             <input id="tx_amount" type="number" step="0.01" value="${prefill.amount || ''}"
-              class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              class="w-full p-2 rounded-lg glass border  focus:outline-none focus:ring-2 focus:ring-emerald-400"
               placeholder="Enter amount" />
           </label>
 
           <!-- Account -->
           <label class="block">
-            <span class="text-xs text-slate-400">Account</span>
+            <span class="text-xs text-muted">Account</span>
             <select id="tx_account"
-              class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400">
+              class="w-full p-2 rounded-lg glass border  focus:outline-none focus:ring-2 focus:ring-emerald-400">
               ${state.dropdowns.accounts.map(a => `<option ${a === prefill.account ? 'selected' : ''}>${a}</option>`).join('')}
             </select>
           </label>
 
           <!-- Category -->
           <label class="block">
-            <span class="text-xs text-slate-400">Category</span>
+            <span class="text-xs text-muted">Category</span>
             <select id="tx_category"
-              class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400">
+              class="w-full p-2 rounded-lg glass border  focus:outline-none focus:ring-2 focus:ring-emerald-400">
               ${state.dropdowns.categories.map(c => `<option ${c === prefill.category ? 'selected' : ''}>${c}</option>`).join('')}
             </select>
           </label>
 
           <!-- Recurrence -->
           <label class="block">
-            <span class="text-xs text-slate-400">Recurrence</span>
+            <span class="text-xs text-muted">Recurrence</span>
             <select id="tx_recurrence"
-              class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400">
+              class="w-full p-2 rounded-lg glass border  focus:outline-none focus:ring-2 focus:ring-emerald-400">
                ${recurrences.map(r=>`<option value="${(r||'').toString().toLowerCase()}">${r}</option>`).join('')}
               </select>
           </label>
 
           <!-- Note -->
           <label class="block">
-            <span class="text-xs text-slate-400">Note</span>
+            <span class="text-xs text-muted">Note</span>
             <input id="tx_note" value="${prefill.note || ''}"
-              class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              class="w-full p-2 rounded-lg glass border  focus:outline-none focus:ring-2 focus:ring-emerald-400"
               placeholder="Optional note" />
           </label>
         </div>
@@ -2414,7 +2463,7 @@ const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.l
             💾 Save
           </button>
           <button id="cancelTx"
-            class="flex-1 py-2 rounded-lg bg-slate-700 text-white font-semibold hover:bg-slate-600 transition">
+            class="flex-1 py-2 rounded-lg bg-slate-700  font-semibold hover:bg-slate-600 transition">
             ✖ Cancel
           </button>
         </div>
@@ -2437,7 +2486,7 @@ const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.l
       category: document.getElementById('tx_category').value,
       recurrence: document.getElementById('tx_recurrence').value,
       note: document.getElementById('tx_note').value || '',
-      createdAt: nowISO1()
+      createdAt: nowISO1() 
     };
 
     try {
@@ -2531,7 +2580,7 @@ function renderDropdownManager(){
       row.innerHTML = `<div class='flex-1'>${item}</div><div><button data-idx='${idx}' data-key='${arrKey}' class='editDd text-xs'>Rename</button> <button data-idx='${idx}' data-key='${arrKey}' class='delDd text-xs text-rose-400'>Del</button></div>`;
       list.appendChild(row);
     });
-    const addRow = document.createElement('div'); addRow.className='flex gap-2 mt-2'; addRow.innerHTML = `<input placeholder='Add' class='flex-1 p-1 rounded bg-slate-800 text-sm' data-key='${arrKey}'/><button class='addDd px-2 rounded bg-emerald-500 text-slate-900'>Add</button>`;
+    const addRow = document.createElement('div'); addRow.className='flex gap-2 mt-2'; addRow.innerHTML = `<input placeholder='Add' class='flex-1 p-1 rounded glass text-sm' data-key='${arrKey}'/><button class='addDd px-2 rounded bg-emerald-500 text-slate-900'>Add</button>`;
     wrap.appendChild(list); wrap.appendChild(addRow);
     return wrap;
   };
@@ -2624,7 +2673,7 @@ function checkBudgetAlerts(){
 /*function renderNotifications(){
   const list = document.getElementById('notifList'); list.innerHTML='';
   const items = state.reminders.slice(-30).reverse();
-  items.forEach(r=>{ const div = document.createElement('div'); div.className='p-2 border-b border-slate-800'; div.innerHTML=`<div class='font-semibold'>${r.title||r.name||'Reminder'}</div><div class='text-xs text-slate-400'>${r.dueDate||''}</div>`; list.appendChild(div); });
+  items.forEach(r=>{ const div = document.createElement('div'); div.className='p-2 border-b border-slate-800'; div.innerHTML=`<div class='font-semibold'>${r.title||r.name||'Reminder'}</div><div class='text-xs text-muted'>${r.dueDate||''}</div>`; list.appendChild(div); });
   document.getElementById('notifCount').innerText = items.length;
 }*/
 function renderNotifications() {
@@ -2638,7 +2687,7 @@ function renderNotifications() {
     div.innerHTML = `
       <div>
         <div class='font-semibold'>${r.title || r.name || 'Reminder'}</div>
-        <div class='text-xs text-slate-400'>${r.dueDate || ''} ${r.dueTime || ''} ${r.recurrence ? '(' + r.recurrence + ')' : ''}</div>
+        <div class='text-xs text-muted'>${r.dueDate || ''} ${r.dueTime || ''} ${r.recurrence ? '(' + r.recurrence + ')' : ''}</div>
       </div>
       <button class="ml-2 px-2 py-1 rounded bg-emerald-500 text-slate-900 text-xs markRemDone" data-id="${r.id}">✅Done</button>
     `;
@@ -3190,19 +3239,19 @@ function updateSuggestions() {
 
   suggestionsBox.innerHTML = `
     ${suggestions.map((s, i) => `
-      <div class="suggestion p-2 text-sm hover:bg-slate-700 cursor-pointer text-slate-300" data-index="${i}" data-text="${s.text}">
+      <div class="suggestion p-2 text-sm cursor-pointer " data-index="${i}" data-text="${s.text}">
         🔍 ${s.text}
       </div>
     `).join('')}
     ${txMatches.map((t, i) => `
-      <div class="suggestion p-2 hover:bg-slate-700 cursor-pointer" data-index="${suggestions.length + i}" data-text="${t.note || ''}">
-        <div class="flex justify-between text-sm text-white">
+      <div class="suggestion p-2 cursor-pointer" data-index="${suggestions.length + i}" data-text="${t.note || ''}">
+        <div class="flex justify-between text-sm ">
           <span>${t.note || '(No Note)'}</span>
           <span class="${t.type === 'in' ? 'text-emerald-400' : 'text-rose-400'} font-semibold">
             ${t.type === 'in' ? '+' : '-'}${fmtINR(t.amount)}
           </span>
         </div>
-        <div class="text-xs text-slate-400">
+        <div class="text-xs text-muted">
           ${t.category || 'Uncategorized'} • ${t.account} • ${t.date}
         </div>
       </div>
@@ -3277,6 +3326,25 @@ function levenshteinDistance(a, b) {
 
 searchInput.addEventListener('input', updateSuggestions);
 searchInput.addEventListener('blur', () => setTimeout(() => suggestionsBox.classList.add('hidden'), 200));
+
+const themeToggle = document.getElementById('themeToggle');
+  const root = document.documentElement;
+
+  // Load theme from localStorage if available
+  if(localStorage.getItem('theme') === 'dark') {
+    root.classList.add('dark');
+  }
+
+  // Toggle theme when button is clicked
+  themeToggle.addEventListener('click', () => {
+    root.classList.toggle('dark');
+    if(root.classList.contains('dark')) {
+      localStorage.setItem('theme', 'dark');
+    } else {
+      localStorage.setItem('theme', 'light');
+    }
+  });
+
 
 // ----------------------------
 // Start
