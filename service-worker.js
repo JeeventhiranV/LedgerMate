@@ -2,12 +2,12 @@ self.addEventListener('install', e => {
   e.waitUntil(
     caches.open('ledgermate-cache').then(cache => {
       return cache.addAll([
-        'LedgerMate/index.html',
-        'LedgerMate/manifest.json',
-        'LedgerMate/icons/icon-512.png',
-        'LedgerMate/icons/icon-192.png',
-        'LedgerMate/libs/tailwind.min.js',
-        'LedgerMate/libs/chart.min.js',
+        './index.html',
+        './manifest.json',
+        './icons/icon-512.png',
+        './icons/icon-192.png',
+        './libs/tailwind.min.js',
+        './libs/chart.min.js',
         // add any other CSS/JS/images you use
       ]);
     })
