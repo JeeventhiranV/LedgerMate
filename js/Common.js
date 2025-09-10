@@ -202,7 +202,7 @@ async function seedDefaults(){
   // put default settings if missing
   const settingsAll = await getAll('settings');
   const hasMeta = settingsAll.find(x=>x.key==='meta');
-  if (!hasMeta) await put('settings',{key:'meta', value:{theme:'dark', kpiRange:30}});
+  if (!hasMeta) await put('settings',{key:'meta', value:{theme:'dark', kpiRange:90}});
 }
 
 async function loadAllFromDB(){
@@ -242,6 +242,7 @@ function bindUI(){
   document.getElementById('openLoans').onclick = showLoansModal;
   document.getElementById('openGoals').onclick = showGoalsModal;
   document.getElementById('openRemainders').onclick = showRemindersModal;
+  document.getElementById('openInvestments').onclick = showInvestmentsModal;
   document.getElementById('accountFilter').onchange = refreshRecentList;
   document.getElementById('clearData').addEventListener('click', clearAllData);
   // file import input
@@ -711,7 +712,7 @@ function showLoansModal(prefill = {}) {
       <div>
         <span class="font-semibold ">${group.person || 'Unknown'}</span>
 		<div class="text-xs text-muted font-semibold ">P: ${fmtINR(Math.abs(group.pendingTotal))} | C: ${fmtINR(Math.abs(group.collectedTotal))}
-		  <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-slate-700 ">${typeLabel}</span>
+		  <span class="ml-2 px-2 py-0.5 text-xs rounded-full  ">${typeLabel}</span>
         </div>
         
         
@@ -1994,7 +1995,7 @@ function renderBudgetChart(){
   if (budgetChart instanceof Chart) budgetChart.destroy();
   budgetChart = new Chart(ctx, {type:'bar', data:{labels:cats, datasets:[{label:'Limit', data:dataLimit, backgroundColor:'rgba(99,102,241,0.25)'},{label:'Actual', data:dataActual, backgroundColor:'rgba(99,102,241,0.9)'}]}, options:{responsive:true, maintainAspectRatio:false}});
 }
-
+/*
 function renderHeatmap(){
   const grid = document.getElementById('heatmap'); grid.innerHTML='';
   const days=30; const today = new Date();
@@ -2004,6 +2005,33 @@ function renderHeatmap(){
     const intensity = Math.min(1, total/1000);
     const bg = `rgba(99,102,241,${0.05+intensity*0.8})`;
     const el = document.createElement('div'); el.className='p-2 rounded'; el.style.background=bg; el.title=`${d.toLocaleDateString()}: ₹${total}`; el.innerText = d.getDate(); grid.appendChild(el);
+  }
+}*/
+function renderHeatmap() {
+  const grid = document.getElementById('heatmap');
+  grid.innerHTML = '';
+
+  const days = 30;
+  const today = new Date();
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(today.getDate() - i);
+
+    const total = state.transactions
+      .filter(t => new Date(t.date).toDateString() === d.toDateString())
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    const intensity = Math.min(1, total / 1000);
+    const bg = `rgba(99, 102, 241, ${0.1 + intensity * 0.7})`;
+
+    const el = document.createElement('div');
+    el.className = 'heatmap-cell';
+    el.style.background = bg;
+    el.title = `${d.toLocaleDateString()}: ₹${total.toLocaleString()}`;
+    el.innerText = d.getDate();
+
+    grid.appendChild(el);
   }
 }
 
@@ -2277,7 +2305,7 @@ function openEditTransactionModal(id) {
             ✅ Update
           </button>
           <button id="cancelTx"
-            class="flex-1 py-3 rounded-lg bg-slate-700  font-semibold hover:bg-slate-600 transition">
+            class="flex-1 py-3 rounded-lg   font-semibold  transition">
             Cancel
           </button>
         </div>
@@ -2464,7 +2492,7 @@ const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.l
             💾 Save
           </button>
           <button id="cancelTx"
-            class="flex-1 py-2 rounded-lg bg-slate-700  font-semibold hover:bg-slate-600 transition">
+            class="flex-1 py-2 rounded-lg    font-semibold  transition">
             ✖ Cancel
           </button>
         </div>
@@ -2511,7 +2539,8 @@ const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.l
 // ...existing code...
 let dropdownManagerMinimized = true;
 let recentTxMinimized = true;
-let dashboardsMinimized = true;
+let dashboardsMinimized = true; 
+
 function updateDropdownManagerVisibility() {
   const dm = document.getElementById('dropdownManager');
   const icon = document.getElementById('dropdownManagerToggleIcon');
@@ -3419,7 +3448,7 @@ function renderAccountSummaries() {
     checkAllNotifications();
     setInterval(checkAllNotifications, 60 * 60 * 1000);
     processRecurringTransactions();
-    setInterval(processRecurringTransactions, 60 * 60 * 1000);
+    setInterval(processRecurringTransactions, 60 * 60 * 1000); 
     //setDataFolder();
   } catch (err) {
     console.error('Startup error', err);
