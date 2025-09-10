@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ledgermate-cache-v3';
+const CACHE_NAME = 'ledgermate-cache-v4';
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -10,8 +10,8 @@ self.addEventListener('install', event => {
         './icons/icon-192.png',
         './libs/tailwind.min.js',
         './libs/chart.min.js',
-        './css/style.css',
-        './js/Common.js'
+        './js/Common.js',
+        './js/Investments.js'
       ]);
     })
   );
