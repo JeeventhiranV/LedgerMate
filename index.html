@@ -142,7 +142,7 @@
           <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/></svg>
           Net Cashflow (90d)
         </h4>
-<div class="h-40 md:h-56">
+<div class="h-80 md:h-56">
         <canvas id="cashflowChart" class="w-full h-full"></canvas>
       </div>
       </div>
@@ -152,7 +152,7 @@
           <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
           Expenses by Category (This Month)
         </h4>
- <div class="h-40 md:h-56">
+      <div class="h-100 md:h-56">
         <canvas id="categoryDoughnut" class="w-full h-full"></canvas>
       </div>
       </div>
@@ -162,37 +162,23 @@
           <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
           Budget vs Actual
         </h4>
-<div class="h-40 md:h-56">
+<div class="h-80 md:h-56">
         <canvas id="budgetChart" class="w-full h-full"></canvas>
       </div>
 
       </div>
       <!-- Dashboard 4: Expense Heatmap -->
-      <div>
-        <h4 class="font-semibold mb-1 text-blue-300 flex items-center gap-2">
+      <div id="heatmapContainer">
+        <h4 class="font-semibold mb-1 text-blue-300 flex items-center gap-2 heatmap-title">
           <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/></svg>
-          Expense Heatmap
+          Expense Heatmap (30 Days)
         </h4>
         <div id="heatmap" class="grid grid-cols-7 gap-1 text-xs"></div>
       </div>
     </div>
   </div>
-
-  <!-- Quick Actions Card -->
-  <div class="card">
-    <div class="flex items-center justify-between mb-2">
-      <h3 class="font-semibold">Quick Actions</h3>
-    </div>
-    <div class="space-y-2">
-      <button id="openBudgets" class="w-full text-left p-2 card ">Budgets</button>
-      <button id="openLoans" class="w-full text-left p-2 card">Loans</button>
-      <button id="openGoals" class="w-full text-left p-2  card">Savings Goals</button>
-      <button id="openRemainders" class="w-full text-left p-2  card">Remainders</button>
-    </div>
-  </div>
-
-  <!-- Transactions History Card (collapsible) -->
-  <div class="card w-full text-left p-2 rounded-lg card" id="toggleRecentTxCard">
+<!-- Transactions History Card (collapsible) -->
+  <div class=" w-full text-left p-2 rounded-lg glass" id="toggleRecentTxCard">
     <div class="flex items-center justify-between mb-2">
       <h3 class="font-semibold" id="toggleRecentTxHDR">Transactions History</h3>
       <select id="accountFilter" class="rounded-lg   p-2 text-sm ml-2"></select>
@@ -209,9 +195,40 @@
       <div id="recentList" class="max-h-64 overflow-auto text-sm"></div>
     </div>
   </div>
-
+  <!-- Quick Actions Card -->
+<div class="card   rounded-xl shadow-md border  p-4 max-w-sm mx-auto">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="font-bold text-xl text-indigo-700">⚡ Quick Actions</h3>
+  </div>
+  
+  <div class="space-y-3">
+    <button id="openLoans" class="glass w-full flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50 transition">
+      <span class="text-indigo-500 text-xl">💸</span>
+      <span class="font-medium  ">Loans</span>
+    </button>
+       <button id="openInvestments" class="glass w-full flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50 transition">
+      <span class="text-indigo-500 text-xl">💼</span>
+      <span class="font-medium ">Investments</span>
+    </button>  
+     <button id="openRemainders" class="glass w-full flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50 transition">
+      <span class="text-indigo-500 text-xl">⏰</span>
+      <span class="font-medium ">Remainders</span>
+    </button>
+    <button id="openGoals" class="glass w-full flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50 transition">
+      <span class="text-indigo-500 text-xl">🎯</span>
+      <span class="font-medium  ">Savings Goals</span>
+    </button> 
+     <button id="openBudgets" class="glass w-full flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50 transition">
+      <span class="text-indigo-500 text-xl">📊</span>
+      <span class="font-medium  ">Budgets</span>
+    </button>
+   
+ 
+  </div>
+</div>
+ 
   <!-- Dropdown Manager Card (collapsible) -->
-  <div class="card w-full text-left p-2 rounded-lg card">
+  <div class=" w-full text-left p-2 rounded-lg glass">
     <div class="flex items-center justify-between mb-2" id="toggleDropdownManager">
       <h3 class="font-semibold" >Dropdown Manager</h3>
       <button
@@ -235,5 +252,7 @@
     </div>
   </div> 
   <script src="./js/Common.js"></script>
+  <script src="./js/Investments.js"></script>
+  
 </body> 
 </html>
