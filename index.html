@@ -146,13 +146,20 @@
 </div>
 <div class="space-y-6">
          <h4 class="font-semibold mb-1 text-blue-500 flex items-center gap-2">
-          <svg class="w-4 h-4 text-blue-500  " fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/></svg>Account summary</h4>
+          <svg class="w-4 h-4 text-blue-500  " fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/></svg>Account summary
+         <button id="voiceTxBtn" class="w-60 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 flex items-center justify-center gap-2">
+            🎤 Speak 
+          </button>
+        </h4>
+         
 	 <div id="accountSummaries"></div>
 </div>
+
 
     
 
       </section>
+     
 <button id="fabAddTx"
   class="fixed bottom-6 right-6 z-50 rounded-full bg-emerald-500 hover:bg-emerald-600 shadow-lg w-12 h-12 flex items-center justify-center text-4xl text-slate-900 transition-all"
   title="Add Transaction" aria-label="Add Transaction">
@@ -161,6 +168,8 @@
     <path stroke="#1e293b" stroke-width="2" stroke-linecap="round" d="M12 8v8M8 12h8"/>
   </svg>
 </button>
+
+ 
 
       <!-- Main grid: Make it a single column on all screens for best mobile UX -->
 <div class="space-y-6">
@@ -364,9 +373,7 @@
   <script src="./js/Common.js"></script>
   <script src="./js/Investments.js"></script>
   <script src="./js/Charts/Doughnut.js"></script>
-  
-</body> 
+  <script src="./js/SppechText/VoiceText.js"></script>
+
+</body>
 </html>
-
-
-
