@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ledgermate-cache-v6';
+/*const CACHE_NAME = 'ledgermate-cache-v6';
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -15,7 +15,7 @@ self.addEventListener('install', event => {
       ]);
     })
   );
-});
+}); 
 
 self.addEventListener('activate', event => {
   event.waitUntil(
@@ -30,7 +30,6 @@ self.addEventListener('activate', event => {
     })
   );
 });
-
 self.addEventListener('fetch', event => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
@@ -50,4 +49,18 @@ self.addEventListener('fetch', event => {
       })
     );
   }
+});*/
+self.addEventListener("install", (event) => {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(clients.claim());
+});
+
+self.addEventListener("fetch", (event) => {
+  event.respondWith(
+    fetch(event.request, { cache: "no-store" }) // always fetch fresh
+      .catch(() => caches.match(event.request)) // fallback when offline
+  );
 });
