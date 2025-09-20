@@ -1966,7 +1966,7 @@ function renderCashflow(){
     options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}}
   });
 }
-
+/*
 function renderDoughnut(){
   const thisMonth = new Date().getMonth();
   const byCat = {};
@@ -1981,7 +1981,7 @@ function renderDoughnut(){
   const ctx = document.getElementById('categoryDoughnut').getContext('2d');
   if (doughnutChart instanceof Chart) doughnutChart.destroy();
   doughnutChart = new Chart(ctx, {type:'doughnut', data:{labels, datasets:[{data, backgroundColor: labels.map((_,i)=>`hsl(${i*40%360} 70% 50%)`)}]}, options:{plugins:{legend:{position:'bottom'}}}});
-}
+}*/
 
 function renderBudgetChart(){
   // simple: for this month, per-category limit vs actual
@@ -2551,11 +2551,11 @@ function updateDropdownManagerVisibility() {
     dm.style.display = '';
     icon.textContent = '−';
   }
-}
+}/*
 document.getElementById('toggleDropdownManager').onclick = function() {
   dropdownManagerMinimized = !dropdownManagerMinimized;
   updateDropdownManagerVisibility();
-};
+};*/
 
 function updateRecentTxVisibility() {
   const section = document.getElementById('recentTxSection');
@@ -2576,7 +2576,7 @@ document.getElementById('toggleRecentTxHDR').onclick = function() {
   recentTxMinimized = !recentTxMinimized;
   updateRecentTxVisibility();
 };
-
+ 
 function updateDashboardsVisibility() {
   const section = document.getElementById('dashboardsSection');
   const icon = document.getElementById('dashboardsToggleIcon');
@@ -2596,7 +2596,7 @@ document.getElementById('toggleDashboards').onclick = function() {
  
 window.addEventListener('DOMContentLoaded', updateDashboardsVisibility);
 window.addEventListener('DOMContentLoaded', updateRecentTxVisibility);
-window.addEventListener('DOMContentLoaded', updateDropdownManagerVisibility);
+//window.addEventListener('DOMContentLoaded', updateDropdownManagerVisibility);
 // ...existing code...
 function renderDropdownManager(){
   const el = document.getElementById('dropdownManager'); el.innerHTML='';
@@ -3454,3 +3454,17 @@ function renderAccountSummaries() {
     console.error('Startup error', err);
   }
 })();
+const sidebar = document.getElementById("sidebar");
+const sidebarOverlay = document.getElementById("sidebarOverlay");
+const menuBtn = document.getElementById("menuBtn");
+
+menuBtn.addEventListener("click", () => {
+  sidebar.classList.toggle("-translate-x-full");
+  sidebarOverlay.classList.toggle("hidden");
+});
+
+sidebarOverlay.addEventListener("click", () => {
+  sidebar.classList.add("-translate-x-full");
+  sidebarOverlay.classList.add("hidden");
+});
+document.getElementById("year").textContent = new Date().getFullYear();
