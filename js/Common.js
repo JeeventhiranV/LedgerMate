@@ -3468,3 +3468,30 @@ sidebarOverlay.addEventListener("click", () => {
   sidebarOverlay.classList.add("hidden");
 });
 document.getElementById("year").textContent = new Date().getFullYear();
+const helpModal = document.getElementById("helpModal");
+const closeHelpModal = document.getElementById("closeHelpModal");
+const closeHelpBtn = document.getElementById("closeHelpBtn");
+
+// Open modal (attach this to a button somewhere in sidebar/header)
+document.getElementById("openHelpBtn")?.addEventListener("click", () => {
+  helpModal.classList.remove("hidden");
+  helpModal.classList.add("flex");
+});
+
+// Close modal
+closeHelpModal.addEventListener("click", () => {
+  helpModal.classList.add("hidden");
+  helpModal.classList.remove("flex");
+});
+closeHelpBtn.addEventListener("click", () => {
+  helpModal.classList.add("hidden");
+  helpModal.classList.remove("flex");
+});
+
+// Close modal when clicking outside the content
+helpModal.addEventListener("click", (e) => {
+  if (e.target === helpModal) {
+    helpModal.classList.add("hidden");
+    helpModal.classList.remove("flex");
+  }
+});
