@@ -3058,7 +3058,7 @@ async function setDataFolder(){
     // try auto-load most recent csv/json
     if(confirm('Load latest backup from this folder? Existing data will be merged.'))
   {
-    await tryAutoLoadFolder();
+  //  await tryAutoLoadFolder();
   }
     
     autoBackup();
