@@ -321,9 +321,45 @@
   </footer>
     </div>
   </div> 
+	<!-- Help / Tutorial Modal -->
+<div id="helpModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
+  <div class="bg-white rounded-xl shadow-lg max-w-lg w-full p-6 relative">
+    
+    <!-- Close Button -->
+    <button id="closeHelpModal" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-xl">&times;</button>
+    
+    <!-- Header -->
+    <h2 class="text-xl font-semibold text-indigo-600 mb-4">LedgerMate Tutorial</h2>
+    
+    <!-- Tutorial Content -->
+    <div class="space-y-3 text-sm text-gray-700 max-h-96 overflow-y-auto">
+      <p>Welcome to LedgerMate! Here’s a quick guide to get you started:</p>
+      <ol class="list-decimal list-inside space-y-2">
+        <li>Use the <strong>Quick Actions</strong> in the sidebar to manage Loans, Investments, Remainders, Goals, and Budgets.</li>
+        <li>Check <strong>KPI cards</strong> at the top for quick Balance, Income, Expense, and P & L overview.</li>
+        <li>View charts under Dashboards for Net Cashflow, Expenses by Category, Budget vs Actual, and Heatmap visualizations.</li>
+        <li>Use filters to customize the view: time range, transaction type, and accounts.</li>
+        <li>Click the <strong>➕ Add Transaction</strong> button to quickly add new transactions.</li>
+        <li>Toggle dark/light mode using the theme button in the top-right.</li>
+        <li>Search transactions using the search box in the Transactions History card.</li>
+        <li>All data is stored offline and can be exported in JSON format anytime using the export button.</li>
+      </ol>
+      <p>Enjoy tracking your finances with LedgerMate!</p>
+    </div>
+
+    <!-- Footer / Action Button -->
+    <div class="mt-4 text-right">
+      <button id="closeHelpBtn" class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition">
+        Got it
+      </button>
+    </div>
+  </div>
+</div>
+
   <script src="./js/Common.js"></script>
   <script src="./js/Investments.js"></script>
   <script src="./js/Charts/Doughnut.js"></script>
   
 </body> 
 </html>
+
