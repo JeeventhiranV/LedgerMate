@@ -9,7 +9,7 @@
 
     voiceBtn.addEventListener("click", () => {
       recognition.start();
-      voiceBtn.textContent = "🎙 Listening...";
+      voiceBtn.textContent = "🎙 List...";
     });
 
     recognition.addEventListener("end", () => {
