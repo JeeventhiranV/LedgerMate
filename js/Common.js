@@ -3061,7 +3061,7 @@ async function setDataFolder(){
    await tryAutoLoadFolder();
   }*/
     
-    autoBackup();
+    //autoBackup();
   }catch(err){ console.warn(err); }
 }
 
