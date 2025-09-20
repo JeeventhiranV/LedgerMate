@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ledgermate-cache-v5';
+const CACHE_NAME = 'ledgermate-cache-v6';
 
 self.addEventListener('install', event => {
   event.waitUntil(
