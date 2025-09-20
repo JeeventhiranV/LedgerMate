@@ -9,11 +9,11 @@
 
     voiceBtn.addEventListener("click", () => {
       recognition.start();
-      voiceBtn.textContent = "🎙..";
+      voiceBtn.textContent = "🎙";
     });
 
     recognition.addEventListener("end", () => {
-      voiceBtn.textContent = "🎤.";
+      voiceBtn.textContent = "🎤";
     });
 
     recognition.addEventListener("result", (event) => {
