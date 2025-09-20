@@ -2423,7 +2423,7 @@ const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.l
           ➕ Add Transaction
         </h3>
         <div class="space-y-3 text-sm ">
-          
+           <!-- Voice Input --> 
           <!-- Date -->
           <label class="block">
             <span class="text-xs text-muted">Date</span>
@@ -2528,7 +2528,7 @@ const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.l
     } catch (e) {
       showToast('❌ Failed to add transaction!', 'error');
     }
-  };
+  }; 
 }
 
 
