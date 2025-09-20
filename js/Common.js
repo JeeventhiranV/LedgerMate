@@ -3056,10 +3056,10 @@ async function setDataFolder(){
     await put('settings', {key:'dataFolderHandle', value:dir});
     document.getElementById('folderLabel').innerText = 'Folder set ✔';
     // try auto-load most recent csv/json
-    if(confirm('Load latest backup from this folder? Existing data will be merged.'))
+  /*  if(confirm('Load latest backup from this folder? Existing data will be merged.'))
   {
-  //  await tryAutoLoadFolder();
-  }
+   await tryAutoLoadFolder();
+  }*/
     
     autoBackup();
   }catch(err){ console.warn(err); }
