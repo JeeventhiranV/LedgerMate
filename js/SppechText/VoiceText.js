@@ -13,7 +13,7 @@
     });
 
     recognition.addEventListener("end", () => {
-      voiceBtn.textContent = "🎤 Speak Transaction";
+      voiceBtn.textContent = "🎤 Speak";
     });
 
     recognition.addEventListener("result", (event) => {
