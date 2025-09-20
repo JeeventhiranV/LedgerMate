@@ -2758,7 +2758,7 @@ async function fullExport(){
   if (state.dataFolderHandle && window.showDirectoryPicker){
     try{
       const dir = state.dataFolderHandle;
-      const fh = await dir.getFileHandle('ledger-backup.json', { create:true });
+      const fh = await dir.getFileHandle('ledger-backup-${nowISO()}.json', { create:true });
       const writable = await fh.createWritable(); await writable.write(txt); await writable.close(); showToast('Backup written to folder'); return;
     }catch(err){ console.warn('folder write failed', err); }
   }
