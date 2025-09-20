@@ -3405,6 +3405,54 @@ function renderAccountSummaries() {
     
     const div = document.createElement('div');
     div.className = 'glass p-3 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer';
+    
+    // Amounts masked by default
+    //<button class="view-amount text-xs px-2 py-1 rounded bg-blue-200 text-blue-700">👁</button>
+    div.innerHTML = `
+      <div class="flex justify-between items-center mb-2">
+        <h3 class="text-sm font-semibold truncate">${account}</h3>
+        
+      </div>
+      <div class="text-xs text-green-500">Income: <span class="amount masked" data-value="${summary.income}">***</span></div>
+      <div class="text-xs text-red-500">Expense: <span class="amount masked" data-value="${summary.expense}">***</span></div>
+      <div class="text-sm font-bold text-blue-500 mt-2">Balance: <span class="amount masked" data-value="${summary.balance}">***</span></div>
+    `;
+    
+    // Toggle amounts on click
+   /* div.querySelector('.view-amount').onclick = (e) => {
+      e.stopPropagation();
+      const amounts = div.querySelectorAll('.amount');
+      amounts.forEach(a => {
+        if (a.classList.contains('masked')) {
+          a.textContent = fmtINR(a.dataset.value);
+          a.classList.remove('masked');
+        } else {
+          a.textContent = '***';
+          a.classList.add('masked');
+        }
+      });
+    };*/
+
+    grid.appendChild(div);
+  }
+  
+  container.appendChild(grid);
+}
+
+/*
+function renderAccountSummaries() {
+  const summaries = getAccountSummaries();
+  const container = document.getElementById('accountSummaries');
+  container.innerHTML = ''; // Clear previous content
+  
+  const grid = document.createElement('div');
+  grid.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4';
+  
+  for (const account in summaries) {
+    const summary = summaries[account];
+    
+    const div = document.createElement('div');
+    div.className = 'glass p-3 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer';
     div.innerHTML = `
       <h3 class="text-sm font-semibold mb-2 truncate">${account}</h3>
       <div class="text-xs text-green-500">Income: ${fmtINR(summary.income)}</div>
@@ -3416,9 +3464,28 @@ function renderAccountSummaries() {
   }
   
   container.appendChild(grid);
-}
+}*/
 
 
+let amountsVisible = false; // tracks global state
+
+document.getElementById('toggleAllAmounts').onclick = () => {
+  amountsVisible = !amountsVisible; // toggle state
+  const amounts = document.querySelectorAll('#accountSummaries .amount');
+
+  amounts.forEach(a => {
+    if (amountsVisible) {
+      a.textContent = fmtINR(a.dataset.value);
+      a.classList.remove('masked');
+    } else {
+      a.textContent = '***';
+      a.classList.add('masked');
+    }
+  });
+
+  // Update button text
+ // document.getElementById('toggleAllAmounts').textContent = amountsVisible ? '🙈 Hide All Amounts' : '👁 Show All Amounts';
+};
 
 
 // ----------------------------
