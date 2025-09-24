@@ -255,9 +255,20 @@
   function toggleNotifPanel() {
   const panel = document.getElementById('notifPanel');
   if (!panel) return;
-  panel.classList.toggle('open');
-  if (panel.classList.contains('open')) renderNotifications();
-} 
+
+  // Remove hidden if present
+  panel.classList.remove('hidden');
+  
+  // Toggle "open" for animation / styling
+  if (panel.classList.contains('open')) {
+    panel.classList.remove('open');
+    // Optionally add hidden after animation ends
+    setTimeout(() => panel.classList.add('hidden'), 300); // match your CSS transition
+  } else {
+    panel.classList.add('open');
+    renderNotifications();
+  }
+}
 
 
   // Mark all read (we interpret as mark all reminders completed? Or mark all "seen" by adding lastAlerted — we'll mark seen)
