@@ -175,8 +175,8 @@ async function init(){
   bindUI();
   renderAll();
   tryAutoLoadFolder();
-  checkAllNotifications();  
-  setInterval(checkAllNotifications, 60 * 60 * 1000);// Repeat every hour
+  //checkAllNotifications();  
+  //setInterval(checkAllNotifications, 60 * 60 * 1000);// Repeat every hour
   //processRecurringTransactions();
   setInterval(processRecurringTransactions, 60 * 60 * 1000); // check every hour
 
@@ -233,7 +233,7 @@ function bindUI(){
   //document.getElementById('btnQuickAdd1').onclick = () => openAddTransactionModal();
    
   document.getElementById('searchTx').oninput = refreshRecentList;
-  document.getElementById('notifBell').onclick = ()=>toggleNotifPanel();
+  //document.getElementById('notifBell').onclick = ()=>toggleNotifPanel();
   //document.getElementById('btnToggleTheme').onclick = toggleTheme;
   // Add handlers for Quick Actions
 
@@ -241,7 +241,7 @@ function bindUI(){
   document.getElementById('openBudgets').onclick = showBudgetsModal;
   document.getElementById('openLoans').onclick = showLoansModal;
   document.getElementById('openGoals').onclick = showGoalsModal;
-  document.getElementById('openRemainders').onclick = showRemindersModal;
+  //document.getElementById('openRemainders').onclick = showRemindersModal;
   document.getElementById('openInvestments').onclick = showInvestmentsModal;
   document.getElementById('accountFilter').onchange = refreshRecentList;
   document.getElementById('clearData').addEventListener('click', clearAllData);
@@ -265,7 +265,7 @@ function showTransactionsModal() {
   ).join('');
   showSimpleModal('All Transactions', `<table class="w-full text-xs"><tr><th>Date</th><th>Category</th><th>Account</th><th>Amount</th><th>Note</th></tr>${rows||'<tr><td colspan=5>No transactions</td></tr>'}</table>`);
 }
-
+/*
 function showBudgetsModal() {
   const month = new Date().toISOString().slice(0, 7);
 
@@ -357,7 +357,121 @@ function showBudgetsModal() {
       }
     }
   );
+}*/
+async function showBudgetsModal() {
+  const month = new Date().toISOString().slice(0, 7);
+
+  // Refresh state
+  state.budgets = await getAll('budgets');
+  state.transactions = await getAll('transactions'); // fetch all transactions
+
+  const rows = (state.budgets || [])
+    .filter(b => b.month === month)
+    .map(b => {
+      // calculate spent for this category
+      const spent = (state.transactions || [])
+        .filter(t => t.category === b.category && t.date?.slice(0, 7) === month)
+        .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+      const percentSpent = Math.min((spent / b.limit) * 100, 100);
+      const alertPercent = b.alertThreshold ? b.alertThreshold * 100 : 80;
+      const overAlert = percentSpent >= alertPercent;
+      const progressColor = overAlert ? 'bg-rose-500' : 'bg-emerald-500';
+
+      return `
+        <div class="p-3 rounded-lg border flex flex-col gap-2" style="background: var(--glass-bg); border-color: var(--glass-border);">
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="font-semibold text-[var(--text)]">${b.category}</div>
+              <div class="text-xs text-[var(--text-muted)]">
+                Limit: ${fmtINR(b.limit)} • Alert: ${alertPercent}%
+              </div>
+            </div>
+            <div class="flex gap-1">
+              <button class="editBudget px-2 py-1 rounded glass/60 text-[var(--text)]" data-id="${b.id}">✏️</button>
+              <button class="delBudget px-2 py-1 rounded bg-rose-500 text-[var(--text)]" data-id="${b.id}">🗑️</button>
+            </div>
+          </div>
+          <div class="w-full h-2 rounded-full bg-slate-600">
+            <div class="h-2 rounded-full ${progressColor}" style="width: ${percentSpent}%; transition: width 0.3s;"></div>
+          </div>
+          <div class="text-xs text-[var(--text-muted)]">${fmtINR(spent)} spent • ${Math.round(percentSpent)}%</div>
+        </div>
+      `;
+    }).join('') || `<div class="text-center text-[var(--text-muted)] text-sm">No budgets set</div>`;
+
+  // Add form for unused categories
+  const unusedCats = state.dropdowns.categories.filter(cat => !state.budgets.some(b => b.category === cat && b.month === month));
+  let addForm = '';
+  if (unusedCats.length) {
+    addForm = `
+      <form id="addBudgetForm" class="mt-4 space-y-2">
+        <div class="grid grid-cols-3 gap-2">
+          <select id="budgetCat" class="p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border-color: var(--input-border)">
+            ${unusedCats.map(c => `<option>${c}</option>`).join('')}
+          </select>
+          <input id="budgetLimit" type="number" min="1" placeholder="Limit ₹" class="p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border-color: var(--input-border)" required/>
+          <input id="budgetAlert" type="number" min="1" max="100" placeholder="Alert %" class="p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border-color: var(--input-border)" value="80" required/>
+        </div>
+        <button class="w-full py-2 rounded" style="background: var(--btn-green); color: var(--text);" type="submit">➕ Add Budget</button>
+      </form>
+    `;
+  }
+
+  showSimpleModal(
+    '📊 Budgets (This Month)',
+    `<div class="space-y-3">${rows}${addForm}</div>`
+  );
+
+  // Add new budget
+  if (addForm) {
+    document.getElementById('addBudgetForm').onsubmit = async e => {
+      e.preventDefault();
+      const cat = document.getElementById('budgetCat').value;
+      const limit = Number(document.getElementById('budgetLimit').value);
+      const alertThreshold = Number(document.getElementById('budgetAlert').value)/100;
+      const budget = { id: uid('budget'), month, category: cat, limit, alertThreshold };
+      await put('budgets', budget);
+      state.budgets.push(budget);
+      autoBackup();
+      showBudgetsModal();
+      showToast('Budget added!', 'success');
+    };
+  }
+
+  // Edit & Delete handlers
+  document.querySelectorAll('.editBudget').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.id;
+      const budget = state.budgets.find(b => b.id === id);
+      if (!budget) return;
+
+      const newLimit = prompt(`Edit limit for ${budget.category}:`, budget.limit);
+      if (!newLimit) return;
+      const newAlert = prompt(`Edit alert % for ${budget.category}:`, budget.alertThreshold*100);
+      if (!newAlert) return;
+
+      budget.limit = Number(newLimit);
+      budget.alertThreshold = Number(newAlert)/100;
+      await put('budgets', budget);
+      showBudgetsModal();
+      showToast('Budget updated!', 'success');
+    };
+  });
+
+  document.querySelectorAll('.delBudget').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.id;
+      if (!confirm('Delete this budget?')) return;
+      await del('budgets', id);
+      state.budgets = state.budgets.filter(b => b.id !== id);
+      autoBackup();
+      showBudgetsModal();
+      showToast('Budget deleted!', 'success');
+    };
+  });
 }
+
 // ---------- Recurring / series helpers ----------
 
 // Create a canonical key to prevent duplicates
@@ -1490,6 +1604,7 @@ const persons = state.dropdowns.persons || [];
   if (notifications.length > 0) processNotifications();
 }
 */
+/*
 function checkAllNotifications() {
   const today = new Date();
   const notifications = [];
@@ -1523,24 +1638,7 @@ function checkAllNotifications() {
     const msg = `⚠️ Loan ${g.type === 'given' ? 'to Collect' : 'to Pay'}: ${fmtINR(g.total)} ${g.type === 'given' ? 'from' : 'to'} ${g.person} (Due: ${g.dueDate})`;
     notifications.push({ title: 'Loan Due Soon!', message: msg, type: 'error' });
   });
-
-  // 🔔 Collect Reminder Notifications (unchanged)
-  /*(state.reminders || []).forEach((rem) => {
-    if (rem.completed === true || !rem.dueDate) return;
-    const due = new Date(rem.dueDate);
-    const diffDays = Math.floor((due - today) / (1000 * 60 * 60 * 24));
-    let notify = false;
-
-    if (rem.recurrence === 'daily') notify = true;
-    else if (rem.recurrence === 'weekly' && today.getDay() === due.getDay()) notify = true;
-    else if (rem.recurrence === 'monthly' && today.getDate() === due.getDate()) notify = true;
-    else if (diffDays <= 3) notify = true;
-
-    if (notify) {
-      const msg = `🔔 Reminder: ${rem.title || '(No Title)'} (Due: ${rem.dueDate})`;
-      notifications.push({ title: 'Reminder Due Soon!', message: msg, type: 'warning' });
-    }
-  });*/
+ 
   function rollForward(rem) {
     let due = new Date(rem.dueDate);
     while (due < today) {
@@ -1595,7 +1693,7 @@ function checkAllNotifications() {
   }
 
   if (notifications.length > 0) processNotifications();
-}
+}*/
 
 //  Helper for browser notifications
 function sendBrowserNotification(title, message) {
@@ -1754,6 +1852,7 @@ function showRemindersModal() {
   });
 }
 */
+/*
 function showRemindersModal() {
   const rows = (state.reminders || []).map(r => {
     // Format completion log
@@ -1874,7 +1973,7 @@ function showRemindersModal() {
     showToast(reminder.completed ? 'Reminder marked as completed ✅' : 'Reminder set to pending ⏳', 'info');
     renderNotifications();
   });
-}
+}*/
 
 // Simple modal utility
 function showSimpleModal(title, html) {
@@ -1904,7 +2003,7 @@ function renderAll(){
   renderDropdownManager();
   renderHeatmap();
   checkBudgetAlerts();
-  renderNotifications();
+  //renderNotifications();
   processRecurringTransactions();
 }
 
@@ -2686,7 +2785,7 @@ async function setBudgetForMonth(category, month, limit, threshold=0.8){
   await put('budgets', b); state.budgets.push(b); renderAll(); autoBackup();
 }
 
-function checkBudgetAlerts(){
+/*function checkBudgetAlerts(){
   const month = new Date().toISOString().slice(0,7);
   const alerts = [];
   state.budgets.filter(b=>b.month===month).forEach(b=>{
@@ -2694,7 +2793,127 @@ function checkBudgetAlerts(){
     if (actual >= b.limit*b.alertThreshold) alerts.push({type:'budget', category:b.category, actual, limit:b.limit});
   });
   // push to reminders store for in-app notifications
-  state.reminders = state.reminders.concat(alerts.map(a=>({id:uid('alert'), title:`Budget alert: ${a.category}`, dueDate: nowISO(), meta:a}))); renderNotifications();
+  state.reminders = state.reminders.concat(alerts.map(a=>({id:uid('alert'), title:`Budget alert: ${a.category}`, dueDate: nowISO(), meta:a}))); 
+}*/
+/**
+ * ✅ checkBudgetAlerts()
+ * Checks all budgets and triggers alerts:
+ * - ⚠️ When spending crosses configurable % (default 80%)
+ * - ❌ When spending exceeds 100%
+ * - ⏱️ When budget period is about to end (2 days before)
+ * - 📣 Shows toast and pushes notifications
+ */
+async function checkBudgetAlerts() {
+  try {
+    // 1️⃣ Load budgets & transactions from DB
+    const budgets = await getAll('budgets') || [];
+    const transactions = await getAll('transactions') || [];
+    const today = new Date();
+    const DAYS_BEFORE_END_ALERT = 2; // configurable
+
+    const triggeredAlerts = [];
+
+    for (let budget of budgets) {
+      if (!budget || typeof budget !== 'object') continue;
+
+      const alertThresholdPercent = budget.alertThreshold ? budget.alertThreshold * 100 : 80; // per budget
+      const { id, category, limit, month } = budget; // only destructure what you need
+if (!limit) continue;
+
+// compute startDate and endDate dynamically if missing
+const startDate = budget.startDate || `${month}-01`;
+const endDate = budget.endDate || new Date(new Date(month + '-01').getFullYear(), 
+                                           new Date(month + '-01').getMonth() + 1, 0)
+                                      .toISOString().slice(0, 10);
+
+// calculate spent
+const spent = transactions
+  .filter(t => {
+    if (!t.date || !t.amount) return false;
+
+    // string comparison works for YYYY-MM-DD format
+    return t.category === category &&
+           t.date >= startDate &&
+           t.date <= endDate;
+  })
+  .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+
+
+      const percentUsed = (spent / limit) * 100;
+      const end = new Date(endDate);
+      const daysLeft = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+
+      // 🔔 Threshold alert
+      if (percentUsed >= alertThresholdPercent && !budget.alertedThreshold) {
+        showToast(`⚠️ ${category} budget used ${percentUsed.toFixed(1)}%`, "warning");
+        triggeredAlerts.push({
+          type: "budget",
+          level: "warning",
+          title: `${category} budget nearing limit`,
+          message: `You've used ${percentUsed.toFixed(1)}% of your ₹${fmtINR(limit)} budget.`,
+          category
+        });
+        budget.alertedThreshold = true;
+      }
+
+      // ❌ Over 100% critical alert
+      if (percentUsed >= 100 && !budget.alertedExceeded) {
+        showToast(`🚨 ${category} budget exceeded!`, "error");
+        triggeredAlerts.push({
+          type: "budget",
+          level: "critical",
+          title: `${category} budget exceeded`,
+          message: `You spent ₹${fmtINR(spent)} of ₹${fmtINR(limit)}.`,
+          category
+        });
+        budget.alertedExceeded = true;
+        budget.exceeded = true;
+      }
+
+      // ⏱️ Budget period ending soon
+      if (daysLeft <= DAYS_BEFORE_END_ALERT && daysLeft >= 0 && !budget.alertedPeriodEnd) {
+        showToast(`📅 ${category} budget period ends in ${daysLeft} day(s)!`, "info");
+        triggeredAlerts.push({
+          type: "budget",
+          level: "info",
+          title: `${category} period ending`,
+          message: `${daysLeft} day(s) left until this budget resets.`,
+          category
+        });
+        budget.alertedPeriodEnd = true;
+      }
+
+      // ✅ Save updated budget flags
+      await put('budgets', budget);
+    }
+
+    // 3️⃣ Push alerts to reminders
+    if (triggeredAlerts.length > 0) {
+      const reminders = await getAll('reminders') || [];
+      triggeredAlerts.forEach(alert => {
+        reminders.push({
+          id: uid('alert'),
+          title: alert.title,
+          note: alert.message,
+          tag: 'Budget',
+          category: alert.category,
+          priority: alert.level === 'critical' ? 'high' : 'medium',
+          dueDate: today.toISOString().slice(0, 10),
+          completed: false,
+          createdAt: today.toISOString()
+        });
+      });
+
+      // Save reminders
+      for (let r of reminders) await put('reminders', r);
+      state.reminders = reminders;
+      renderNotifications();
+    }
+
+  } catch (err) {
+    console.warn("❌ Error in checkBudgetAlerts:", err);
+  }
 }
 
 // ----------------------------
@@ -2705,7 +2924,7 @@ function checkBudgetAlerts(){
   const items = state.reminders.slice(-30).reverse();
   items.forEach(r=>{ const div = document.createElement('div'); div.className='p-2 border-b border-slate-800'; div.innerHTML=`<div class='font-semibold'>${r.title||r.name||'Reminder'}</div><div class='text-xs text-muted'>${r.dueDate||''}</div>`; list.appendChild(div); });
   document.getElementById('notifCount').innerText = items.length;
-}*/
+}*//*
 function renderNotifications() {
   const list = document.getElementById('notifList');
   list.innerHTML = '';
@@ -2735,7 +2954,7 @@ function renderNotifications() {
   });
   document.getElementById('notifCount').innerText = items.length;
 }
-function toggleNotifPanel(){ document.getElementById('notifPanel').classList.toggle('hidden'); }
+function toggleNotifPanel(){ document.getElementById('notifPanel').classList.toggle('hidden'); }*/
 
 // ----------------------------
 // Full Export / Import (JSON) - bit-perfect
@@ -3496,6 +3715,7 @@ document.getElementById('toggleAllAmounts').onclick = () => {
 };
 
 
+
 // ----------------------------
 // Start
 // ----------------------------
@@ -3520,9 +3740,9 @@ document.getElementById('toggleAllAmounts').onclick = () => {
     bindUI();
     renderAll();
     tryAutoLoadFolder();
-    checkAllNotifications();
-    setInterval(checkAllNotifications, 60 * 60 * 1000);
-    processRecurringTransactions();
+   // checkAllNotifications();
+   // setInterval(checkAllNotifications, 60 * 60 * 1000);
+   // processRecurringTransactions();
     setInterval(processRecurringTransactions, 60 * 60 * 1000); 
     //setDataFolder();
   } catch (err) {

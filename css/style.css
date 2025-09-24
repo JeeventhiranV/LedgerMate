@@ -1,4 +1,38 @@
- :root {
+:root {
+  /* Light Theme */
+  --bg: #f0f4f8;                 /* softer than pure white for eye comfort */
+  --text: #1f2937;                /* dark slate text for readability */
+  --glass-bg: rgba(255, 255, 255, 0.95); /* slightly transparent glass effect */
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --btn-green: #10b981;           /* primary success button */
+  --btn-blue: #3b82f6;            /* primary action button */
+  --btn-red: #ef4444;             /* for delete / alerts */
+  --input-focus: rgba(16, 185, 129, 0.25); /* subtle focus highlight */
+  --text-muted: #6b7280;          /* medium gray for secondary text */
+  --input-bg: #ffffff;            /* slightly brighter for inputs */
+  --input-text: #1f2937;
+  --input-border: rgba(0, 0, 0, 0.15);
+  --card-shadow: 0 4px 8px rgba(0, 0, 0, 0.05); /* subtle shadows for depth */
+}
+
+.dark {
+  /* Dark Theme */
+  --bg: #0f172a;                  /* dark but soft blue-black */
+  --text: #f8fafc;                /* off-white text for readability */
+  --glass-bg: rgba(15, 23, 42, 0.75); /* stronger glass opacity for clarity */
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --btn-green: #22c55e;           /* primary success button */
+  --btn-blue: #3b82f6;            /* primary action button */
+  --btn-red: #f87171;             /* for delete / alerts */
+  --input-focus: rgba(16, 185, 129, 0.5);
+  --text-muted: #94a3b8;          /* brighter muted text for contrast */
+  --input-bg: rgba(30, 41, 59, 0.85); /* more visible input background */
+  --input-text: #f8fafc;
+  --input-border: rgba(255, 255, 255, 0.3);
+  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* subtle dark shadow for depth */
+}
+
+/* :root {
   --bg: #f8fafc;
   --text: #1f2937;
   --glass-bg: rgba(255, 255, 255, 0.95);
@@ -6,25 +40,25 @@
   --btn-green: #10b981;
   --btn-blue: #3b82f6;
   --input-focus: rgba(16, 185, 129, 0.5);
-  --text-muted: #4b5563; /* dark gray for light theme */
+  --text-muted: #4b5563;  
   --input-bg: #f8fafc;
   --input-text: #1f2937;
   --input-border: rgba(0, 0, 0, 0.2);
 }
-
 .dark {
   --bg: #0f172a;
   --text: #f8fafc;
-  --glass-bg: rgba(0, 0, 0, 0.02);
-  --glass-border: rgba(255, 255, 255, 0.25);
+  --glass-bg: rgba(15, 23, 42, 0.6);      
+  --glass-border: rgba(255, 255, 255, 0.2);  
   --btn-green: #22c55e;
   --btn-blue: #3b82f6;
   --input-focus: rgba(16, 185, 129, 0.5);
-  --text-muted: #9ca3af; /* lighter gray for dark theme */
-  --input-bg: #1e293b;
+  --text-muted: #cbd5e1;  
+  --input-bg: rgba(30, 41, 59, 0.8); 
   --input-text: #f8fafc;
-  --input-border: rgba(255, 255, 255, 0.2);
+  --input-border: rgba(255, 255, 255, 0.3);  
 }
+*/
 
 body {
   background-color: var(--bg);
