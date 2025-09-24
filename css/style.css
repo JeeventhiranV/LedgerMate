@@ -252,3 +252,39 @@ option {
     font-size: 0.8rem;
   }
 }
+/* Notifications Panel */
+#notifPanel {
+  position: fixed;         /* Always on top */
+  top: 0;
+  right: 0;
+  width: 100%;             /* Full width on mobile */
+  max-width: 400px;        /* Optional for desktop/tablet */
+  height: 80vh;           /* Full viewport height */
+  background-color: var(--bg);  /* Adapt to theme */
+  color: var(--text);
+  padding: 1rem;
+  overflow-y: auto;        /* Scrollable content */
+  z-index: 50;
+  box-shadow: -4px 0 12px rgba(0,0,0,0.3);
+  transform: translateX(100%); /* Hidden by default */
+  transition: transform 0.3s ease-in-out;
+}
+
+/* Open state */
+#notifPanel.open {
+  transform: translateX(0);
+}
+
+/* Scrollable list */
+#notifList {
+  max-height: calc(100vh - 100px); /* leave space for header/filter */
+  overflow-y: auto;
+}
+
+/* Mobile adjustments */
+@media (max-width: 640px) {
+  #notifPanel {
+    width: 90%;
+    max-width: 90%;
+  }
+}

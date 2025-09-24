@@ -253,15 +253,12 @@
 
   // Toggle panel visibility
   function toggleNotifPanel() {
-    const p = document.getElementById('notifPanel');
-    if (!p) return;
-    if (p.classList.contains('hidden')) {
-      p.classList.remove('hidden');
-      renderNotifications();
-    } else {
-      p.classList.add('hidden');
-    }
-  }
+  const panel = document.getElementById('notifPanel');
+  if (!panel) return;
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) renderNotifications();
+} 
+
 
   // Mark all read (we interpret as mark all reminders completed? Or mark all "seen" by adding lastAlerted — we'll mark seen)
   async function markAllNotificationsSeen() {
@@ -550,16 +547,15 @@
     document.getElementById('openAllNotifications')?.addEventListener('click', renderNotifications);
 
     // global click outside to close panel
-    document.addEventListener('click', function (e) {
-      const panel = document.getElementById('notifPanel');
-      const bell = document.getElementById('notifBell');
-      if (!panel || !bell) return;
-      if (!panel.classList.contains('hidden')) {
-        if (!panel.contains(e.target) && !bell.contains(e.target)) {
-          panel.classList.add('hidden');
-        }
-      }
-    });
+   document.addEventListener('click', (e) => {
+  const panel = document.getElementById('notifPanel');
+  const bell = document.getElementById('notifBell');
+  if (!panel || !bell) return;
+  if (panel.classList.contains('open') && !panel.contains(e.target) && !bell.contains(e.target)) {
+    panel.classList.remove('open');
+  }
+});
+
   }
 
   // Small debounce helper
