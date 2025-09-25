@@ -2851,7 +2851,7 @@ const spent = transactions
           type: "budget",
           level: "warning",
           title: `${category} budget nearing limit`,
-          message: `You've used ${percentUsed.toFixed(1)}% of your ₹${fmtINR(limit)} budget.`,
+          message: `You've used ${percentUsed.toFixed(1)}% of your ${fmtINR(limit)} budget.`,
           category
         });
         budget.alertedThreshold = true;
@@ -2864,7 +2864,7 @@ const spent = transactions
           type: "budget",
           level: "critical",
           title: `${category} budget exceeded`,
-          message: `You spent ₹${fmtINR(spent)} of ₹${fmtINR(limit)}.`,
+          message: `You spent ${fmtINR(spent)} of ${fmtINR(limit)}.`,
           category
         });
         budget.alertedExceeded = true;
