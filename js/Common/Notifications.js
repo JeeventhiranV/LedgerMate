@@ -520,6 +520,7 @@
     return;
   }
     const now = new Date();
+    const notifications = [];
     for (const r of state.reminders) {
       if (r.completed) continue;
       const dueDateObj = parseDateTime(r.dueDate, r.time);
@@ -534,14 +535,63 @@
         // Compose message
         const label = isOverdue ? 'Overdue' : 'Due Today';
         const timePart = r.time ? ` at ${r.time}` : '';
-        showToast(`🔔 ${label}: ${r.title} • ${r.dueDate}${timePart}`, 'info', 8000);
+       // showToast(`🔔 ${label}: ${r.title} • ${r.dueDate}${timePart}`, 'info', 8000); 
+       const msg = `🔔 ${label}: ${r.title} • ${r.dueDate}${timePart}`;
+       notifications.push({ title: 'Reminder Due Soon!', message: msg, type: 'info' ,timestamp:parseDateTime(r.dueDate, r.time)?.getTime() || Date.now()});  
+
         // update lastAlerted
         r.lastAlerted = new Date().toISOString();
         await put('reminders', r);
       }
     }
     renderNotifications();
+   // Helper: Due soon logic
+    const today = new Date();
+  const isDueSoon = (dueDate) => {
+    if (!dueDate) return false;
+    const due = new Date(dueDate);
+    const diffDays = Math.floor((due - today) / (1000 * 60 * 60 * 24));
+    return diffDays <= 3;
+  };
+     // 🔔 Collect Loan Notifications (Group by person + date) 
+  const loanGroups = {};
+  (state.loans || []).forEach((loan) => {
+    if (!loan.collected && loan.dueDate && isDueSoon(loan.dueDate)) {
+      const key = `${loan.person}__${loan.type}__${loan.dueDate}`;
+      if (!loanGroups[key]) {
+        loanGroups[key] = {
+          person: loan.person,
+          type: loan.type,
+          dueDate: loan.dueDate,
+          total: 0,
+        };
+      }
+      loanGroups[key].total += Number(loan.amount);
+    }
+  }); 
+  Object.values(loanGroups).forEach((g) => {
+    const msg = `⚠️ Loan ${g.type === 'given' ? 'to Collect' : 'to Pay'}: ${fmtINR(g.total)} ${g.type === 'given' ? 'from' : 'to'} ${g.person} (Due: ${g.dueDate})`;
+    notifications.push({ title: 'Loan Due Soon!', message: msg, type: 'error' ,timestamp:parseDateTime(g.dueDate)?.getTime() || Date.now() });
+  });
+  
+  // 🔥 Show notifications in batches of 2
+  function processNotifications() {
+     enableNotifications();
+    const batch = notifications.splice(0, 2);
+    batch.forEach((n) => {
+      showToast(n.message, n.type); 
+      sendBrowserNotification(n.title, n.message);
+      scheduleLocalNotification(n.timestamp, n.title, n.message);
+    });
+    if (notifications.length > 0) {
+      setTimeout(processNotifications, 3500);
+    }
   }
+  if (notifications.length > 0) {
+    processNotifications(); 
+  }
+  }
+ 
 
   // Wire header buttons / listeners (attach once)
   function wireNotifUIonce() {
@@ -569,11 +619,37 @@
 
   }
 
+  
+
   // Small debounce helper
   function debounce(fn, ms) {
     let t;
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
   }
+
+  
+//  Helper for browser notifications
+function sendBrowserNotification(title, message) {
+  if (Notification.permission === 'granted') {
+    navigator.serviceWorker.ready.then(registration => {
+      registration.showNotification(title, {
+        body: message,
+        icon: 'icons/icon-512.png'
+      });
+    });
+  }
+}
+//  Ask for permission once
+function enableNotifications() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().then(permission => {
+      if (permission === 'granted') {
+        console.log('Notifications enabled.');
+      }
+    });
+  }
+}
+
 
   // Initialize wiring and first render
   // Ensure we only attach once (idempotent)
@@ -595,3 +671,16 @@
   window.toggleReminderCompleted = toggleReminderCompleted;
 
 })();
+
+
+async function scheduleLocalNotification(timestamp, title, body, data = {}) {
+  if (!('serviceWorker' in navigator)) return false;
+  const reg = await navigator.serviceWorker.ready;
+  // message the SW to schedule
+  reg.active.postMessage({
+    type: 'schedule-notification',
+    timestamp,
+    title, body, data
+  });
+  return true;
+}
