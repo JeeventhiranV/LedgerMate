@@ -37,7 +37,15 @@
   class="fixed md:static top-0 left-0 h-full w-64 e shadow-lg transform -translate-x-full md:translate-x-0 
          transition-transform duration-300 z-50 md:z-0 flex-shrink-0 glass">
   <div class="p-4 border-b">
-    <h2 class="text-lg font-semibold text-indigo-600">LedgerMate</h2>
+    <h2 class="text-lg font-semibold text-indigo-600">  
+             
+      <div class="ml-auto flex gap-2">
+
+        <button  id="clearData" class="px-3 py-1 rounded-lg bg-emerald-500 text-slate-900">🧹</button>
+              <button id="btnImport" class="px-3 py-2 rounded-lg glass ">📥</button>
+              <button id="themeToggle" onclick="" class="px-3 py-2 rounded-lg glass">🌙</button>
+          </div></h2>
+    
   </div>
   <nav class="p-4 space-y-4 overflow-y-auto h-[calc(100%-60px)]">
     
@@ -75,8 +83,19 @@
         <!--  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center glass text-xl font-bold" >JK</div>-->
           
         </div>
-        <div class="flex items-center gap-3">
-          
+        <div class="flex items-center gap-3"> 
+          <div class="flex gap-2 items-center">
+            <label class="text-sm ">KPI:</label>
+            <select id="kpiRange" class="rounded-lg   p-2 text-sm">
+              <option value="7">7d</option>
+              <option value="10">10d</option>
+              <option value="30" selected>30d</option>
+              <option value="90">90d</option>
+              <!-- <option value="custom">Custom</option> -->
+            </select>
+            <input id="customFrom" type="date" class="hidden rounded-lg glass p-2 text-sm"/>
+            <input id="customTo" type="date" class="hidden rounded-lg glass p-2 text-sm"/>
+          </div>  
           <button id="btnSetFolder" class="px-3 py-2 rounded-lg    "><div id="folderStatus" class="text-sm ">Fol: <span id="folderLabel">None</span></div></button>
           <button id="btnFullExport" class="px-3 py-2 rounded-lg ">📤</button>
           <div class="relative">
@@ -132,7 +151,7 @@
 </div>
 
           </div>
-          <button id="btnImport" class="px-3 py-2 rounded-lg glass ">📥</button>
+         
           <!-- Improved theme toggle
            <button id="themeToggle" onclick="" class="ml-2 flex items-center gap-2 px-3 py-2 rounded-lg glass hover:glass transition-colors">
             <span id="themeIcon" class="text-lg">🌙</span>
@@ -141,27 +160,7 @@
       </header>
 
       <!-- KPI + controls -->
-      <section class="mb-4">
-        <div class="flex gap-3 items-center mb-3">
-          <div class="flex gap-2 items-center">
-            <label class="text-sm ">KPI:</label>
-            <select id="kpiRange" class="rounded-lg   p-2 text-sm">
-              <option value="7">7d</option>
-              <option value="10">10d</option>
-              <option value="30" selected>30d</option>
-              <option value="90">90d</option>
-              <option value="custom">Custom</option>
-            </select>
-            <input id="customFrom" type="date" class="hidden rounded-lg glass p-2 text-sm"/>
-            <input id="customTo" type="date" class="hidden rounded-lg glass p-2 text-sm"/>
-          </div>
-
-          <div class="ml-auto flex gap-2">
-            <button id="themeToggle" onclick="" class="px-3 py-2 rounded-lg glass">🌙</button>
-             <button  id="clearData" class="px-3 py-1 rounded-lg bg-emerald-500 text-slate-900">🧹Wipe</button>
-          </div>
-        </div>
- 
+      <section class="mb-4"> 
 		<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2">
   <!-- Balance Box -->
   <div class="bg-gradient-to-br from-blue-600 to-blue-400 text-white rounded-lg p-2 shadow-md text-center hover:scale-105 transform transition-transform duration-200">
@@ -187,20 +186,7 @@
     <div class="text-xs font-semibold uppercase">P & L</div>
     <div id="kpiPL" class="text-lg font-bold mt-1">₹0</div>
   </div>
-</div>
-  
-
-<div class="space-y-6 glass p-4 rounded-lg mt-4">
-         <h4 class="font-semibold mb-1 text-blue-500 flex items-center gap-2" id="toggleAllAmounts">
-          <svg class="w-4 h-4 text-blue-500  " fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/></svg>Summary 👁 
-       
-        </h4>  
-	 <div id="accountSummaries"></div>
-</div>
-
-
-    
-
+</div> 
       </section>
          <!-- Voice / Mic FAB -->
 <button id="voiceTxBtn"
@@ -234,6 +220,14 @@
     </div>
     <div id="dashboardsSection" class="space-y-4 transition-all duration-300">
 	 
+<div class="space-y-6 glass p-4 rounded-lg mt-4">
+         <h4 class="font-semibold mb-1 text-blue-500 flex items-center gap-2" id="toggleAllAmounts">
+          <svg class="w-4 h-4 text-blue-500  " fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/></svg>Summary 👁 
+        </h4>  
+	 <div id="accountSummaries"></div>
+    
+</div>
+
       <!-- Dashboard 1: Net Cashflow -->
       <div>
         <h4 class="font-semibold mb-1 text-blue-300 flex items-center gap-2">

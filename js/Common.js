@@ -2637,7 +2637,7 @@ const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.l
 
 // ...existing code...
 let dropdownManagerMinimized = true;
-let recentTxMinimized = true;
+let recentTxMinimized = false;
 let dashboardsMinimized = true; 
 
 function updateDropdownManagerVisibility() {
@@ -3281,7 +3281,7 @@ async function setDataFolder(){
     const dir = await window.showDirectoryPicker();
     state.dataFolderHandle = dir;
     await put('settings', {key:'dataFolderHandle', value:dir});
-    document.getElementById('folderLabel').innerText = 'Folder set ✔';
+    document.getElementById('folderLabel').innerText = '✔';
     // try auto-load most recent csv/json
   /*  if(confirm('Load latest backup from this folder? Existing data will be merged.'))
   {
@@ -3726,20 +3726,20 @@ document.getElementById('toggleAllAmounts').onclick = () => {
     await seedDefaults();
     await loadAllFromDB();
 
-    const isFresh =
-      (state.transactions || []).length === 0 &&
-      (state.budgets || []).length === 0 &&
-      (state.loans || []).length === 0 &&
-      (state.users || []).length === 0;
+    // const isFresh =
+    //   (state.transactions || []).length === 0 &&
+    //   (state.budgets || []).length === 0 &&
+    //   (state.loans || []).length === 0 &&
+    //   (state.users || []).length === 0;
 
-    if (isFresh) await tryAutoRestoreOnStart();
+    // if (isFresh) await tryAutoRestoreOnStart();
 
     startBackupSchedule();
     autoBackup();
 
     bindUI();
     renderAll();
-    tryAutoLoadFolder();
+   // tryAutoLoadFolder();
    // checkAllNotifications();
    // setInterval(checkAllNotifications, 60 * 60 * 1000);
    // processRecurringTransactions();
