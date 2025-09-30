@@ -3421,19 +3421,42 @@ function processRecurringTransactions() {
     const lastDate = t.date;
     const todayDate = new Date(today);
     const lastDateObj = new Date(lastDate);
-    if (t.recurrence === 'daily') {
-      shouldAdd = today > lastDate;
-    } else if (t.recurrence === 'weekly') {
-      shouldAdd = todayDate.getDay() === lastDateObj.getDay() && today > lastDate;
-    } else if (t.recurrence === 'monthly') {
-      shouldAdd = todayDate.getDate() === lastDateObj.getDate() && today > lastDate;
-    } else if (t.recurrence === 'yearly') {
-      shouldAdd = todayDate.getDate() === lastDateObj.getDate() && todayDate.getMonth() === lastDateObj.getMonth() && today > lastDate;
-    }
+ lastDateObj.setHours(0, 0, 0, 0);
+todayDate.setHours(0, 0, 0, 0);
+
+if (t.recurrence.toLowerCase() === "daily") {
+  //  True if at least 1 day passed
+  shouldAdd = todayDate > lastDateObj;
+}
+
+else if (t.recurrence.toLowerCase() === "weekly") {
+  const diffDays = Math.floor((todayDate - lastDateObj) / (1000 * 60 * 60 * 24));
+  //  True if 7 or more days passed
+  shouldAdd = diffDays >= 7;
+}
+
+else if (t.recurrence.toLowerCase() === "monthly") {
+  const diffMonths =
+    (todayDate.getFullYear() - lastDateObj.getFullYear()) * 12 +
+    (todayDate.getMonth() - lastDateObj.getMonth());
+  //  True if 1 or more months passed
+  shouldAdd = diffMonths >= 1 && todayDate.getDate() >= lastDateObj.getDate();
+}
+
+else if (t.recurrence.toLowerCase() === "yearly") {
+  const diffYears = todayDate.getFullYear() - lastDateObj.getFullYear();
+  // True if 1 or more years passed and date reached
+  shouldAdd =
+    diffYears >= 1 &&
+    (todayDate.getMonth() > lastDateObj.getMonth() ||
+      (todayDate.getMonth() === lastDateObj.getMonth() && todayDate.getDate() >= lastDateObj.getDate()));
+}
+
+
     if (shouldAdd) {
       // Prevent duplicate for today
-      if (state.transactions.some(x => x.date === today && x.recurringOrigin === t.id)) return;
-      const newTx = { ...t, id: uid('tx'), date: today, recurringOrigin: t.id };
+      if (state.transactions.some(x => x.date === t.date && x.recurringOrigin === t.id)) return;
+      const newTx = { ...t, id: uid('tx'), date: t.date, recurringOrigin: t.id, createdAt: nowISO1(), modifiedAt: nowISO1() };
       delete newTx.recurrence; // Only the original holds recurrence
       put('transactions', newTx).then(() => {
         state.transactions.push(newTx);
@@ -3742,7 +3765,7 @@ document.getElementById('toggleAllAmounts').onclick = () => {
    // tryAutoLoadFolder();
    // checkAllNotifications();
    // setInterval(checkAllNotifications, 60 * 60 * 1000);
-   // processRecurringTransactions();
+    processRecurringTransactions();
     setInterval(processRecurringTransactions, 60 * 60 * 1000); 
     //setDataFolder();
   } catch (err) {
