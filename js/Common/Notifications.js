@@ -580,7 +580,9 @@
     const batch = notifications.splice(0, 2);
     batch.forEach((n) => {
       showToast(n.message, n.type); 
-      sendBrowserNotification(n.title, n.message);
+      if (n.title === "Loan Due Soon!" && canTriggerBrowserNotification("loan")) {
+          sendBrowserNotification(n.title, n.message);
+      } 
       scheduleLocalNotification(n.timestamp, n.title, n.message);
     });
     if (notifications.length > 0) {
@@ -592,7 +594,20 @@
   }
   }
  
+function canTriggerBrowserNotification(type) {
+  const key = `lastNotif_${type}`;
+  const last = localStorage.getItem(key);
+  const now = Date.now();
 
+  // 8 hours = 8 * 60 * 60 * 1000 ms
+  const TWELVE_HOURS = 8 * 60 * 60 * 1000;
+
+  if (!last || now - parseInt(last, 10) > TWELVE_HOURS) {
+    localStorage.setItem(key, now.toString());
+    return true;
+  }
+  return false;
+}
   // Wire header buttons / listeners (attach once)
   function wireNotifUIonce() {
     const bell = document.getElementById('notifBell');
