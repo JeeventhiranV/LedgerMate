@@ -90,19 +90,25 @@ async function showGoldRates() {
 
         <div class="border-t border-white/10 dark:border-white/5 my-2"></div>
 
+        <div class="mt-2 flex gap-2 items-center">
+          <div class="flex-1">
+            <label class="text-xs font-medium block mb-1">Weight (g):</label>
+            <input type="number" id="grams-${idx}" value="8.000" min="0.001" step="0.001" class="w-full text-sm p-1.5 rounded-md bg-white/20 dark:bg-black/20 border border-white/20 focus:outline-none" />
+          </div>
+          <div class="flex-1">
+            <label class="text-xs font-medium block mb-1">GST %:</label>
+            <input type="number" id="gst-${idx}" value="3" min="0" step="0.1" class="w-full text-sm p-1.5 rounded-md bg-white/20 dark:bg-black/20 border border-white/20 focus:outline-none" />
+          </div>
+        </div>
+
         <div class="mt-2">
-          <label class="text-xs font-medium block mb-1">Weight (grams):</label>
-          <input type="number" id="grams-${idx}" value="8.000" min="0.001" step="0.001" class="w-full text-sm p-2 rounded-md bg-white/20 dark:bg-black/20 border border-white/20 focus:outline-none" />
+          <label class="text-xs font-medium block mb-1">Wastage %:</label>
+          <input type="number" id="wastage-${idx}" value="0" min="0" step="0.1" class="w-full text-sm p-1.5 rounded-md bg-white/20 dark:bg-black/20 border border-white/20 focus:outline-none" />
         </div>
 
-        <div class="mt-3">
-          <label class="text-xs font-medium block mb-1">Enter Wastage %:</label>
-          <input type="number" id="wastage-${idx}" value="0" min="0" step="0.1" class="w-full text-sm p-2 rounded-md bg-white/20 dark:bg-black/20 border border-white/20 focus:outline-none" />
-        </div>
-
-        <div class="mt-3 text-xs flex justify-between"><span>💰 Base Price:</span><span id="basePrice-${idx}">₹0.00</span></div>
+        <div class="mt-2 text-xs flex justify-between"><span>💰 Base Price:</span><span id="basePrice-${idx}">₹0.00</span></div>
+        <div class="text-xs flex justify-between"><span>💸 GST Amount:</span><span id="gstAmount-${idx}">₹0.00</span></div>
         <div class="text-xs flex justify-between"><span>🪙 Wastage Amount:</span><span id="wastageAmount-${idx}">₹0.00</span></div>
-        <div class="text-xs flex justify-between"><span>💸 +3% GST:</span><span id="withGst-${idx}">₹0.00</span></div>
         <div class="text-xs flex justify-between font-bold text-green-600 dark:text-green-400"><span>✅ Final Total:</span><span id="totalAmount-${idx}">₹0.00</span></div>
 
         <div class="bg-white/10 dark:bg-black/20 rounded-md p-2 mt-3">
@@ -113,18 +119,20 @@ async function showGoldRates() {
 
       grid.appendChild(div);
 
-      // 📊 Update calculation dynamically
+      // 🔁 Update calculation dynamically
       const gramsInput = div.querySelector(`#grams-${idx}`);
+      const gstInput = div.querySelector(`#gst-${idx}`);
       const wastageInput = div.querySelector(`#wastage-${idx}`);
       const baseEl = div.querySelector(`#basePrice-${idx}`);
-      const gstEl = div.querySelector(`#withGst-${idx}`);
+      const gstEl = div.querySelector(`#gstAmount-${idx}`);
       const wastageEl = div.querySelector(`#wastageAmount-${idx}`);
       const totalEl = div.querySelector(`#totalAmount-${idx}`);
 
-      function recalc() {
+      
+        function recalc() {
     const grams = parseFloat(gramsInput.value) || 0;
     const wastagePerc = parseFloat(wastageInput.value) || 0;
-    const gstPerc = 3; // GST percentage
+    const gstPerc = parseFloat(gstInput.value) || 3;
 
     // Step 1: Base price
     const basePrice = todayNum * grams;
@@ -145,7 +153,9 @@ async function showGoldRates() {
     gstEl.textContent = `₹${gstAmt.toFixed(3)}`;
     totalEl.textContent = `₹${total.toFixed(3)}`;
     }
+
       gramsInput.addEventListener("input", recalc);
+      gstInput.addEventListener("input", recalc);
       wastageInput.addEventListener("input", recalc);
 
       // 🔁 Initial calculation
@@ -173,5 +183,6 @@ async function showGoldRates() {
     `;
   }
 }
+
 
 document.addEventListener("DOMContentLoaded", showGoldRates);
