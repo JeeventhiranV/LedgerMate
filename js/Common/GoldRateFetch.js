@@ -54,9 +54,9 @@ async function showGoldRates() {
       { title: "18K Gold", data: gold18, history: history18 },
     ];
 
-    // 🔽 Entire section collapsible
+    // 🔽 Collapsible Section
     const container = document.createElement("div");
-    container.className = "glass rounded-xl overflow-hidden  shadow";
+    container.className = "glass rounded-xl overflow-hidden shadow";
 
     container.innerHTML = `
       <button id="goldToggle" class="w-full flex justify-between items-center p-4 focus:outline-none hover:bg-white/10 transition-all">
@@ -69,18 +69,14 @@ async function showGoldRates() {
     `;
 
     const content = container.querySelector("#goldContent");
-
-    // Create gold cards inside collapsible section
     const grid = document.createElement("div");
     grid.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4";
 
-    cards.forEach(card => {
-      const todayNum = parseFloat(card.data.today.replace(/[^0-9.]/g, ""));
-      const eightGram = todayNum * 8;
-      const withGST = eightGram * 1.03;
+    cards.forEach((card, idx) => {
+      const todayNum = parseFloat(card.data.today.replace(/[^0-9.]/g, "")) || 0;
 
       const historyHTML = card.history
-        .map(h => `<div class="flex justify-between text-xs"style="background: var(--glass-bg); border-color: var(--glass-border);"><span>${h.date}</span><span>${h.rate}</span></div>`)
+        .map(h => `<div class="flex justify-between text-xs" style="background: var(--glass-bg); border-color: var(--glass-border);"><span>${h.date}</span><span>${h.rate}</span></div>`)
         .join("");
 
       const div = document.createElement("div");
@@ -94,8 +90,20 @@ async function showGoldRates() {
 
         <div class="border-t border-white/10 dark:border-white/5 my-2"></div>
 
-        <div class="text-xs flex justify-between"><span>💰 8g Base Price:</span><span>₹${eightGram.toFixed(2)}</span></div>
-        <div class="text-xs flex justify-between font-semibold"><span>💸 8g + 3% GST:</span><span class="text-green-600 dark:text-green-400">₹${withGST.toFixed(2)}</span></div>
+        <div class="mt-2">
+          <label class="text-xs font-medium block mb-1">Weight (grams):</label>
+          <input type="number" id="grams-${idx}" value="8.000" min="0.001" step="0.001" class="w-full text-sm p-2 rounded-md bg-white/20 dark:bg-black/20 border border-white/20 focus:outline-none" />
+        </div>
+
+        <div class="mt-3">
+          <label class="text-xs font-medium block mb-1">Enter Wastage %:</label>
+          <input type="number" id="wastage-${idx}" value="0" min="0" step="0.1" class="w-full text-sm p-2 rounded-md bg-white/20 dark:bg-black/20 border border-white/20 focus:outline-none" />
+        </div>
+
+        <div class="mt-3 text-xs flex justify-between"><span>💰 Base Price:</span><span id="basePrice-${idx}">₹0.00</span></div>
+        <div class="text-xs flex justify-between"><span>🪙 Wastage Amount:</span><span id="wastageAmount-${idx}">₹0.00</span></div>
+        <div class="text-xs flex justify-between"><span>💸 +3% GST:</span><span id="withGst-${idx}">₹0.00</span></div>
+        <div class="text-xs flex justify-between font-bold text-green-600 dark:text-green-400"><span>✅ Final Total:</span><span id="totalAmount-${idx}">₹0.00</span></div>
 
         <div class="bg-white/10 dark:bg-black/20 rounded-md p-2 mt-3">
           <h4 class="text-xs font-semibold opacity-80 mb-1">📅 Last 3 Days</h4>
@@ -104,12 +112,50 @@ async function showGoldRates() {
       `;
 
       grid.appendChild(div);
+
+      // 📊 Update calculation dynamically
+      const gramsInput = div.querySelector(`#grams-${idx}`);
+      const wastageInput = div.querySelector(`#wastage-${idx}`);
+      const baseEl = div.querySelector(`#basePrice-${idx}`);
+      const gstEl = div.querySelector(`#withGst-${idx}`);
+      const wastageEl = div.querySelector(`#wastageAmount-${idx}`);
+      const totalEl = div.querySelector(`#totalAmount-${idx}`);
+
+      function recalc() {
+    const grams = parseFloat(gramsInput.value) || 0;
+    const wastagePerc = parseFloat(wastageInput.value) || 0;
+    const gstPerc = 3; // GST percentage
+
+    // Step 1: Base price
+    const basePrice = todayNum * grams;
+
+    // Step 2: Add wastage
+    const wastageAmt = (basePrice * wastagePerc) / 100;
+    const priceWithWastage = basePrice + wastageAmt;
+
+    // Step 3: Add GST
+    const gstAmt = (priceWithWastage * gstPerc) / 100;
+
+    // Total price
+    const total = priceWithWastage + gstAmt;
+
+    // Update UI
+    baseEl.textContent = `₹${basePrice.toFixed(3)}`;
+    wastageEl.textContent = `₹${wastageAmt.toFixed(3)}`;
+    gstEl.textContent = `₹${gstAmt.toFixed(3)}`;
+    totalEl.textContent = `₹${total.toFixed(3)}`;
+    }
+      gramsInput.addEventListener("input", recalc);
+      wastageInput.addEventListener("input", recalc);
+
+      // 🔁 Initial calculation
+      recalc();
     });
 
     content.appendChild(grid);
     box.appendChild(container);
 
-    // ✅ Collapse/Expand toggle logic
+    // ✅ Collapse toggle logic
     const toggle = document.getElementById("goldToggle");
     const goldContent = document.getElementById("goldContent");
     const goldArrow = document.getElementById("goldArrow");
@@ -128,6 +174,4 @@ async function showGoldRates() {
   }
 }
 
-
-// ✅ Call it only once
 document.addEventListener("DOMContentLoaded", showGoldRates);
