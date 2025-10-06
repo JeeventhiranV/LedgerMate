@@ -10,11 +10,9 @@ async function showGoldRates() {
     const res = await fetch("https://www.goodreturns.in/gold-rates/chennai.html");
     const html = await res.text();
 
-    // Parse HTML
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
 
-    // Extract table data
     function extractSection(title) {
       const section = Array.from(doc.querySelectorAll("section.section-sec4"))
         .find(sec => sec.querySelector("h2")?.textContent.includes(title));
@@ -32,11 +30,9 @@ async function showGoldRates() {
     const gold22 = extractSection("22 Carat");
     const gold18 = extractSection("18 Carat");
 
-    // Save last 3 days in localStorage
     function updateHistory(key, today) {
       let history = JSON.parse(localStorage.getItem(key) || "[]");
       const todayDate = new Date().toLocaleDateString();
-
       if (!history.some(e => e.date === todayDate)) {
         history.push({ date: todayDate, rate: today });
       }
@@ -49,36 +45,57 @@ async function showGoldRates() {
     const history22 = updateHistory("gold22", gold22.today);
     const history18 = updateHistory("gold18", gold18.today);
 
-    // Build UI
     const box = document.getElementById("goldBox");
     box.innerHTML = "";
 
     const cards = [
-      { title: "24K Gold (1g)", data: gold24, history: history24 },
-      { title: "22K Gold (1g)", data: gold22, history: history22 },
-      { title: "18K Gold (1g)", data: gold18, history: history18 }
+      { title: "24K Gold", data: gold24, history: history24 },
+      { title: "22K Gold", data: gold22, history: history22 },
+      { title: "18K Gold", data: gold18, history: history18 },
     ];
 
+    // 🔽 Entire section collapsible
+    const container = document.createElement("div");
+    container.className = "glass rounded-xl overflow-hidden  shadow";
+
+    container.innerHTML = `
+      <button id="goldToggle" class="w-full flex justify-between items-center p-4 focus:outline-none hover:bg-white/10 transition-all">
+        <h2 class="text-lg font-semibold flex items-center gap-2">
+          📈 Today’s Gold Rates
+        </h2>
+        <span id="goldArrow" class="transform transition-transform">▼</span>
+      </button>
+      <div id="goldContent" class="hidden px-4 pb-4 pt-2 space-y-4"></div>
+    `;
+
+    const content = container.querySelector("#goldContent");
+
+    // Create gold cards inside collapsible section
     const grid = document.createElement("div");
     grid.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4";
 
     cards.forEach(card => {
+      const todayNum = parseFloat(card.data.today.replace(/[^0-9.]/g, ""));
+      const eightGram = todayNum * 8;
+      const withGST = eightGram * 1.03;
+
       const historyHTML = card.history
-        .map(h => `<div class="flex justify-between text-xs"><span>${h.date}</span><span>${h.rate}</span></div>`)
+        .map(h => `<div class="flex justify-between text-xs"style="background: var(--glass-bg); border-color: var(--glass-border);"><span>${h.date}</span><span>${h.rate}</span></div>`)
         .join("");
 
       const div = document.createElement("div");
-      div.className = `
-        glass p-4 rounded-xl transition-all cursor-pointer hover:shadow-md
-      `;
+      div.className = "glass p-4 rounded-lg hover:shadow-md transition-all";
 
       div.innerHTML = `
-        <div class="flex justify-between items-center mb-2" style="background: var(--glass-bg); border-color: var(--glass-border);">
-          <h3 class="text-base font-semibold truncate">${card.title}</h3>
-        </div>
+        <h3 class="text-base font-semibold mb-2">${card.title}</h3>
         <div class="text-xs text-green-500">Today: <span class="font-bold">${card.data.today}</span></div>
         <div class="text-xs text-red-500">Yesterday: <span>${card.data.yesterday}</span></div>
-        <div class="text-xs text-blue-500 mt-1 mb-2">Change: <span>${card.data.change}</span></div>
+        <div class="text-xs text-blue-500">Change: <span>${card.data.change}</span></div>
+
+        <div class="border-t border-white/10 dark:border-white/5 my-2"></div>
+
+        <div class="text-xs flex justify-between"><span>💰 8g Base Price:</span><span>₹${eightGram.toFixed(2)}</span></div>
+        <div class="text-xs flex justify-between font-semibold"><span>💸 8g + 3% GST:</span><span class="text-green-600 dark:text-green-400">₹${withGST.toFixed(2)}</span></div>
 
         <div class="bg-white/10 dark:bg-black/20 rounded-md p-2 mt-3">
           <h4 class="text-xs font-semibold opacity-80 mb-1">📅 Last 3 Days</h4>
@@ -89,7 +106,18 @@ async function showGoldRates() {
       grid.appendChild(div);
     });
 
-    box.appendChild(grid);
+    content.appendChild(grid);
+    box.appendChild(container);
+
+    // ✅ Collapse/Expand toggle logic
+    const toggle = document.getElementById("goldToggle");
+    const goldContent = document.getElementById("goldContent");
+    const goldArrow = document.getElementById("goldArrow");
+
+    toggle.addEventListener("click", () => {
+      const isHidden = goldContent.classList.toggle("hidden");
+      goldArrow.style.transform = isHidden ? "rotate(0deg)" : "rotate(180deg)";
+    });
   } catch (err) {
     console.error("❌ Gold rate fetch failed:", err);
     document.getElementById("goldBox").innerHTML = `
