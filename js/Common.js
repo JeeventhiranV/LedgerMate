@@ -110,7 +110,7 @@ async function openDB() {
             ensureStore("investments", { keyPath: "id", autoIncrement: true }, ["profile"]);
             ensureStore("recurringTransactions", { keyPath: "id", autoIncrement: true }, ["profile"]);
             ensureStore("auditLog", { keyPath: "id", autoIncrement: true }, ["profile", "timestamp"]);
-
+            ensureStore("trips", { keyPath: "id", autoIncrement: true });
             console.log("✅ DB schema upgrade complete");
         };
     });
@@ -160,6 +160,7 @@ let state = {
   savings: [],
   investments: [],
   dataFolderHandle: null,
+  trips: []
 };
 
 // Charts
@@ -215,6 +216,7 @@ async function loadAllFromDB(){
   state.users = await getAll('users');
   state.savings = await getAll('savings');
   state.investments = await getAll('investments');
+  state.trips = await getAll('trips');
   // restore folder handle if present
   const fh = settingsAll.find(x=>x.key==='dataFolderHandle');
   if (fh) state.dataFolderHandle = fh.value;
@@ -241,10 +243,12 @@ function bindUI(){
   document.getElementById('openBudgets').onclick = showBudgetsModal;
   document.getElementById('openLoans').onclick = showLoansModal;
   document.getElementById('openGoals').onclick = showGoalsModal;
+  
   //document.getElementById('openRemainders').onclick = showRemindersModal;
   document.getElementById('openInvestments').onclick = showInvestmentsModal;
   document.getElementById('accountFilter').onchange = refreshRecentList;
   document.getElementById('clearData').addEventListener('click', clearAllData);
+  document.getElementById("openTripPlannerBtn").onclick = () => openTripPlanner();
   // file import input
   const fi = document.createElement('input'); fi.type='file'; fi.accept='.csv,.json'; fi.id='fileImport'; fi.style.display='none';
   fi.onchange = async(e)=>{ const f = e.target.files[0]; if (!f) return; const txt = await f.text(); if (f.name.endsWith('.csv')) await importCSVText(txt); else await fullImportJSONText(txt); }
@@ -2970,6 +2974,7 @@ async function fullExport(){
     users: state.users,
     savings: state.savings,
     investments: state.investments,
+    trips: state.trips,
     meta: { exportedAt: new Date().toISOString() }
   };
   const txt = JSON.stringify(payload, null, 2);
@@ -3009,12 +3014,13 @@ async function fullImportJSONText(txt){
     if (data.users) for (const u of data.users) await put('users', u);
     if (data.savings) for (const s of data.savings) await put('savings', s);
     if (data.investments) for (const inv of data.investments) await put('investments', inv);
+    if (data.trips) for (const trip of data.trips) await put('trips', trip); 
     await loadAllFromDB(); renderAll(); showToast('Import complete', 'success');
   }catch(err){ showToast('Import failed: '+err.message, 'error'); }
 }
 
 async function clearAllStores(){
-  const stores = ['transactions','budgets','loans','reminders','dropdowns','settings','users','savings','investments'];
+  const stores = ['transactions','budgets','loans','reminders','dropdowns','settings','users','savings','investments','trips'];
   for (const s of stores){
     await new Promise((res,rej)=>{ const t = db.transaction(s,'readwrite'); const o = t.objectStore(s); const r=o.clear(); r.onsuccess=res; r.onerror=rej; });
   }
@@ -3084,7 +3090,8 @@ function packSnapshot(metaExtra = {}) {
     settings:     state.settings || {},
     users:        state.users || [],
     savings:      state.savings || [],
-    investments:  state.investments || []
+    investments:  state.investments || [],
+    trips:        state.trips || []
   };
 }
 
@@ -3129,6 +3136,7 @@ async function mergeRestore(payload) {
   await upsertList('users',        payload.users || []);
   await upsertList('savings',      payload.savings || []);
   await upsertList('investments',  payload.investments || []);
+  await upsertList('trips',        payload.trips || []);
 
   // refresh in-memory
   await loadAllFromDB(); // you already have this; used widely in the app
@@ -3403,6 +3411,7 @@ function clearAllData() {
       state.investments = []; 
       state.notifications = [];
       state.rewards = []; 
+      state.trips = [];
       renderAll();
       showToast('All data cleared', 'success');
     }
