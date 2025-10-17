@@ -3,92 +3,97 @@ async function openTripPlanner(onSave = null) {
   let currentTripId = null;
 
   if (document.getElementById("tripPlannerPopup")) return;
+const popup = document.createElement("div");
+popup.id = "tripPlannerPopup";
+popup.className = "fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center animate-fadeIn p-2 overflow-auto";
+popup.innerHTML = `
+  <div class="glass w-full max-w-md md:max-w-2xl rounded-3xl p-4 md:p-6 relative flex flex-col gap-4" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
+    <!-- Close button -->
+    <button id="tp_close" class="absolute top-3 right-3 text-gray-600 dark:text-gray-300 text-xl hover:scale-110 transition">✕</button>
 
-  const popup = document.createElement("div");
-  popup.id = "tripPlannerPopup";
-  popup.className =
-    "fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center animate-fadeIn";
-  popup.innerHTML = `
-  <div class="glass w-[95%] md:w-[80%] lg:w-[70%] max-h-[90vh] overflow-y-auto rounded-3xl p-6 relative" 
-       style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
-    <button id="tp_close" class="absolute top-4 right-4 text-gray-600 dark:text-gray-300 text-xl hover:scale-110 transition">✕</button>
-    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">🧳 Trip Planner</h2>
+    <h2 class="text-xl md:text-2xl font-bold mb-2 flex items-center gap-2">🧳 Trip Planner</h2>
 
-    <div class="grid md:grid-cols-2 gap-4">
-      <!-- Left -->
-      <section class="glass rounded-2xl p-4" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
+    <div class="flex flex-col md:flex-row gap-4">
+      <!-- Left: Trip List -->
+      <section class="flex-1 glass rounded-2xl p-3 md:p-4" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
         <div class="flex justify-between items-center mb-3">
           <h3 class="text-lg font-semibold">Trips</h3>
-          <button class="w-40 py-2 rounded" style="background: var(--btn-green); color: var(--text);" id="tp_addTripBtn">+ Add Trip</button>
+          <button id="tp_addTripBtn" class="py-1 px-3 md:py-2 md:px-4 rounded" style="background: var(--btn-green); color: var(--text); font-size: 0.85rem;">+ Add Trip</button>
         </div>
-        <div id="tp_tripList" class="space-y-2"></div>
+        <div id="tp_tripList" class="space-y-2 max-h-[300px] md:max-h-[400px] overflow-auto"></div>
       </section>
 
-      <!-- Right -->
-      <section id="tp_tripDetails" class="glass rounded-2xl p-4 hidden" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
+      <!-- Right: Trip Details -->
+      <section id="tp_tripDetails" class="flex-1 glass rounded-2xl p-3 md:p-4 hidden flex-col" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
         <div class="flex justify-between items-start mb-2">
-         <div>
-  <h3 id="tp_tripTitle" class="text-lg font-semibold"></h3>
-  <p id="tp_tripDates" class="text-sm text-gray-500"></p>
-  <p id="tp_tripDays" class="text-xs text-gray-400 italic"></p>
-  <p id="tp_tripNotes" class="text-xs text-gray-400 italic"></p>
-  <p id="tp_tripCreated" class="text-xs text-gray-400 italic"></p>
-  <p id="tp_tripUpdated" class="text-xs text-gray-400 italic"></p>
-</div>
-          <div class="flex gap-2">
+          <div class="flex-1">
+            <h3 id="tp_tripTitle" class="text-lg font-semibold"></h3>
+            <p id="tp_tripDates" class="text-sm text-gray-500"></p>
+            <p id="tp_tripDays" class="text-xs text-gray-400 italic"></p>
+            <p id="tp_tripNotes" class="text-xs text-gray-400 italic max-h-16 overflow-auto mt-1"></p>
+            <p id="tp_tripCreated" class="text-xs text-gray-400 italic"></p>
+            <p id="tp_tripUpdated" class="text-xs text-gray-400 italic"></p>
+          </div>
+          <div class="flex flex-col gap-1 ml-2">
             <button id="tp_editTripBtn" class="text-blue-400 text-sm hover:underline">Edit</button>
             <button id="tp_deleteTrip" class="text-red-400 text-sm hover:underline">Delete</button>
           </div>
         </div>
 
-        <div id="tp_personList" class="flex flex-wrap gap-2 mb-4"></div>
+        <div id="tp_personList" class="flex flex-wrap gap-2 mb-2"></div>
 
-        <div class="flex justify-between items-center mb-2">
+        <div class="flex justify-between items-center mb-1">
           <h4 class="font-semibold">Expenses</h4>
-          <button class="w-40 py-2 rounded" style="background: var(--btn-green); color: var(--text);" id="tp_addExpenseBtn">+ Add</button>
+          <button id="tp_addExpenseBtn" class="py-1 px-3 rounded" style="background: var(--btn-green); color: var(--text); font-size: 0.85rem;">+ Add</button>
         </div>
-        <div id="tp_expenseList" class="space-y-2 mb-4 text-sm"></div>
+        <div id="tp_expenseList" class="space-y-2 mb-2 max-h-[200px] overflow-auto text-sm"></div>
 
-        <h4 class="font-semibold mt-3 mb-1">💰 Settlement</h4>
-        <div id="tp_settlementList" class="space-y-1 text-sm"></div>
+        <h4 class="font-semibold mt-2 mb-1">💰 Settlement</h4>
+        <div id="tp_settlementList" class="space-y-1 text-sm max-h-[150px] overflow-auto"></div>
       </section>
     </div>
   </div>
 
   <!-- Trip Modal -->
-  <div id="tp_tripModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center hidden z-[10000]">
-    <div class="glass p-6 rounded-2xl w-96" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
-      <h3 id="tp_modalTitle" class="text-lg font-semibold mb-2">Add Trip</h3>
-       <input id="tp_tripName" class="input" style="background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border)">
-      <div class="flex gap-2 mb-2">
-       <input id="tp_tripStart" class="input" style="background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border)">
-      <input id="tp_tripEnd" class="input" style="background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border)">
-         </div>
-      <textarea id="tp_tripNotesInput" class="input" style="background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border)"></textarea>
-      <h4 class="font-medium mb-2">Persons</h4>
-      <div id="tp_personInputs" class="space-y-2 mb-2"></div>
-      <button id="tp_addPersonBtn" class="btn glass bg-blue-500/60 text-white mb-4">+ Add Person</button>
-      <div class="flex justify-center gap-2">
-        <button id="tp_cancelTripBtn" class="w-full py-2 rounded" style="background: var(--btn-red); color: var(--text);" >Cancel</button>
-        <button id="tp_saveTripBtn" class="w-full py-2 rounded" style="background: var(--btn-green); color: var(--text);" >Save</button>
+  <div id="tp_tripModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center hidden z-[10000] p-2">
+    <div class="glass w-full max-w-sm rounded-2xl p-4 flex flex-col gap-3" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
+      <h3 id="tp_modalTitle" class="text-lg font-semibold mb-1">Add Trip</h3>
+      <input id="tp_tripName" placeholder="Trip Name" class="input w-full p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border);">
+
+      <div class="flex gap-2">
+        <input id="tp_tripStart" type="date" class="input flex-1 p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border);">
+        <input id="tp_tripEnd" type="date" class="input flex-1 p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border);">
+      </div>
+
+      <textarea id="tp_tripNotesInput" placeholder="Notes (optional)" class="input p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border);"></textarea>
+
+      <h4 class="font-medium">Persons</h4>
+      <div id="tp_personInputs" class="space-y-2"></div>
+      <button id="tp_addPersonBtn" class="py-1 px-3 rounded" style="background: var(--btn-blue); color: var(--text);">+ Add Person</button>
+
+      <div class="flex gap-2 mt-2">
+        <button id="tp_cancelTripBtn" class="flex-1 py-2 rounded" style="background: var(--btn-red); color: var(--text);">Cancel</button>
+        <button id="tp_saveTripBtn" class="flex-1 py-2 rounded" style="background: var(--btn-green); color: var(--text);">Save</button>
       </div>
     </div>
   </div>
 
   <!-- Expense Modal -->
-  <div id="tp_expenseModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center hidden z-[10000]">
-    <div class="glass p-6 rounded-2xl w-96" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
-      <h3 id="tp_expModalTitle" class="text-lg font-semibold mb-2">Add Expense</h3>
-      <input id="tp_expTitle" type="text" placeholder="Expense Title" class="input mb-2" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
-      <input id="tp_expAmount" type="number" placeholder="Amount" class="input mb-2" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
-      <select id="tp_expPaidBy" class="input mb-3" style="background: var(--glass-bg); border: 1px solid var(--glass-border);"></select>
-      <div class="flex justify-center gap-2"> 
-        <button id="tp_cancelExpBtn" class="w-full py-2 rounded" style="background: var(--btn-red); color: var(--text);" ">Cancel</button>
-        <button id="tp_saveExpBtn" class="w-full py-2 rounded" style="background: var(--btn-green); color: var(--text);" ">Save</button>
+  <div id="tp_expenseModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center hidden z-[10000] p-2">
+    <div class="glass w-full max-w-sm rounded-2xl p-4 flex flex-col gap-3" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
+      <h3 id="tp_expModalTitle" class="text-lg font-semibold mb-1">Add Expense</h3>
+      <input id="tp_expTitle" type="text" placeholder="Expense Title" class="input p-2 rounded border" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
+      <input id="tp_expAmount" type="number" placeholder="Amount" class="input p-2 rounded border" style="background: var(--glass-bg); border: 1px solid var(--glass-border);">
+      <select id="tp_expPaidBy" class="input p-2 rounded border" style="background: var(--glass-bg); border: 1px solid var(--glass-border);"></select>
+
+      <div class="flex gap-2 mt-2">
+        <button id="tp_cancelExpBtn" class="flex-1 py-2 rounded" style="background: var(--btn-red); color: var(--text);">Cancel</button>
+        <button id="tp_saveExpBtn" class="flex-1 py-2 rounded" style="background: var(--btn-green); color: var(--text);">Save</button>
       </div>
     </div>
   </div>
-  `;
+`;
+
   document.body.appendChild(popup);
 
   const el = (id) => document.getElementById(id);
