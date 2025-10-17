@@ -52,7 +52,7 @@ let db = null;
 async function openDB() {
     return new Promise((resolve, reject) => {
         const DB_NAME = "ledgermate_db";
-        const DB_VERSION = 5; // bump this when schema changes
+        const DB_VERSION = 6; // bump this when schema changes
 
         const req = indexedDB.open(DB_NAME, DB_VERSION);
 
