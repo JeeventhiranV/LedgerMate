@@ -21,6 +21,7 @@ async function openTripPlanner(onSave = null) {
           <h3 class="text-lg font-semibold">Trips</h3>
           <button id="tp_addTripBtn" class="py-1 px-3 md:py-2 md:px-4 rounded" style="background: var(--btn-green); color: var(--text); font-size: 0.85rem;">+ Add Trip</button>
         </div>
+        <input id="tp_searchTrips" placeholder="Search trips or people" class="input w-full p-2 rounded border"> 
         <div id="tp_tripList" class="space-y-2 max-h-[300px] md:max-h-[400px] overflow-auto"></div>
       </section>
 
@@ -146,35 +147,42 @@ el("tp_completeTripBtn").onclick = async () => {
     const trip = state.trips.find((t) => t.id === currentTripId);
     openTripModal(trip);
   };
+el("tp_searchTrips").oninput = (e) => {
+  const query = e.target.value.toLowerCase();
+  const filtered = state.trips.filter(
+    t => t.name.toLowerCase().includes(query) || 
+         t.persons.some(p => p.name.toLowerCase().includes(query))
+  );
+  renderTrips(filtered);
+};
+
 
   // ---------- Render Functions ----------
-  function renderTrips() {
+  function renderTrips(tripsToRender = state.trips) {
   const list = el("tp_tripList");
-  if (!state.trips.length) {
+  if (!tripsToRender.length) {
     list.innerHTML = `<p class="text-gray-500 text-sm text-center">No trips yet.</p>`;
     return;
   }
-
-  const sorted = [...state.trips].sort((a, b) => {
-    if (a.completed && !b.completed) return 1;
-    if (!a.completed && b.completed) return -1;
-    const dateA = new Date(a.startDate).getTime();
-    const dateB = new Date(b.startDate).getTime();
-    return dateA - dateB;
-  });
-
-  list.innerHTML = sorted
+  list.innerHTML = tripsToRender
+    .sort((a, b) => {
+      // Sort by startDate ascending, completed trips last
+      if (a.completed && !b.completed) return 1;
+      if (!a.completed && b.completed) return -1;
+      return new Date(a.startDate) - new Date(b.startDate);
+    })
     .map(
-      (t) => `<div class="glass p-3 rounded-lg cursor-pointer hover:bg-white/60 dark:hover:bg-gray-700/60 transition ${
-        t.completed ? "opacity-50 line-through" : ""
-      }" style="background: var(--glass-bg); border: 1px solid var(--glass-border);" onclick="window._openTrip('${t.id}')">
-            <div class="font-semibold">${t.name} (${calculateTripDays(t.startDate, t.endDate)} days)</div>
-            <div class="text-xs text-gray-500">${t.startDate || ""} → ${t.endDate || ""}</div>
-            <div class="text-xs text-gray-400 italic">Created: ${formatDate(t.createdAt)}, Updated: ${formatDate(t.updatedAt)}</div>
-        </div>`
+      (t) => `<div class="glass p-3 rounded-lg cursor-pointer hover:bg-white/60 dark:hover:bg-gray-700/60 transition" 
+                   style="background: var(--glass-bg); border: 1px solid var(--glass-border);" 
+                   onclick="window._openTrip('${t.id}')">
+                <div class="font-semibold">${t.name} (${calculateTripDays(t.startDate, t.endDate)} days)</div>
+                <div class="text-xs text-gray-500">${t.startDate || ""} → ${t.endDate || ""}</div>
+                <div class="text-xs text-gray-400 italic">Created: ${formatDate(t.createdAt)}, Updated: ${formatDate(t.updatedAt)}</div>
+              </div>`
     )
     .join("");
 }
+
 
 
   window._openTrip = (id) => openTrip(id);
@@ -414,6 +422,6 @@ el("tp_completeTripBtn").onclick = async () => {
     });
     el("tp_saveExpBtn").dataset.trip = trip.id;
     el("tp_saveExpBtn").dataset.editing = existing?.id || "";
-  }
+  } 
 window.openTripPlanner = openTripPlanner;
 window.openExpenseModal = openExpenseModal;
