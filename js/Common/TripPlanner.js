@@ -54,6 +54,9 @@ async function openTripPlanner(onSave = null) {
 
         <h4 class="font-semibold mt-2 mb-1">💰 Settlement</h4>
         <div id="tp_settlementList" class="space-y-1 text-sm max-h-[150px] overflow-auto"></div>
+         <!-- SHARE / EXPORT BUTTONS will appear here -->
+         <h4 class="font-semibold mt-2 mb-1">Share</h4>
+        <div id="tp_shareBtns" class="flex gap-2 mt-4"></div>
       </section>
     </div>
   </div>
@@ -239,6 +242,7 @@ el("tp_searchTrips").oninput = (e) => {
     }
     el("tp_addExpenseBtn").onclick = () => window.openExpenseModal(trip);
     renderSettlement(trip);
+    injectShareButtons(trip);
   }
 
   window._delExp = async (tripId, expId) => {
@@ -422,6 +426,7 @@ const el = (id) => document.getElementById(id);
     modal.classList.add("hidden");
     renderTrips();
     renderSettlement(trip);
+    injectShareButtons(trip);
   };
 } 
 async function confirmSettlement(tripId, from, to, isCollected) {
@@ -444,6 +449,7 @@ async function confirmSettlement(tripId, from, to, isCollected) {
   } 
   await put(STORE_NAME, trip);
   renderSettlement(trip);
+  injectShareButtons(trip);
 }
 
 
@@ -627,6 +633,241 @@ function renderSettlement(trip) {
       .toString()
       .padStart(2, "0")}`;
   }
+/* ---------- Sharing, PDF export, WhatsApp text & GPay/UPI pay ---------- */
+
+// Helper to build human-readable trip summary (used by WhatsApp/email/pdf)
+function buildTripSummaryText(trip) {
+  const total = (trip.expenses || []).reduce((s,e)=>s + Number(e.amount||0),0);
+  const persons = trip.persons || [];
+  // compute paid / owed with sharedWith fallback
+  const paid = {}; const owed = {};
+  persons.forEach(p => { paid[p.id]=0; owed[p.id]=0; });
+  (trip.expenses||[]).forEach(exp => {
+    const participants = (exp.sharedWith && exp.sharedWith.length) ? exp.sharedWith : persons.map(p=>p.id);
+    const perHead = Number(exp.amount || 0) / Math.max(1, participants.length);
+    paid[exp.paidBy] = (paid[exp.paidBy] || 0) + Number(exp.amount || 0);
+    participants.forEach(pid => { owed[pid] = (owed[pid] || 0) + perHead; });
+  });
+  const balances = persons.map(p => ({
+    id: p.id, name: p.name,
+    paid: paid[p.id] || 0,
+    owed: owed[p.id] || 0,
+    balance: (paid[p.id] || 0) - (owed[p.id] || 0)
+  }));
+
+  // pairwise payments (greedy)
+  const debtors = balances.filter(b=>b.balance < 0).map(b=>({ ...b, amount: -b.balance }));
+  const creditors = balances.filter(b=>b.balance > 0).map(b=>({ ...b }));
+  const payments = [];
+  let i=0,j=0;
+  while(i<debtors.length && j<creditors.length){
+    const d = debtors[i], c = creditors[j];
+    const amt = Math.min(d.amount, c.balance);
+    payments.push({ from: d.name, to: c.name, amount: amt });
+    d.amount -= amt; c.balance -= amt;
+    if (d.amount <= 0) i++;
+    if (c.balance <= 0) j++;
+  }
+
+  // build text
+  let txt = `Trip: ${trip.name}\nDates: ${trip.startDate || '-'} → ${trip.endDate || '-'}\n\n`;
+  txt += `Total Spent: ₹${total.toFixed(2)}\n\nExpenses:\n`;
+  (trip.expenses || []).forEach(e=>{
+    const payer = (trip.persons.find(p=>p.id===e.paidBy)||{}).name || e.paidBy;
+    const shared = (e.sharedWith && e.sharedWith.length) ? e.sharedWith.map(id => (trip.persons.find(p=>p.id===id)||{}).name||id).join(", ") : "All";
+    txt += ` - ${e.title}: ₹${Number(e.amount).toFixed(2)} (Paid: ${payer}; Shared: ${shared})\n`;
+  });
+
+  txt += `\nPer person summary:\n`;
+  balances.forEach(b=>{
+    txt += ` - ${b.name}: Paid ₹${b.paid.toFixed(2)}, Share ₹${b.owed.toFixed(2)}, ${b.balance > 0 ? `Receives ₹${b.balance.toFixed(2)}` : b.balance < 0 ? `Pays ₹${Math.abs(b.balance).toFixed(2)}` : "Settled"}\n`;
+  });
+
+  if (payments.length) {
+    txt += `\nSuggested settlements:\n`;
+    payments.forEach(p=> txt += ` - ${p.from} → ${p.to}: ₹${p.amount.toFixed(2)}\n`);
+  } else {
+    txt += `\nAll settled ✅\n`;
+  }
+
+  return { text: txt, payments, balances, total };
+}
+
+// WhatsApp share (opens wa.me)
+function shareTripWhatsApp(trip) {
+  const { text } = buildTripSummaryText(trip);
+  // keep reasonably sized for mobile
+  const maxLen = 1600;
+  const payload = encodeURIComponent(text.length > maxLen ? text.slice(0, maxLen) + '\n...(truncated)' : text);
+  const url = `https://wa.me/?text=${payload}`;
+  window.open(url, '_blank');
+}
+
+// Email share (mailto)
+function shareTripEmail(trip) {
+  const { text } = buildTripSummaryText(trip);
+  const subject = encodeURIComponent(`Trip Summary: ${trip.name}`);
+  const body = encodeURIComponent(text);
+  const mailto = `mailto:?subject=${subject}&body=${body}`;
+  window.location.href = mailto;
+}
+
+// Dynamic load of jsPDF (UMD build) and return promise that resolves to jsPDF constructor
+async function loadJsPDF() {
+  return new Promise((resolve, reject) => {
+    if (window.jspdf && window.jspdf.jsPDF && window.jspdf.autoTable) {
+      return resolve({ jsPDF: window.jspdf.jsPDF, autoTable: window.jspdf.autoTable });
+    }
+
+    const src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    const autoTableSrc = "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js";
+
+    // Load jsPDF first
+    const s1 = document.createElement("script");
+    s1.src = src;
+    s1.onload = () => {
+      // Patch jsPDF to window for autoTable
+      if (window.jspdf && window.jspdf.jsPDF) window.jsPDF = window.jspdf.jsPDF;
+      
+      const s2 = document.createElement("script");
+      s2.src = autoTableSrc;
+      s2.onload = () => {
+        if (window.jsPDF && window.jspdf && window.jspdf.jsPDF) {
+          resolve({ jsPDF: window.jsPDF, autoTable: window.jspdf.autoTable });
+        } else {
+          reject(new Error("jsPDF or autoTable not available"));
+        }
+      };
+      s2.onerror = () => reject(new Error("Failed to load autoTable plugin"));
+      document.head.appendChild(s2);
+    };
+    s1.onerror = () => reject(new Error("Failed to load jsPDF"));
+    document.head.appendChild(s1);
+  });
+}
+
+
+// Export PDF (uses jsPDF). Creates a simple multi-line PDF containing the trip summary.
+async function exportTripPDF(trip) {
+  try {
+    const { jsPDF } = await loadJsPDF(); // make sure loadJsPDF loads both jsPDF + autoTable
+    const doc = new jsPDF();
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Optional: background color or image
+    doc.setFillColor(245, 245, 245); // light grey
+    doc.rect(0, 0, pageWidth, 297, "F");
+
+    // Header
+    doc.setFontSize(18);
+    doc.setTextColor(40, 40, 40);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Trip Summary: ${trip.name}`, pageWidth / 2, 20, { align: "center" });
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80);
+    doc.text(`Dates: ${trip.startDate} → ${trip.endDate}`, 14, 30);
+    doc.text(`Notes: ${trip.notes || "-"}`, 14, 36);
+
+    // Prepare table data
+    const tableColumns = ["#", "Expense", "Amount", "Paid By", "Shared With"];
+    const tableRows = trip.expenses.map((e, idx) => [
+      idx + 1,
+      e.title,
+      `₹${Number(e.amount).toFixed(2)}`,
+      trip.persons.find((p) => p.id === e.paidBy)?.name || "-",
+      e.sharedWith.map((id) => trip.persons.find((p) => p.id === id)?.name).filter(Boolean).join(", ")
+    ]);
+
+    // autoTable
+    doc.autoTable({
+      head: [tableColumns],
+      body: tableRows,
+      startY: 45,
+      theme: "grid",
+      headStyles: { fillColor: [40, 130, 200], textColor: 255, fontStyle: "bold" },
+      bodyStyles: { fillColor: [255, 255, 255], textColor: 30 },
+      alternateRowStyles: { fillColor: [240, 248, 255] },
+      margin: { left: 14, right: 14 }
+    });
+
+    // Totals
+    const totalAmount = trip.expenses.reduce((a, e) => a + Number(e.amount), 0);
+    const perHead = totalAmount / (trip.persons.length || 1);
+    doc.setFontSize(12);
+    doc.setTextColor(50, 50, 50);
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      `Total Amount: ₹${totalAmount.toFixed(2)} | Per Head: ₹${perHead.toFixed(2)}`,
+      14,
+      doc.lastAutoTable.finalY + 10
+    );
+
+    // Optional watermark/logo
+    // doc.setTextColor(200,200,200);
+    // doc.setFontSize(40);
+    // doc.text("TripMate", pageWidth/2, 150, { align: "center", angle: 45, opacity: 0.1 });
+
+    // Save PDF
+    doc.save(`${trip.name.replace(/\s/g,"_")}_Summary.pdf`);
+  } catch (err) {
+    console.error("PDF export failed:", err);
+    alert("PDF export failed: " + err.message);
+  }
+}
+
+// CSV fallback download (useful for attachments)
+function downloadTripCSV(trip) {
+  const header = ['Title','Amount','Paid By','Shared With'].join(',');
+  const rows = (trip.expenses||[]).map(e => {
+    const payer = (trip.persons.find(p=>p.id===e.paidBy)||{}).name || e.paidBy;
+    const shared = (e.sharedWith && e.sharedWith.length) ? e.sharedWith.map(id => (trip.persons.find(p=>p.id===id)||{}).name || id).join(';') : 'All';
+    return [ `"${(e.title||'').replace(/"/g,'""')}"`, e.amount, `"${payer}"`, `"${shared}"` ].join(',');
+  });
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${trip.name.replace(/\s+/g,'_')}_expenses.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// ---------- UI wiring: populate #tp_shareBtns if exists ----------
+function injectShareButtons(trip) {
+  const container = el('tp_shareBtns');
+  if (!container) return;
+  container.innerHTML = '';
+
+  function makeBtn(labelHtml, title, onclick, bgVar='--btn-blue') {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'flex items-center gap-2 px-3 py-1 rounded text-sm';
+    b.style.background = `var(${bgVar})`;
+    b.style.color = 'var(--text)';
+    b.title = title;
+    b.innerHTML = labelHtml;
+    b.onclick = onclick;
+    return b;
+  }
+
+  const waHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M20.5 3.5L3.5 20.5"/></svg> WhatsApp`;
+  const emailHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M2 6.5v11A2.5 2.5 0 0 0 4.5 20h15A2.5 2.5 0 0 0 22 17.5v-11A2.5 2.5 0 0 0 19.5 4h-15A2.5 2.5 0 0 0 2 6.5z"/></svg> Email`;
+  const pdfHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 3v10"/></svg> PDF`;
+  const csvHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M5 21h14"/></svg> CSV`;
+
+  container.appendChild(makeBtn(waHTML, 'Share via WhatsApp', ()=>shareTripWhatsApp(trip), '--btn-green'));
+  container.appendChild(makeBtn(emailHTML, 'Share via Email', ()=>shareTripEmail(trip), '--btn-blue'));
+  container.appendChild(makeBtn(pdfHTML, 'Export PDF', ()=>exportTripPDF(trip), '--btn-green'));
+  container.appendChild(makeBtn(csvHTML, 'Download CSV', ()=>downloadTripCSV(trip), '--btn-red'));
+}
+
+
 window.openTripPlanner = openTripPlanner;
 window.openExpenseModal = openExpenseModal;
 window.openSettlementSummary = openSettlementSummary;
