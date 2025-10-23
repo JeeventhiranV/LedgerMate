@@ -702,16 +702,7 @@ function shareTripWhatsApp(trip) {
   const url = `https://wa.me/?text=${payload}`;
   window.open(url, '_blank');
 }
-
-// Email share (mailto)
-function shareTripEmail(trip) {
-  const { text } = buildTripSummaryText(trip);
-  const subject = encodeURIComponent(`Trip Summary: ${trip.name}`);
-  const body = encodeURIComponent(text);
-  const mailto = `mailto:?subject=${subject}&body=${body}`;
-  window.location.href = mailto;
-}
-
+ 
 // Dynamic load of jsPDF (UMD build) and return promise that resolves to jsPDF constructor
 async function loadJsPDF() {
   return new Promise((resolve, reject) => {
@@ -817,27 +808,7 @@ async function exportTripPDF(trip) {
     alert("PDF export failed: " + err.message);
   }
 }
-
-// CSV fallback download (useful for attachments)
-function downloadTripCSV(trip) {
-  const header = ['Title','Amount','Paid By','Shared With'].join(',');
-  const rows = (trip.expenses||[]).map(e => {
-    const payer = (trip.persons.find(p=>p.id===e.paidBy)||{}).name || e.paidBy;
-    const shared = (e.sharedWith && e.sharedWith.length) ? e.sharedWith.map(id => (trip.persons.find(p=>p.id===id)||{}).name || id).join(';') : 'All';
-    return [ `"${(e.title||'').replace(/"/g,'""')}"`, e.amount, `"${payer}"`, `"${shared}"` ].join(',');
-  });
-  const csv = [header, ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${trip.name.replace(/\s+/g,'_')}_expenses.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
+ 
 // ---------- UI wiring: populate #tp_shareBtns if exists ----------
 function injectShareButtons(trip) {
   const container = el('tp_shareBtns');
@@ -857,14 +828,9 @@ function injectShareButtons(trip) {
   }
 
   const waHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M20.5 3.5L3.5 20.5"/></svg> WhatsApp`;
-  const emailHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M2 6.5v11A2.5 2.5 0 0 0 4.5 20h15A2.5 2.5 0 0 0 22 17.5v-11A2.5 2.5 0 0 0 19.5 4h-15A2.5 2.5 0 0 0 2 6.5z"/></svg> Email`;
-  const pdfHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 3v10"/></svg> PDF`;
-  const csvHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M5 21h14"/></svg> CSV`;
-
-  container.appendChild(makeBtn(waHTML, 'Share via WhatsApp', ()=>shareTripWhatsApp(trip), '--btn-green'));
-  container.appendChild(makeBtn(emailHTML, 'Share via Email', ()=>shareTripEmail(trip), '--btn-blue'));
-  container.appendChild(makeBtn(pdfHTML, 'Export PDF', ()=>exportTripPDF(trip), '--btn-green'));
-  container.appendChild(makeBtn(csvHTML, 'Download CSV', ()=>downloadTripCSV(trip), '--btn-red'));
+   const pdfHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 3v10"/></svg> PDF`;
+  container.appendChild(makeBtn(waHTML, 'Share via WhatsApp', ()=>shareTripWhatsApp(trip), '--btn-green')); 
+  container.appendChild(makeBtn(pdfHTML, 'Export PDF', ()=>exportTripPDF(trip), '--btn-green')); 
 }
 
 
