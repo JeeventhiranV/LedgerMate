@@ -697,7 +697,7 @@ function buildTripSummaryText(trip) {
 function shareTripWhatsApp(trip) {
   const { text } = buildTripSummaryText(trip);
   // keep reasonably sized for mobile
-  const maxLen = 1600;
+  const maxLen = 15000;
   const payload = encodeURIComponent(text.length > maxLen ? text.slice(0, maxLen) + '\n...(truncated)' : text);
   const url = `https://wa.me/?text=${payload}`;
   window.open(url, '_blank');
