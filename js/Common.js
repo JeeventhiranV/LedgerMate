@@ -736,160 +736,199 @@ function showLoansModal(prefill = {}) {
     grouped[key].loans.push(l);
     grouped[key].total += (l.type === 'given' ? -1 : 1) * Number(l.amount);
   });*/
-  const grouped = {};
+ const grouped = {};
 (state.loans || []).forEach(l => {
   const key = `${l.person}__${l.type}`;
   if (!grouped[key]) {
-    grouped[key] = { 
-      person: l.person, 
-      type: l.type, 
-      loans: [], 
+    grouped[key] = {
+      person: l.person,
+      type: l.type,
+      loans: [],
       total: 0,
-      pendingTotal: 0,   // new
-      collectedTotal: 0  // new
+      pendingTotal: 0,
+      collectedTotal: 0
     };
   }
   grouped[key].loans.push(l);
 
   const signedAmount = (l.type === 'given' ? -1 : 1) * Number(l.amount);
 
-  // overall total
   grouped[key].total += signedAmount;
+  if (l.collected) grouped[key].collectedTotal += signedAmount;
+  else grouped[key].pendingTotal += signedAmount;
+});
 
-  // separate pending vs collected
-  if (l.collected) {
-    grouped[key].collectedTotal += signedAmount;
+// Totals
+let totalGiven = 0, totalTaken = 0, totalOutstanding = 0;
+Object.values(grouped).forEach(group => {
+  if (group.type === 'given') {
+    totalGiven += Math.abs(group.total);
+    totalOutstanding += group.total;
   } else {
-    grouped[key].pendingTotal += signedAmount;
+    totalTaken += Math.abs(group.total);
+    totalOutstanding += group.total;
   }
 });
 
+// Sort groups by pending first, earliest due date
+const sortedGroups = Object.values(grouped).sort((a, b) => {
+  const aPending = a.loans.filter(l => !l.collected);
+  const bPending = b.loans.filter(l => !l.collected);
+  const aDate = aPending.length ? new Date(aPending[0].dueDate || '2100-01-01') : new Date('2100-01-01');
+  const bDate = bPending.length ? new Date(bPending[0].dueDate || '2100-01-01') : new Date('2100-01-01');
+  if (aPending.length && !bPending.length) return -1;
+  if (!aPending.length && bPending.length) return 1;
+  return aDate - bDate;
+});
 
-  let totalGiven = 0, totalTaken = 0, totalOutstanding = 0;
-  Object.values(grouped).forEach(group => {
-    if (group.type === 'given') {
-      totalGiven += Math.abs(group.total);
-      totalOutstanding += group.total;
-    } else {
-      totalTaken += Math.abs(group.total);
-      totalOutstanding += group.total;
-    }
-  });
+// Build rows per group
+const rows = sortedGroups.map(group => {
+  const typeLabel = group.type === 'given' ? '💸 Given' : '📥 Taken';
+  const pendingLoans = group.loans.filter(l => !l.collected);
+  const collectedLoans = group.loans.filter(l => l.collected);
 
-  const sortedGroups = Object.values(grouped).sort((a, b) => {
-    const aPending = a.loans.filter(l => !l.collected);
-    const bPending = b.loans.filter(l => !l.collected);
-    const aDate = aPending.length ? new Date(aPending[0].dueDate || '2100-01-01') : new Date('2100-01-01');
-    const bDate = bPending.length ? new Date(bPending[0].dueDate || '2100-01-01') : new Date('2100-01-01');
-    if (aPending.length && !bPending.length) return -1;
-    if (!aPending.length && bPending.length) return 1;
-    return aDate - bDate;
-  });
+  const buildLoanHtml = l => {
+    const collectedBtnClass = l.collected ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-yellow-500 hover:bg-yellow-600 text-black';
+    const collectedBtnText = l.collected ? '✅' : '⏳';
+    const loanAmountColor = l.type === 'given' ? 'text-rose-400' : 'text-emerald-400';
+    const loanSign = l.type === 'given' ? '-' : '+';
+    const recurrenceLabel = l.recurrence && l.recurrence !== 'None' ? `🔁 ${l.recurrence}` : '';
+    const isOverdue = !l.collected && l.dueDate && new Date(l.dueDate) < new Date();
+    const overdueClass = isOverdue ? 'border alert-red' : '';
+    const lastDone = (l.completedLog && l.completedLog.length)
+      ? `Last done: ${l.completedLog[l.completedLog.length - 1].time}`
+      : '';
 
-  // Build rows HTML
-  const rows = sortedGroups.map(group => {
-    const typeLabel = group.type === 'given' ? '💸 Given' : '📥 Taken';
-    const totalColor = group.type === 'given' ? 'text-rose-400' : 'text-emerald-400';
-    const totalSign = group.type === 'given' ? '-' : '+';
-    const loansHtml = group.loans
-      .slice()
-      .sort((a, b) => {
-        if (a.collected !== b.collected) return a.collected ? 1 : -1;
-        return new Date(a.dueDate || '2100-01-01') - new Date(b.dueDate || '2100-01-01');
-      })
-      .map(l => {
-        const collectedBtnClass = l.collected ? 'bg-emerald-500 hover:bg-emerald-600 ' : 'bg-yellow-500 hover:bg-yellow-600 text-black';
-        const collectedBtnText = l.collected ? '✅' : '⏳';
-        const loanAmountColor = l.type === 'given' ? 'text-rose-400' : 'text-emerald-400';
-        const loanSign = l.type === 'given' ? '-' : '+';
-        const recurrenceLabel = l.recurrence && l.recurrence !== 'None' ? `🔁 ${l.recurrence}` : '';
-        const isOverdue = !l.collected && l.dueDate && new Date(l.dueDate) < new Date();
-        const overdueClass = isOverdue ? 'border alert-red' : '';
-        const lastDone = (l.completedLog && l.completedLog.length) ? `Last done: ${l.completedLog[l.completedLog.length-1].time}` : '';
-        return `
-          <div class="flex justify-between items-center glass/60 rounded p-2 shadow-sm ${overdueClass}">
-            <div>
-              <div class="text-xs text-muted">
-                Due: ${l.dueDate || 'N/A'} ${l.collected ? '• Collected: ' + (l.collectedAt ? new Date(l.collectedAt).toLocaleString() : '') : ''} ${l.createdAt ? '• ' + new Date(l.createdAt).toLocaleString() : ''}
-                ${recurrenceLabel}
-              </div>
-              <div class="text-sm ${loanAmountColor}">${loanSign}${fmtINR(l.amount)} <span class="text-xs text-muted">${l.note || ''}</span></div>
-              ${l.category ? `<div class="text-xs text-slate-500">🏷️ ${l.category} ${lastDone ? ' • ' + lastDone : ''}</div>` : ''}
-            </div>
-            <div class="flex gap-1">
-              <button class="editLoan px-2 py-1 rounded bg-sky-500 hover:bg-sky-600  text-xs" data-id="${l.id}">✏️</button>
-              <button class="markCollected px-2 py-1 rounded ${collectedBtnClass} text-xs" data-id="${l.id}">${collectedBtnText}</button>
-              <button class="delLoan px-2 py-1 rounded bg-rose-500 hover:bg-rose-600  text-xs" data-id="${l.id}">🗑️</button>
-            </div>
+    return `
+      <div class="flex justify-between items-center glass/60 rounded p-2 shadow-sm ${overdueClass}">
+        <div>
+          <div class="text-xs text-muted">
+            Due: ${l.dueDate || 'N/A'} 
+            ${l.collected ? '• Collected: ' + (l.collectedAt ? new Date(l.collectedAt).toLocaleString() : '') : ''} 
+            ${l.createdAt ? '• ' + new Date(l.createdAt).toLocaleString() : ''}
+            ${recurrenceLabel}
           </div>
-        `;
-      }).join('');
-   return `
-  <div class="mb-3 p-3 rounded-xl  glass   shadow">
-    <div class="flex justify-between items-center mb-2">
-      <div>
-        <span class="font-semibold ">${group.person || 'Unknown'}</span>
-		<div class="text-xs text-muted font-semibold ">P: ${fmtINR(Math.abs(group.pendingTotal))} | C: ${fmtINR(Math.abs(group.collectedTotal))}
-		  <span class="ml-2 px-2 py-0.5 text-xs rounded-full  ">${typeLabel}</span>
+          <div class="text-sm ${loanAmountColor}">${loanSign}${fmtINR(l.amount)} <span class="text-xs text-muted">${l.note || ''}</span></div>
+          ${l.category ? `<div class="text-xs text-slate-500">🏷️ ${l.category} ${lastDone ? ' • ' + lastDone : ''}</div>` : ''}
         </div>
-        
-        
+        <div class="flex gap-1">
+          <button class="editLoan px-2 py-1 rounded bg-sky-500 hover:bg-sky-600 text-xs" data-id="${l.id}">✏️</button>
+          <button class="markCollected px-2 py-1 rounded ${collectedBtnClass} text-xs" data-id="${l.id}">${collectedBtnText}</button>
+          <button class="delLoan px-2 py-1 rounded bg-rose-500 hover:bg-rose-600 text-xs" data-id="${l.id}">🗑️</button>
+        </div>
       </div>
-      <button 
-        class="delLoanGroup px-2 py-1 rounded bg-rose-500 hover:bg-rose-600  text-xs" 
-        data-person="${group.person}" 
-        data-type="${group.type}">
-        🗑️
+    `;
+  };
+
+  const pendingHtml = pendingLoans.map(buildLoanHtml).join('');
+  const collectedHtml = collectedLoans.map(buildLoanHtml).join('');
+
+  const collectedSection = collectedLoans.length ? `
+    <div class="mt-2">
+      <button class="toggleCollected text-xs text-slate-400 hover:text-slate-200" 
+        data-person="${group.person}" data-type="${group.type}">
+        ⋯ View All (${collectedLoans.length})
       </button>
-    </div>
-    <div class="space-y-2">${loansHtml}</div>
-  </div>
-`; 
-  }).join('') || `<div class="text-center text-muted">No loans added</div>`;
+      <div class="collectedList hidden mt-2">${collectedHtml}</div>
+    </div>` : '';
 
-  // Summary + Add form (categories/recurrences from dropdown manager)
-  const summaryHtml = `
-    <div class="mb-4 p-3 rounded-xl  glass shadow">
-      <h3 class="text-md font-semibold  mb-2">💰 Loan Summary</h3>
-      <div class="flex justify-between"><span class="text-sm ">Total Given:</span><span class="font-bold text-rose-400">-${fmtINR(totalGiven)}</span></div>
-      <div class="flex justify-between"><span class="text-sm ">Total Taken:</span><span class="font-bold text-emerald-400">+${fmtINR(totalTaken)}</span></div>
-      <div class="flex justify-between border-t  pt-2"><span class="text-sm ${totalOutstanding>=0?'text-emerald-300':'text-rose-300'}">${totalOutstanding>=0?'Net Owed to You:':'Net You Owe:'}</span><span class="text-lg font-bold ${totalOutstanding>=0?'text-emerald-400':'text-rose-400'}">${totalOutstanding>=0?'+':''}${fmtINR(totalOutstanding)}</span></div>
-    </div>`;
-
-  const persons = state.dropdowns.persons || [];
-  const categories = state.dropdowns.categories || [];
-  const loanAccount = state.dropdowns.accounts || [];
-  const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.length ? state.dropdowns.recurrences : ['None','daily','weekly','monthly','yearly'];
-
-  const addForm = `
-    <form id="addLoanForm" class="mt-4 space-y-2">
-      <select id="loanType" class="w-full p-2 rounded glass border  ">
-        <option value="given">💸 Given</option>
-        <option value="taken">📥 Taken</option>
-      </select>
-      <div id="loanPersonCheckboxes" class="space-y-1 p-2 rounded glass border  max-h-40 overflow-y-auto">
-        ${persons.map(p=>`<label class="flex items-center"><input type="checkbox" value="${p}" class="personCheckbox"><span class="ml-2 text-sm ">${p}</span></label>`).join('')}
+  return `
+    <div class="mb-3 p-3 rounded-xl glass shadow">
+      <div class="flex justify-between items-center mb-2">
+        <div>
+          <span class="font-semibold">${group.person || 'Unknown'}</span>
+          <div class="text-xs text-muted font-semibold">
+            P: ${fmtINR(Math.abs(group.pendingTotal))} | C: ${fmtINR(Math.abs(group.collectedTotal))}
+            <span class="ml-2 px-2 py-0.5 text-xs rounded-full">${typeLabel}</span>
+          </div>
+        </div>
+        <button 
+          class="delLoanGroup px-2 py-1 rounded bg-rose-500 hover:bg-rose-600 text-xs" 
+          data-person="${group.person}" data-type="${group.type}">
+          🗑️
+        </button>
       </div>
-	   <select id="loanAccount" class="w-full p-2 rounded glass border  ">
-        ${loanAccount.map(a=>`<option value="${(a||'').toString()}">${a}</option>`).join('')}
-      </select>
-      <input id="loanAmount" type="number" min="1" placeholder="Amount ₹" class="w-full p-2 rounded glass border  " required />
-      <input id="loanDueDate" type="date" class="w-full p-2 rounded glass border  " required />
-      <input id="loanNote" placeholder="Note" class="w-full p-2 rounded glass border  " />
-      <select id="loanCategory" class="w-full p-2 rounded glass border  ">
-        ${categories.map(c=>`<option value="${c}">${c}</option>`).join('')}
-      </select>
-      <select id="loanRecurrence" class="w-full p-2 rounded glass border  ">
-        ${recurrences.map(r=>`<option value="${(r||'').toString().toLowerCase()}">${r}</option>`).join('')}
-      </select>
-      <label class="flex items-center p-2 rounded glass border ">
-        <input type="checkbox" id="addReminder" class="mr-2" />
-        <span class="text-sm ">Add reminder notification</span>
-      </label>
-      <button class="w-full py-2 rounded bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400" type="submit">➕ Add Loan</button>
-    </form>`;
+      <div class="space-y-2">${pendingHtml || '<div class="text-xs text-muted">No pending loans</div>'}</div>
+      ${collectedSection}
+    </div>
+  `;
+}).join('') || `<div class="text-center text-muted">No loans added</div>`;
 
-  showSimpleModal('💰 Loans', `${summaryHtml}<div id="loanList" class="space-y-3">${rows}${addForm}</div>`);
+// Summary + Add form
+const persons = state.dropdowns.persons || [];
+const categories = state.dropdowns.categories || [];
+const loanAccount = state.dropdowns.accounts || [];
+const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.length ? state.dropdowns.recurrences : ['None','daily','weekly','monthly','yearly'];
+
+const addLoanLink = `
+  <div class="flex justify-end mb-2">
+    <button id="scrollToAddLoan" 
+      class="px-3 py-1 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-sm font-semibold">
+      ➕ Add Loan
+    </button>
+  </div>`;
+
+const summaryHtml = `
+  <div class="mb-4 p-3 rounded-xl glass shadow">
+    <h3 class="text-md font-semibold mb-2">💰 Loan Summary</h3>
+    <div class="flex justify-between"><span class="text-sm">Total Given:</span><span class="font-bold text-rose-400">-${fmtINR(totalGiven)}</span></div>
+    <div class="flex justify-between"><span class="text-sm">Total Taken:</span><span class="font-bold text-emerald-400">+${fmtINR(totalTaken)}</span></div>
+    <div class="flex justify-between border-t pt-2"><span class="text-sm ${totalOutstanding>=0?'text-emerald-300':'text-rose-300'}">${totalOutstanding>=0?'Net Owed to You:':'Net You Owe:'}</span><span class="text-lg font-bold ${totalOutstanding>=0?'text-emerald-400':'text-rose-400'}">${totalOutstanding>=0?'+':''}${fmtINR(totalOutstanding)}</span></div>
+  </div>`;
+
+const addForm = `
+  <form id="addLoanForm" class="mt-4 space-y-2">
+    <select id="loanType" class="w-full p-2 rounded glass border">
+      <option value="given">💸 Given</option>
+      <option value="taken">📥 Taken</option>
+    </select>
+    <div id="loanPersonCheckboxes" class="space-y-1 p-2 rounded glass border max-h-40 overflow-y-auto">
+      ${persons.map(p=>`<label class="flex items-center"><input type="checkbox" value="${p}" class="personCheckbox"><span class="ml-2 text-sm">${p}</span></label>`).join('')}
+    </div>
+    <select id="loanAccount" class="w-full p-2 rounded glass border">
+      ${loanAccount.map(a=>`<option value="${(a||'').toString()}">${a}</option>`).join('')}
+    </select>
+    <input id="loanAmount" type="number" min="1" placeholder="Amount ₹" class="w-full p-2 rounded glass border" required />
+    <input id="loanDueDate" type="date" class="w-full p-2 rounded glass border" required />
+    <input id="loanNote" placeholder="Note" class="w-full p-2 rounded glass border" />
+    <select id="loanCategory" class="w-full p-2 rounded glass border">
+      ${categories.map(c=>`<option value="${c}">${c}</option>`).join('')}
+    </select>
+    <select id="loanRecurrence" class="w-full p-2 rounded glass border">
+      ${recurrences.map(r=>`<option value="${(r||'').toString().toLowerCase()}">${r}</option>`).join('')}
+    </select>
+    <label class="flex items-center p-2 rounded glass border">
+      <input type="checkbox" id="addReminder" class="mr-2" />
+      <span class="text-sm">Add reminder notification</span>
+    </label>
+    <button class="w-full py-2 rounded bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400" type="submit">➕ Add Loan</button>
+  </form>`;
+
+showSimpleModal('💰 Loans', `${addLoanLink}${summaryHtml}<div id="loanList" class="space-y-3">${rows}${addForm}</div>`);
+
+// Behavior scripts
+setTimeout(() => {
+  // Scroll to add form
+  const scrollBtn = document.getElementById('scrollToAddLoan');
+  const addFormEl = document.getElementById('addLoanForm');
+  if (scrollBtn && addFormEl) {
+    scrollBtn.addEventListener('click', () => {
+      addFormEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      addFormEl.querySelector('input, select, textarea')?.focus();
+    });
+  }
+
+  // Toggle collected sections
+  document.querySelectorAll('.toggleCollected').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const parent = btn.closest('div');
+      const list = parent.querySelector('.collectedList');
+      const isHidden = list.classList.contains('hidden');
+      list.classList.toggle('hidden', !isHidden);
+      btn.textContent = isHidden ? '▲ Hide Collected' : `⋯ View All (${list.children.length})`;
+    });
+  });
+}, 400);
 
   // Attach Add handler
   document.getElementById('addLoanForm').onsubmit = async (e) => {
@@ -3822,3 +3861,4 @@ helpModal.addEventListener("click", (e) => {
     helpModal.classList.remove("flex");
   }
 });
+
