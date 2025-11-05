@@ -211,7 +211,13 @@ async function loadAllFromDB(){
   state.budgets = await getAll('budgets');
   state.loans = await getAll('loans');
   state.reminders = await getAll('reminders');
-  const dd = await getAll('dropdowns'); state.dropdowns = dd.length?dd[0]:{id:'main',accounts:[],categories:[],persons:[],reminderTypes:[],recurrences:[]};
+  const dd = await getAll('dropdowns');
+if (dd.length) {
+  state.dropdowns = autoSortDropdowns(dd[0]);
+} else {
+  state.dropdowns = {id:'main',accounts:[],categories:[],persons:[],reminderTypes:[],recurrences:[]}; 
+}
+ // state.dropdowns = dd.length?dd[0]:{id:'main',accounts:[],categories:[],persons:[],reminderTypes:[],recurrences:[]};
   const settingsAll = await getAll('settings'); state.settings = (settingsAll.find(x=>x.key==='meta')||{value:{}}).value;
   state.users = await getAll('users');
   state.savings = await getAll('savings');
@@ -220,6 +226,23 @@ async function loadAllFromDB(){
   // restore folder handle if present
   const fh = settingsAll.find(x=>x.key==='dataFolderHandle');
   if (fh) state.dataFolderHandle = fh.value;
+}
+function autoSortDropdowns(data) {
+  // Check if the object exists
+  if (!data || typeof data !== 'object') return data;
+
+  // Loop through all keys dynamically
+  Object.keys(data).forEach(key => {
+    const value = data[key];
+    // Sort only if the value is an array of strings
+    if (Array.isArray(value)) {
+      data[key] = [...value].sort((a, b) => 
+        String(a).localeCompare(String(b), undefined, { sensitivity: 'base' })
+      );
+    }
+  });
+
+  return data;
 }
 
 // ----------------------------
@@ -2107,23 +2130,7 @@ function renderCashflow(){
     type:'line', data:{labels, datasets:[{label:'Balance', data, borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,0.08)', tension:0.3, fill:true}]},
     options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}}
   });
-}
-/*
-function renderDoughnut(){
-  const thisMonth = new Date().getMonth();
-  const byCat = {};
-  state.transactions.forEach(t=>{
-    const d = new Date(t.date); 
-    if (d.getMonth()===thisMonth)
-    { byCat[t.category] = (byCat[t.category]||0) + (t.type==='out'?Number(t.amount):0);
-      
-     }
-  });
-  const labels = Object.keys(byCat); const data = labels.map(l=>byCat[l]);
-  const ctx = document.getElementById('categoryDoughnut').getContext('2d');
-  if (doughnutChart instanceof Chart) doughnutChart.destroy();
-  doughnutChart = new Chart(ctx, {type:'doughnut', data:{labels, datasets:[{data, backgroundColor: labels.map((_,i)=>`hsl(${i*40%360} 70% 50%)`)}]}, options:{plugins:{legend:{position:'bottom'}}}});
-}*/
+} 
 
 function renderBudgetChart(){
   // simple: for this month, per-category limit vs actual
@@ -2136,19 +2143,7 @@ function renderBudgetChart(){
   const ctx = document.getElementById('budgetChart').getContext('2d');
   if (budgetChart instanceof Chart) budgetChart.destroy();
   budgetChart = new Chart(ctx, {type:'bar', data:{labels:cats, datasets:[{label:'Limit', data:dataLimit, backgroundColor:'rgba(99,102,241,0.25)'},{label:'Actual', data:dataActual, backgroundColor:'rgba(99,102,241,0.9)'}]}, options:{responsive:true, maintainAspectRatio:false}});
-}
-/*
-function renderHeatmap(){
-  const grid = document.getElementById('heatmap'); grid.innerHTML='';
-  const days=30; const today = new Date();
-  for (let i=days-1;i>=0;i--){
-    const d = new Date(); d.setDate(today.getDate()-i);
-    const total = state.transactions.filter(t=>new Date(t.date).toDateString()===d.toDateString()).reduce((s,t)=>s+Number(t.amount),0);
-    const intensity = Math.min(1, total/1000);
-    const bg = `rgba(99,102,241,${0.05+intensity*0.8})`;
-    const el = document.createElement('div'); el.className='p-2 rounded'; el.style.background=bg; el.title=`${d.toLocaleDateString()}: ₹${total}`; el.innerText = d.getDate(); grid.appendChild(el);
-  }
-}*/
+} 
 function renderHeatmap() {
   const grid = document.getElementById('heatmap');
   grid.innerHTML = '';
