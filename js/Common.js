@@ -2550,8 +2550,11 @@ function processToastQueue() {
 function openAddTransactionModal(prefill = {}) {
   const id = uid('tx');
   const today = prefill.date || nowISO();
-ensureDropdownKey('recurrences');
-const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.length ? state.dropdowns.recurrences : ['None','daily','weekly','monthly','yearly'];
+  prefill.category = prefill.category || "Food";
+  prefill.account = prefill.account || "Cash";
+  ensureDropdownKey('recurrences');
+  prefill.recurrence = prefill.recurrence || 'None';
+  //const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.length ? state.dropdowns.recurrences : ['None','daily','weekly','monthly','yearly'];
   const html = `
     <div class="fixed inset-0 flex items-center justify-center z-50">
       <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
@@ -2608,8 +2611,8 @@ const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.l
           <label class="block">
             <span class="text-xs text-muted">Recurrence</span>
             <select id="tx_recurrence"
-              class="w-full p-2 rounded-lg glass border  focus:outline-none focus:ring-2 focus:ring-emerald-400">
-               ${recurrences.map(r=>`<option value="${(r||'').toString().toLowerCase()}">${r}</option>`).join('')}
+              class="w-full p-2 rounded-lg glass border  focus:outline-none focus:ring-2 focus:ring-emerald-400"> 
+                ${state.dropdowns.recurrences.map(a => `<option ${a === prefill.recurrence ? 'selected' : ''}>${a}</option>`).join('')}
               </select>
           </label>
 
