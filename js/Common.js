@@ -272,6 +272,7 @@ function bindUI(){
   document.getElementById('accountFilter').onchange = refreshRecentList;
   document.getElementById('clearData').addEventListener('click', clearAllData);
   document.getElementById("openTripPlannerBtn").onclick = () => openTripPlanner();
+ 
   // file import input
   const fi = document.createElement('input'); fi.type='file'; fi.accept='.csv,.json'; fi.id='fileImport'; fi.style.display='none';
   fi.onchange = async(e)=>{ const f = e.target.files[0]; if (!f) return; const txt = await f.text(); if (f.name.endsWith('.csv')) await importCSVText(txt); else await fullImportJSONText(txt); }
@@ -2066,7 +2067,7 @@ function renderAll(){
   renderKPIs();
   renderCharts();
   refreshRecentList();
-  renderDropdownManager();
+  //renderDropdownManager();
   renderHeatmap();
   checkBudgetAlerts();
   //renderNotifications();
@@ -2735,89 +2736,9 @@ document.getElementById('toggleDashboards').onclick = function() {
 };
  
 window.addEventListener('DOMContentLoaded', updateDashboardsVisibility);
-window.addEventListener('DOMContentLoaded', updateRecentTxVisibility);
+window.addEventListener('DOMContentLoaded', updateRecentTxVisibility());
 //window.addEventListener('DOMContentLoaded', updateDropdownManagerVisibility);
-// ...existing code...
-function renderDropdownManager(){
-  const el = document.getElementById('dropdownManager'); el.innerHTML='';
-  const dv = state.dropdowns;
-  const makeList = (title, arrKey)=>{
-    const wrap = document.createElement('div');
-    wrap.innerHTML = `<div class='font-semibold mb-1'>${title}</div>`;
-    const list = document.createElement('div'); list.className='space-y-1';
-    (dv[arrKey]||[]).forEach((item, idx)=>{
-      const row=document.createElement('div'); row.className='flex gap-2 items-center';
-      row.innerHTML = `<div class='flex-1'>${item}</div><div><button data-idx='${idx}' data-key='${arrKey}' class='editDd text-xs'>Rename</button> <button data-idx='${idx}' data-key='${arrKey}' class='delDd text-xs text-rose-400'>Del</button></div>`;
-      list.appendChild(row);
-    });
-    const addRow = document.createElement('div'); addRow.className='flex gap-2 mt-2'; addRow.innerHTML = `<input placeholder='Add' class='flex-1 p-1 rounded glass text-sm' data-key='${arrKey}'/><button class='addDd px-2 rounded bg-emerald-500 text-slate-900'>Add</button>`;
-    wrap.appendChild(list); wrap.appendChild(addRow);
-    return wrap;
-  };
-  el.appendChild(makeList('Accounts','accounts'));
-  el.appendChild(makeList('Categories','categories'));
-  el.appendChild(makeList('Persons (Loans)','persons'));
-  el.appendChild(makeList('ReOccurrences','recurrences'));
-  /*document.querySelectorAll('.addDd').forEach(btn=> btn.onclick = async(e)=>{
-    const ip = e.target.previousElementSibling; const key = ip.dataset.key; const v = ip.value.trim(); if(!v) return; state.dropdowns[key].push(v); await put('dropdowns', state.dropdowns); renderDropdowns(); renderDropdownManager(); autoBackup(); });
-  document.querySelectorAll('.delDd').forEach(btn=> btn.onclick = async(e)=>{ const key = e.target.dataset.key; const idx = Number(e.target.dataset.idx); state.dropdowns[key].splice(idx,1); await put('dropdowns', state.dropdowns); renderDropdowns(); renderDropdownManager(); autoBackup(); });
-  document.querySelectorAll('.editDd').forEach(btn=> btn.onclick = (e)=>{ const key = e.target.dataset.key; const idx = Number(e.target.dataset.idx); const newVal = prompt('Rename', state.dropdowns[key][idx]); if (newVal) { state.dropdowns[key][idx]=newVal; put('dropdowns', state.dropdowns).then(()=>{ renderDropdowns(); renderDropdownManager(); autoBackup(); }); } });*/
  
-document.querySelectorAll('.addDd').forEach(btn => btn.onclick = async (e) => {
-  const ip = e.target.previousElementSibling;
-  const key = ip.dataset.key;
-  const v = ip.value.trim();
-  if (!v) return;
-  try {
-    state.dropdowns[key] = state.dropdowns[key] || [];
-    state.dropdowns[key].push(v);
-    await put('dropdowns', state.dropdowns);
-    renderDropdowns();
-    renderDropdownManager();
-    autoBackup();
-    showToast('Dropdown added!', 'success');
-  } catch (err) {
-    showToast('Failed to add dropdown', 'error');
-  }
-});
-
-document.querySelectorAll('.delDd').forEach(btn => btn.onclick = async (e) => {
-  const key = e.target.dataset.key;
-  const idx = Number(e.target.dataset.idx);
-  if (!confirm('Are you sure you want to delete this item from dropdown?')) return;
-  try {
-    state.dropdowns[key].splice(idx, 1);
-    await put('dropdowns', state.dropdowns);
-    renderDropdowns();
-    renderDropdownManager();
-    autoBackup();
-    showToast('Dropdown deleted!', 'success');
-  } catch (err) {
-    showToast('Failed to delete dropdown', 'error');
-  }
-});
-
-document.querySelectorAll('.editDd').forEach(btn => btn.onclick = (e) => {
-  const key = e.target.dataset.key;
-  const idx = Number(e.target.dataset.idx);
-  const newVal = prompt('Rename', state.dropdowns[key][idx]);
-  if (newVal) {
-    try {
-      state.dropdowns[key][idx] = newVal;
-      put('dropdowns', state.dropdowns).then(() => {
-        renderDropdowns();
-        renderDropdownManager();
-        autoBackup();
-        showToast('Dropdown renamed!', 'success');
-      });
-    } catch (err) {
-      showToast('Failed to rename dropdown', 'error');
-    }
-  }
-});
-
-}
-
 // ----------------------------
 // Budgets & Alerts
 // ----------------------------
