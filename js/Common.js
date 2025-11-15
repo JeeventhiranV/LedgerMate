@@ -52,7 +52,7 @@ let db = null;
 async function openDB() {
     return new Promise((resolve, reject) => {
         const DB_NAME = "ledgermate_db";
-        const DB_VERSION = 6; // bump this when schema changes
+        const DB_VERSION = 7; // bump this when schema changes
 
         const req = indexedDB.open(DB_NAME, DB_VERSION);
 
@@ -272,7 +272,7 @@ function bindUI(){
   document.getElementById('accountFilter').onchange = refreshRecentList;
   document.getElementById('clearData').addEventListener('click', clearAllData);
   document.getElementById("openTripPlannerBtn").onclick = () => openTripPlanner();
- 
+  document.getElementById("openDriveManagerBtn").onclick = () => DriveSync.showDriveSyncModal();
   // file import input
   const fi = document.createElement('input'); fi.type='file'; fi.accept='.csv,.json'; fi.id='fileImport'; fi.style.display='none';
   fi.onchange = async(e)=>{ const f = e.target.files[0]; if (!f) return; const txt = await f.text(); if (f.name.endsWith('.csv')) await importCSVText(txt); else await fullImportJSONText(txt); }
@@ -2133,18 +2133,45 @@ function renderCashflow(){
   });
 } 
 
-function renderBudgetChart(){
-  // simple: for this month, per-category limit vs actual
+ function renderBudgetChart(){
   const month = new Date().toISOString().slice(0,7);
-  const limits = {}; state.budgets.filter(b=>b.month===month).forEach(b=> limits[b.category]=b.limit);
+
+  const limits = {};
+  state.budgets
+    .filter(b => b.month === month)
+    .forEach(b => limits[b.category] = b.limit);
+
   const actual = {};
-  state.transactions.forEach(t=>{ if (t.date.startsWith(month) && t.type==='out') actual[t.category] = (actual[t.category]||0) + Number(t.amount); });
+
+  state.transactions.forEach(t => {
+    if (!t || !t.date || typeof t.date !== "string") return;  // <-- safety fix
+
+    if (t.date.startsWith(month) && t.type === 'out') {
+      actual[t.category] = (actual[t.category] || 0) + Number(t.amount);
+    }
+  });
+
   const cats = Array.from(new Set([...Object.keys(limits), ...Object.keys(actual)]));
-  const dataLimit = cats.map(c=>limits[c]||0); const dataActual = cats.map(c=>actual[c]||0);
+
+  const dataLimit = cats.map(c => limits[c] || 0);
+  const dataActual = cats.map(c => actual[c] || 0);
+
   const ctx = document.getElementById('budgetChart').getContext('2d');
   if (budgetChart instanceof Chart) budgetChart.destroy();
-  budgetChart = new Chart(ctx, {type:'bar', data:{labels:cats, datasets:[{label:'Limit', data:dataLimit, backgroundColor:'rgba(99,102,241,0.25)'},{label:'Actual', data:dataActual, backgroundColor:'rgba(99,102,241,0.9)'}]}, options:{responsive:true, maintainAspectRatio:false}});
-} 
+
+  budgetChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: cats,
+      datasets: [
+        { label: 'Limit', data: dataLimit, backgroundColor: 'rgba(99,102,241,0.25)' },
+        { label: 'Actual', data: dataActual, backgroundColor: 'rgba(99,102,241,0.9)' }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+}
+
 function renderHeatmap() {
   const grid = document.getElementById('heatmap');
   grid.innerHTML = '';
@@ -2957,7 +2984,7 @@ async function fullExport(){
   const a = document.createElement('a'); a.href=url; a.download = `ledger-backup-${nowISO()}.json`; a.click(); URL.revokeObjectURL(url);
 }
 
-async function fullImportJSONText(txt){
+async function fullImportJSONText(txt, source = "Unknown"){
   try{
     const data = JSON.parse(txt);
     // simple merge strategy: clear existing stores and replace - preserve ids
@@ -2973,7 +3000,12 @@ async function fullImportJSONText(txt){
     if (data.savings) for (const s of data.savings) await put('savings', s);
     if (data.investments) for (const inv of data.investments) await put('investments', inv);
     if (data.trips) for (const trip of data.trips) await put('trips', trip); 
-    await loadAllFromDB(); renderAll(); showToast('Import complete', 'success');
+    if(source!="Drive"){
+      await loadAllFromDB(); 
+      renderAll(); 
+    showToast('Import complete', 'success');
+    }
+   
   }catch(err){ showToast('Import failed: '+err.message, 'error'); }
 }
 
@@ -3165,7 +3197,8 @@ async function performBackup() {
     console.log('✅ Backup complete', { folder: r1, idb: r3 });
   } else {
     console.warn('❌ Backup failed: no location succeeded');
-  }
+  } 
+  autoBackupToDrive();
 }
 
 // keep your existing call sites working
@@ -3703,9 +3736,117 @@ document.getElementById('toggleAllAmounts').onclick = () => {
   // Update button text
  // document.getElementById('toggleAllAmounts').textContent = amountsVisible ? '🙈 Hide All Amounts' : '👁 Show All Amounts';
 };
+// ====================== STEP 7: Sync Drive to IndexedDB ======================
+async function syncDriveToIndexedDB(driveData) {
+  try {
+    console.log("🔄 Syncing Drive data to IndexedDB...");
 
+    const dbStores = Array.from(db.objectStoreNames); // existing IDB stores
 
+    for (const store of Object.keys(driveData)) {
 
+      // ⚠️ Skip unknown / missing stores
+      if (!dbStores.includes(store)) {
+        console.warn(`⛔ Skipping unknown store: ${store}`);
+        continue;
+      }
+
+      // ⚠️ Skip settings if you don't want to overwrite local settings
+      if (store === "settings") continue;
+
+      await put(store, driveData[store]);
+    }
+
+    console.log("✅ Drive data synced to IndexedDB");
+
+  } catch (err) {
+    console.error("❌ Sync failed:", err);
+  }
+}
+async function loadFromDrive() {
+  try {
+    // 1. Check if auto-load is enabled
+    if (!DriveSync.isAutoLoadEnabled()) {
+      console.log("⏭️ Auto-load disabled, skipping Drive load");
+      return;
+    }
+
+    // 2. Ensure connected
+    if (!DriveSync.isConnected()) {
+      console.log("⏭️ Not connected to Drive, skipping auto load");
+      return;
+    }
+
+    // 3. Determine mode (latest / pinned)
+    const mode = DriveSync.getAutoLoadMode();
+    let fileId = null;
+
+    if (mode === "pinned") {
+      fileId = DriveSync.getAutoLoadFileId();
+      if (!fileId) {
+        console.log("⏭️ No pinned file set, falling back to latest");
+      }
+    }
+
+    // 4. Get latest file (fallback or mode=latest)
+    if (!fileId) {
+      const latest = await DriveSync.getLatestBackupFile();
+      if (!latest) {
+        console.log("⏭️ No backups found on Drive");
+        return;
+      }
+      fileId = latest.id;
+    }
+
+    console.log("📥 Loading from Drive File:", fileId);
+
+    // 5. Download backup
+    const driveData = await DriveSync.downloadBackup(fileId);
+
+    if (!driveData || typeof driveData !== "object") {
+      throw new Error("Invalid Drive data");
+    }
+
+    // 6. Import into IndexedDB + state
+    await fullImportJSONText(JSON.stringify(driveData), "Drive");
+
+    console.log("✅ Data loaded from Drive");
+    showToast?.("☁️ Data loaded from Drive", "success");
+
+  } catch (err) {
+    console.error("❌ Drive load failed:", err);
+    console.log("⏭️ Falling back to IndexedDB");
+  }
+}
+
+// ====================== STEP 9: Auto Backup to Drive ======================
+async function autoBackupToDrive() {
+  try {
+    if (!DriveSync.isConnected()) {
+      console.log("⏭️ Drive not connected, skipping backup");
+      return;
+    } 
+    console.log("📤 Auto-backing up to Drive...");
+    const payload = {
+    transactions: state.transactions,
+    budgets: state.budgets,
+    loans: state.loans,
+    reminders: state.reminders,
+    dropdowns: state.dropdowns,
+    settings: state.settings,
+    users: state.users,
+    savings: state.savings,
+    investments: state.investments,
+    trips: state.trips,
+    meta: { exportedAt: new Date().toISOString() }
+  };
+  const txt = JSON.stringify(payload, null, 2);
+    await DriveSync.autoBackupIfDue(txt);
+
+  } catch (err) {
+    console.warn("⚠️ Auto backup failed:", err);
+  }
+}
 // ----------------------------
 // Start
 // ----------------------------
@@ -3714,7 +3855,30 @@ document.getElementById('toggleAllAmounts').onclick = () => {
   try {
     await openDB();
     await seedDefaults();
-    await loadAllFromDB();
+  } catch (err) {
+    console.error("❌ Failed to open IndexedDB:", err);
+    return;
+  }
+  try {
+  try {
+    // Step 1: Check if Drive auto-load is enabled
+    const isDriveEnabled = DriveSync.isAutoLoadEnabled();
+    const isConnected = DriveSync.isConnected(); 
+    if (isDriveEnabled && isConnected) {
+      console.log("☁️ Drive auto-load enabled, loading from Drive...");
+      await loadFromDrive();
+    } else {
+      console.log("💾 Loading from IndexedDB..."); 
+    }
+
+    console.log("✅ App initialized successfully");
+    console.log("📊 Current state:", state);
+
+  } catch (err) {
+    console.error("❌ Initialization error:", err);
+    // Fallback to IndexedDB if Drive fails 
+  }
+      await loadAllFromDB();
 
     // const isFresh =
     //   (state.transactions || []).length === 0 &&
@@ -3722,13 +3886,13 @@ document.getElementById('toggleAllAmounts').onclick = () => {
     //   (state.loans || []).length === 0 &&
     //   (state.users || []).length === 0;
 
-    // if (isFresh) await tryAutoRestoreOnStart();
-
+    // if (isFresh) await tryAutoRestoreOnStart(); 
     startBackupSchedule();
-    autoBackup();
-
+    //autoBackup(); 
     bindUI();
+    if (typeof renderAll === "function") {
     renderAll();
+    } 
    // tryAutoLoadFolder();
    // checkAllNotifications();
    // setInterval(checkAllNotifications, 60 * 60 * 1000);

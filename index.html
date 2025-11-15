@@ -15,7 +15,7 @@
   <script src="./libs/tailwind.min.js"></script>
   <script src="./libs/chart.min.js"></script>
   <script src="./libs/jspdf.umd.min.js"></script>
-
+  <script src="./libs/drive.min.js" async defer></script>
 
   <script>
     if ('serviceWorker' in navigator) {
@@ -40,11 +40,13 @@
   <div class="p-4 border-b">
     <h2 class="text-lg font-semibold text-indigo-600">  
              
-      <div class="ml-auto flex gap-2">
+      <div class="ml-auto flex gap-2"> 
         <button id="themeToggle" onclick="" class="px-3 py-2 rounded-lg glass">🌙</button>
         <button  id="clearData" class="px-3 py-1 rounded-lg bg-emerald-500 text-slate-900">🧹</button>
         <button id="btnImport" class="px-3 py-2 rounded-lg glass ">📥</button>
-              
+          <button id="btnFullExport" class="px-3 py-2 rounded-lg ">📤</button>   
+          <button id="btnSetFolder" class="px-3 py-2 rounded-lg    "><div id="folderStatus" class="text-sm ">Fol: <span id="folderLabel">None</span></div></button>
+          
           </div></h2>
     
   </div>
@@ -62,6 +64,7 @@
         <li><button id="openTripPlannerBtn" class="w-full text-left px-3 py-2 rounded hover:bg-indigo-50 glass">✈️ Trips</button></li>
         <li><button id="openMonthlySummary" class="w-full text-left px-3 py-2 rounded hover:bg-indigo-50 glass">📅 Monthly Summary</button></li>
         <li><button id="openDropdownManagerBtn" class="w-full text-left px-3 py-2 rounded hover:bg-indigo-50 glass">🔽 Dropdown Manager</button></li>
+        <!-- <li><button id="openDriveManagerBtn" class="w-full text-left px-3 py-2 rounded hover:bg-indigo-50 glass">📥 Drive</button></li> -->
       </ul>
     </div> 
     <div class="mt-4">
@@ -79,8 +82,7 @@
         <div class="flex items-center gap-3">
           <button id="menuBtn" class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center glass text-xl font-bold">JK</button>
         <!--  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center glass text-xl font-bold" >JK</div>-->
-          
-        </div>
+         </div>
         <div class="flex items-center gap-3"> 
           <div class="flex gap-2 items-center">
             <label class="text-sm ">KPI:</label>
@@ -94,9 +96,10 @@
             <input id="customFrom" type="date" class="hidden rounded-lg glass p-2 text-sm"/>
             <input id="customTo" type="date" class="hidden rounded-lg glass p-2 text-sm"/>
           </div>  
-          <button id="btnSetFolder" class="px-3 py-2 rounded-lg    "><div id="folderStatus" class="text-sm ">Fol: <span id="folderLabel">None</span></div></button>
-          <button id="btnFullExport" class="px-3 py-2 rounded-lg ">📤</button>
+          
+         
           <div class="relative">
+             
             <button id="notifBell" class="p-2 rounded-lg glass  ">
               🔔<span id="notifCount" class="ml-1 text-xs text-amber-400">0</span>
             </button>
@@ -154,6 +157,8 @@
            <button id="themeToggle" onclick="" class="ml-2 flex items-center gap-2 px-3 py-2 rounded-lg glass hover:glass transition-colors">
             <span id="themeIcon" class="text-lg">🌙</span>
           </button>   --> 
+            <button id="openDriveManagerBtn" class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center glass text-xl font-bold">☁️</button>
+       
         </div>
       </header>
 
@@ -409,6 +414,7 @@
     </div>
   </div>
 </div>
+   <script  src="./js/Common/Drive.js"></script>  
   <script  src="./js/Common.js"></script>
   <script src="./js/Investments.js"></script>
   <script src="./js/Charts/Doughnut.js"></script>
@@ -417,7 +423,7 @@
   <script src="./js/Common/GoldRateFetch.js"></script>   
   <script  src="./js/Common/TripPlanner.js"></script>
   <script  src="./js/Common/Dropdown.js"></script>   
-  <script  src="./js/Common/MonthlySummary.js"></script>  
+  <script  src="./js/Common/MonthlySummary.js"></script>   
 </body>
 </html>
 
