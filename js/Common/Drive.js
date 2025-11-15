@@ -1,4 +1,3 @@
- 
 const DRIVE_SCOPES = "https://www.googleapis.com/auth/drive.file";
 const DRIVE_FOLDER = "LedgerMate_Backups";
 
@@ -11,7 +10,7 @@ const STORAGE_KEYS = {
   LAST_BACKUP: "drive_last_backup",
   LAST_SYNC: "drive_last_sync",
   AUTO_LOAD_ENABLED: "drive_auto_load_enabled",
-  AUTO_LOAD_MODE: "drive_auto_load_mode", // "latest" | "pinned"
+  AUTO_LOAD_MODE: "drive_auto_load_mode",
   AUTO_LOAD_FILE_ID: "drive_auto_load_file_id",
 };
 
@@ -114,7 +113,6 @@ const DriveSync = {
       google.accounts.id.revoke(token, () => {});
     }
 
-    // keep client id & auto-load settings
     localStorage.removeItem(STORAGE_KEYS.USER_EMAIL);
     localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRY);
@@ -162,7 +160,7 @@ const DriveSync = {
   },
 
   /* =========================================================
-     AUTO-LOAD SETTINGS (HYBRID)
+     AUTO-LOAD SETTINGS
      ========================================================= */
   isAutoLoadEnabled() {
     return localStorage.getItem(STORAGE_KEYS.AUTO_LOAD_ENABLED) === "true";
@@ -202,9 +200,7 @@ const DriveSync = {
 
     const q = `mimeType='application/vnd.google-apps.folder' and name='${DRIVE_FOLDER}' and trashed=false`;
     const res = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(
-        q
-      )}&fields=files(id,name)`,
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)`,
       { headers: { Authorization: "Bearer " + token } }
     );
     const j = await res.json();
@@ -214,7 +210,6 @@ const DriveSync = {
       return j.files[0].id;
     }
 
-    // create
     const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
       method: "POST",
       headers: {
@@ -233,94 +228,285 @@ const DriveSync = {
   },
 
   /* =========================================================
-     UPLOAD (BASE64 ENCODED)
+     UPLOAD BACKUP
      ========================================================= */
   async uploadBackup(data, folderId = null) {
-    const token = this.getToken();
-    if (!token) throw new Error("Not connected");
+    try {
+      console.log("📤 Starting backup upload...");
 
-    if (!folderId) folderId = await this.ensureFolder();
+      const token = this.getToken();
+      if (!token) throw new Error("Not connected to Drive");
 
-    const now = new Date();
-    const name =
-      "LedgerMate_" + now.toISOString().slice(0, 19).replace(/[:T]/g, "_") + ".json";
+      if (!folderId) {
+        folderId = await this.ensureFolder();
+      }
 
-    const metadata = {
-      name,
-      mimeType: "application/json",
-      parents: [folderId],
-    };
+      const now = new Date();
+      const fileName = "LedgerMate_" + now.toISOString().slice(0, 19).replace(/[:T]/g, "_") + ".json";
 
-    const jsonText = JSON.stringify(data);
-    const base64 = btoa(unescape(encodeURIComponent(jsonText)));
-    const blob = new Blob([base64], { type: "application/json" });
+      console.log("🔐 Encoding data...");
+      const jsonString = JSON.stringify(data);
+      const encodedText = btoa(unescape(encodeURIComponent(jsonString)));
 
-    const form = new FormData();
-    form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
-    form.append("file", blob);
+      const metadata = {
+        name: fileName,
+        mimeType: "text/plain",
+        parents: [folderId],
+      };
 
-    const res = await fetch(
-      "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,createdTime,size",
-      { method: "POST", headers: { Authorization: "Bearer " + token }, body: form }
-    );
+      console.log("🚀 Uploading to Drive...");
 
-    const j = await res.json();
-    localStorage.setItem(STORAGE_KEYS.LAST_BACKUP, now.toISOString());
-    showToast?.("Backup uploaded: " + j.name, "success");
-    return j;
+      const form = new FormData();
+      form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+      form.append("file", new Blob([encodedText], { type: "text/plain" }));
+
+      const res = await fetch(
+        "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,createdTime,size",
+        {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+          body: form,
+        }
+      );
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Upload error response:", errorText);
+        throw new Error(`Upload failed: ${res.status}`);
+      }
+
+      const result = await res.json();
+
+      console.log("✅ Backup uploaded successfully");
+      localStorage.setItem(STORAGE_KEYS.LAST_BACKUP, now.toISOString());
+      showToast?.("☁️ Backup uploaded: " + result.name, "success");
+
+      return result;
+
+    } catch (err) {
+      console.error("❌ Upload error:", err);
+      showToast?.("❌ Upload failed: " + err.message, "error");
+      throw err;
+    }
   },
 
   /* =========================================================
      LIST BACKUPS
      ========================================================= */
   async listBackups(folderId = null) {
-    const token = this.getToken();
-    if (!token) throw new Error("Not connected");
+    try {
+      console.log("📋 Fetching backup list...");
 
-    if (!folderId) folderId = await this.ensureFolder();
+      const token = this.getToken();
+      if (!token) throw new Error("Not connected to Drive");
 
-    const q = `'${folderId}' in parents and mimeType='application/json' and trashed=false`;
+      if (!folderId) {
+        folderId = await this.ensureFolder();
+      }
 
-    const res = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(
-        q
-      )}&fields=files(id,name,createdTime,size)&orderBy=createdTime desc`,
-      { headers: { Authorization: "Bearer " + token } }
-    );
-    const j = await res.json();
-    return j.files || [];
+      const q = `'${folderId}' in parents and name contains '.json' and trashed=false`;
+
+      const res = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,createdTime,size)&orderBy=createdTime%20desc&pageSize=50`,
+        {
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error(`List failed: ${res.status}`);
+      }
+
+      const data = await res.json();
+      const files = data.files || [];
+
+      console.log("✅ Found " + files.length + " backups");
+      return files;
+
+    } catch (err) {
+      console.error("❌ List backups error:", err);
+      return [];
+    }
   },
 
   /* =========================================================
-     DOWNLOAD & DECODE BASE64
+     DOWNLOAD & DECODE
      ========================================================= */
-  async downloadBackup(fileId) {
-    const token = this.getToken();
-    if (!token) throw new Error("Not connected");
+ async downloadBackup(fileId) {
+    try {
+      console.log("📥 Downloading backup...");
 
-    const res = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-      { headers: { Authorization: "Bearer " + token } }
-    );
+      const token = this.getToken();
+      if (!token) throw new Error("Not connected to Drive");
 
-    const base64 = await res.text();
-    const jsonText = decodeURIComponent(escape(atob(base64)));
-    return JSON.parse(jsonText);
+      const res = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+        {
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error(`Download failed: ${res.status}`);
+      }
+
+     // console.log("📥 Downloaded, decoding...");
+
+      let encodedText = await res.text();
+     // console.log("Raw text length:", encodedText.length);
+     // console.log("Raw text start:", encodedText.substring(0, 50));
+
+      encodedText = encodedText.trim();
+
+      // Remove surrounding quotes if present
+      if (encodedText.startsWith('"') && encodedText.endsWith('"')) {
+        encodedText = encodedText.slice(1, -1);
+      }
+
+    //  console.log("After cleanup length:", encodedText.length);
+
+     // console.log("🔓 Decoding data...");
+
+      try {
+        const decodedText = decodeURIComponent(escape(atob(encodedText)));
+    //    console.log("Decoded text start:", decodedText.substring(0, 100));
+        
+        const data = JSON.parse(decodedText);
+
+       // console.log("✅ Backup downloaded and decoded successfully");
+       // console.log("✅ Data type:", typeof data);
+       // console.log("✅ Data keys:", data ? Object.keys(data).slice(0, 5) : "null");
+
+        return data;
+      } catch (decodeErr) {
+        console.error("Decode/Parse error:", decodeErr);
+        throw new Error("Failed to decode backup: " + decodeErr.message);
+      }
+
+    } catch (err) {
+      console.error("❌ Download error:", err);
+      showToast?.("❌ Download failed: " + err.message, "error");
+      throw err;
+    }
   },
-
   /* =========================================================
      RESTORE BACKUP
      ========================================================= */
-  async restoreBackup(fileId) {
+  async restoreBackup(fileId, source = "Unknown") {
     try {
-      const data = await this.downloadBackup(fileId);
-      await fullImportJSONText(JSON.stringify(data), "Drive");
+     // console.log("🔄 Restoring backup...");
 
-      localStorage.setItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
-      showToast?.("Backup restored successfully", "success");
-      //location.reload();
+      const data = await this.downloadBackup(fileId);
+
+      //console.log("📊 Received data type:", typeof data);
+     // console.log("📊 Data is array?:", Array.isArray(data));
+     // console.log("📊 Data keys:", data ? Object.keys(data).slice(0, 5) : "null");
+
+      if (!data) {
+        throw new Error("No data received from backup");
+      }
+
+      // Data can be object or already a string
+      let restoreData = data;
+      if (typeof data === "string") {
+        restoreData = JSON.parse(data);
+      }
+
+      if (typeof restoreData !== "object") {
+        throw new Error(`Invalid data type: ${typeof restoreData}`);
+      }
+
+     // console.log("💾 Restoring to database...");
+        if (source !== "Drive") {
+        if (typeof seedDefaults === "function") {
+          await seedDefaults();
+        }
+      }
+      if (typeof fullImportJSONText === "function") {
+      //  console.log("Using fullImportJSONText function");
+        const jsonString = JSON.stringify(restoreData);
+        await fullImportJSONText(jsonString, "Drive");
+      } else {
+        console.log("Fallback: Using direct state assignment");
+        if (typeof state !== "undefined") {
+          Object.assign(state, restoreData);
+
+          if (typeof onDataChange === "function") {
+            for (const key in restoreData) {
+              if (restoreData.hasOwnProperty(key)) {
+                await onDataChange(key, restoreData[key]);
+              }
+            }
+          }
+        }
+      }
+      if (source !== "Drive") {
+        if (typeof loadAllFromDB === "function") {
+          await loadAllFromDB();
+        } 
+        if (typeof renderAll === "function") {
+        renderAll();
+      }
+    }
+      localStorage.setItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString()); 
+    //  console.log("✅ Backup restored");
+      if (source === "Drive") {
+        showToast?.("☁️ Restored from Drive", "success");
+      }else{
+        showToast?.("✅ Backup restored successfully", "success");
+      }
+
     } catch (err) {
-      showToast?.("Restore failed: " + err.message, "error");
+      console.error("❌ Restore error:", err);
+      console.error("Error details:", err.stack);
+      showToast?.("❌ Restore failed: " + err.message, "error");
+    }
+  },
+
+  /* =========================================================
+     DELETE BACKUP
+     ========================================================= */
+  async deleteBackupFile(fileId) {
+    try {
+      const token = this.getToken();
+      if (!token) throw new Error("Not connected");
+
+      if (fileId === this.getAutoLoadFileId()) {
+        showToast?.("⚠️ Cannot delete pinned backup", "warning");
+        return false;
+      }
+
+      console.log("🗑️ Deleting backup...");
+
+      const res = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error(`Delete failed: ${res.status}`);
+      }
+
+      console.log("✅ Backup deleted");
+      showToast?.("🗑️ Backup deleted", "success");
+
+      return true;
+
+    } catch (err) {
+      console.error("❌ Delete error:", err);
+      showToast?.("❌ Delete failed: " + err.message, "error");
+      return false;
     }
   },
 
@@ -337,69 +523,72 @@ const DriveSync = {
   },
 
   /* =========================================================
-     AUTO-LOAD (Hybrid: Latest / Pinned)
+     AUTO-LOAD BACKUP
      ========================================================= */
   async autoLoadConfiguredBackup() {
-    if (!this.isAutoLoadEnabled()) return;
-    if (!this.isConnected()) return;
-
-    const mode = this.getAutoLoadMode();
-
-    if (mode === "pinned") {
-      const pinned = this.getAutoLoadFileId();
-      if (pinned) {
-        await this.restoreBackup(pinned);
+    try {
+      if (!this.isAutoLoadEnabled()) {
+        console.log("⏭️ Auto-load disabled");
         return;
       }
-      // fallback
-    }
 
-    // LATEST
-    const latest = await this.getLatestBackupFile();
-    if (latest) await this.restoreBackup(latest.id);
+      if (!this.isConnected()) {
+        console.log("⏭️ Not connected to Drive");
+        return;
+      }
+
+      const mode = this.getAutoLoadMode();
+      let fileId = null;
+
+      if (mode === "pinned") {
+        fileId = this.getAutoLoadFileId();
+        if (!fileId) {
+          console.log("⏭️ No pinned backup");
+          return;
+        }
+      } else {
+        const files = await this.listBackups();
+        if (files.length === 0) {
+          console.log("⏭️ No backups found");
+          return;
+        }
+        fileId = files[0].id;
+      }
+
+      console.log("⏰ Auto-loading backup...");
+      await this.restoreBackup(fileId);
+
+    } catch (err) {
+      console.warn("⚠️ Auto-load failed:", err.message);
+    }
   },
 
   /* =========================================================
-     AUTO-BACKUP EVERY 3 DAYS
+     AUTO-BACKUP IF DUE
      ========================================================= */
   async autoBackupIfDue(data) {
-    if (!this.isConnected()) return;
+    try {
+      if (!this.isConnected()) {
+        console.log("⏭️ Not connected, skipping auto-backup");
+        return;
+      }
 
-    const last = localStorage.getItem(STORAGE_KEYS.LAST_BACKUP);
-    const lastTime = last ? new Date(last).getTime() : 0;
-    const now = Date.now();
-    const three = 3 * 24 * 60 * 60 * 1000;
+      const lastBackup = localStorage.getItem(STORAGE_KEYS.LAST_BACKUP);
+      const lastTime = lastBackup ? new Date(lastBackup).getTime() : 0;
+      const now = Date.now();
+      const threeDays = 3 * 24 * 60 * 60 * 1000;
 
-    if (now - lastTime > three) {
-      await this.uploadBackup(data);
+      if (now - lastTime > threeDays) {
+        console.log("⏰ Auto-backup due, uploading...");
+        await this.uploadBackup(data);
+      } else {
+        const hoursLeft = Math.round((threeDays - (now - lastTime)) / (60 * 60 * 1000));
+        console.log(`⏭️ Next auto-backup in ${hoursLeft} hours`);
+      }
+
+    } catch (err) {
+      console.warn("⚠️ Auto-backup failed:", err.message);
     }
-  },
-
-  /* =========================================================
-     DELETE BACKUP
-     ========================================================= */
-  async deleteBackupFile(fileId) {
-    const token = this.getToken();
-    if (!token) throw new Error("Not connected");
-
-    // protect pinned backup
-    if (fileId === this.getAutoLoadFileId()) {
-      showToast?.("Cannot delete pinned backup", "warning");
-      return false;
-    }
-
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
-      method: "DELETE",
-      headers: { Authorization: "Bearer " + token },
-    });
-
-    if (res.ok) {
-      showToast?.("Backup deleted", "success");
-      return true;
-    }
-
-    showToast?.("Delete failed", "error");
-    return false;
   },
 
   /* =========================================================
@@ -422,7 +611,6 @@ const DriveSync = {
     const connected = this.isConnected();
     const email = this.getStoredEmail();
     const lastBackup = localStorage.getItem(STORAGE_KEYS.LAST_BACKUP);
-    const lastSync = localStorage.getItem(STORAGE_KEYS.LAST_SYNC);
 
     const autoEnabled = this.isAutoLoadEnabled();
     const mode = this.getAutoLoadMode();
@@ -444,7 +632,8 @@ const DriveSync = {
 
             <div class="flex gap-2">
               <button class="selectPinBtn bg-indigo-500 text-white px-2 py-1 rounded text-xs" data-id="${f.id}" title="Pin this backup">📌</button>
-              <button class="restoreBtn bg-emerald-500 text-white px-2 py-1 rounded text-xs" data-id="${f.id}">⬇ Restore</button>
+              <button class="restoreBtn bg-emerald-500 text-white px-2 py-1 rounded text-xs" data-id="${f.id}">🔄</button>
+               <button class="downloadBackupBtn bg-blue-500 text-white px-2 py-1 rounded text-xs" data-id="${f.id}" data-name="${this.escapeHtml(f.name)}" title="Download backup file">📥</button>
               <button class="deleteBackupBtn bg-red-500 text-white px-2 py-1 rounded text-xs ${isPinned ? "opacity-50 cursor-not-allowed" : ""}" data-id="${f.id}" ${isPinned ? "disabled" : ""}>🗑️</button>
             </div>
           </div>
@@ -453,9 +642,7 @@ const DriveSync = {
       .join("");
 
     const html = `
-      <div class="space-y-4">
-        <h3 class="font-semibold text-lg text-indigo-600">☁️ Google Drive Sync</h3>
-
+      <div class="space-y-4"> 
         ${
           connected
             ? `<p class="text-xs text-gray-500">Connected as ${email}</p>`
@@ -493,28 +680,26 @@ const DriveSync = {
 
     showSimpleModal("☁️ Google Drive Sync", html);
 
-    /* ---------------------------------------------
-       UI Events
-       --------------------------------------------- */
     const self = this;
 
-    document.getElementById("btnDriveConnect").onclick = async () => {
+    document.getElementById("btnDriveConnect").addEventListener("click", async () => {
       await self.signIn();
       await self.showDriveSyncModal();
-    };
+    });
 
-    document.getElementById("btnDriveUpload").onclick = async () => {
+    document.getElementById("btnDriveUpload").addEventListener("click", async () => {
       await self.signIn();
-      await self.uploadBackup(state); // your state object
+      const txt = await FinalJson();
+      await self.uploadBackup(txt);
       await self.showDriveSyncModal();
-    };
+    });
 
-    document.getElementById("btnDriveLogout").onclick = async () => {
+    document.getElementById("btnDriveLogout").addEventListener("click", async () => {
       await self.signOut();
       await self.showDriveSyncModal();
-    };
+    });
 
-    document.getElementById("autoLoadToggle").onchange = (e) => {
+    document.getElementById("autoLoadToggle").addEventListener("change", (e) => {
       this.setAutoLoadEnabled(e.target.checked);
       showToast?.(
         e.target.checked
@@ -522,36 +707,32 @@ const DriveSync = {
           : "Auto-load disabled",
         "info"
       );
-    };
+    });
 
-    document.getElementById("autoLoadModeSelect").onchange = (e) => {
+    document.getElementById("autoLoadModeSelect").addEventListener("change", (e) => {
       this.setAutoLoadMode(e.target.value);
       showToast?.("Mode updated", "success");
-    };
+    });
 
-    /* Pinned backup selection */
     document.querySelectorAll(".selectPinBtn").forEach((btn) => {
-      btn.onclick = () => {
+      btn.addEventListener("click", () => {
         const id = btn.dataset.id;
         this.setAutoLoadFileId(id);
         this.setAutoLoadMode("pinned");
-
         showToast?.("Pinned backup selected", "success");
         self.showDriveSyncModal();
-      };
+      });
     });
 
-    /* Restore */
     document.querySelectorAll(".restoreBtn").forEach((btn) => {
-      btn.onclick = async () => {
+      btn.addEventListener("click", async () => {
         if (!confirm("Restore this backup?")) return;
         await self.restoreBackup(btn.dataset.id);
-      };
+      });
     });
 
-    /* Delete */
     document.querySelectorAll(".deleteBackupBtn").forEach((btn) => {
-      btn.onclick = async () => {
+      btn.addEventListener("click", async () => {
         const id = btn.dataset.id;
         const name =
           btn.closest("div").querySelector("p")?.textContent || "backup";
@@ -560,11 +741,54 @@ const DriveSync = {
 
         const ok = await self.deleteBackupFile(id);
         if (ok) await self.showDriveSyncModal();
-      };
+      });
     });
+    document.querySelectorAll(".downloadBackupBtn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const fileId = btn.dataset.id;
+        const fileName = btn.dataset.name;
+        
+        try {
+          showToast?.("📥 Downloading...", "info");
+          
+          const token = self.getToken();
+          if (!token) throw new Error("Not connected");
+
+          const res = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+            {
+              headers: { Authorization: "Bearer " + token },
+            }
+          );
+
+          if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+
+          const blob = await res.blob();
+
+          // Create download link
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+
+          showToast?.("✅ Downloaded: " + fileName, "success");
+
+        } catch (err) {
+          console.error("❌ Download error:", err);
+          showToast?.("❌ Download failed: " + err.message, "error");
+        }
+      });
+    });
+
   },
-  
-  // ====================== CONFIGURATION MODAL ======================
+
+  /* =========================================================
+     CONFIGURATION MODAL
+     ========================================================= */
   async showConfigModal() {
     try {
       const clientId = this.getClientId() || "";
@@ -582,9 +806,9 @@ const DriveSync = {
           <div class='space-y-2'>
             <label class='block'>
               <p class='text-sm font-medium text-gray-700'>Google OAuth Client ID</p>
-              <input 
-                type='text' 
-                id='clientIdInput' 
+              <input
+                type='text'
+                id='clientIdInput'
                 class='w-full mt-1 px-3 py-2 border border-gray-300 rounded text-sm'
                 placeholder='xxxx.apps.googleusercontent.com'
                 value='${this.escapeHtml(clientId)}'
@@ -617,7 +841,7 @@ const DriveSync = {
 
       const saveBtn = document.getElementById("btnSaveConfig");
       if (saveBtn) {
-        saveBtn.onclick = () => {
+        saveBtn.addEventListener("click", () => {
           const input = document.getElementById("clientIdInput");
           const clientIdValue = input.value.trim();
 
@@ -633,7 +857,6 @@ const DriveSync = {
             if (typeof showToast === "function") {
               showToast("✅ Configuration saved successfully", "success");
             }
-            // Close modal
             const modal = document.querySelector('[role="dialog"]');
             if (modal) modal.remove();
             self.showDriveSyncModal();
@@ -642,15 +865,15 @@ const DriveSync = {
               showToast("❌ Invalid Client ID: " + err.message, "error");
             }
           }
-        };
+        });
       }
 
       const cancelBtn = document.getElementById("btnCancelConfig");
       if (cancelBtn) {
-        cancelBtn.onclick = () => {
+        cancelBtn.addEventListener("click", () => {
           const modal = document.querySelector('[role="dialog"]');
           if (modal) modal.remove();
-        };
+        });
       }
 
     } catch (err) {
@@ -661,28 +884,6 @@ const DriveSync = {
     }
   },
 };
-
-/* GLOBAL DELETE HANDLER (EVENT DELEGATION) */
-document.addEventListener("click", async (e) => {
-  const btn = e.target.closest(".deleteBackupBtn");
-  if (!btn) return;
-  if (btn.disabled) return;
-
-  const id = btn.dataset.id;
-  if (!confirm("Delete this backup?")) return;
-
-  const ok = await DriveSync.deleteBackupFile(id);
-  if (ok) DriveSync.showDriveSyncModal();
-});
-
-/* AUTO INIT ON LOAD */
-window.addEventListener("load", async () => {
-  try {
-    if (DriveSync.isClientIdConfigured()) {
-      await DriveSync.init();
-      await DriveSync.autoLoadConfiguredBackup();
-    }
-  } catch (_) {}
-});
+ 
 
 window.DriveSync = DriveSync;

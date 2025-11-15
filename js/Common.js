@@ -2949,20 +2949,7 @@ function toggleNotifPanel(){ document.getElementById('notifPanel').classList.tog
 // Full Export / Import (JSON) - bit-perfect
 // ----------------------------
 async function fullExport(){
-  const payload = {
-    transactions: state.transactions,
-    budgets: state.budgets,
-    loans: state.loans,
-    reminders: state.reminders,
-    dropdowns: state.dropdowns,
-    settings: state.settings,
-    users: state.users,
-    savings: state.savings,
-    investments: state.investments,
-    trips: state.trips,
-    meta: { exportedAt: new Date().toISOString() }
-  };
-  const txt = JSON.stringify(payload, null, 2);
+   const txt = await FinalJson(); 
   // if folder available, write; else download
   if (state.dataFolderHandle && window.showDirectoryPicker){
     try{
@@ -3798,36 +3785,19 @@ async function loadFromDrive() {
       fileId = latest.id;
     }
 
-    console.log("📥 Loading from Drive File:", fileId);
+  //  console.log("📥 Loading from Drive File:", fileId);
 
     // 5. Download backup
-    const driveData = await DriveSync.downloadBackup(fileId);
-
-    if (!driveData || typeof driveData !== "object") {
-      throw new Error("Invalid Drive data");
-    }
-
-    // 6. Import into IndexedDB + state
-    await fullImportJSONText(JSON.stringify(driveData), "Drive");
-
-    console.log("✅ Data loaded from Drive");
-    showToast?.("☁️ Data loaded from Drive", "success");
-
+    DriveSync.restoreBackup(fileId,"Drive");
   } catch (err) {
     console.error("❌ Drive load failed:", err);
     console.log("⏭️ Falling back to IndexedDB");
   }
 }
 
-// ====================== STEP 9: Auto Backup to Drive ======================
-async function autoBackupToDrive() {
-  try {
-    if (!DriveSync.isConnected()) {
-      console.log("⏭️ Drive not connected, skipping backup");
-      return;
-    } 
-    console.log("📤 Auto-backing up to Drive...");
-    const payload = {
+
+async function FinalJson(){
+ const payload = {
     transactions: state.transactions,
     budgets: state.budgets,
     loans: state.loans,
@@ -3841,6 +3811,18 @@ async function autoBackupToDrive() {
     meta: { exportedAt: new Date().toISOString() }
   };
   const txt = JSON.stringify(payload, null, 2);
+    return txt;
+}
+
+// ====================== STEP 9: Auto Backup to Drive ======================
+async function autoBackupToDrive() {
+  try {
+    if (!DriveSync.isConnected()) {
+      console.log("⏭️ Drive not connected, skipping backup");
+      return;
+    } 
+    console.log("📤 Auto-backing up to Drive...");
+    const txt = await FinalJson();
     await DriveSync.autoBackupIfDue(txt);
 
   } catch (err) {
@@ -3871,8 +3853,8 @@ async function autoBackupToDrive() {
       console.log("💾 Loading from IndexedDB..."); 
     }
 
-    console.log("✅ App initialized successfully");
-    console.log("📊 Current state:", state);
+    //console.log("✅ App initialized successfully");
+   // console.log("📊 Current state:", state);
 
   } catch (err) {
     console.error("❌ Initialization error:", err);
