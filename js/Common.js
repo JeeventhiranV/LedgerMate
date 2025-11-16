@@ -52,7 +52,7 @@ let db = null;
 async function openDB() {
     return new Promise((resolve, reject) => {
         const DB_NAME = "ledgermate_db";
-        const DB_VERSION = 7; // bump this when schema changes
+        const DB_VERSION = 8; // bump this when schema changes
 
         const req = indexedDB.open(DB_NAME, DB_VERSION);
 
@@ -111,6 +111,7 @@ async function openDB() {
             ensureStore("recurringTransactions", { keyPath: "id", autoIncrement: true }, ["profile"]);
             ensureStore("auditLog", { keyPath: "id", autoIncrement: true }, ["profile", "timestamp"]);
             ensureStore("trips", { keyPath: "id", autoIncrement: true });
+            ensureStore("trip_routes", { keyPath: "id", autoIncrement: true }, ["tripId"]);
             console.log("✅ DB schema upgrade complete");
         };
     });
@@ -160,7 +161,8 @@ let state = {
   savings: [],
   investments: [],
   dataFolderHandle: null,
-  trips: []
+  trips: [],
+  routes: []
 };
 
 // Charts
@@ -223,6 +225,7 @@ if (dd.length) {
   state.savings = await getAll('savings');
   state.investments = await getAll('investments');
   state.trips = await getAll('trips');
+  state.routes = await getAll('trip_routes');
   // restore folder handle if present
   const fh = settingsAll.find(x=>x.key==='dataFolderHandle');
   if (fh) state.dataFolderHandle = fh.value;
@@ -2986,7 +2989,8 @@ async function fullImportJSONText(txt, source = "Unknown"){
     if (data.users) for (const u of data.users) await put('users', u);
     if (data.savings) for (const s of data.savings) await put('savings', s);
     if (data.investments) for (const inv of data.investments) await put('investments', inv);
-    if (data.trips) for (const trip of data.trips) await put('trips', trip); 
+    if (data.trips) for (const trip of data.trips) await put('trips', trip);
+    if (data.routes) for (const route of data.routes) await put('trip_routes', route);
     if(source!="Drive"){
       await loadAllFromDB(); 
       renderAll(); 
@@ -2997,7 +3001,7 @@ async function fullImportJSONText(txt, source = "Unknown"){
 }
 
 async function clearAllStores(){
-  const stores = ['transactions','budgets','loans','reminders','dropdowns','settings','users','savings','investments','trips'];
+  const stores = ['transactions','budgets','loans','reminders','dropdowns','settings','users','savings','investments','trips','trip_routes'];
   for (const s of stores){
     await new Promise((res,rej)=>{ const t = db.transaction(s,'readwrite'); const o = t.objectStore(s); const r=o.clear(); r.onsuccess=res; r.onerror=rej; });
   }
@@ -3068,7 +3072,8 @@ function packSnapshot(metaExtra = {}) {
     users:        state.users || [],
     savings:      state.savings || [],
     investments:  state.investments || [],
-    trips:        state.trips || []
+    trips:        state.trips || [],
+    routes:      state.routes || []
   };
 }
 
@@ -3114,6 +3119,7 @@ async function mergeRestore(payload) {
   await upsertList('savings',      payload.savings || []);
   await upsertList('investments',  payload.investments || []);
   await upsertList('trips',        payload.trips || []);
+  await upsertList('trip_routes',  payload.routes || []);
 
   // refresh in-memory
   await loadAllFromDB(); // you already have this; used widely in the app
@@ -3390,6 +3396,7 @@ function clearAllData() {
       state.notifications = [];
       state.rewards = []; 
       state.trips = [];
+      state.routes = [];
       renderAll();
       showToast('All data cleared', 'success');
     }
@@ -3808,6 +3815,7 @@ async function FinalJson(){
     savings: state.savings,
     investments: state.investments,
     trips: state.trips,
+    routes: state.routes,
     meta: { exportedAt: new Date().toISOString() }
   };
   const txt = JSON.stringify(payload, null, 2);
