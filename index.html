@@ -83,18 +83,17 @@
         <!--  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center glass text-xl font-bold" >JK</div>-->
          </div>
         <div class="flex items-center gap-3"> 
-          <div class="flex gap-2 items-center">
+          <!-- <div class="flex gap-2 items-center">
             <label class="text-sm ">KPI:</label>
             <select id="kpiRange" class="rounded-lg   p-2 text-sm">
               <option value="7">7d</option>
               <option value="10">10d</option>
               <option value="30" selected>30d</option>
-              <option value="90">90d</option>
-              <!-- <option value="custom">Custom</option> -->
+              <option value="90">90d</option> 
             </select>
             <input id="customFrom" type="date" class="hidden rounded-lg glass p-2 text-sm"/>
             <input id="customTo" type="date" class="hidden rounded-lg glass p-2 text-sm"/>
-          </div>  
+          </div>   -->
           
          
           <div class="relative">
@@ -156,40 +155,48 @@
            <button id="themeToggle" onclick="" class="ml-2 flex items-center gap-2 px-3 py-2 rounded-lg glass hover:glass transition-colors">
             <span id="themeIcon" class="text-lg">🌙</span>
           </button>   --> 
-            <button id="openDriveManagerBtn" class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center glass text-xl font-bold">☁️</button>
-       
+     <button id="openDriveManagerBtn"
+  class="w-12 h-12 rounded-xl flex items-center justify-center glass text-xl font-bold"
+  style="
+    background:
+      linear-gradient(135deg, #4285F4 0%, #4285F4 30%, transparent 30%),
+      linear-gradient(225deg, #34A853 0%, #34A853 30%, transparent 30%),
+      linear-gradient(315deg, #FBBC05 0%, #FBBC05 30%, transparent 30%),
+      #EA4335;
+    background-size: cover;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+   ">
+  ☁️
+</button>
+
+
         </div>
       </header>
 
       <!-- KPI + controls -->
-      <section class="mb-4"> 
-		<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2">
-  <!-- Balance Box -->
+      <!-- <section class="mb-4"> 
+		<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2"> 
   <div class="bg-gradient-to-br from-blue-600 to-blue-400 text-white rounded-lg p-2 shadow-md text-center hover:scale-105 transform transition-transform duration-200">
     <div class="text-xs font-semibold uppercase">Balance</div>
     <div id="kpiBalance" class="text-lg font-bold mt-1">₹0</div>
     <div id="kpiBalanceSub" class="text-[10px] text-blue-200 mt-0.5">As of today</div>
   </div>
-
-  <!-- Income Box -->
+ 
   <div class="bg-gradient-to-br from-emerald-500 to-emerald-300 text-white rounded-lg p-2 shadow-md text-center hover:scale-105 transform transition-transform duration-200">
     <div class="text-xs font-semibold uppercase">Income (<span id="kpiRangeLabel">30d</span>)</div>
     <div id="kpiIncome" class="text-lg font-bold mt-1">₹0</div>
   </div>
-
-  <!-- Expense Box -->
+ 
   <div class="bg-gradient-to-br from-rose-500 to-rose-300 text-white rounded-lg p-2 shadow-md text-center hover:scale-105 transform transition-transform duration-200">
     <div class="text-xs font-semibold uppercase">Expense (<span id="kpiRangeLabel2">30d</span>)</div>
     <div id="kpiExpense" class="text-lg font-bold mt-1">₹0</div>
-  </div>
-
-  <!-- P & L Box -->
+  </div> 
   <div class="bg-gradient-to-br from-purple-600 to-purple-400 text-white rounded-lg p-2 shadow-md text-center hover:scale-105 transform transition-transform duration-200">
     <div class="text-xs font-semibold uppercase">P & L</div>
     <div id="kpiPL" class="text-lg font-bold mt-1">₹0</div>
   </div>
 </div> 
-      </section>
+      </section> -->
          <!-- Voice / Mic FAB -->
 <button id="voiceTxBtn"
   class="fixed bottom-20 right-6 z-50 rounded-full bg-blue-500 hover:bg-blue-600 shadow-lg w-12 h-12 flex items-center justify-center text-2xl text-white transition-all"
@@ -204,8 +211,59 @@
     <path stroke="#1e293b" stroke-width="2" stroke-linecap="round" d="M12 8v8M8 12h8"/>
   </svg>
 </button>
-
+<div class="max-w-5xl mx-auto p-3">
  
+  <!-- Time Range -->
+  <div class="glass rounded-lg p-2 mb-3 animate-scaleIn">
+
+    <div class="flex flex-wrap gap-1 items-center">
+      <span class="text-[11px] font-semibold" style="color: var(--text-muted);">Range:</span>
+
+      <!-- Tiny Buttons -->
+      <button id="btn-7" class="px-2 py-1 rounded-md text-[11px]"
+        style="background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border);">
+        7d
+      </button>
+
+      <button id="btn-30" class="px-2 py-1 rounded-md text-[11px]"
+        style="background: var(--btn-blue); color: #fff;">
+        30d
+      </button>
+
+      <button id="btn-90" class="px-2 py-1 rounded-md text-[11px]"
+        style="background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border);">
+        90d
+      </button>
+
+      <button id="btn-365" class="px-2 py-1 rounded-md text-[11px]"
+        style="background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border);">
+        365d
+      </button>
+
+      <button id="btn-custom" class="px-2 py-1 rounded-md text-[11px]"
+        style="background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border);">
+        Custom
+      </button>
+
+      <!-- Custom Range -->
+      <div id="customRangeInputs" class="hidden w-full flex gap-2 mt-1">
+        <input type="date" id="customStart" class="w-full">
+        <input type="date" id="customEnd" class="w-full">
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- Horizontal KPI Scroll Row -->
+  <div class="overflow-x-auto flex gap-2 pb-2 mb-3 scrollbar-thin hide-scrollbar">
+    <div id="kpiCards" class="flex gap-2">
+      <!-- JS Inserts Cards -->
+    </div>
+  </div>
+
+
+
 
       <!-- Main grid: Make it a single column on all screens for best mobile UX -->
 <div class="space-y-6">
@@ -220,12 +278,114 @@
         <span id="dashboardsToggleIcon">−</span>
       </button>
     </div>
+
+
     <div id="dashboardsSection" class="space-y-4 transition-all duration-300">
+
+
+      
 	   <div id="goldBox" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+     <!-- Secondary Sections -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3">
+
+  <!-- Top Categories -->
+  <div class="glass rounded-lg p-3 transition-section"
+       style="
+         background: linear-gradient(
+           135deg,
+           rgba(59,130,246,0.15),
+           rgba(99,102,241,0.12)
+         );
+         border: 1px solid var(--glass-border);
+       ">
+
+    <div class="flex items-center gap-1 mb-1">
+      <span class="text-lg">🧾</span>
+      <h3 class="text-sm font-semibold" style="color: var(--text);">Top Categories</h3>
+    </div>
+
+    <div id="topCategories" class="space-y-2 mt-2"></div>
+  </div>
+
+  <!-- 30-Day Forecast -->
+  <div class="glass rounded-lg p-3 transition-section"
+       style="
+         background: linear-gradient(
+           135deg,
+           rgba(16,185,129,0.18),
+           rgba(5,150,105,0.10)
+         );
+         border: 1px solid var(--glass-border);
+       ">
+
+    <div class="flex items-center gap-1 mb-1">
+      <span class="text-lg">🔮</span>
+      <h3 class="text-sm font-semibold" style="color: var(--text);">Forecast</h3>
+    </div>
+
+    <div class="glass rounded-md p-2 mt-2"
+         style="background: rgba(255,255,255,0.05); border:1px solid var(--glass-border);">
+      <div class="text-[11px] text-muted">Projected</div>
+      <div id="forecastExpense" class="text-lg font-bold" style="color: var(--text);">₹0</div>
+    </div>
+
+    <div class="glass rounded-md p-2 mt-2"
+         style="background: rgba(255,255,255,0.05); border:1px solid var(--glass-border);">
+      <div class="text-[11px] text-muted">Need Income</div>
+      <div id="forecastIncome" class="text-lg font-bold" style="color: var(--text);">₹0</div>
+    </div>
+  </div>
+
+  <!-- Stats Bar -->
+  <div class="glass rounded-lg p-3"
+       style="
+         background: linear-gradient(
+           135deg,
+           rgba(139,92,246,0.15),
+           rgba(168,85,247,0.12)
+         );
+         border:1px solid var(--glass-border);
+       ">
+
+    <div class="flex items-center gap-1 mb-1">
+      <span class="text-lg">📊</span>
+      <h3 class="text-sm font-semibold" style="color: var(--text);">Stats</h3>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-center">
+
+      <div>
+        <div id="totalTx" class="text-lg font-bold" style="color: var(--text);">0</div>
+        <div class="text-[11px] text-muted">Txns</div>
+      </div>
+
+      <div>
+        <div id="avgDailyIncome" class="text-lg font-bold" style="color: var(--text);">₹0</div>
+        <div class="text-[11px] text-muted">Avg In</div>
+      </div>
+
+      <div>
+        <div id="avgDailyExpense" class="text-lg font-bold" style="color: var(--text);">₹0</div>
+        <div class="text-[11px] text-muted">Avg Out</div>
+      </div>
+
+      <div>
+        <div id="savingsRate" class="text-lg font-bold" style="color: var(--text);">0%</div>
+        <div class="text-[11px] text-muted">Save %</div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
 <div class="space-y-6 glass p-4 rounded-lg mt-4">
          <h4 class="font-semibold mb-1 text-blue-500 flex items-center gap-2" id="toggleAllAmounts">
           <svg class="w-4 h-4 text-blue-500  " fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/></svg>Summary 👁 
         </h4>  
+
+        
 	 <div id="accountSummaries"></div>
     
 </div>

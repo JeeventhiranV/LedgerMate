@@ -252,7 +252,7 @@ function bindUI(){
   document.getElementById('btnSetFolder').onclick = setDataFolder;
   document.getElementById('btnFullExport').onclick = fullExport;
   document.getElementById('btnImport').onclick = ()=>document.getElementById('fileImport')?.click();
-  document.getElementById('kpiRange').onchange = onKpiRangeChange;
+  // document.getElementById('kpiRange').onchange = onKpiRangeChange;
   //document.getElementById('btnQuickAdd').onclick = () => openAddTransactionModal();
   document.getElementById('fabAddTx').onclick = () => openAddTransactionModal();
   //document.getElementById('btnQuickAdd1').onclick = () => openAddTransactionModal();
@@ -2079,22 +2079,22 @@ function renderDropdowns(){
   sel.innerHTML = '<option value="all">All Accounts</option>' + state.dropdowns.accounts.map(a=>`<option value="${a}">${a}</option>`).join('');
 }
 
-function renderKPIs(){
-  const range = parseKpiRange();
-  const end = new Date();
-  const start = new Date(); start.setDate(end.getDate()-range+1);
-  const txs = state.transactions.filter(t => new Date(t.date) >= start && new Date(t.date) <= end);
-  const income = txs.filter(t=>t.type==='in').reduce((s,t)=>s+Number(t.amount),0);
-  const expense = txs.filter(t=>t.type==='out').reduce((s,t)=>s+Number(t.amount),0);
-  const balance = state.transactions.reduce((s,t)=> s + (t.type==='in'?Number(t.amount):-Number(t.amount)), 0);
-  document.getElementById('kpiIncome').innerText = fmtINR(income);
-  document.getElementById('kpiExpense').innerText = fmtINR(expense);
-  document.getElementById('kpiPL').innerText = fmtINR(income-expense);
-  document.getElementById('kpiBalance').innerText = fmtINR(balance);
-  document.getElementById('kpiRangeLabel').innerText = range+'d';
-  document.getElementById('kpiRangeLabel2').innerText = range+'d';
-  renderAccountSummaries();
-}
+// function renderKPIs(){
+//   const range = parseKpiRange();
+//   const end = new Date();
+//   const start = new Date(); start.setDate(end.getDate()-range+1);
+//   const txs = state.transactions.filter(t => new Date(t.date) >= start && new Date(t.date) <= end);
+//   const income = txs.filter(t=>t.type==='in').reduce((s,t)=>s+Number(t.amount),0);
+//   const expense = txs.filter(t=>t.type==='out').reduce((s,t)=>s+Number(t.amount),0);
+//   const balance = state.transactions.reduce((s,t)=> s + (t.type==='in'?Number(t.amount):-Number(t.amount)), 0);
+//   document.getElementById('kpiIncome').innerText = fmtINR(income);
+//   document.getElementById('kpiExpense').innerText = fmtINR(expense);
+//   document.getElementById('kpiPL').innerText = fmtINR(income-expense);
+//   document.getElementById('kpiBalance').innerText = fmtINR(balance);
+//   document.getElementById('kpiRangeLabel').innerText = range+'d';
+//   document.getElementById('kpiRangeLabel2').innerText = range+'d';
+//   renderAccountSummaries();
+// }
 
 function parseKpiRange(){
   const v = document.getElementById('kpiRange').value;
@@ -3927,3 +3927,344 @@ helpModal.addEventListener("click", (e) => {
   }
 });
 
+/* =========================
+   SAFETY HELPERS
+   ========================= */
+function calcGrowthRate(current, previous) {
+  if (previous === 0) return current === 0 ? 0 : 100;
+  return ((current - previous) / Math.abs(previous)) * 100;
+}
+
+function daysAgoISO(n) {
+  var d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+/* =========================
+   SUM, GROUP, FILTER
+   ========================= */
+function sumBy(arr, key) {
+  return arr.reduce((s, x) => s + Number(x[key] || 0), 0);
+}
+
+function groupBy(arr, key) {
+  return arr.reduce((grp, x) => {
+    let v = x[key] || "Unspecified";
+    if (!grp[v]) grp[v] = [];
+    grp[v].push(x);
+    return grp;
+  }, {});
+}
+function filterByRange(transactions, startDate, endDate) {
+  const s = new Date(startDate);
+  const e = new Date(endDate);
+
+  s.setHours(0, 0, 0, 0);
+  e.setHours(23, 59, 59, 999);
+
+  return transactions.filter(t => {
+    const d = new Date(t.date);
+    return d >= s && d <= e;
+  });
+}
+
+/* =========================
+   FIXED FORECAST LOGIC (ACCURATE)
+   ========================= */
+
+function calcMonthlyForecast(expenseList) {
+  if (!expenseList.length) return 0;
+
+  // Use last 30 transactions or all if less
+  const sorted = [...expenseList].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const recent = sorted.slice(-30);
+
+  const total = sumBy(recent, "amount");
+  const avgDaily = total / recent.length;
+
+  return Math.round(avgDaily * 30);
+}
+
+/* =========================
+   KPI CALCULATION
+   ========================= */
+function calculateKPIs() {
+  const today = new Date();
+  let startDate, endDate = today;
+  let days = parseInt(state.timeRange);
+
+  if (state.timeRange === "custom" && state.customRange.start && state.customRange.end) {
+    startDate = new Date(state.customRange.start);
+    endDate = new Date(state.customRange.end);
+    days = Math.max(1, Math.floor((endDate - startDate) / 86400000) + 1);
+  } else {
+    if (!days || days <= 0) days = 30;
+    startDate = new Date();
+    startDate.setDate(today.getDate() - days + 1);
+  }
+
+  const rangeTx = filterByRange([...state.transactions], startDate, endDate);
+
+  const income = sumBy(rangeTx.filter((t) => t.type === "in"), "amount");
+  const expense = sumBy(rangeTx.filter((t) => t.type === "out"), "amount");
+
+  const balance = state.transactions.reduce((s, t) =>
+    s + (t.type === "in" ? +t.amount : -t.amount),
+    0
+  );
+
+  const profitLoss = income - expense;
+
+  /* Growth calculation */
+  let prevStart = new Date(startDate);
+  prevStart.setDate(prevStart.getDate() - days);
+
+  let prevEnd = new Date(startDate);
+  prevEnd.setDate(prevEnd.getDate() - 1);
+
+  const prevTx = filterByRange([...state.transactions], prevStart, prevEnd);
+
+  const prevIncome = sumBy(prevTx.filter((t) => t.type === "in"), "amount");
+  const prevExpense = sumBy(prevTx.filter((t) => t.type === "out"), "amount");
+
+  const incomeGrowth = calcGrowthRate(income, prevIncome);
+  const expenseGrowth = calcGrowthRate(expense, prevExpense);
+
+  /* Categories */
+  const catGroup = groupBy(rangeTx.filter((t) => t.type === "out"), "category");
+  const topCategories = Object.entries(catGroup)
+    .map(([k, v]) => ({ category: k, amount: sumBy(v, "amount") }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 5);
+
+  /* Avg */
+  const avgDailyIncome = days > 0 ? income / days : 0;
+  const avgDailyExpense = days > 0 ? expense / days : 0;
+
+  const savingsRate = income ? (((income - expense) / income) * 100).toFixed(1) : 0;
+
+  /* FIXED FORECAST */
+  const recentExpenses = state.transactions.filter((t) => t.type === "out");
+  const expenseForecast = calcMonthlyForecast(recentExpenses);
+
+  /* Accounts */
+  const accGroup = groupBy(state.transactions, "account");
+  // const accountSummary = Object.entries(accGroup).map(([acc, tx]) => ({
+  //   account: acc,
+  //   balance: tx.reduce((s, t) => s + (t.type === "in" ? +t.amount : -t.amount), 0),
+  // }));
+
+  return {
+    balance,
+    income,
+    expense,
+    profitLoss,
+    incomeGrowth,
+    expenseGrowth,
+    topCategories,
+    avgDailyIncome,
+    avgDailyExpense,
+    savingsRate,
+    expenseForecast,
+    // accountSummary,
+    days,
+  };
+}
+
+/* =========================
+   RENDER KPI (ULTRA-COMPACT)
+   ========================= */
+   function kpiCard(label, value, sub, color = "blue") {
+  const colors = {
+    blue:   "rgba(36, 110, 230, 0.55)",   // Balance
+    green:  "rgba(14, 233, 153, 0.87)",   // Income
+    red:    "rgba(239, 68, 68, 0.54)",    // Expense
+    purple: "rgba(138, 92, 246, 0.46)",   // Profit/Loss
+    teal:   "rgba(20, 184, 165, 0.6)"    // Forecast
+  };
+
+  const icons = {
+    blue:   "💳",
+    green:  "📈",
+    red:    "📉",
+    purple: "📊",
+    teal:   "🔮"
+  };
+
+  return `
+    <div class="glass rounded-md p-2 flex-shrink-0 w-[130px] animate-scaleIn"
+         style="
+            background:${colors[color]};
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--card-shadow);
+         ">
+
+      <!-- Header Row: Icon + Label -->
+      <div class="flex items-center gap-1">
+        <span class="text-[14px]">${icons[color]}</span>
+        <span class="text-[11px] font-semibold" style="color: var(--text);">
+          ${label}
+        </span>
+      </div>
+
+      <!-- Value -->
+      <div class="text-xl font-bold mt-1 mb-1" style="color: var(--text);">
+        ${value}
+      </div>
+
+      <!-- Subtext -->
+      <div class="text-[10px]" style="color: var(--text-muted);">
+        ${sub}
+      </div>
+
+    </div>
+  `;
+}
+
+
+/* =========================
+   RENDER DASHBOARD
+   ========================= */
+
+function renderKPIs() {
+  const k = calculateKPIs();
+  const row = document.getElementById("kpiCards");
+
+  row.innerHTML = `
+  ${kpiCard("Balance", fmtINR(k.balance), "All accounts", "blue")}
+  ${kpiCard("Income", fmtINR(k.income), k.days + " days", "green")}
+  ${kpiCard("Expense", fmtINR(k.expense), k.days + "days", "red")}
+  ${kpiCard("Profit/Loss", fmtINR(k.profitLoss), k.savingsRate + "% saved", "purple")}
+  ${kpiCard("Forecast", fmtINR(k.expenseForecast), "Next 30 days", "teal")}
+`;
+
+
+  /* Top Categories */
+ 
+const topCatEl = document.getElementById("topCategories");
+const colors = [
+  "#3b82f6", // blue
+  "#10b981", // green
+  "#f59e0b", // amber
+  "#ef4444", // red
+  "#a855f7", // purple
+];
+
+let index = 0;
+
+topCatEl.innerHTML = k.topCategories
+  .map(cat => {
+    const color = colors[index++ % colors.length];
+    const amount = cat.amount;
+    const percent = ((amount / k.expense) * 100).toFixed(1);
+
+    return `
+      <div class="glass rounded-md p-2 mb-2"
+           style="background:linear-gradient(135deg, ${color}22, ${color}15); border:1px solid ${color}33">
+        
+        <div class="flex justify-between mb-1">
+          <span style="color: var(--text); font-weight:600; font-size:14px;">
+            ${cat.category}
+          </span>
+          <span style="color: var(--text); font-weight:600;">
+            ${fmtINR(amount)}
+          </span>
+        </div>
+
+        <div class="flex justify-between text-[11px] text-muted mb-1">
+          <span>${percent}%</span>
+          <span>Total: ${fmtINR(k.expense)}</span>
+        </div>
+
+        <div class="w-full bg-gray-300 dark:bg-gray-700 h-2 rounded overflow-hidden">
+          <div class="h-2 rounded"
+               style="width:${percent}%; background:${color};">
+          </div>
+        </div>
+
+      </div>
+    `;
+  }).join("");
+
+
+  /* Forecast */
+  document.getElementById("forecastExpense").innerText = fmtINR(k.expenseForecast);
+  document.getElementById("forecastIncome").innerText = fmtINR(k.expenseForecast / 0.8);
+
+  /* Accounts */
+  // document.getElementById("accountSummary").innerHTML = k.accountSummary
+  //   .map(
+  //     (a) => `
+  //     <div class="glass rounded-md p-2 flex justify-between text-sm" style="color: var(--text);">
+  //       <span>${a.account}</span>
+  //       <span>${fmtINR(a.balance)}</span>
+  //     </div>`
+  //   )
+  //   .join("");
+
+  /* Stats */
+  document.getElementById("totalTx").innerText = state.transactions.length;
+  document.getElementById("avgDailyIncome").innerText = fmtINR(k.avgDailyIncome);
+  document.getElementById("avgDailyExpense").innerText = fmtINR(k.avgDailyExpense);
+  document.getElementById("savingsRate").innerText = k.savingsRate + "%";
+   renderAccountSummaries();
+}
+
+/* =========================
+   Button Theme Fix
+   ========================= */
+function setTimeRange(range) {
+  state.timeRange = range;
+
+  ["7","30","90","365","custom"].forEach(r => {
+    const btn = document.getElementById("btn-" + r);
+    if (!btn) return;
+
+    if (r === range) {
+      btn.style.background = "var(--btn-blue)";
+      btn.style.color = "#fff";
+      btn.style.border = "none";
+    } else {
+      btn.style.background = "var(--input-bg)";
+      btn.style.color = "var(--input-text)";
+      btn.style.border = "1px solid var(--input-border)";
+    }
+  });
+
+  document.getElementById("customRangeInputs")
+          .classList.toggle("hidden", range !== "custom");
+
+  renderKPIs();   // ← this refreshes dashboard correctly
+}
+
+/* =========================
+   INIT
+   ========================= */
+
+document.getElementById("customStart").onchange = function (e) {
+  state.customRange.start = e.target.value;
+  if (state.customRange.end) renderKPIs();
+};
+
+document.getElementById("customEnd").onchange = function (e) {
+  state.customRange.end = e.target.value;
+  if (state.customRange.start) renderKPIs();
+};
+/* ================================
+   CONNECT RANGE BUTTON CLICK EVENTS
+   ================================ */
+document.addEventListener("DOMContentLoaded", function () {
+
+  const ranges = ["7", "30", "90", "365", "custom"];
+
+  ranges.forEach(r => {
+    const btn = document.getElementById("btn-" + r);
+    if (btn) {
+      btn.addEventListener("click", function () {
+        setTimeRange(r);
+      });
+    }
+  });
+
+});

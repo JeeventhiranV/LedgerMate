@@ -288,3 +288,8 @@ option {
     max-width: 90%;
   }
 }
+.kpi-card:hover {
+  transform: translateY(-2px) scale(1.01);
+  transition: 0.2s ease;
+}
+
