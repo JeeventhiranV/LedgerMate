@@ -2222,8 +2222,13 @@ const today = new Date();
   
   //  Split into tokens (space-separated)
   const tokens = q ? q.split(/\s+/) : [];
+let sourceTx = state.transactions;
 
-  const items = state.transactions
+// If NO search text (initial load), limit to 100
+if (!q) {
+  sourceTx = state.transactions.slice(0, 100);
+}
+  const items = sourceTx
     .slice()
     .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
     .filter((t) => {
