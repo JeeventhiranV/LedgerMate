@@ -2226,7 +2226,10 @@ let sourceTx = state.transactions;
 
 // If NO search text (initial load), limit to 100
 if (!q) {
-  sourceTx = state.transactions.slice(0, 100);
+    sourceTx = state.transactions
+        .slice()
+        .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
+        .slice(0, 100);
 }
   const items = sourceTx
     .slice()
