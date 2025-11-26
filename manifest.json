@@ -41,5 +41,19 @@
   "dir": "auto",
   "edge_side_panel": {
     "preferred_width": 0
+  },
+  "categories": [
+    "finance"
+  ],
+  "file_handlers": [
+  {
+    "action": "/import",
+    "name": "LedgerMate Backup Import",
+    "accept": {
+      "application/json": [".json"],
+      "text/csv": [".csv"]
+    }
   }
+]
+
 }
