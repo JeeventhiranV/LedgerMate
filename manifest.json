@@ -4,18 +4,17 @@
   "short_name": "LedgerMate",
   "launcherName": "LedgerMate",
   "description": "Smart offline finance tracker to manage expenses, investments, profits and live market insights.",
-
   "start_url": "./index.html",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay"],
+  "display_override": [
+    "window-controls-overlay"
+  ],
   "orientation": "portrait",
-
   "theme_color": "#10b981",
   "background_color": "#1e293b",
   "navigationColor": "#10b981",
   "lang": "en",
-
   "icons": [
     {
       "src": "./icons/icon-512.png",
@@ -24,25 +23,23 @@
       "purpose": "any"
     },
     {
-      "src": "./icons/maskable-512.png",
+      "src": "./icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     }
   ],
-
   "enableNotifications": true,
-
   "packageId": "com.jeeva.ledgermate",
   "host": "https://jeeventhiranv.github.io",
-
   "appVersionName": "1.0.0",
   "appVersionCode": 1,
-
   "signingKey": {
     "path": "android.keystore",
     "alias": "LedgermateJeeva"
   },
-
-  "fingerprints": []
+  "dir": "auto",
+  "edge_side_panel": {
+    "preferred_width": 0
+  }
 }
