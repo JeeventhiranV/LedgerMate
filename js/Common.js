@@ -575,7 +575,7 @@ async function handleLoanTransaction_V1(loan, shouldAdd) {
       date: nowISO1().split('T')[0],
       type: loan.type === 'given' ? 'out' : 'in',  
       amount: loan.amount,
-      account: loan.loanAccount ,
+      account: loan.loanAccount,
       category: loan.category || 'Loan',
       recurrence: '',
       note: transactionNote,
@@ -833,6 +833,7 @@ const rows = sortedGroups.map(group => {
             Due: ${l.dueDate || 'N/A'} 
             ${l.collected ? '• Collected: ' + (l.collectedAt ? new Date(l.collectedAt).toLocaleString() : '') : ''} 
             ${l.createdAt ? '• ' + new Date(l.createdAt).toLocaleString() : ''}
+            ${l.modifiedAt ? '• ' + new Date(l.modifiedAt).toLocaleString() : ''}
             ${recurrenceLabel}
           </div>
           <div class="text-sm ${loanAmountColor}">${loanSign}${fmtINR(l.amount)} <span class="text-xs text-muted">${l.note || ''}</span></div>
@@ -915,18 +916,22 @@ const addForm = `
     <select id="loanAccount" class="w-full p-2 rounded glass border">
       ${loanAccount.map(a=>`<option value="${(a||'').toString()}">${a}</option>`).join('')}
     </select>
-    <input id="loanAmount" type="number" min="1" placeholder="Amount ₹" class="w-full p-2 rounded glass border" required />
+    <input id="loanAmount" type="number" min="1" step="0.01" placeholder="Amount ₹" class="w-full p-2 rounded glass border" required />
     <input id="loanDueDate" type="date" class="w-full p-2 rounded glass border" required />
-    <input id="loanNote" placeholder="Note" class="w-full p-2 rounded glass border" />
-    <select id="loanCategory" class="w-full p-2 rounded glass border">
+    <input id="loanNote" placeholder="Note" class="w-full p-2 rounded glass border " required />
+    <select id="loanCategory" class="w-full p-2 rounded glass border" required>
       ${categories.map(c=>`<option value="${c}">${c}</option>`).join('')}
     </select>
-    <select id="loanRecurrence" class="w-full p-2 rounded glass border">
+    <select id="loanRecurrence" class="w-full p-2 rounded glass border" required>
       ${recurrences.map(r=>`<option value="${(r||'').toString().toLowerCase()}">${r}</option>`).join('')}
     </select>
     <label class="flex items-center p-2 rounded glass border">
       <input type="checkbox" id="addReminder" class="mr-2" />
       <span class="text-sm">Add reminder notification</span>
+    </label>
+    <label class="flex items-center p-2 rounded glass border">
+      <input type="checkbox" id="AddTransaction" class="mr-2" checked />
+      <span class="text-sm">Add Transaction</span>
     </label>
     <button class="w-full py-2 rounded bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400" type="submit">➕ Add Loan</button>
   </form>`;
@@ -969,7 +974,7 @@ setTimeout(() => {
 	const loanAccount = document.getElementById('loanAccount').value || 'Cash';
     const recurrence = document.getElementById('loanRecurrence').value || 'None';
     const addReminder = document.getElementById('addReminder').checked;
-	
+	const addTransaction = document.getElementById('AddTransaction').checked;
 
     if (!selectedPersons.length || !amount || !dueDate) { showToast('Select person(s), amount and due date','error'); return; }
 
@@ -977,7 +982,7 @@ setTimeout(() => {
 
     for (const person of selectedPersons) {
       const candidate = {
-        person, type, amount: splitAmount, dueDate, note, category, recurrence,loanAccount
+        person, type, amount: splitAmount, dueDate, note, category, recurrence, loanAccount, addTransaction
       };
       const key = loanKey(candidate);
       const exists = (state.loans || []).some(l => loanKey(l) === key);
@@ -993,7 +998,7 @@ setTimeout(() => {
       };
       await put('loans', newLoan);
       state.loans.push(newLoan);
-	 await handleLoanTransaction_V1(newLoan, true);
+	 await handleLoanTransaction_V1(newLoan, addTransaction);
       if (addReminder) {
         const rem = { id: uid('rem'), title: `Loan due: ${person}`, dueDate, note: `Loan of ${fmtINR(splitAmount)} due for ${person}`, recurrence, completed: false, completedLog: []};
         await put('reminders', rem);
@@ -1080,13 +1085,13 @@ setTimeout(() => {
 		   <select id="editloanAccount" class="w-full p-2 rounded glass border  ">
         ${loanAccounts.map(a=>`<option value="${a}" ${loan.loanAccount===a?'selected':''}>${a}</option>`).join('')}
       </select>
-          <input id="editLoanAmount" type="number" value="${loan.amount}" class="w-full p-2 rounded glass border  " />
-          <input id="editLoanDueDate" type="date" value="${loan.dueDate}" class="w-full p-2 rounded glass border  " />
-          <input id="editLoanNote" value="${loan.note||''}" class="w-full p-2 rounded glass border  " />
-          <select id="editLoanCategory" class="w-full p-2 rounded glass border  ">
+          <input id="editLoanAmount" type="number"  min="1" step="0.01" value="${loan.amount}" class="w-full p-2 rounded glass border  " required/>
+          <input id="editLoanDueDate" type="date" value="${loan.dueDate}" class="w-full p-2 rounded glass border  " required/>
+          <input id="editLoanNote" value="${loan.note||''}" class="w-full p-2 rounded glass border  " required/>
+          <select id="editLoanCategory" class="w-full p-2 rounded glass border  " required>
             ${categories.map(c=>`<option value="${c}" ${loan.category===c?'selected':''}>${c}</option>`).join('')}
           </select>
-          <select id="editLoanRecurrence" class="w-full p-2 rounded glass border  ">
+          <select id="editLoanRecurrence" class="w-full p-2 rounded glass border  " required>
             ${recurrences.map(r=>`<option value="${(r||'').toString().toLowerCase()}" ${loan.recurrence=== (r||'').toString().toLowerCase() ? 'selected' : ''}>${r}</option>`).join('')}
           </select>
           ${loan.recurrence && loan.recurrence !== 'None' ? `
