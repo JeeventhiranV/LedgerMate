@@ -52,7 +52,7 @@ let db = null;
 async function openDB() {
     return new Promise((resolve, reject) => {
         const DB_NAME = "ledgermate_db";
-        const DB_VERSION = 8; // bump this when schema changes
+        const DB_VERSION = 9; // bump this when schema changes
 
         const req = indexedDB.open(DB_NAME, DB_VERSION);
 
@@ -112,6 +112,8 @@ async function openDB() {
             ensureStore("auditLog", { keyPath: "id", autoIncrement: true }, ["profile", "timestamp"]);
             ensureStore("trips", { keyPath: "id", autoIncrement: true });
             ensureStore("trip_routes", { keyPath: "id", autoIncrement: true }, ["tripId"]);
+            ensureStore("credentials", { keyPath: "id", autoIncrement: true });
+            ensureStore("audit_logs", { keyPath: "id", autoIncrement: true }, ["profile", "timestamp"]);
             console.log("✅ DB schema upgrade complete");
         };
     });
@@ -162,7 +164,10 @@ let state = {
   investments: [],
   dataFolderHandle: null,
   trips: [],
-  routes: []
+  routes: [],
+  credentials: [],
+  trip_routes: [],
+  audit_logs: []
 };
 
 // Charts
@@ -226,6 +231,8 @@ if (dd.length) {
   state.investments = await getAll('investments');
   state.trips = await getAll('trips');
   state.routes = await getAll('trip_routes');
+  state.credentials = await getAll('credentials');
+  state.audit_logs = await getAll('audit_logs');
   // restore folder handle if present
   const fh = settingsAll.find(x=>x.key==='dataFolderHandle');
   if (fh) state.dataFolderHandle = fh.value;
@@ -273,6 +280,7 @@ function bindUI(){
   //document.getElementById('openRemainders').onclick = showRemindersModal;
   document.getElementById('openInvestments').onclick = showInvestmentsModal;
   document.getElementById('accountFilter').onchange = refreshRecentList;
+  
   document.getElementById('clearData').addEventListener('click', clearAllData);
   document.getElementById("openTripPlannerBtn").onclick = () => openTripPlanner();
   document.getElementById("openDriveManagerBtn").onclick = () => DriveSync.showDriveSyncModal();
@@ -3004,6 +3012,8 @@ async function fullImportJSONText(txt, source = "Unknown"){
     if (data.investments) for (const inv of data.investments) await put('investments', inv);
     if (data.trips) for (const trip of data.trips) await put('trips', trip);
     if (data.routes) for (const route of data.routes) await put('trip_routes', route);
+    if (data.credentials) for (const cred of data.credentials) await put('credentials', cred);
+    if (data.audit_logs) for (const log of data.audit_logs) await put('audit_logs', log);
     if(source!="Drive"){
       await loadAllFromDB(); 
       renderAll(); 
@@ -3014,7 +3024,7 @@ async function fullImportJSONText(txt, source = "Unknown"){
 }
 
 async function clearAllStores(){
-  const stores = ['transactions','budgets','loans','reminders','dropdowns','settings','users','savings','investments','trips','trip_routes'];
+  const stores = ['transactions','budgets','loans','reminders','dropdowns','settings','users','savings','investments','trips','trip_routes','credentials','audit_logs'];
   for (const s of stores){
     await new Promise((res,rej)=>{ const t = db.transaction(s,'readwrite'); const o = t.objectStore(s); const r=o.clear(); r.onsuccess=res; r.onerror=rej; });
   }
@@ -3133,6 +3143,8 @@ async function mergeRestore(payload) {
   await upsertList('investments',  payload.investments || []);
   await upsertList('trips',        payload.trips || []);
   await upsertList('trip_routes',  payload.routes || []);
+  await upsertList('credentials',  payload.credentials || []);
+  await upsertList('audit_logs',   payload.audit_logs || []);
 
   // refresh in-memory
   await loadAllFromDB(); // you already have this; used widely in the app

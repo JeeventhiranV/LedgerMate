@@ -170,10 +170,139 @@ async function showGoldRates() {
     const goldContent = document.getElementById("goldContent");
     const goldArrow = document.getElementById("goldArrow");
 
+
+
     toggle.addEventListener("click", () => {
       const isHidden = goldContent.classList.toggle("hidden");
       goldArrow.style.transform = isHidden ? "rotate(0deg)" : "rotate(180deg)";
-    });
+    }); 
+
+    function initHeaderMarquee() {
+  const source = doc.querySelector(".gd-stockmarket-data");
+  const track = document.querySelector("#header-marquee .header-marquee-track");
+
+  if (!source || !track) {
+    console.warn("Source or target not found");
+    return;
+  }
+
+  // clone twice for seamless loop
+  const clone1 = source.cloneNode(true);
+  const clone2 = source.cloneNode(true);
+
+  track.innerHTML = "";
+  track.appendChild(clone1);
+  track.appendChild(clone2);
+
+  formatTickerItems(track);
+}
+function formatTickerItems(root) {
+  const allowedItems = [
+    "gold",
+    "silver",
+    "petrol",
+    "diesel",
+    "nifty",
+    "sensex",
+    "usd"
+  ];
+
+  const commodityItems = [
+    "gold",
+    "silver",
+    "petrol",
+    "diesel"
+  ];
+
+  root.querySelectorAll("li").forEach(li => {
+    const nameEl = li.querySelector(".gd-market-data span");
+    const name = nameEl?.textContent.trim();
+
+    if (!name) {
+      li.remove();
+      return;
+    }
+
+    const nameLower = name.toLowerCase();
+
+    // ❌ REMOVE items not in your list
+    if (!allowedItems.some(item => nameLower.includes(item))) {
+      li.remove();
+      return;
+    }
+
+    const price = li.querySelector(".gd-marketpts")?.textContent
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const changeEl = li.querySelector(".gd-marketupdown");
+    let change = changeEl
+      ? changeEl.textContent.replace(/\s+/g, " ").trim()
+      : "";
+
+    if (!price) return;
+
+    // Hide % for commodities
+    if (commodityItems.some(c => nameLower.includes(c))) {
+      change = "";
+    }
+
+    let directionClass = "market-flat";
+    let arrow = "";
+
+    if (change.includes("+")) {
+      directionClass = "market-up";
+      arrow = "▲";
+    } else if (change.includes("-")) {
+      directionClass = "market-down";
+      arrow = "▼";
+    }
+
+    change = change.replace("%", "");
+
+    // === Build final block ===
+    const block = document.createElement("div");
+    block.className = "ticker-block";
+
+    const nameDiv = document.createElement("div");
+    nameDiv.className = "ticker-name";
+    nameDiv.textContent = name;
+
+    const valueDiv = document.createElement("div");
+    valueDiv.className = `ticker-value ${directionClass}`;
+    valueDiv.textContent = change
+      ? `${price} ${arrow}${change}`
+      : price;
+
+    block.appendChild(nameDiv);
+    block.appendChild(valueDiv);
+
+    const link = li.querySelector("a");
+    li.innerHTML = "";
+
+    if (link) {
+      link.innerHTML = "";
+      link.appendChild(block);
+      li.appendChild(link);
+    } else {
+      li.appendChild(block);
+    }
+  });
+}
+
+/* TOUCH PAUSE (MOBILE) */
+const marquee = document.getElementById("header-marquee");
+
+marquee.addEventListener("touchstart", () => {
+  marquee.querySelector(".header-marquee-track").style.animationPlayState = "paused";
+});
+
+marquee.addEventListener("touchend", () => {
+  marquee.querySelector(".header-marquee-track").style.animationPlayState = "running";
+});
+ initHeaderMarquee();
+
+
   } catch (err) {
     console.error("❌ Gold rate fetch failed:", err);
     document.getElementById("goldBox").innerHTML = `
@@ -186,3 +315,4 @@ async function showGoldRates() {
 
 
 document.addEventListener("DOMContentLoaded", showGoldRates);
+ 

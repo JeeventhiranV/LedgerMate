@@ -288,3 +288,139 @@ option {
     max-width: 90%;
   }
 }
+/* Header wrapper */
+.header-bar {
+  display: flex;
+  flex-direction: column;
+  background: #020617;
+}
+
+/* Top controls row */
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+}
+
+/* Ticker container */
+.header-marquee {
+  width: 100vw;
+  height: 45px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.04);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding: 0 12px;
+  box-sizing: border-box; 
+}
+
+/* Scrolling track */
+.header-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: ticker-left 30s linear infinite;
+}
+
+/* Ticker structure */
+.header-marquee-track .gd-stockmarket-data {
+  display: flex;
+}
+
+.header-marquee-track ul {
+  display: flex;
+}
+
+.header-marquee-track li {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  margin-right: 20px;
+  white-space: nowrap;
+}
+
+/* Animation */
+@keyframes ticker-left {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* Desktop refinement */
+@media (min-width: 768px) {
+  .header-marquee {
+    width: auto;
+    flex: 1;
+    border-top: none;
+    margin-left: 12px;
+  }
+}
+
+/* Label */
+.header-marquee-track .gd-market-data span {
+  font-size: 12px;
+  font-weight: 500;
+  color: #cbd5f5;
+}
+
+/* Price */
+.header-marquee-track .gd-marketpts {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f8fafc;
+  margin-left: 6px;
+}
+
+/* % Change */
+.gd-marketupdown {
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+/* UP */
+.market-up {
+  color: #22c55e;
+}
+
+.market-up i::before {
+  content: "▲";
+  font-size: 9px;
+  margin-right: 4px;
+}
+
+/* DOWN */
+.market-down {
+  color: #ef4444;
+}
+
+.market-down i::before {
+  content: "▼";
+  font-size: 9px;
+  margin-right: 4px;
+}
+
+/* FLAT */
+.market-flat {
+  color: #94a3b8;
+}
+
+.market-flat i::before {
+  content: "•";
+  margin-right: 4px;
+}
+.header-marquee-track li,
+.header-marquee-track .gd-market-datarow,
+.header-marquee-track .gd-marketpts {
+  white-space: nowrap;
+}
+
+.header-marquee-track li {
+  min-width: max-content;
+}
+
+.header-marquee-track .gd-marketpts {
+  display: inline-flex;
+  align-items: center;
+}
