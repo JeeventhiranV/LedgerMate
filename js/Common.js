@@ -3015,8 +3015,8 @@ async function fullImportJSONText(txt, source = "Unknown"){
     if (data.credentials) for (const cred of data.credentials) await put('credentials', cred);
     if (data.audit_logs) for (const log of data.audit_logs) await put('audit_logs', log);
     if(source!="Drive"){
-      await loadAllFromDB(); 
-      renderAll(); 
+    await loadAllFromDB(); 
+    renderAll(); 
     showToast('Import complete', 'success');
     }
    

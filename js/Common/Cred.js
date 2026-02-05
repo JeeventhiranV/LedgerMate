@@ -266,6 +266,22 @@ async function copyPrimaryDecryptedPassword(credId) {
     showToast('Unable to copy password', 'error');
   }
 }
+function openCredentialActions(credId) {
+  showSimpleModal(
+    'Actions',
+    `<button class="w-full p-3 rounded-xl bg-white/5"
+        onclick="editCredential('${credId}')">
+        ✏️ Edit
+      </button>
+
+      <button class="w-full p-3 rounded-xl bg-red-500/10 text-red-400"
+        onclick="deleteCredential('${credId}')">
+        🗑️ Delete
+      </button>
+    </div>
+    `
+  );
+}
 
 
 /* -------------------- Main Vault -------------------- */
@@ -277,7 +293,7 @@ const rows = creds.map(c => `
   <div class="glass p-4 rounded-xl mb-3" data-cred="${c.id}">
     <div class="flex justify-between">
       <div>
-        <h3 class="font-semibold">${c.websiteName}</h3>
+        <h3 class="font-semibold">${c.websiteName}  <button onclick="openCredentialActions('${c.id}')"  class="p-2 rounded-lg bg-white/5" style="padding-left:5px;">⋮</button></h3>
         <a href="${c.websiteUrl}" target="_blank"
           class="text-xs text-indigo-400 underline">Go to Website</a>
         <p class="text-xs text-gray-400 mt-1">${c.remark || ''}</p>
@@ -285,13 +301,27 @@ const rows = creds.map(c => `
           📅 ${formatDateSafe(c.createdAt || c.modifiedAt)}
         </p>
       </div>
-      <div class="flex gap-1">
-        <button onclick="viewCredential('${c.id}')">👁️</button>
-        <button title="Copy Password"
-          onclick="copyPrimaryDecryptedPassword('${c.id}')">📋</button>
-        <button onclick="editCredential('${c.id}')">✏️</button>
-        <button onclick="deleteCredential('${c.id}')">🗑️</button>
-      </div>
+      <!-- Desktop actions -->
+<div class="hidden md:flex gap-2">
+  <button onclick="viewCredential('${c.id}')" class="px-2">👁️</button>
+  <button onclick="copyPrimaryDecryptedPassword('${c.id}')" class="px-2">📋</button>
+  <button onclick="editCredential('${c.id}')" class="px-2">✏️</button>
+  <button onclick="deleteCredential('${c.id}')" class="px-2">🗑️</button>
+</div>
+
+<!-- Mobile actions -->
+<div class="md:hidden">
+ <div class="p-4 space-y-3 text-sm">
+      <button class="w-full p-3 rounded-xl bg-white/5"
+        onclick="viewCredential('${c.id}')">
+        👁️ View
+      </button>
+      <button class="w-full p-3 rounded-xl bg-white/5"
+        onclick="copyPrimaryDecryptedPassword('${c.id}')">
+        📋 Copy
+      </button> 
+</div>
+
     </div>
   </div>
 `).join('');
