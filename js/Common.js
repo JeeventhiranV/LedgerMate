@@ -2972,28 +2972,63 @@ function toggleNotifPanel(){ document.getElementById('notifPanel').classList.tog
 // ----------------------------
 // Full Export / Import (JSON) - bit-perfect
 // ----------------------------
-async function fullExport(){
-   const txt = await FinalJson(); 
-  // if folder available, write; else download
-  if (state.dataFolderHandle && window.showDirectoryPicker){
-    try{
-      const dir = state.dataFolderHandle;
-      const fh = await dir.getFileHandle(`ledger-backup-${nowISO()}.json`, { create:true });
-      const writable = await fh.createWritable(); 
-		await writable.write(txt);
-		await writable.close(); 
-	    const fh1 = await dir.getFileHandle(`ledger-backup.json`, { create:true });
-        const writable1 = await fh1.createWritable(); 
-		await writable1.write(txt);
-		await writable1.close();  
-		showToast('Backup written to folder');
-		return;
-    }catch(err){ console.warn('folder write failed', err); }
-  }
-  // fallback download
-  const blob = new Blob([txt],{type:'application/json'}); const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download = `ledger-backup-${nowISO()}.json`; a.click(); URL.revokeObjectURL(url);
+function safeFileTS() {
+  return new Date().toISOString().replace(/[:.]/g, '-');
 }
+async function ensureDirPermission(dirHandle) {
+  const perm = await dirHandle.queryPermission({ mode: 'readwrite' });
+  if (perm === 'granted') return true;
+
+  const req = await dirHandle.requestPermission({ mode: 'readwrite' });
+  return req === 'granted';
+}
+async function fullExport() {
+  const txt = await FinalJson();
+  const fileTS = safeFileTS();
+
+  // Try folder write
+  if (state.dataFolderHandle && window.showDirectoryPicker) {
+    try {
+      const dir = state.dataFolderHandle;
+
+      const ok = await ensureDirPermission(dir);
+      if (!ok) throw new Error('No folder permission');
+
+      // Timestamped backup
+      const fh = await dir.getFileHandle(
+        `ledger-backup-${fileTS}.json`,
+        { create: true }
+      );
+      const writable = await fh.createWritable();
+      await writable.write(txt);
+      await writable.close();
+
+      // Latest snapshot
+      const fh1 = await dir.getFileHandle(
+        `ledger-backup.json`,
+        { create: true }
+      );
+      const writable1 = await fh1.createWritable();
+      await writable1.write(txt);
+      await writable1.close();
+
+      showToast('Backup written to selected folder', 'success');
+      return;
+    } catch (err) {
+      console.warn('Folder write failed, fallback to download', err);
+    }
+  }
+
+  // Fallback download
+  const blob = new Blob([txt], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ledger-backup-${fileTS}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 
 async function fullImportJSONText(txt, source = "Unknown"){
   try{
