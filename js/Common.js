@@ -280,7 +280,7 @@ function bindUI(){
   //document.getElementById('openRemainders').onclick = showRemindersModal;
   document.getElementById('openInvestments').onclick = showInvestmentsModal;
   document.getElementById('accountFilter').onchange = refreshRecentList;
-  
+
   document.getElementById('clearData').addEventListener('click', clearAllData);
   document.getElementById("openTripPlannerBtn").onclick = () => openTripPlanner();
   document.getElementById("openDriveManagerBtn").onclick = () => DriveSync.showDriveSyncModal();
@@ -3096,7 +3096,9 @@ function packSnapshot(metaExtra = {}) {
     savings:      state.savings || [],
     investments:  state.investments || [],
     trips:        state.trips || [],
-    routes:      state.routes || []
+    routes:      state.routes || [],
+    credentials:  state.credentials || [],
+    audit_logs:   state.audit_logs || []
   };
 }
 
@@ -3422,6 +3424,8 @@ function clearAllData() {
       state.rewards = []; 
       state.trips = [];
       state.routes = [];
+      state.credentials = [];
+      state.audit_logs = [];
       renderAll();
       showToast('All data cleared', 'success');
     }
@@ -3841,6 +3845,8 @@ async function FinalJson(){
     investments: state.investments,
     trips: state.trips,
     routes: state.routes,
+    credentials: state.credentials,
+    audit_logs: state.audit_logs,
     meta: { exportedAt: new Date().toISOString() }
   };
   const txt = JSON.stringify(payload, null, 2);
