@@ -514,7 +514,7 @@ function openCredentialForm(existing) {
         </div>
 
         <div id="credEntries" class="space-y-3">
-          ${(c.entries || []).map(e => credentialEntryCard(e)).join('')}
+          ${(c.entries || []).map(e => credentialEntryCard(e,c)).join('')}
         </div>
       </div>
 
@@ -533,7 +533,7 @@ function openCredentialForm(existing) {
   };
 }
 
-function credentialEntryCard(e = {}) {
+function credentialEntryCard(e = {}, c = {}) {
   return `
     <div class="rounded-xl border border-white/10 p-3 bg-black/20 space-y-2">
       <input class="username w-full p-2 rounded-lg bg-transparent border border-white/10"
@@ -546,7 +546,7 @@ function credentialEntryCard(e = {}) {
           value="${e.password || ''}" />
         <button type="button"
           class="px-3 rounded-lg bg-white/5"
-          onclick="togglePwd(this)">👁️</button>
+          onclick="decryptAndShow(this,'${c.id}','${e.entryId}')">👁️</button> 
       </div>
       <input class="note w-full p-2 rounded-lg bg-transparent border border-white/10"
         placeholder="Note (optional)"
