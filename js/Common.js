@@ -123,6 +123,9 @@ async function openDB() {
     });
 }
 
+
+
+
 function tx(store, mode='readonly'){
   return db.transaction(store, mode).objectStore(store);
 }
