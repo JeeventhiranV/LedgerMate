@@ -12,9 +12,11 @@
   
   <!-- Local CSS / JS -->
   <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/Notes.css">
   <script src="./libs/tailwind.min.js"></script>
   <script src="./libs/chart.min.js"></script>
   <script src="./libs/jspdf.umd.min.js"></script>
+  <script src="./libs/html2canvas.min.js"></script>
   <script src="./libs/drive.min.js" async defer></script>
 
   <script>
@@ -65,7 +67,7 @@
         <li><button id="openDropdownManagerBtn" class="w-full text-left px-3 py-2 rounded hover:bg-indigo-50 glass">🔽 Dropdown Manager</button></li>
         <!-- <li><button id="openDriveManagerBtn" class="w-full text-left px-3 py-2 rounded hover:bg-indigo-50 glass">📥 Drive</button></li> -->
         <li><button onclick="showCredentialsVault()" class="w-full text-left px-3 py-2 rounded hover:bg-indigo-50 glass">🔐 Credentials Vault</button></li>
-
+        <li><button onclick="showNotesModal();" id="openNotes1" class="w-full text-left px-3 py-2 rounded hover:bg-indigo-50 glass">📝 Notes</button></li>
       </ul>
     </div> 
     <div class="mt-4">
@@ -176,7 +178,7 @@
         <div id="header-marquee" class="header-marquee" style="width: 100%;">
     <div class="header-marquee-track"></div>
   </div> 
-
+ <div id="notesBackdrop" class="notes-backdrop">   </div> 
       <!-- KPI + controls -->
       <!-- <section class="mb-4"> 
 		<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2"> 
@@ -518,10 +520,11 @@
     </div>
     <div id="dropdownManager" class="text-sm transition-all duration-300"></div>
   </div>-->
+     
 </div>
 
       <!-- Modals / Hidden UI -->
-      <div id="modals"></div> 
+      <div id="modals"></div>
       <!-- Footer -->
       <!-- Footer -->
   <footer class="p-4 text-xs text-gray-200 bg-gradient-to-t from-slate-900 via-slate-800 to-transparent rounded-t-lg text-center flex flex-col gap-1 mt-auto">
@@ -578,7 +581,7 @@
   </div>
 </div>
    <script  src="./js/Common/Drive.js"></script>  
-  <script  src="./js/Common.js"></script>
+  <script  src="./js/Common.js"></script> 
   <script src="./js/Investments.js"></script>
   <script src="./js/Charts/Doughnut.js"></script>
   <script src="./js/SpeechText/VoiceText.js"></script>
@@ -588,6 +591,7 @@
   <script  src="./js/Common/Dropdown.js"></script>   
   <script  src="./js/Common/MonthlySummary.js"></script>   
   <script src="./js/Common/Cred.js"></script>
+  <script src="./js/Common/Notes.js"></script>
 </body>
 </html>
 

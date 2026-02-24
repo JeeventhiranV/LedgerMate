@@ -52,7 +52,7 @@ let db = null;
 async function openDB() {
     return new Promise((resolve, reject) => {
         const DB_NAME = "ledgermate_db";
-        const DB_VERSION = 9; // bump this when schema changes
+        const DB_VERSION = 11; // bump this when schema changes
 
         const req = indexedDB.open(DB_NAME, DB_VERSION);
 
@@ -114,6 +114,10 @@ async function openDB() {
             ensureStore("trip_routes", { keyPath: "id", autoIncrement: true }, ["tripId"]);
             ensureStore("credentials", { keyPath: "id", autoIncrement: true });
             ensureStore("audit_logs", { keyPath: "id", autoIncrement: true }, ["profile", "timestamp"]);
+            ensureStore("notes", { keyPath: "id", autoIncrement: true }, ["title", "folderId", "pinned", "modified"]);
+            ensureStore("note_versions", { keyPath: "id", autoIncrement: true }, ["noteId", "timestamp"]);
+            ensureStore("note_attachments", { keyPath: "id", autoIncrement: true }, ["noteId"]);
+            ensureStore("note_folders", { keyPath: "id", autoIncrement: true }, ["parentId"]);
             console.log("✅ DB schema upgrade complete");
         };
     });
@@ -167,7 +171,11 @@ let state = {
   routes: [],
   credentials: [],
   trip_routes: [],
-  audit_logs: []
+  audit_logs: [],
+  note_folders: [],
+  note_attachments: [],
+  note_versions: [],
+  notes: []
 };
 
 // Charts
@@ -232,6 +240,10 @@ if (dd.length) {
   state.trips = await getAll('trips');
   state.routes = await getAll('trip_routes');
   state.credentials = await getAll('credentials');
+  state.note_folders = await getAll('note_folders');
+  state.note_attachments = await getAll('note_attachments');
+  state.note_versions = await getAll('note_versions');
+  state.notes = await getAll('notes');
   state.audit_logs = await getAll('audit_logs');
   // restore folder handle if present
   const fh = settingsAll.find(x=>x.key==='dataFolderHandle');
@@ -284,6 +296,7 @@ function bindUI(){
   document.getElementById('clearData').addEventListener('click', clearAllData);
   document.getElementById("openTripPlannerBtn").onclick = () => openTripPlanner();
   document.getElementById("openDriveManagerBtn").onclick = () => DriveSync.showDriveSyncModal();
+  //document.getElementById('openNotes').onclick = showNotesModal;
   // file import input
   const fi = document.createElement('input'); fi.type='file'; fi.accept='.csv,.json'; fi.id='fileImport'; fi.style.display='none';
   fi.onchange = async(e)=>{ const f = e.target.files[0]; if (!f) return; const txt = await f.text(); if (f.name.endsWith('.csv')) await importCSVText(txt); else await fullImportJSONText(txt); }
@@ -3048,6 +3061,10 @@ async function fullImportJSONText(txt, source = "Unknown"){
     if (data.trips) for (const trip of data.trips) await put('trips', trip);
     if (data.routes) for (const route of data.routes) await put('trip_routes', route);
     if (data.credentials) for (const cred of data.credentials) await put('credentials', cred);
+    if (data.notes) for (const note of data.notes) await put('notes', note);
+    if (data.note_folders) for (const folder of data.note_folders) await put('note_folders', folder);
+    if (data.note_attachments) for (const attachment of data.note_attachments) await put('note_attachments', attachment);
+    if (data.note_versions) for (const version of data.note_versions) await put('note_versions', version);
     if (data.audit_logs) for (const log of data.audit_logs) await put('audit_logs', log);
     if(source!="Drive"){
     await loadAllFromDB(); 
@@ -3059,7 +3076,7 @@ async function fullImportJSONText(txt, source = "Unknown"){
 }
 
 async function clearAllStores(){
-  const stores = ['transactions','budgets','loans','reminders','dropdowns','settings','users','savings','investments','trips','trip_routes','credentials','audit_logs'];
+  const stores = ['transactions','budgets','loans','reminders','dropdowns','settings','users','savings','investments','trips','trip_routes','credentials','audit_logs','notes','note_folders','note_attachments','note_versions'];
   for (const s of stores){
     await new Promise((res,rej)=>{ const t = db.transaction(s,'readwrite'); const o = t.objectStore(s); const r=o.clear(); r.onsuccess=res; r.onerror=rej; });
   }
@@ -3133,7 +3150,11 @@ function packSnapshot(metaExtra = {}) {
     trips:        state.trips || [],
     routes:      state.routes || [],
     credentials:  state.credentials || [],
-    audit_logs:   state.audit_logs || []
+    audit_logs:   state.audit_logs || [],
+    notes:        state.notes || [],
+    note_folders: state.note_folders || [],
+    note_attachments: state.note_attachments || [],
+    note_versions: state.note_versions || []
   };
 }
 
@@ -3181,6 +3202,10 @@ async function mergeRestore(payload) {
   await upsertList('trips',        payload.trips || []);
   await upsertList('trip_routes',  payload.routes || []);
   await upsertList('credentials',  payload.credentials || []);
+  await upsertList('notes',        payload.notes || []);
+  await upsertList('note_folders', payload.note_folders || []);
+  await upsertList('note_attachments', payload.note_attachments || []);
+  await upsertList('note_versions', payload.note_versions || []);
   await upsertList('audit_logs',   payload.audit_logs || []);
 
   // refresh in-memory
@@ -3461,6 +3486,10 @@ function clearAllData() {
       state.routes = [];
       state.credentials = [];
       state.audit_logs = [];
+      state.notes = [];
+      state.note_folders = [];
+      state.note_attachments = [];
+      state.note_versions = [];
       renderAll();
       showToast('All data cleared', 'success');
     }
@@ -3881,6 +3910,10 @@ async function FinalJson(){
     trips: state.trips,
     routes: state.routes,
     credentials: state.credentials,
+    notes: state.notes,
+    note_folders: state.note_folders,
+    note_attachments: state.note_attachments,
+    note_versions: state.note_versions,
     audit_logs: state.audit_logs,
     meta: { exportedAt: new Date().toISOString() }
   };
