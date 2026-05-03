@@ -1,5 +1,7 @@
  const voiceBtn = document.getElementById('voiceTxBtn');
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let isListening = false;
+  
 
   if (SpeechRecognition) {
     const recognition = new SpeechRecognition();
@@ -8,8 +10,14 @@
     recognition.maxAlternatives = 1;
 
     voiceBtn.addEventListener("click", () => {
-      recognition.start();
-      voiceBtn.textContent = "🎙";
+      if (isListening) {
+        recognition.stop();
+        voiceBtn.textContent = "🎤";
+      } else {
+        recognition.start();
+        voiceBtn.textContent = "🎙";
+      }
+      isListening = !isListening;
     });
 
     recognition.addEventListener("end", () => {

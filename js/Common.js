@@ -198,7 +198,7 @@ async function init(){
   //setInterval(checkAllNotifications, 60 * 60 * 1000);// Repeat every hour
   //processRecurringTransactions();
   setInterval(processRecurringTransactions, 60 * 60 * 1000); // check every hour
-
+  setGreeting();
 }
 
 async function seedDefaults(){
@@ -289,8 +289,10 @@ function bindUI(){
 
   //document.getElementById('openTransactions').onclick = showTransactionsModal;
   document.getElementById('openBudgets').onclick = showBudgetsModal;
+  document.getElementById('openBudgets1').onclick = showBudgetsModal;
   document.getElementById('openLoans').onclick = showLoansModal;
   document.getElementById('openGoals').onclick = showGoalsModal;
+  document.getElementById('MoreSidebarBtn')?.addEventListener('click', toggleSidebar);
   
   //document.getElementById('openRemainders').onclick = showRemindersModal;
   document.getElementById('openInvestments').onclick = showInvestmentsModal;
@@ -491,6 +493,7 @@ async function showBudgetsModal() {
       autoBackup();
       showBudgetsModal();
       showToast('Budget added!', 'success');
+      renderBudgetOverview();
     };
   }
 
@@ -511,6 +514,7 @@ async function showBudgetsModal() {
       await put('budgets', budget);
       showBudgetsModal();
       showToast('Budget updated!', 'success');
+      renderBudgetOverview();
     };
   });
 
@@ -522,11 +526,49 @@ async function showBudgetsModal() {
       state.budgets = state.budgets.filter(b => b.id !== id);
       autoBackup();
       showBudgetsModal();
+      renderBudgetOverview();
       showToast('Budget deleted!', 'success');
     };
   });
 }
 
+function renderBudgetModalList() {
+  const wrap = document.getElementById('budgetList');
+  if (!wrap) return;
+  const month = new Date().toISOString().slice(0,7);
+  const monthBudgets = state.budgets.filter(b=>b.month===month);
+  if (!monthBudgets.length) { wrap.innerHTML = '<div class="empty-state" style="padding:16px"><div class="empty-state-icon">🎯</div><div class="empty-state-text">No budgets for this month</div></div>'; return; }
+  wrap.innerHTML = monthBudgets.map(b => {
+    const actual = state.transactions.filter(t=>t.type==='out'&&t.category===b.category&&t.date.startsWith(month)).reduce((s,t)=>s+(+t.amount||0),0);
+    const pct = b.limit>0?Math.min(Math.round((actual/b.limit)*100),100):0;
+    const cls = pct>90?'over':pct>70?'warn':'safe';
+    return `<div class="list-item" style="flex-direction:column; align-items:stretch;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div><div class="list-item-name">${b.category}</div><div class="list-item-sub">${fmtINR(actual)} / ${fmtINR(b.limit)} (${pct}%)</div></div>
+        <button class="btn-danger" style="font-size:11px; padding:4px 8px;" onclick="deleteBudget('${b.id}')">✕</button>
+      </div>
+      <div class="budget-bar-bg" style="margin-top:6px;"><div class="budget-bar-fill ${cls}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+
+/* ─────────────────────────────────────────────
+   MODALS
+───────────────────────────────────────────── */
+function openModal(id) {
+  document.getElementById(id).classList.add('show');
+  // populate relevant lists
+  if (id==='budgetModal') { renderBudgetModalList(); }
+  if (id==='loanModal') { renderLoanList(); }
+  if (id==='goalModal') { renderGoalList(); }
+  if (id==='investModal') { renderInvestList(); }
+}
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if(e.target===el) el.classList.remove('show'); });
+});
 // ---------- Recurring / series helpers ----------
 
 // Create a canonical key to prevent duplicates
@@ -773,220 +815,285 @@ async function applyLoanEdit(loan, updates, scope = 'this') {
 }
 // ---------- Full UI: showLoansModal (Add/Edit/Delete/Mark + recurrence display) ----------
 function showLoansModal(prefill = {}) {
-  // ensure dropdown keys exist
   ensureDropdownKey('persons');
   ensureDropdownKey('categories');
   ensureDropdownKey('recurrences');
-  ensureDropdownKey('loanCategories'); // optional extra
+  ensureDropdownKey('loanCategories');
 
-  // Build grouped UI (reuse earlier logic)
- /* const grouped = {};
+  // ---- Grouping & sorting (unchanged) ----
+  const grouped = {};
   (state.loans || []).forEach(l => {
     const key = `${l.person}__${l.type}`;
-    if (!grouped[key]) grouped[key] = { person: l.person, type: l.type, loans: [], total: 0 };
+    if (!grouped[key]) {
+      grouped[key] = {
+        person: l.person,
+        type: l.type,
+        loans: [],
+        total: 0,
+        pendingTotal: 0,
+        collectedTotal: 0
+      };
+    }
     grouped[key].loans.push(l);
-    grouped[key].total += (l.type === 'given' ? -1 : 1) * Number(l.amount);
-  });*/
- const grouped = {};
-(state.loans || []).forEach(l => {
-  const key = `${l.person}__${l.type}`;
-  if (!grouped[key]) {
-    grouped[key] = {
-      person: l.person,
-      type: l.type,
-      loans: [],
-      total: 0,
-      pendingTotal: 0,
-      collectedTotal: 0
+    const signedAmount = (l.type === 'given' ? -1 : 1) * Number(l.amount);
+    grouped[key].total += signedAmount;
+    if (l.collected) grouped[key].collectedTotal += signedAmount;
+    else grouped[key].pendingTotal += signedAmount;
+  });
+
+  let totalGiven = 0, totalTaken = 0, totalOutstanding = 0;
+  Object.values(grouped).forEach(group => {
+    if (group.type === 'given') {
+      totalGiven += Math.abs(group.total);
+      totalOutstanding += group.total;
+    } else {
+      totalTaken += Math.abs(group.total);
+      totalOutstanding += group.total;
+    }
+  });
+
+  const sortedGroups = Object.values(grouped).sort((a, b) => {
+    const aPending = a.loans.filter(l => !l.collected);
+    const bPending = b.loans.filter(l => !l.collected);
+    const aDate = aPending.length ? new Date(aPending[0].dueDate || '2100-01-01') : new Date('2100-01-01');
+    const bDate = bPending.length ? new Date(bPending[0].dueDate || '2100-01-01') : new Date('2100-01-01');
+    if (aPending.length && !bPending.length) return -1;
+    if (!aPending.length && bPending.length) return 1;
+    return aDate - bDate;
+  });
+
+  // ---- Build each group card ----
+  const rows = sortedGroups.map(group => {
+    const typeLabel = group.type === 'given' ? '💸 Given' : '📥 Taken';
+    const pendingLoans = group.loans.filter(l => !l.collected);
+    const collectedLoans = group.loans.filter(l => l.collected);
+
+    const buildLoanHtml = l => {
+      const collectedBtnClass = l.collected ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-yellow-500 hover:bg-yellow-600 text-black';
+      const collectedBtnText = l.collected ? '✅' : '⏳';
+      const loanAmountColor = l.type === 'given' ? 'text-rose-400' : 'text-emerald-400';
+      const loanSign = l.type === 'given' ? '-' : '+';
+      const recurrenceLabel = l.recurrence && l.recurrence !== 'None' ? `🔁 ${l.recurrence}` : '';
+      const isOverdue = !l.collected && l.dueDate && new Date(l.dueDate) < new Date();
+      const overdueClass = isOverdue ? 'border alert-red' : '';
+      const lastDone = l.completedLog?.length ? `Last: ${l.completedLog[l.completedLog.length - 1].time}` : '';
+
+      return `
+        <div class="flex justify-between items-center p-2 rounded-lg ${overdueClass}"
+             style="background: rgba(255,255,255,0.04); backdrop-filter: blur(8px); border: 1px solid var(--border);">
+          <div class="flex-1 min-w-0 pr-2">
+            <div class="text-xs text-muted flex flex-wrap gap-x-2 gap-y-1">
+              <span>Due: ${l.dueDate || 'N/A'}</span>
+              ${l.collected ? `<span>Collected: ${l.collectedAt ? new Date(l.collectedAt).toLocaleString() : ''}</span>` : ''}
+              ${l.createdAt ? `<span>• ${new Date(l.createdAt).toLocaleString()}</span>` : ''}
+              ${l.modifiedAt ? `<span>• ${new Date(l.modifiedAt).toLocaleString()}</span>` : ''}
+              ${recurrenceLabel}
+            </div>
+            <div class="text-sm font-semibold ${loanAmountColor} truncate">
+              ${loanSign}${fmtINR(l.amount)}
+              <span class="text-xs text-muted font-normal">${l.note || ''}</span>
+            </div>
+            ${l.category ? `<div class="text-xs text-slate-500 mt-1">🏷️ ${l.category} ${lastDone ? ' • ' + lastDone : ''}</div>` : ''}
+          </div>
+          <div class="flex items-center gap-1 flex-shrink-0">
+            <button class="editLoan px-2 py-1 rounded text-xs bg-sky-500 hover:bg-sky-600 text-white transition" data-id="${l.id}">✏️</button>
+            <button class="markCollected px-2 py-1 rounded text-xs ${collectedBtnClass} transition" data-id="${l.id}">${collectedBtnText}</button>
+            <button class="delLoan px-2 py-1 rounded text-xs bg-rose-500 hover:bg-rose-600 text-white transition" data-id="${l.id}">🗑️</button>
+          </div>
+        </div>
+      `;
     };
-  }
-  grouped[key].loans.push(l);
 
-  const signedAmount = (l.type === 'given' ? -1 : 1) * Number(l.amount);
+    const pendingHtml = pendingLoans.map(buildLoanHtml).join('');
+    const collectedHtml = collectedLoans.map(buildLoanHtml).join('');
 
-  grouped[key].total += signedAmount;
-  if (l.collected) grouped[key].collectedTotal += signedAmount;
-  else grouped[key].pendingTotal += signedAmount;
-});
-
-// Totals
-let totalGiven = 0, totalTaken = 0, totalOutstanding = 0;
-Object.values(grouped).forEach(group => {
-  if (group.type === 'given') {
-    totalGiven += Math.abs(group.total);
-    totalOutstanding += group.total;
-  } else {
-    totalTaken += Math.abs(group.total);
-    totalOutstanding += group.total;
-  }
-});
-
-// Sort groups by pending first, earliest due date
-const sortedGroups = Object.values(grouped).sort((a, b) => {
-  const aPending = a.loans.filter(l => !l.collected);
-  const bPending = b.loans.filter(l => !l.collected);
-  const aDate = aPending.length ? new Date(aPending[0].dueDate || '2100-01-01') : new Date('2100-01-01');
-  const bDate = bPending.length ? new Date(bPending[0].dueDate || '2100-01-01') : new Date('2100-01-01');
-  if (aPending.length && !bPending.length) return -1;
-  if (!aPending.length && bPending.length) return 1;
-  return aDate - bDate;
-});
-
-// Build rows per group
-const rows = sortedGroups.map(group => {
-  const typeLabel = group.type === 'given' ? '💸 Given' : '📥 Taken';
-  const pendingLoans = group.loans.filter(l => !l.collected);
-  const collectedLoans = group.loans.filter(l => l.collected);
-
-  const buildLoanHtml = l => {
-    const collectedBtnClass = l.collected ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-yellow-500 hover:bg-yellow-600 text-black';
-    const collectedBtnText = l.collected ? '✅' : '⏳';
-    const loanAmountColor = l.type === 'given' ? 'text-rose-400' : 'text-emerald-400';
-    const loanSign = l.type === 'given' ? '-' : '+';
-    const recurrenceLabel = l.recurrence && l.recurrence !== 'None' ? `🔁 ${l.recurrence}` : '';
-    const isOverdue = !l.collected && l.dueDate && new Date(l.dueDate) < new Date();
-    const overdueClass = isOverdue ? 'border alert-red' : '';
-    const lastDone = (l.completedLog && l.completedLog.length)
-      ? `Last done: ${l.completedLog[l.completedLog.length - 1].time}`
-      : '';
+    const collectedSection = collectedLoans.length ? `
+      <div class="mt-2">
+        <button class="toggleCollected text-xs text-slate-400 hover:text-slate-200 transition"
+          data-person="${group.person}" data-type="${group.type}">
+          ⋯ View All (${collectedLoans.length})
+        </button>
+        <div class="collectedList hidden mt-2 space-y-2">${collectedHtml}</div>
+      </div>` : '';
 
     return `
-      <div class="flex justify-between items-center glass/60 rounded p-2 shadow-sm ${overdueClass}">
-        <div>
-          <div class="text-xs text-muted">
-            Due: ${l.dueDate || 'N/A'} 
-            ${l.collected ? '• Collected: ' + (l.collectedAt ? new Date(l.collectedAt).toLocaleString() : '') : ''} 
-            ${l.createdAt ? '• ' + new Date(l.createdAt).toLocaleString() : ''}
-            ${l.modifiedAt ? '• ' + new Date(l.modifiedAt).toLocaleString() : ''}
-            ${recurrenceLabel}
+      <div class="mb-4 p-4 rounded-xl glass shadow-sm transition hover:border-[var(--border-h)]">
+        <div class="flex justify-between items-center mb-3">
+          <div>
+            <div class="font-semibold text-sm">${group.person || 'Unknown'}</div>
+            <div class="text-xs text-muted flex items-center gap-2 mt-1">
+              <span class="font-semibold text-rose-400">P: ${fmtINR(Math.abs(group.pendingTotal))}</span>
+              <span class="font-semibold text-emerald-400">C: ${fmtINR(Math.abs(group.collectedTotal))}</span>
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--bg3)] border border-[var(--border)]">${typeLabel}</span>
+            </div>
           </div>
-          <div class="text-sm ${loanAmountColor}">${loanSign}${fmtINR(l.amount)} <span class="text-xs text-muted">${l.note || ''}</span></div>
-          ${l.category ? `<div class="text-xs text-slate-500">🏷️ ${l.category} ${lastDone ? ' • ' + lastDone : ''}</div>` : ''}
+          <button class="delLoanGroup px-2 py-1 rounded text-xs bg-rose-500 hover:bg-rose-600 text-white transition"
+            data-person="${group.person}" data-type="${group.type}">🗑️</button>
         </div>
-        <div class="flex gap-1">
-          <button class="editLoan px-2 py-1 rounded bg-sky-500 hover:bg-sky-600 text-xs" data-id="${l.id}">✏️</button>
-          <button class="markCollected px-2 py-1 rounded ${collectedBtnClass} text-xs" data-id="${l.id}">${collectedBtnText}</button>
-          <button class="delLoan px-2 py-1 rounded bg-rose-500 hover:bg-rose-600 text-xs" data-id="${l.id}">🗑️</button>
-        </div>
+        <div class="space-y-2">${pendingHtml || '<div class="text-xs text-muted italic">No pending loans</div>'}</div>
+        ${collectedSection}
       </div>
     `;
-  };
+  }).join('') || `<div class="text-center text-muted py-8">No loans added</div>`;
 
-  const pendingHtml = pendingLoans.map(buildLoanHtml).join('');
-  const collectedHtml = collectedLoans.map(buildLoanHtml).join('');
-
-  const collectedSection = collectedLoans.length ? `
-    <div class="mt-2">
-      <button class="toggleCollected text-xs text-slate-400 hover:text-slate-200" 
-        data-person="${group.person}" data-type="${group.type}">
-        ⋯ View All (${collectedLoans.length})
-      </button>
-      <div class="collectedList hidden mt-2">${collectedHtml}</div>
-    </div>` : '';
-
-  return `
-    <div class="mb-3 p-3 rounded-xl glass shadow">
-      <div class="flex justify-between items-center mb-2">
-        <div>
-          <span class="font-semibold">${group.person || 'Unknown'}</span>
-          <div class="text-xs text-muted font-semibold">
-            P: ${fmtINR(Math.abs(group.pendingTotal))} | C: ${fmtINR(Math.abs(group.collectedTotal))}
-            <span class="ml-2 px-2 py-0.5 text-xs rounded-full">${typeLabel}</span>
-          </div>
-        </div>
-        <button 
-          class="delLoanGroup px-2 py-1 rounded bg-rose-500 hover:bg-rose-600 text-xs" 
-          data-person="${group.person}" data-type="${group.type}">
-          🗑️
-        </button>
+  // ---- Summary card (re‑styled as KPI) ----
+  const summaryHtml = `
+    <div class="mb-6 p-4 rounded-xl glass shadow-sm grid grid-cols-3 gap-4">
+      <div class="text-center">
+        <div class="text-xs text-muted uppercase tracking-wide mb-1">Given</div>
+        <div class="text-lg font-bold text-rose-400">-${fmtINR(totalGiven)}</div>
       </div>
-      <div class="space-y-2">${pendingHtml || '<div class="text-xs text-muted">No pending loans</div>'}</div>
-      ${collectedSection}
+      <div class="text-center">
+        <div class="text-xs text-muted uppercase tracking-wide mb-1">Taken</div>
+        <div class="text-lg font-bold text-emerald-400">+${fmtINR(totalTaken)}</div>
+      </div>
+      <div class="text-center">
+        <div class="text-xs text-muted uppercase tracking-wide mb-1">Outstanding</div>
+        <div class="text-lg font-bold ${totalOutstanding >=0 ? 'text-emerald-400' : 'text-rose-400'}">
+          ${totalOutstanding >=0 ? '+' : ''}${fmtINR(totalOutstanding)}
+        </div>
+      </div>
     </div>
   `;
-}).join('') || `<div class="text-center text-muted">No loans added</div>`;
 
-// Summary + Add form
-const persons = state.dropdowns.persons || [];
-const categories = state.dropdowns.categories || [];
-const loanAccount = state.dropdowns.accounts || [];
-const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.length ? state.dropdowns.recurrences : ['None','daily','weekly','monthly','yearly'];
-
-const addLoanLink = `
-  <div class="flex justify-end mb-2">
-    <button id="scrollToAddLoan" 
-      class="px-3 py-1 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-sm font-semibold">
-      ➕ Add Loan
-    </button>
-  </div>`;
-
-const summaryHtml = `
-  <div class="mb-4 p-3 rounded-xl glass shadow">
-    <h3 class="text-md font-semibold mb-2">💰 Loan Summary</h3>
-    <div class="flex justify-between"><span class="text-sm">Total Given:</span><span class="font-bold text-rose-400">-${fmtINR(totalGiven)}</span></div>
-    <div class="flex justify-between"><span class="text-sm">Total Taken:</span><span class="font-bold text-emerald-400">+${fmtINR(totalTaken)}</span></div>
-    <div class="flex justify-between border-t pt-2"><span class="text-sm ${totalOutstanding>=0?'text-emerald-300':'text-rose-300'}">${totalOutstanding>=0?'Net Owed to You:':'Net You Owe:'}</span><span class="text-lg font-bold ${totalOutstanding>=0?'text-emerald-400':'text-rose-400'}">${totalOutstanding>=0?'+':''}${fmtINR(totalOutstanding)}</span></div>
-  </div>`;
-
-const addForm = `
-  <form id="addLoanForm" class="mt-4 space-y-2">
-    <select id="loanType" class="w-full p-2 rounded glass border">
-      <option value="given">💸 Given</option>
-      <option value="taken">📥 Taken</option>
-    </select>
-    <div id="loanPersonCheckboxes" class="space-y-1 p-2 rounded glass border max-h-40 overflow-y-auto">
-      ${persons.map(p=>`<label class="flex items-center"><input type="checkbox" value="${p}" class="personCheckbox"><span class="ml-2 text-sm">${p}</span></label>`).join('')}
+  // ---- Add Loan button (scrolls to form) ----
+  const addLoanLink = `
+    <div class="flex justify-end mb-4">
+      <button id="scrollToAddLoan" class="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-sm font-semibold transition">
+        ➕ Add Loan
+      </button>
     </div>
-    <select id="loanAccount" class="w-full p-2 rounded glass border">
-      ${loanAccount.map(a=>`<option value="${(a||'').toString()}">${a}</option>`).join('')}
-    </select>
-    <input id="loanAmount" type="number" min="1" step="0.01" placeholder="Amount ₹" class="w-full p-2 rounded glass border" required />
-    <input id="loanDueDate" type="date" class="w-full p-2 rounded glass border" required />
-    <input id="loanNote" placeholder="Note" class="w-full p-2 rounded glass border " required />
-    <select id="loanCategory" class="w-full p-2 rounded glass border" required>
-      ${categories.map(c=>`<option value="${c}">${c}</option>`).join('')}
-    </select>
-    <select id="loanRecurrence" class="w-full p-2 rounded glass border" required>
-      ${recurrences.map(r=>`<option value="${(r||'').toString().toLowerCase()}">${r}</option>`).join('')}
-    </select>
-    <label class="flex items-center p-2 rounded glass border">
-      <input type="checkbox" id="addReminder" class="mr-2" />
-      <span class="text-sm">Add reminder notification</span>
-    </label>
-    <label class="flex items-center p-2 rounded glass border">
-      <input type="checkbox" id="AddTransaction" class="mr-2" checked />
-      <span class="text-sm">Add Transaction</span>
-    </label>
-    <button class="w-full py-2 rounded bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400" type="submit">➕ Add Loan</button>
-  </form>`;
+  `;
 
-showSimpleModal('💰 Loans', `${addLoanLink}${summaryHtml}<div id="loanList" class="space-y-3">${rows}${addForm}</div>`);
+  // ---- Add form (hidden behind scroll) ----
+  const persons = state.dropdowns.persons || [];
+  const categories = state.dropdowns.categories || [];
+  const loanAccount = state.dropdowns.accounts || [];
+  const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.length ? state.dropdowns.recurrences : ['None','daily','weekly','monthly','yearly'];
 
-// Behavior scripts
-setTimeout(() => {
-  // Scroll to add form
-  const scrollBtn = document.getElementById('scrollToAddLoan');
-  const addFormEl = document.getElementById('addLoanForm');
-  if (scrollBtn && addFormEl) {
-    scrollBtn.addEventListener('click', () => {
-      addFormEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      addFormEl.querySelector('input, select, textarea')?.focus();
+  const addForm = `
+    <form id="addLoanForm" class="mt-6 space-y-4 p-4 rounded-xl glass shadow-sm">
+      <div class="flex gap-2">
+        <button type="button" class="type-btn given flex-1 py-2 rounded-md text-sm font-semibold border border-[var(--border)] ${prefill.type === 'given' ? 'bg-[rgba(0,212,180,0.15)] text-emerald-400' : 'text-slate-400'} transition" data-type="given">💸 Given</button>
+        <button type="button" class="type-btn taken flex-1 py-2 rounded-md text-sm font-semibold border border-[var(--border)] ${prefill.type === 'taken' ? 'bg-[rgba(0,212,180,0.15)] text-emerald-400' : 'text-slate-400'} transition" data-type="taken">📥 Taken</button>
+      </div>
+      <input type="hidden" id="loanType" value="${prefill.type || 'given'}" />
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs text-muted font-semibold mb-1 block">Person(s)</label>
+          <div id="loanPersonCheckboxes" class="max-h-48 overflow-y-auto p-2 rounded-lg border border-[var(--border)] space-y-1 bg-[var(--bg3)]">
+            ${persons.map(p => `<label class="flex items-center gap-2 text-sm"><input type="checkbox" value="${p}" class="personCheckbox">${p}</label>`).join('')}
+          </div>
+        </div>
+        <div>
+          <label class="text-xs text-muted font-semibold mb-1 block">Account</label>
+          <select id="loanAccount" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm focus:border-teal-400 transition">
+            ${loanAccount.map(a => `<option value="${(a||'').toString()}">${a}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs text-muted font-semibold mb-1 block">Amount (₹)</label>
+        <input id="loanAmount" type="number" min="1" step="0.01" placeholder="0.00" required
+          class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm focus:border-teal-400 transition" />
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs text-muted font-semibold mb-1 block">Due Date</label>
+          <input id="loanDueDate" type="date" required
+            class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm focus:border-teal-400 transition" />
+        </div>
+        <div>
+          <label class="text-xs text-muted font-semibold mb-1 block">Category</label>
+          <select id="loanCategory" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm focus:border-teal-400 transition">
+            ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs text-muted font-semibold mb-1 block">Note</label>
+        <input id="loanNote" placeholder="What's this for?" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm focus:border-teal-400 transition" />
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs text-muted font-semibold mb-1 block">Recurrence</label>
+          <select id="loanRecurrence" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm focus:border-teal-400 transition">
+            ${recurrences.map(r => {
+  const val = (r || '').toString().toLowerCase();
+  return `<option value="${val}" ${val === 'none' ? 'selected' : ''}>${r}</option>`;
+}).join('')}
+          </select>
+        </div>
+        <div class="flex flex-col gap-2 pt-5">
+          <label class="flex items-center gap-2 text-xs text-muted cursor-pointer">
+            <input type="checkbox" id="addReminder" /> Add reminder
+          </label>
+          <label class="flex items-center gap-2 text-xs text-muted cursor-pointer">
+            <input type="checkbox" id="AddTransaction" checked /> Add transaction
+          </label>
+        </div>
+      </div>
+
+      <button type="submit" class="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold text-sm transition">
+        ➕ Add Loan
+      </button>
+    </form>
+  `;
+
+  // ---- Put it all together ----
+  const modalContent = `
+    ${addLoanLink}
+    ${summaryHtml}
+    <div id="loanList" class="space-y-1">${rows}</div>
+    ${addForm}
+  `;
+
+  showSimpleModal('💰 Loans', modalContent);
+
+  // ---- Attach behaviour after DOM ready ----
+  setTimeout(() => {
+    // Scroll to add form
+    const scrollBtn = document.getElementById('scrollToAddLoan');
+    const addFormEl = document.getElementById('addLoanForm');
+    if (scrollBtn && addFormEl) {
+      scrollBtn.addEventListener('click', () => {
+        addFormEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        addFormEl.querySelector('input')?.focus();
+      });
+    }
+
+    // Type toggle buttons
+    document.querySelectorAll('.type-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const type = btn.dataset.type;
+        document.getElementById('loanType').value = type;
+        // update active styling
+        document.querySelectorAll('.type-btn').forEach(b => {
+          b.classList.remove('bg-[rgba(0,212,180,0.15)]', 'text-emerald-400');
+          b.classList.add('text-slate-400');
+        });
+        btn.classList.add('bg-[rgba(0,212,180,0.15)]', 'text-emerald-400');
+      });
     });
-  }
 
-  // Toggle collected sections
-  document.querySelectorAll('.toggleCollected').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const parent = btn.closest('div');
-      const list = parent.querySelector('.collectedList');
-      const isHidden = list.classList.contains('hidden');
-      list.classList.toggle('hidden', !isHidden);
-      btn.textContent = isHidden ? '▲ Hide Collected' : `⋯ View All (${list.children.length})`;
+    // Toggle collected sections
+    document.querySelectorAll('.toggleCollected').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const parent = btn.closest('div');
+        const list = parent.querySelector('.collectedList');
+        const isHidden = list.classList.contains('hidden');
+        list.classList.toggle('hidden', !isHidden);
+        btn.textContent = isHidden ? '▲ Hide Collected' : `⋯ View All (${list.children.length})`;
+      });
     });
-  });
-}, 400);
+  }, 400);
 
-  // Attach Add handler
+  // ---- Add Loan submit handler (unchanged logic) ----
   document.getElementById('addLoanForm').onsubmit = async (e) => {
     e.preventDefault();
     const type = document.getElementById('loanType').value;
@@ -995,19 +1102,17 @@ setTimeout(() => {
     const dueDate = document.getElementById('loanDueDate').value;
     const note = document.getElementById('loanNote').value.trim();
     const category = document.getElementById('loanCategory').value || 'Loan';
-	const loanAccount = document.getElementById('loanAccount').value || 'Cash';
+    const loanAccount = document.getElementById('loanAccount').value || 'Cash';
     const recurrence = document.getElementById('loanRecurrence').value || 'None';
     const addReminder = document.getElementById('addReminder').checked;
-	const addTransaction = document.getElementById('AddTransaction').checked;
+    const addTransaction = document.getElementById('AddTransaction').checked;
 
     if (!selectedPersons.length || !amount || !dueDate) { showToast('Select person(s), amount and due date','error'); return; }
 
     const splitAmount = Number((amount / selectedPersons.length).toFixed(2));
 
     for (const person of selectedPersons) {
-      const candidate = {
-        person, type, amount: splitAmount, dueDate, note, category, recurrence, loanAccount, addTransaction
-      };
+      const candidate = { person, type, amount: splitAmount, dueDate, note, category, recurrence, loanAccount, addTransaction };
       const key = loanKey(candidate);
       const exists = (state.loans || []).some(l => loanKey(l) === key);
       if (exists) continue;
@@ -1022,65 +1127,62 @@ setTimeout(() => {
       };
       await put('loans', newLoan);
       state.loans.push(newLoan);
-	 await handleLoanTransaction_V1(newLoan, addTransaction);
+      await handleLoanTransaction_V1(newLoan, addTransaction);
       if (addReminder) {
-        const rem = { id: uid('rem'), title: `Loan due: ${person}`, dueDate, note: `Loan of ${fmtINR(splitAmount)} due for ${person}`, recurrence, completed: false, completedLog: []};
+        const rem = {
+          id: uid('rem'),
+          title: `Loan due: ${person}`,
+          dueDate,
+          note: `Loan of ${fmtINR(splitAmount)} due for ${person}`,
+          recurrence,
+          completed: false,
+          completedLog: []
+        };
         await put('reminders', rem);
         state.reminders.push(rem);
       }
     }
 
-    // Generate missing recurring instances & one future instance
     await handleRecurringLoans();
-
     autoBackup();
     showToast('Loan(s) added!','success');
     showLoansModal();
   };
 
-  // Delegated handlers: delete / mark collected / edit
-  // Because showSimpleModal put content into DOM, query current modal
+  // ---- Delegated action handlers (unchanged) ----
   document.getElementById('loanList').onclick = async (e) => {
-   const btn = e.target.closest('button'); // ✅ ensure it's the button
-  if (!btn) return;
-  const id = btn.dataset.id;
-  const loan = id ? state.loans.find(l => String(l.id) === String(id)) : null;
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const loan = id ? state.loans.find(l => String(l.id) === String(id)) : null;
 
-    // Delete
+    // Delete single loan
     if (btn.classList.contains('delLoan')) {
       if (!confirm('Are you sure you want to delete this loan?')) return;
-      const loan = state.loans.find(l => l.id === id);
       await del('loans', id);
       state.loans = state.loans.filter(l => l.id !== id);
-
-      // remove related reminder(s)
       state.reminders = state.reminders.filter(r => !(r.title && r.title.includes(loan.person) && r.dueDate === loan.dueDate));
-      // persist reminders
-      for (const r of state.reminders) await put('reminders', r);
-
-      // remove transaction if collected
-      //if (loan && loan.collected) 
-		  await handleLoanTransaction(loan, false);
-
+      async function removeLoanReminders(loan) {
+        const toDelete = state.reminders.filter(r => r.title && r.title.includes(loan.person) && r.dueDate === loan.dueDate);
+        for (const r of toDelete) await del('reminders', r.id);
+        state.reminders = state.reminders.filter(r => !toDelete.includes(r));
+      }
+      await removeLoanReminders(loan);
+      await handleLoanTransaction(loan, false);
       autoBackup();
       showToast('Loan deleted!', 'success');
       showLoansModal();
       return;
     }
 
-    // Mark collected toggle
+    // Toggle collected
     if (btn.classList.contains('markCollected')) {
-      const loan = state.loans.find(l => l.id === id);
-      if (!loan) return;
       const wasCollected = loan.collected;
       loan.collected = !loan.collected;
       loan.collectedAt = loan.collected ? nowISO1() : null;
       await put('loans', loan);
-      if (loan.collected && !wasCollected) {
-        await handleLoanTransaction(loan, true);
-      } else if (!loan.collected && wasCollected) {
-        await handleLoanTransaction(loan, false);
-      }
+      if (loan.collected && !wasCollected) await handleLoanTransaction(loan, true);
+      else if (!loan.collected && wasCollected) await handleLoanTransaction(loan, false);
       autoBackup();
       renderNotifications();
       showToast(loan.collected ? 'Marked as collected ✅' : 'Marked as pending ⏳', 'info');
@@ -1090,54 +1192,103 @@ setTimeout(() => {
 
     // Edit loan
     if (btn.classList.contains('editLoan')) {
-      const loan = state.loans.find(l => l.id === id);
-      if (!loan) return;
       const persons = state.dropdowns.persons || [];
       const categories = state.dropdowns.categories || [];
-	  const loanAccounts = state.dropdowns.accounts || [];
+      const loanAccounts = state.dropdowns.accounts || [];
       const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.length ? state.dropdowns.recurrences : ['None','daily','weekly','monthly','yearly'];
 
-      const editHtml = `
-        <form id="editLoanForm" class="space-y-2">
-          <select id="editLoanType" class="w-full p-2 rounded glass border  ">
-            <option value="given" ${loan.type==='given'?'selected':''}>💸 Given</option>
-            <option value="taken" ${loan.type==='taken'?'selected':''}>📥 Taken</option>
-          </select>
-          <select id="editLoanPerson" class="w-full p-2 rounded glass border  ">
-            ${persons.map(p=>`<option value="${p}" ${loan.person===p?'selected':''}>${p}</option>`).join('')}
-          </select>
-		   <select id="editloanAccount" class="w-full p-2 rounded glass border  ">
-        ${loanAccounts.map(a=>`<option value="${a}" ${loan.loanAccount===a?'selected':''}>${a}</option>`).join('')}
-      </select>
-          <input id="editLoanAmount" type="number"  min="1" step="0.01" value="${loan.amount}" class="w-full p-2 rounded glass border  " required/>
-          <input id="editLoanDueDate" type="date" value="${loan.dueDate}" class="w-full p-2 rounded glass border  " required/>
-          <input id="editLoanNote" value="${loan.note||''}" class="w-full p-2 rounded glass border  " required/>
-          <select id="editLoanCategory" class="w-full p-2 rounded glass border  " required>
-            ${categories.map(c=>`<option value="${c}" ${loan.category===c?'selected':''}>${c}</option>`).join('')}
-          </select>
-          <select id="editLoanRecurrence" class="w-full p-2 rounded glass border  " required>
-            ${recurrences.map(r=>`<option value="${(r||'').toString().toLowerCase()}" ${loan.recurrence=== (r||'').toString().toLowerCase() ? 'selected' : ''}>${r}</option>`).join('')}
-          </select>
-          ${loan.recurrence && loan.recurrence !== 'None' ? `
-            <select id="editScope" class="w-full p-2 rounded glass border  ">
-              <option value="this">Only This Loan</option>
-              <option value="future">This and Future Loans</option>
-              <option value="all">All Loans in Series</option>
+      // Create edit modal content with same design tokens
+      const editModalHtml = `
+        <form id="editLoanForm" class="space-y-4 p-4">
+          <div class="flex gap-2">
+            <button type="button" class="edit-type-btn given flex-1 py-2 rounded-md text-sm font-semibold border border-[var(--border)] ${loan.type==='given' ? 'bg-[rgba(0,212,180,0.15)] text-emerald-400' : 'text-slate-400'}" data-type="given">💸 Given</button>
+            <button type="button" class="edit-type-btn taken flex-1 py-2 rounded-md text-sm font-semibold border border-[var(--border)] ${loan.type==='taken' ? 'bg-[rgba(0,212,180,0.15)] text-emerald-400' : 'text-slate-400'}" data-type="taken">📥 Taken</button>
+          </div>
+          <input type="hidden" id="editLoanType" value="${loan.type}" />
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-muted font-semibold mb-1 block">Person</label>
+              <select id="editLoanPerson" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">
+                ${persons.map(p => `<option value="${p}" ${loan.person===p?'selected':''}>${p}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-muted font-semibold mb-1 block">Account</label>
+              <select id="editloanAccount" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">
+                ${loanAccounts.map(a => `<option value="${a}" ${loan.loanAccount===a?'selected':''}>${a}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-xs text-muted font-semibold mb-1 block">Amount (₹)</label>
+            <input id="editLoanAmount" type="number" min="1" step="0.01" value="${loan.amount}" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-muted font-semibold mb-1 block">Due Date</label>
+              <input id="editLoanDueDate" type="date" value="${loan.dueDate}" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" />
+            </div>
+            <div>
+              <label class="text-xs text-muted font-semibold mb-1 block">Category</label>
+              <select id="editLoanCategory" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">
+                ${categories.map(c => `<option value="${c}" ${loan.category===c?'selected':''}>${c}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="text-xs text-muted font-semibold mb-1 block">Note</label>
+            <input id="editLoanNote" value="${loan.note||''}" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" />
+          </div>
+
+          <div>
+            <label class="text-xs text-muted font-semibold mb-1 block">Recurrence</label>
+            <select id="editLoanRecurrence" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">
+              ${recurrences.map(r => `<option value="${(r||'').toString().toLowerCase()}" ${loan.recurrence=== (r||'').toString().toLowerCase() ? 'selected' : ''}>${r}</option>`).join('')}
             </select>
+          </div>
+
+          ${loan.recurrence && loan.recurrence !== 'None' ? `
+            <div>
+              <label class="text-xs text-muted font-semibold mb-1 block">Scope</label>
+              <select id="editScope" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">
+                <option value="this">Only This Loan</option>
+                <option value="future">This and Future Loans</option>
+                <option value="all">All Loans in Series</option>
+              </select>
+            </div>
           ` : ''}
-          <label class="flex items-center space-x-2">
-            <input type="checkbox" id="editLoanCollected" ${loan.collected ? 'checked' : ''} />
-            <span class="">Collected</span>
+
+          <label class="flex items-center gap-2 text-xs text-muted cursor-pointer">
+            <input type="checkbox" id="editLoanCollected" ${loan.collected ? 'checked' : ''} /> Collected
           </label>
-          <button class="w-full py-2 rounded bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400" type="submit">💾 Save</button>
+
+          <button type="submit" class="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold text-sm transition">
+            💾 Save
+          </button>
         </form>
       `;
 
-      showSimpleModal('✏️ Edit Loan', editHtml);
+      showSimpleModal('✏️ Edit Loan', editModalHtml);
+
+      // Edit form type toggle buttons
+      document.querySelectorAll('.edit-type-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const type = btn.dataset.type;
+          document.getElementById('editLoanType').value = type;
+          document.querySelectorAll('.edit-type-btn').forEach(b => {
+            b.classList.remove('bg-[rgba(0,212,180,0.15)]', 'text-emerald-400');
+            b.classList.add('text-slate-400');
+          });
+          btn.classList.add('bg-[rgba(0,212,180,0.15)]', 'text-emerald-400');
+        });
+      });
 
       document.getElementById('editLoanForm').onsubmit = async (ev) => {
         ev.preventDefault();
-        const oldLoanSnapshot = {...loan};
         const updates = {
           type: document.getElementById('editLoanType').value,
           person: document.getElementById('editLoanPerson').value,
@@ -1147,56 +1298,47 @@ setTimeout(() => {
           category: document.getElementById('editLoanCategory').value || 'Loan',
           recurrence: document.getElementById('editLoanRecurrence').value || 'None',
           collected: document.getElementById('editLoanCollected').checked,
-		  Modified: nowISO1(),
-		  loanAccount : document.getElementById('editloanAccount').value || 'Cash'
+          modifiedAt: nowISO1(),
+          loanAccount: document.getElementById('editloanAccount').value || 'Cash'
         };
         const scope = document.getElementById('editScope') ? document.getElementById('editScope').value : 'this';
 
-        // if recurrence changed and was previously part of a series, create/assign seriesId appropriately
         if (loan.recurrence !== updates.recurrence) {
           if (updates.recurrence && updates.recurrence !== 'None' && !loan.seriesId) loan.seriesId = uid('series');
           if (!updates.recurrence || updates.recurrence === 'None') loan.seriesId = null;
         }
 
-        // If collected changed for this loan only, let applyLoanEdit handle transaction sync
         await applyLoanEdit(loan, updates, scope);
-
-        // If dueDate or amount changed and reminders flagged, update reminders (remove old ones)
-        // (We don't force-create reminders here; if user wants reminders they can add them explicitly.)
       };
-
       return;
     }
-    // Group delete
-if (btn.classList.contains('delLoanGroup')) {
-  const person = btn.dataset.person;
-  const type = btn.dataset.type;
-  if (!confirm(`Delete ALL ${type} loans for ${person}?`)) return;
 
-  const loansToDelete = state.loans.filter(l => l.person === person && l.type === type);
-  for (const loan of loansToDelete) {
-    await del('loans', loan.id);
-
-    // remove related reminders
-    state.reminders = state.reminders.filter(r => !(r.title && r.title.includes(loan.person) && r.dueDate === loan.dueDate));
-    await removeLoanReminders(loan);
-
-    // remove transaction if collected
-//    if (loan.collected)
-		await handleLoanTransaction(loan, false);
-  }
-
-  state.loans = state.loans.filter(l => !(l.person === person && l.type === type));
-
-  autoBackup();
-  showToast(`All ${type} loans for ${person} deleted!`, 'success');
-  showLoansModal();
-  return;
-}
-
+    // Delete group
+    if (btn.classList.contains('delLoanGroup')) {
+      const person = btn.dataset.person;
+      const type = btn.dataset.type;
+      if (!confirm(`Delete ALL ${type} loans for ${person}?`)) return;
+      const toDelete = state.loans.filter(l => l.person === person && l.type === type);
+      for (const loan of toDelete) {
+        await del('loans', loan.id);
+        state.reminders = state.reminders.filter(r => !(r.title && r.title.includes(loan.person) && r.dueDate === loan.dueDate));
+        async function removeLoanReminders(l) {
+          const toDel = state.reminders.filter(r => r.title && r.title.includes(l.person) && r.dueDate === l.dueDate);
+          for (const r of toDel) await del('reminders', r.id);
+          state.reminders = state.reminders.filter(r => !toDel.includes(r));
+        }
+        await removeLoanReminders(loan);
+        await handleLoanTransaction(loan, false);
+      }
+      state.loans = state.loans.filter(l => !(l.person === person && l.type === type));
+      autoBackup();
+      showToast(`All ${type} loans for ${person} deleted!`, 'success');
+      showLoansModal();
+      return;
+    }
   };
 
-  // Ensure recurring items exist after modal is shown (backfill)
+  // Ensure recurring items exist
   handleRecurringLoans().catch(err => console.error('recurring error', err));
 }
 /*
@@ -2077,15 +2219,46 @@ function showRemindersModal() {
 // Simple modal utility
 function showSimpleModal(title, html) {
   const modals = document.getElementById('modals');
+
   modals.innerHTML = `
-    <div class='fixed inset-0 flex items-center justify-center z-50'>
-      <div class='absolute inset-0 bg-black/50' onclick="document.getElementById('modals').innerHTML=''"></div>
-      <div class='glass rounded-2xl p-4 w-11/12 max-w-2xl z-50'>
+    <div style="
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+    ">
+
+      <!-- Overlay -->
+      <div 
+        style="
+          position:absolute;
+          inset:0;
+          background:rgba(0,0,0,0.6);
+        "
+        onclick="document.getElementById('modals').innerHTML=''">
+      </div>
+
+      <!-- Modal -->
+      <div 
+        style="
+          position: fixed !important;
+          top: 50% !important;
+          left: 50% !important;
+          transform: translate(-50%, -50%) !important;
+          width: 90% !important;
+          max-width: 600px !important;
+          z-index: 10000 !important;
+        "
+        class="glass rounded-2xl p-4 shadow-lg">
+
         <div class="flex justify-between items-center mb-2">
-          <h3 class='font-semibold'>${title}</h3>
-          <button onclick="document.getElementById('modals').innerHTML=''" class="text-muted hover:">&times;</button>
+          <h3 class="font-semibold">${title}</h3>
+          <button onclick="document.getElementById('modals').innerHTML=''">&times;</button>
         </div>
-        <div class='overflow-auto max-h-[60vh]'>${html}</div>
+
+        <div style="max-height:70vh; overflow:auto;">
+          ${html}
+        </div>
+
       </div>
     </div>
   `;
@@ -2104,6 +2277,7 @@ function renderAll(){
   checkBudgetAlerts();
   //renderNotifications();
   processRecurringTransactions();
+  renderBudgetOverview();
 }
 
 function renderDropdowns(){
@@ -2231,6 +2405,10 @@ function renderHeatmap() {
     grid.appendChild(el);
   }
 }
+
+// ----------------------------
+// Recent transactions list
+// ----------------------------
 
 // ----------------------------
 // Recent transactions list
@@ -2369,50 +2547,63 @@ if (!q) {
 
 
     if (items.length === 0) {
-        list.innerHTML = '<div class="text-center text-muted p-4">No transactions found</div>';
+        list.innerHTML = '<div class="tx-empty-msg">📋 No transactions found</div>';
         return;
     }
 
   items.forEach((t) => {
     const row = document.createElement('div');
-    row.className = `
-      flex items-center justify-between p-3 mb-2 rounded-xl shadow 
-      glass/50 backdrop-blur-md transition hover:scale-[1.02] hover:glass cursor-pointer
-    `;
-    const amountColor = t.type === 'in' ? 'text-emerald-400' : 'text-rose-400';
-    const sign = t.type === 'in' ? '+' : '-';
-    // Recurrence badge
-    let recurrenceBadge = '';
-    if (t.recurrence) {
-      recurrenceBadge = `<span class="ml-2 px-2 py-0.5 rounded-full bg-amber-600 text-xs ">${t.recurrence.charAt(0).toUpperCase() + t.recurrence.slice(1)}</span>`;
-    }
-    // Auto-generated badge
-    let autoBadge = '';
-    if (t.recurringOrigin) {
-      autoBadge = `<span class="ml-2 px-2 py-0.5 rounded-full bg-sky-700 text-xs " title="Auto">⟳</span>`;
-    }
+    row.className = 'tx-item';
+
+    // Category icon map
+    const iconMap = { Food:'🍽️', Transport:'🚗', Bills:'💡', Shopping:'🛍️', Salary:'💼', Healthcare:'🏥', Entertainment:'🎬', Education:'📚', Housing:'🏠', Loan:'💸', Snacks:'🧆', Other:'💳' };
+    const icon = iconMap[t.category] || '💳';
+    const typeCls = t.type === 'in' ? 'income' : 'expense';
+
+    // Badges
+    const recurrenceBadge = t.recurrence && t.recurrence.toLowerCase() !== 'none'
+      ? `<span class="tx-badge-recur">🔁 ${t.recurrence.charAt(0).toUpperCase() + t.recurrence.slice(1)}</span>`
+      : '';
+    const autoBadge = t.recurringOrigin
+      ? `<span class="tx-badge-auto" title="Auto-generated">⟳ Auto</span>`
+      : '';
+
+    // Timestamp
+    const ts = t.createdAt ? new Date(t.createdAt).toLocaleString('en-IN', { dateStyle:'short', timeStyle:'short' }) : '';
 
     row.innerHTML = `
-      <div class="flex flex-col">
-        <div class="flex items-center space-x-2">
-          <span class="text-xs px-2 py-0.5 rounded-full bg-slate-500 ">${t.category}</span>
-          <span class="text-sm text-muted">${t.date} </span>
-          ${recurrenceBadge}
-          ${autoBadge}
+      <div class="tx-row">
+
+        <div class="tx-left">
+          <!-- Icon dot -->
+          <div class="tx-icon-dot ${typeCls}">${icon}</div>
+
+          <!-- Text block -->
+          <div class="tx-text">
+            <div class="tx-top">
+              <span class="tx-category">${t.category || 'Uncategorized'}</span>
+              <span class="tx-date">${t.date}</span>
+              ${recurrenceBadge}
+              ${autoBadge}
+            </div>
+            <div class="tx-title">${t.note || '(No Note)'}</div>
+            <div class="tx-meta">
+              <span class="tx-meta-acc">${t.account || '—'}</span>
+              <span class="tx-time">${ts}</span>
+            </div>
+          </div>
         </div>
-        <div class="text-base font-semibold ">${t.note || '(No Note)'}</div>
-        <div class="text-xs text-muted">${t.account} <span class="text-xs text-slate-500">${t.createdAt ? new Date(t.createdAt).toLocaleString() : '(no timestamp)'}</span></div>
-      </div>
-      <div class="flex flex-col items-end">
-        <div class="text-lg font-bold ${amountColor}">${sign}${fmtINR(t.amount)}</div>
-        <div class="flex space-x-2 mt-1">
-          <button data-id="${t.id}" class="editTx text-sky-400 hover:text-sky-300" title="Edit">
-            ✏️
-          </button>
-          <button data-id="${t.id}" class="delTx text-rose-400 hover:text-rose-300" title="Delete">
-            🗑️
-          </button>
+
+        <div class="tx-right">
+          <div class="tx-amount ${typeCls}">
+            ${t.type === 'in' ? '+' : '−'}${fmtINR(t.amount)}
+          </div>
+          <div class="tx-actions">
+            <button data-id="${t.id}" class="editTx" title="Edit">✏️</button>
+            <button data-id="${t.id}" class="delTx"  title="Delete">🗑️</button>
+          </div>
         </div>
+
       </div>
     `;
     list.appendChild(row);
@@ -2441,93 +2632,106 @@ function openEditTransactionModal(id) {
   const t = state.transactions.find(x => x.id === id);
   if (!t) return;
 
-  const html = `
-    <div class="fixed inset-0 flex items-center justify-center z-50">
-      <!-- Overlay -->
-      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="closeModal"></div>
-      <!-- Modal Box -->
-      <div class="glass rounded-2xl p-6 w-11/12 max-w-md z-50 shadow-lg transition-all animate-scaleIn">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold ">✏️ Edit Transaction</h3>
-          <button id="closeModalBtn" class="text-muted hover: text-2xl">&times;</button>
+  // Use dynamic recurrences from state if available, else fallback
+  const recurrences = (state.dropdowns.recurrences && state.dropdowns.recurrences.length)
+    ? state.dropdowns.recurrences
+    : ['None','daily','weekly','monthly','yearly'];
+
+  const modalHTML = `
+    <div class="modal-overlay" id="editTxOverlay">
+      <div class="modal" style="max-width:600px;">
+        <div class="modal-header">
+          <h3 class="modal-title text-lg font-semibold flex items-center gap-2">✏️ Edit Transaction</h3>
+          <button id="editCloseBtn" class="modal-close text-2xl leading-none">×</button>
         </div>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs text-muted mb-1">Date</label>
-            <input id="tx_date" type="date"
-              class="w-full p-3 rounded-lg glass border  "
-              value="${t.date}" />
-          </div>
-          <div>
-            <label class="block text-xs text-muted mb-1">Type</label>
-            <select id="tx_type"
-              class="w-full p-3 rounded-lg glass border  ">
-              <option value="out" ${t.type === 'out' ? 'selected' : ''}>Expense</option>
-              <option value="in" ${t.type === 'in' ? 'selected' : ''}>Income</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs text-muted mb-1">Amount</label>
-            <input id="tx_amount" type="number" step="0.01"
-              class="w-full p-3 rounded-lg glass border  "
-              value="${t.amount}" placeholder="Enter amount" />
-          </div>
-          <div>
-            <label class="block text-xs text-muted mb-1">Account</label>
-            <select id="tx_account"
-              class="w-full p-3 rounded-lg glass border  ">
-              ${state.dropdowns.accounts.map(a => `<option ${a===t.account?'selected':''}>${a}</option>`).join('')}
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs text-muted mb-1">Category</label>
-            <select id="tx_category"
-              class="w-full p-3 rounded-lg glass border  ">
-              ${state.dropdowns.categories.map(c => `<option ${c===t.category?'selected':''}>${c}</option>`).join('')}
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs text-muted mb-1">Recurrence</label>
-            <select id="tx_recurrence"
-              class="w-full p-3 rounded-lg glass border  ">
-              <option value="">None</option>
-              <option value="daily" ${t.recurrence === 'daily' ? 'selected' : ''}>Daily</option>
-              <option value="weekly" ${t.recurrence === 'weekly' ? 'selected' : ''}>Weekly</option>
-              <option value="monthly" ${t.recurrence === 'monthly' ? 'selected' : ''}>Monthly</option>
-              <option value="yearly" ${t.recurrence === 'yearly' ? 'selected' : ''}>Yearly</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs text-muted mb-1">Note</label>
-            <input id="tx_note"
-              class="w-full p-3 rounded-lg glass border  "
-              value="${t.note||''}" placeholder="Optional note" />
-          </div>
-        </div>
-        <div class="flex gap-3 mt-6">
-          <button id="updateTx"
-            class="flex-1 py-3 rounded-lg bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400 transition">
-            ✅ Update
-          </button>
-          <button id="cancelTx"
-            class="flex-1 py-3 rounded-lg   font-semibold  transition">
-            Cancel
-          </button>
+        <div class="modal-body">
+          <form id="editTxForm" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="form-label">Date</label>
+                <input id="tx_date" type="date" value="${t.date}" class="form-input" required />
+              </div>
+              <div>
+                <label class="form-label">Type</label>
+                <select id="tx_type" class="form-input">
+                  <option value="out" ${t.type === 'out' ? 'selected' : ''}>💸 Expense</option>
+                  <option value="in"  ${t.type === 'in'  ? 'selected' : ''}>💰 Income</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Amount</label>
+                <input id="tx_amount" type="number" step="0.01"
+                  value="${t.amount}"
+                  class="form-input"
+                  placeholder="0.00" required />
+              </div>
+              <div>
+                <label class="form-label">Account</label>
+                <select id="tx_account" class="form-input">
+                  ${state.dropdowns.accounts.map(a => `<option ${a === t.account ? 'selected' : ''}>${a}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Category</label>
+                <select id="tx_category" class="form-input">
+                  ${state.dropdowns.categories.map(c => `<option ${c === t.category ? 'selected' : ''}>${c}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Recurrence</label>
+                <select id="tx_recurrence" class="form-input">
+                  ${recurrences.map(r => {
+                    const val = r.toLowerCase();
+                    const sel = (t.recurrence || 'none') === val ? 'selected' : '';
+                    return `<option value="${val}" ${sel}>${r}</option>`;
+                  }).join('')}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="form-label">Note</label>
+              <input id="tx_note"
+                value="${t.note || ''}"
+                class="form-input"
+                placeholder="Optional note" />
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-[var(--border)]">
+              <button type="submit" class="btn-submit flex-1">💾 Update</button>
+              <button type="button" id="editCancelBtn" class="btn-secondary flex-1">Cancel</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
   `;
 
   const modals = document.getElementById('modals');
-  modals.innerHTML = html;
+  modals.innerHTML = modalHTML;
 
-  // Close handlers
-  document.getElementById('closeModal').onclick = () => modals.innerHTML = '';
-  document.getElementById('closeModalBtn').onclick = () => modals.innerHTML = '';
-  document.getElementById('cancelTx').onclick = () => modals.innerHTML = '';
+  // Show the overlay
+  setTimeout(() => {
+    const overlay = document.getElementById('editTxOverlay');
+    if (overlay) overlay.classList.add('show');
+  }, 10);
 
-  // Update handler
-  document.getElementById('updateTx').onclick = async () => {
+  const closeModal = () => {
+    const overlay = document.getElementById('editTxOverlay');
+    if (overlay) {
+      overlay.classList.remove('show');
+      setTimeout(() => overlay.remove(), 300);
+    }
+  };
+
+  // Close events
+  document.getElementById('editCloseBtn').onclick = closeModal;
+  document.getElementById('editCancelBtn').onclick = closeModal;
+  document.getElementById('editTxOverlay').onclick = (e) => {
+    if (e.target.id === 'editTxOverlay') closeModal();
+  };
+
+  // Submit handler
+  document.getElementById('editTxForm').onsubmit = async (e) => {
+    e.preventDefault();
     t.date = document.getElementById('tx_date').value;
     t.type = document.getElementById('tx_type').value;
     t.amount = Number(document.getElementById('tx_amount').value || 0);
@@ -2535,12 +2739,12 @@ function openEditTransactionModal(id) {
     t.category = document.getElementById('tx_category').value;
     t.recurrence = document.getElementById('tx_recurrence').value;
     t.note = document.getElementById('tx_note').value || '';
-    t.Modified= nowISO1();
-	//t.createdAt = nowISO1();
+    t.Modified = nowISO1();
+
     try {
       await put('transactions', t);
       renderAll();
-      modals.innerHTML = '';
+      closeModal();
       autoBackup();
       showToast('Transaction updated!', 'success');
     } catch (e) {
@@ -2559,38 +2763,38 @@ function showToast(message, type = 'info', duration = 3000) {
   toastQueue.push({ message, type, duration });
   processToastQueue();
 }
-
 function processToastQueue() {
   if (activeToasts >= MAX_TOASTS || toastQueue.length === 0) return;
 
   const { message, type, duration } = toastQueue.shift();
   activeToasts++;
 
-  // Toast colors
+  // Toast colors (only background)
   const colors = {
-    success: 'bg-emerald-600',
-    error: 'bg-rose-600',
-    warning: 'bg-amber-500 text-black',
-    info: 'bg-sky-600',
+    success: 'background:#059669',
+    error:   'background:#dc2626',
+    warning: 'background:#f59e0b;color:black',
+    info:    'background:#0284c7',
   };
 
-  // Create container if not exists
+  // Create container if not exists – rely on CSS for positioning, gap, and max-height
   let container = document.getElementById('toastContainer');
   if (!container) {
     container = document.createElement('div');
     container.id = 'toastContainer';
-    container.className = 'fixed top-4 right-4 z-[9999] flex flex-col space-y-2';
+    // only fixed + flex-col, all positioning comes from CSS
+    container.className = 'fixed z-[9999] flex flex-col';
     document.body.appendChild(container);
   }
 
   // Create toast element
   const toast = document.createElement('div');
   toast.className = `
-    max-w-xs px-4 py-3 rounded-lg shadow-lg  font-medium
+    max-w-xs px-4 py-3 rounded-lg shadow-lg font-medium
     transition-all transform duration-300 ease-out opacity-0 translate-x-6
-    ${colors[type] || colors.info}
   `;
   toast.textContent = message;
+  toast.setAttribute('style', colors[type] || colors.info);   // only background color
 
   container.appendChild(toast);
 
@@ -2607,7 +2811,7 @@ function processToastQueue() {
     setTimeout(() => {
       toast.remove();
       activeToasts--;
-      processToastQueue(); // Show next toast from queue
+      processToastQueue();
     }, 300);
   }, duration);
 }
@@ -2618,102 +2822,105 @@ function processToastQueue() {
 function openAddTransactionModal(prefill = {}) {
   const id = uid('tx');
   const today = prefill.date || nowISO();
-  prefill.category = prefill.category || "Food";
-  prefill.account = prefill.account || "Cash";
+  prefill.category = prefill.category || 'Food';
+  prefill.account = prefill.account || 'Cash';
   ensureDropdownKey('recurrences');
   prefill.recurrence = prefill.recurrence || 'None';
-  //const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.length ? state.dropdowns.recurrences : ['None','daily','weekly','monthly','yearly'];
-  const html = `
-    <div class="fixed inset-0 flex items-center justify-center z-50">
-      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
-      <div class="glass rounded-2xl shadow-2xl p-5 w-11/12 max-w-md z-50 animate-fadeIn">
-        <h3 class="text-lg font-semibold  mb-4 flex items-center gap-2">
-          ➕ Add Transaction
-        </h3>
-        <div class="space-y-3 text-sm ">
-           <!-- Voice Input --> 
-          <!-- Date -->
-          <label class="block">
-            <span class="text-xs text-muted">Date</span>
-            <input id="tx_date" type="date" value="${today}"
-              class="w-full p-2 rounded-lg glass border  focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-          </label>
 
-          <!-- Type -->
-          <label class="block">
-            <span class="text-xs text-muted">Type</span>
-            <select id="tx_type"
-              class="w-full p-2 rounded-lg glass border  focus:outline-none focus:ring-2 focus:ring-emerald-400">
-              <option value="out" ${prefill.type === 'out' ? 'selected' : ''}>💸 Expense</option>
-              <option value="in" ${prefill.type === 'in' ? 'selected' : ''}>💰 Income</option>
-            </select>
-          </label>
+  const recurrences = state.dropdowns.recurrences || ['None','daily','weekly','monthly','yearly'];
 
-          <!-- Amount -->
-          <label class="block">
-            <span class="text-xs text-muted">Amount</span>
-            <input id="tx_amount" type="number" step="0.01" value="${prefill.amount || ''}"
-              class="w-full p-2 rounded-lg glass border  focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              placeholder="Enter amount" />
-          </label>
-
-          <!-- Account -->
-          <label class="block">
-            <span class="text-xs text-muted">Account</span>
-            <select id="tx_account"
-              class="w-full p-2 rounded-lg glass border  focus:outline-none focus:ring-2 focus:ring-emerald-400">
-              ${state.dropdowns.accounts.map(a => `<option ${a === prefill.account ? 'selected' : ''}>${a}</option>`).join('')}
-            </select>
-          </label>
-
-          <!-- Category -->
-          <label class="block">
-            <span class="text-xs text-muted">Category</span>
-            <select id="tx_category"
-              class="w-full p-2 rounded-lg glass border  focus:outline-none focus:ring-2 focus:ring-emerald-400">
-              ${state.dropdowns.categories.map(c => `<option ${c === prefill.category ? 'selected' : ''}>${c}</option>`).join('')}
-            </select>
-          </label>
-
-          <!-- Recurrence -->
-          <label class="block">
-            <span class="text-xs text-muted">Recurrence</span>
-            <select id="tx_recurrence"
-              class="w-full p-2 rounded-lg glass border  focus:outline-none focus:ring-2 focus:ring-emerald-400"> 
-                ${state.dropdowns.recurrences.map(a => `<option ${a === prefill.recurrence ? 'selected' : ''}>${a}</option>`).join('')}
-              </select>
-          </label>
-
-          <!-- Note -->
-          <label class="block">
-            <span class="text-xs text-muted">Note</span>
-            <input id="tx_note" value="${prefill.note || ''}"
-              class="w-full p-2 rounded-lg glass border  focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              placeholder="Optional note" />
-          </label>
+  const modalHTML = `
+    <div class="modal-overlay" id="addTxOverlay">
+      <div class="modal" style="max-width:600px;">
+        <div class="modal-header">
+          <h3 class="modal-title text-lg font-semibold flex items-center gap-2">➕ Add Transaction</h3>
+          <button id="cancelTx" class="modal-close text-2xl leading-none">×</button>
         </div>
-
-        <!-- Buttons -->
-        <div class="flex gap-3 mt-5">
-          <button id="saveTx"
-            class="flex-1 py-2 rounded-lg bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400 transition">
-            💾 Save
-          </button>
-          <button id="cancelTx"
-            class="flex-1 py-2 rounded-lg    font-semibold  transition">
-            ✖ Cancel
-          </button>
+        <div class="modal-body">
+          <form id="txForm" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="form-label">Date</label>
+                <input id="tx_date" type="date" value="${today}" class="form-input" required />
+              </div>
+              <div>
+                <label class="form-label">Type</label>
+                <select id="tx_type" class="form-input">
+                  <option value="out" ${prefill.type === 'out' ? 'selected' : ''}>💸 Expense</option>
+                  <option value="in" ${prefill.type === 'in' ? 'selected' : ''}>💰 Income</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Amount</label>
+                <input id="tx_amount" type="number" step="0.01"
+                  value="${prefill.amount || ''}"
+                  class="form-input"
+                  placeholder="0.00" required />
+              </div>
+              <div>
+                <label class="form-label">Account</label>
+                <select id="tx_account" class="form-input">
+                  ${state.dropdowns.accounts.map(a => `<option ${a === prefill.account ? 'selected' : ''}>${a}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Category</label>
+                <select id="tx_category" class="form-input">
+                  ${state.dropdowns.categories.map(c => `<option ${c === prefill.category ? 'selected' : ''}>${c}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Recurrence</label>
+                <select id="tx_recurrence" class="form-input">
+                  ${recurrences.map(r => {
+                    const val = r.toLowerCase();
+                    return `<option value="${val}" ${val === prefill.recurrence.toLowerCase() ? 'selected' : ''}>${r}</option>`;
+                  }).join('')}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="form-label">Note</label>
+              <input id="tx_note"
+                value="${prefill.note || ''}"
+                class="form-input"
+                placeholder="Optional note" />
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-[var(--border)]">
+              <button type="submit" class="btn-submit flex-1">💾 Save</button>
+              <button type="button" id="cancelTx2" class="btn-secondary flex-1">Cancel</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
   `;
 
   const modals = document.getElementById('modals');
-  modals.innerHTML = html;
+  modals.innerHTML = modalHTML;
 
-  document.getElementById('cancelTx').onclick = () => modals.innerHTML = '';
+  // Show the overlay by adding the 'show' class
+  setTimeout(() => {
+    const overlay = document.getElementById('addTxOverlay');
+    if (overlay) overlay.classList.add('show');
+  }, 10);
 
-  document.getElementById('saveTx').onclick = async () => {
+  const closeModal = () => {
+    const overlay = document.getElementById('addTxOverlay');
+    if (overlay) {
+      overlay.classList.remove('show');
+      setTimeout(() => overlay.remove(), 300);
+    }
+  };
+
+  document.getElementById('cancelTx').onclick = closeModal;
+  document.getElementById('cancelTx2').onclick = closeModal;
+  document.getElementById('addTxOverlay').onclick = (e) => {
+    if (e.target.id === 'addTxOverlay') closeModal();
+  };
+
+  document.getElementById('txForm').onsubmit = async (e) => {
+    e.preventDefault();
     const txObj = {
       id,
       date: document.getElementById('tx_date').value,
@@ -2723,20 +2930,20 @@ function openAddTransactionModal(prefill = {}) {
       category: document.getElementById('tx_category').value,
       recurrence: document.getElementById('tx_recurrence').value,
       note: document.getElementById('tx_note').value || '',
-      createdAt: nowISO1() 
+      createdAt: nowISO1()
     };
 
     try {
       await put('transactions', txObj);
       state.transactions.push(txObj);
       renderAll();
-      modals.innerHTML = '';
+      closeModal();
       autoBackup();
       showToast('✅ Transaction added successfully!', 'success');
     } catch (e) {
       showToast('❌ Failed to add transaction!', 'error');
     }
-  }; 
+  };
 }
 
 
@@ -2748,7 +2955,7 @@ function openAddTransactionModal(prefill = {}) {
 let dropdownManagerMinimized = true;
 let recentTxMinimized = false;
 let dashboardsMinimized = true; 
-
+/* comment for new dashboard
 function updateDropdownManagerVisibility() {
   const dm = document.getElementById('dropdownManager');
   const icon = document.getElementById('dropdownManagerToggleIcon');
@@ -2759,11 +2966,7 @@ function updateDropdownManagerVisibility() {
     dm.style.display = '';
     icon.textContent = '−';
   }
-}/*
-document.getElementById('toggleDropdownManager').onclick = function() {
-  dropdownManagerMinimized = !dropdownManagerMinimized;
-  updateDropdownManagerVisibility();
-};*/
+} 
 
 function updateRecentTxVisibility() {
   const section = document.getElementById('recentTxSection');
@@ -2801,9 +3004,9 @@ document.getElementById('toggleDashboards').onclick = function() {
   dashboardsMinimized = !dashboardsMinimized;
   updateDashboardsVisibility();
 };
- 
-window.addEventListener('DOMContentLoaded', updateDashboardsVisibility);
-window.addEventListener('DOMContentLoaded', updateRecentTxVisibility());
+
+window.addEventListener('DOMContentLoaded', updateDashboardsVisibility());
+window.addEventListener('DOMContentLoaded', updateRecentTxVisibility());*/
 //window.addEventListener('DOMContentLoaded', updateDropdownManagerVisibility);
  
 // ----------------------------
@@ -3443,22 +3646,31 @@ function onKpiRangeChange(e) {
   renderKPIs();
 }
  
-  function toggleTheme() {
-            const currentTheme = document.body.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            
-            document.body.setAttribute('data-theme', newTheme);
-            settings.theme = newTheme;
-            
-            // Update button text
-            document.getElementById('themeIcon').textContent = newTheme === 'dark' ? '☀️' : '🌙';
-            
-            saveSettingsToStore();
-        }
-  function saveSettingsToStore() {
-            const settings_store = db.transaction(['settings'], 'readwrite').objectStore('settings');
-            settings_store.put({ key: 'appSettings', value: settings });
-        }
+ function toggleTheme() {
+  const currentTheme = document.body.getAttribute('data-theme') || 'dark';
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+  document.body.setAttribute('data-theme', newTheme);
+  settings.theme = newTheme;
+
+  // ✅ Safe update (supports both structures)
+  const icon = document.getElementById('themeIcon');
+  const btn = document.getElementById('themeBtn');
+
+  const iconValue = newTheme === 'dark' ? '🌙' : '☀️';
+
+  if (icon) icon.textContent = iconValue;
+  else if (btn) btn.textContent = iconValue;
+
+  saveSettingsToStore();
+}
+function saveSettingsToStore() {
+  const tx = db.transaction(['settings'], 'readwrite').objectStore('settings');
+  tx.put({ key: 'appSettings', value: settings });
+
+  // ✅ Backup
+  localStorage.setItem('appSettings', JSON.stringify(settings));
+}
 function clearAllData() {
   if (!db) {
     console.error("Database not initialized.");
@@ -3696,7 +3908,7 @@ function levenshteinDistance(a, b) {
 
 searchInput.addEventListener('input', updateSuggestions);
 searchInput.addEventListener('blur', () => setTimeout(() => suggestionsBox.classList.add('hidden'), 200));
-
+/*
 const themeToggle = document.getElementById('themeToggle');
   const root = document.documentElement;
 
@@ -3713,7 +3925,7 @@ const themeToggle = document.getElementById('themeToggle');
     } else {
       localStorage.setItem('theme', 'light');
     }
-  });
+  });*/
 function getAccountSummaries() {
   const summaries = {};
   
@@ -3735,48 +3947,36 @@ function getAccountSummaries() {
 function renderAccountSummaries() {
   const summaries = getAccountSummaries();
   const container = document.getElementById('accountSummaries');
-  container.innerHTML = ''; // Clear previous content
-  
-  const grid = document.createElement('div');
-  grid.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4';
-  
+  container.innerHTML = '';
+
   for (const account in summaries) {
     const summary = summaries[account];
-    
-    const div = document.createElement('div');
-    div.className = 'glass p-3 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer';
-    
-    // Amounts masked by default
-    //<button class="view-amount text-xs px-2 py-1 rounded bg-blue-200 text-blue-700">👁</button>
-    div.innerHTML = `
-      <div class="flex justify-between items-center mb-2">
-        <h3 class="text-sm font-semibold truncate">${account}</h3>
-        
-      </div>
-      <div class="text-xs text-green-500">Income: <span class="amount masked" data-value="${summary.income}">***</span></div>
-      <div class="text-xs text-red-500">Expense: <span class="amount masked" data-value="${summary.expense}">***</span></div>
-      <div class="text-sm font-bold text-blue-500 mt-2">Balance: <span class="amount masked" data-value="${summary.balance}">***</span></div>
-    `;
-    
-    // Toggle amounts on click
-   /* div.querySelector('.view-amount').onclick = (e) => {
-      e.stopPropagation();
-      const amounts = div.querySelectorAll('.amount');
-      amounts.forEach(a => {
-        if (a.classList.contains('masked')) {
-          a.textContent = fmtINR(a.dataset.value);
-          a.classList.remove('masked');
-        } else {
-          a.textContent = '***';
-          a.classList.add('masked');
-        }
-      });
-    };*/
 
-    grid.appendChild(div);
+    const card = document.createElement('div');
+    card.className = 'kpi-card teal';
+
+    card.innerHTML = `
+      <div class="kpi-icon teal">💼</div>
+
+      <div class="kpi-label">${account}</div>
+
+      <div class="kpi-value amount masked" data-value="${summary.balance}">
+        ***
+      </div>
+
+      <div class="kpi-sub">
+        <span class="chip income">
+          + <span class="amount masked" data-value="${summary.income}">***</span>
+        </span>
+
+        <span class="chip expense ml-1">
+          - <span class="amount masked" data-value="${summary.expense}">***</span>
+        </span>
+      </div>
+    `;
+
+    container.appendChild(card);
   }
-  
-  container.appendChild(grid);
 }
 
 /*
@@ -3990,7 +4190,10 @@ async function autoBackupToDrive() {
    // setInterval(checkAllNotifications, 60 * 60 * 1000);
     processRecurringTransactions();
     setInterval(processRecurringTransactions, 60 * 60 * 1000); 
-    //setDataFolder();
+    //setDataFolder(); 
+    setGreeting();
+    const lastPage = localStorage.getItem('ledgerMate_lastPage') || 'dashboard';
+    showPage(lastPage);
   } catch (err) {
     console.error('Startup error', err);
   }
@@ -4185,53 +4388,44 @@ function calculateKPIs() {
 /* =========================
    RENDER KPI (ULTRA-COMPACT)
    ========================= */
-   function kpiCard(label, value, sub, color = "blue") {
-  const colors = {
-    blue:   "rgba(36, 110, 230, 0.55)",   // Balance
-    green:  "rgba(14, 233, 153, 0.87)",   // Income
-    red:    "rgba(239, 68, 68, 0.54)",    // Expense
-    purple: "rgba(138, 92, 246, 0.46)",   // Profit/Loss
-    teal:   "rgba(20, 184, 165, 0.6)"    // Forecast
+  function kpiCard(title, value, sub, type) {
+
+  const typeMap = {
+    blue: "teal",
+    green: "emerald",
+    red: "rose",
+    purple: "violet",
+    teal: "teal"
   };
 
-  const icons = {
-    blue:   "💳",
-    green:  "📈",
-    red:    "📉",
-    purple: "📊",
-    teal:   "🔮"
-  };
+  const cls = typeMap[type] || "teal";
 
   return `
-    <div class="glass rounded-md p-2 flex-shrink-0 w-[130px] animate-scaleIn"
-         style="
-            background:${colors[color]};
-            border: 1px solid var(--glass-border);
-            box-shadow: var(--card-shadow);
-         ">
-
-      <!-- Header Row: Icon + Label -->
-      <div class="flex items-center gap-1">
-        <span class="text-[14px]">${icons[color]}</span>
-        <span class="text-[11px] font-semibold" style="color: var(--text);">
-          ${label}
-        </span>
+    <div class="kpi-card ${cls}">
+      
+      <div class="kpi-icon ${cls}">
+        ${getKpiIcon(title)}
       </div>
 
-      <!-- Value -->
-      <div class="text-xl font-bold mt-1 mb-1" style="color: var(--text);">
-        ${value}
-      </div>
+      <div class="kpi-label">${title}</div>
 
-      <!-- Subtext -->
-      <div class="text-[10px]" style="color: var(--text-muted);">
-        ${sub}
-      </div>
+      <div class="kpi-value">${value}</div>
+
+      <div class="kpi-sub">${sub}</div>
 
     </div>
   `;
 }
-
+function getKpiIcon(title) {
+  switch (title) {
+    case "Balance": return "💼";
+    case "Income": return "📈";
+    case "Expense": return "📉";
+    case "Profit/Loss": return "💰";
+    case "Forecast": return "🔮";
+    default: return "📊";
+  }
+}
 
 /* =========================
    RENDER DASHBOARD
@@ -4332,18 +4526,18 @@ function setTimeRange(range) {
     if (!btn) return;
 
     if (r === range) {
-      btn.style.background = "var(--btn-blue)";
+     btn.classList.toggle("active", r === range);
       btn.style.color = "#fff";
       btn.style.border = "none";
     } else {
-      btn.style.background = "var(--input-bg)";
+     btn.classList.toggle("active", r === range);
       btn.style.color = "var(--input-text)";
       btn.style.border = "1px solid var(--input-border)";
     }
   });
 
-  document.getElementById("customRangeInputs")
-          .classList.toggle("hidden", range !== "custom");
+ document.getElementById("customRangeInputs")
+  .style.display = range === "custom" ? "grid" : "none";
 
   renderKPIs();   // ← this refreshes dashboard correctly
 }
@@ -4377,4 +4571,97 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
+});
+async function loadSettings() {
+  return new Promise((resolve) => {
+    const tx = db.transaction(['settings'], 'readonly');
+    const store = tx.objectStore('settings');
+    const req = store.get('appSettings');
+
+    req.onsuccess = () => {
+      if (req.result && req.result.value) {
+        settings = req.result.value;
+      }
+      resolve();
+    };
+
+    req.onerror = () => resolve();
+  });
+}
+document.addEventListener('DOMContentLoaded', async () => {
+  // 1️⃣ Load from IndexedDB first
+  await loadSettings();
+
+  // 2️⃣ 🔥 Fallback to localStorage (PUT HERE)
+  if (!settings.theme) {
+    const local = localStorage.getItem('appSettings');
+    if (local) {
+      settings = JSON.parse(local);
+    }
+  }
+
+  // 3️⃣ Apply theme
+  const theme = settings.theme || 'dark';
+  document.body.setAttribute('data-theme', theme);
+
+  // 4️⃣ Update icon
+  const icon = document.getElementById('themeIcon');
+  const btn = document.getElementById('themeBtn');
+
+  const iconValue = theme === 'dark' ? '🌙' : '☀️';
+
+  if (icon) icon.textContent = iconValue;
+  else if (btn) btn.textContent = iconValue;
+
+});
+
+
+function renderBudgetOverview() {
+  const wrap = document.getElementById('budgetOverview');
+  const month = new Date().toISOString().slice(0,7);
+  const monthBudgets = state.budgets.filter(b=>b.month===month);
+  if (!monthBudgets.length) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:24px"><div class="empty-state-icon">🎯</div><div class="empty-state-text">No budgets set for this month. <button style="color:var(--teal);background:none;border:none;cursor:pointer;font-size:13px;" onclick="openModal(\'budgetModal\')">Add one →</button></div></div>';
+    return;
+  }
+  wrap.innerHTML = monthBudgets.map(b => {
+    const actual = state.transactions.filter(t=>t.type==='out'&&t.category===b.category&&t.date.startsWith(month)).reduce((s,t)=>s+(+t.amount||0),0);
+    const pct = b.limit > 0 ? Math.min(Math.round((actual/b.limit)*100), 100) : 0;
+    const cls = pct>90 ? 'over' : pct>70 ? 'warn' : 'safe';
+    return `<div class="budget-item">
+      <div class="budget-item-header">
+        <span class="budget-item-name">${b.category}</span>
+        <span class="budget-item-amounts">${fmtINR(actual)} / ${fmtINR(b.limit)}</span>
+      </div>
+      <div class="budget-bar-bg"><div class="budget-bar-fill ${cls}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+/* ─────────────────────────────────────────────
+   SIDEBAR
+───────────────────────────────────────────── */
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebarOverlay');
+  sb.classList.toggle('open');
+  ov.classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+}
+document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+document.addEventListener('click', function (e) {
+  const sidebar = document.getElementById('sidebar');
+  const menuBtn = document.getElementById('menuBtn');
+  const moreBtn = document.getElementById('MoreSidebarBtn');    
+ 
+  if (
+    !sidebar.contains(e.target) &&
+    !menuBtn.contains(e.target) &&
+    !moreBtn.contains(e.target)
+  ) {
+    closeSidebar();
+  }
 });

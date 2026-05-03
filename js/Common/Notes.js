@@ -82,265 +82,252 @@ async  function showNotesModal() {
 
 function renderNotesModal() {
   const modalHTML = `
-    <div id="notesBackdrop" class="notes-backdrop">
-      <div class="notes-modal-panel">
-        <div class="w-full max-w-7xl h-[90vh] glass rounded-2xl notes-shadow overflow-hidden flex flex-col">
+    <div id="notesBackdrop" class="modal-overlay">
+      <div class="modal" style="max-width: 95vw; width: 95vw; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+        
+        <!-- Header -->
+        <div class="modal-header" style="flex-shrink: 0;">
+          <div class="flex items-center gap-3">
+            <h2 class="modal-title text-xl font-bold text-indigo-600 dark:text-indigo-400">📝 Notes</h2>
+            <button id="notesRefreshBtn" class="p-2 rounded-lg glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors" title="Refresh">
+              🔄
+            </button>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="notesExportBtn" class="px-3 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
+              📤 Export JSON
+            </button>
+            <button id="notesCloseBtn" class="modal-close text-2xl leading-none">×</button>
+          </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="modal-body" style="flex: 1; min-height: 0; display: flex; padding: 0;">
           
-          <!-- Header -->
-          <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-            <div class="flex items-center gap-3">
-              <h2 class="text-xl font-bold text-indigo-600 dark:text-indigo-400">📝 Notes</h2>
-              <button id="notesRefreshBtn" class="p-2 rounded-lg glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors" title="Refresh">
-                🔄
-              </button>
-            </div>
-            <div class="flex items-center gap-2">
-              <button id="notesExportBtn" class="px-3 py-2 text-sm rounded-lg glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
-                📤 Export JSON
-              </button>
-              <button id="notesCloseBtn" class="p-2 rounded-lg glass hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-2xl leading-none">
-                ×
-              </button>
-            </div>
-          </div>
-
-          <!-- Main Content -->
-          <div class="flex flex-1 min-h-0 relative">
+          <!-- Left Sidebar -->
+          <div class="notes-sidebar w-80 border-r border-gray-200 dark:border-gray-700 flex flex-col bg-gray-50/50 dark:bg-gray-900/50" style="overflow-y: auto; flex-shrink: 0;">
             
-            <!-- Left Sidebar -->
-            <div class="notes-sidebar w-80 border-r border-gray-200 dark:border-gray-700 flex flex-col bg-gray-50/50 dark:bg-gray-900/50">
-              
-              <!-- Search & Actions -->
-              <div class="p-3 space-y-2 border-b border-gray-200 dark:border-gray-700">
-                <input 
-                  id="notesSearchInput" 
-                  type="text" 
-                  placeholder="🔍 Search notes..." 
-                  class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
-                />
-                <div class="flex gap-2">
-                  <button id="newNoteBtn" class="flex-1 px-3 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors font-medium">
-                    ➕ New Note
-                  </button>
-                  <button id="newFolderBtn" class="px-3 py-2 text-sm rounded-lg glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
-                    📁
-                  </button>
-                </div>
+            <!-- Search & Actions -->
+            <div class="p-3 space-y-2 border-b border-gray-200 dark:border-gray-700">
+              <input 
+                id="notesSearchInput" 
+                type="text" 
+                placeholder="🔍 Search notes..." 
+                class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+              />
+              <div class="flex gap-2">
+                <button id="newNoteBtn" class="flex-1 px-3 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors font-medium">
+                  ➕ New Note
+                </button>
+                <button id="newFolderBtn" class="px-3 py-2 text-sm rounded-lg glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+                  📁
+                </button>
               </div>
-
-              <!-- Tags Filter -->
-              <div class="p-3 border-b border-gray-200 dark:border-gray-700">
-                <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">FILTER BY TAG</div>
-                <div id="notesTagFilter" class="flex flex-wrap gap-1">
-                  <!-- Tags will be rendered here -->
-                </div>
-              </div>
-
-              <!-- Folders & Notes List -->
-              <div class="flex-1 overflow-y-auto notes-scroll p-3 space-y-2">
-                <div id="notesFolderList">
-                  <!-- Folders will be rendered here -->
-                </div>
-                <div id="notesNotesList">
-                  <!-- Notes will be rendered here -->
-                </div>
-              </div>
-
             </div>
 
-            <!-- Right Content Area -->
-            <div class="flex-1 flex flex-col bg-white dark:bg-gray-800">
-              
-              <div id="notesEmptyState" class="flex-1 flex items-center justify-center text-center p-8 empty-state">
-                <div>
-                  <div class="text-6xl mb-4">📝</div>
-                  <h3 class="text-xl font-semibold mb-2 text-gray-700 dark:text-gray-300">No Note Selected</h3>
-                  <p class="text-gray-500 dark:text-gray-400">Select a note or create a new one to get started</p>
-                </div>
+            <!-- Tags Filter -->
+            <div class="p-3 border-b border-gray-200 dark:border-gray-700">
+              <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">FILTER BY TAG</div>
+              <div id="notesTagFilter" class="flex flex-wrap gap-1">
+                <!-- Tags will be rendered here -->
               </div>
-
-              <div id="notesEditorArea" class="hidden flex-1 flex flex-col min-h-0">
-                
-                <!-- Note Header -->
-                <div class="p-4 border-b border-gray-200 dark:border-gray-700 space-y-3">
-                  <div class="flex items-start gap-3">
-                    <input 
-                      id="noteTitle" 
-                      type="text" 
-                      placeholder="Note Title" 
-                      class="flex-1 text-2xl font-bold bg-transparent border-none focus:outline-none"
-                    />
-                    <button id="notePinBtn" class="p-2 rounded-lg glass hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors pin-icon" title="Pin Note">
-                      📌
-                    </button>
-                  </div>
-                  
-                  <!-- Tags Input -->
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm text-gray-500 dark:text-gray-400">🏷️</span>
-                    <input 
-                      id="noteTagsInput" 
-                      type="text" 
-                      placeholder="Add tags (comma-separated)" 
-                      class="flex-1 px-3 py-1 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent focus:outline-none focus:border-indigo-500 transition-colors"
-                    />
-                  </div>
-
-                  <!-- Folder Selection -->
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm text-gray-500 dark:text-gray-400">📁</span>
-                    <select 
-                      id="note_folderselect" 
-                      class="flex-1 px-3 py-1 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent focus:outline-none focus:border-indigo-500 transition-colors"
-                    >
-                      <option value="">No Folder</option>
-                    </select>
-                  </div>
-
-                  <!-- Action Buttons -->
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <button id="noteVoiceBtn" class="px-3 py-1 text-sm rounded-lg glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
-                      🎤 Voice
-                    </button>
-                    <button id="noteAISummaryBtn" class="px-3 py-1 text-sm rounded-lg glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
-                      🤖 AI Summary
-                    </button>
-                    <button id="note_versionsBtn" class="px-3 py-1 text-sm rounded-lg glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
-                      📜 Versions
-                    </button>
-                    <button id="note_attachmentsBtn" class="px-3 py-1 text-sm rounded-lg glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
-                      📎 Attachments
-                    </button>
-                    <button id="noteExportPDFBtn" class="px-3 py-1 text-sm rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 transition-colors">
-                      📄 Export PDF
-                    </button>
-                    <button id="noteDeleteBtn" class="ml-auto px-3 py-1 text-sm rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 transition-colors">
-                      🗑️ Delete
-                    </button>
-                  </div>
-
-                  <!-- Auto-save indicator -->
-                  <div id="noteSaveStatus" class="text-xs text-gray-500 dark:text-gray-400 italic"></div>
-                </div>
-
-                <!-- Editor Mode Toggle -->
-                <div class="flex border-b border-gray-200 dark:border-gray-700">
-                  <button id="noteMarkdownModeBtn" class="flex-1 px-4 py-2 text-sm font-medium border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400">
-                    📝 Markdown
-                  </button>
-                  <button id="noteRichModeBtn" class="flex-1 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
-                    🎨 Rich Text
-                  </button>
-                  <button id="notePreviewTab" class="flex-1 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
-                    👁️ Preview
-                  </button>
-                </div>
-
-                <!-- Rich Text Toolbar (hidden by default) -->
-                <div id="richTextToolbar" class="hidden border-b border-gray-200 dark:border-gray-700 p-2 flex gap-1 flex-wrap bg-gray-50/50 dark:bg-gray-900/50">
-                  <button data-cmd="bold" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Bold">
-                    <strong>B</strong>
-                  </button>
-                  <button data-cmd="italic" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Italic">
-                    <em>I</em>
-                  </button>
-                  <button data-cmd="underline" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Underline">
-                    <u>U</u>
-                  </button>
-                  <button data-cmd="strikeThrough" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Strikethrough">
-                    <s>S</s>
-                  </button>
-                  <span class="border-l border-gray-300 dark:border-gray-600 mx-1"></span>
-                  <button data-cmd="insertUnorderedList" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Bullet List">
-                    • List
-                  </button>
-                  <button data-cmd="insertOrderedList" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Numbered List">
-                    1. List
-                  </button>
-                  <span class="border-l border-gray-300 dark:border-gray-600 mx-1"></span>
-                  <button data-cmd="formatBlock:h1" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Heading 1">
-                    H1
-                  </button>
-                  <button data-cmd="formatBlock:h2" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Heading 2">
-                    H2
-                  </button>
-                  <button data-cmd="formatBlock:h3" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Heading 3">
-                    H3
-                  </button>
-                  <button data-cmd="formatBlock:p" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Paragraph">
-                    P
-                  </button>
-                  <span class="border-l border-gray-300 dark:border-gray-600 mx-1"></span>
-                  <button data-cmd="justifyLeft" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Align Left">
-                    ⬅
-                  </button>
-                  <button data-cmd="justifyCenter" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Align Center">
-                    ↔
-                  </button>
-                  <button data-cmd="justifyRight" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Align Right">
-                    ➡
-                  </button>
-                  <span class="border-l border-gray-300 dark:border-gray-600 mx-1"></span>
-                  <input type="color" id="textColorPicker" class="w-8 h-8 rounded border-0 cursor-pointer" title="Text Color" />
-                  <input type="color" id="bgColorPicker" class="w-8 h-8 rounded border-0 cursor-pointer" title="Background Color" />
-                  <span class="border-l border-gray-300 dark:border-gray-600 mx-1"></span>
-                  <button data-cmd="createLink" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Insert Link">
-                    🔗
-                  </button>
-                  <button data-cmd="removeFormat" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-red-50 dark:hover:bg-red-900/20" title="Clear Formatting">
-                    🚫
-                  </button>
-                </div>
-
-                <!-- Editor Content -->
-                <div class="flex-1 min-h-0 relative">
-                  <!-- Markdown Editor -->
-                  <textarea 
-                    id="noteContentEditor" 
-                    class="w-full h-full p-4 bg-transparent border-none resize-none focus:outline-none notes-editor notes-scroll font-mono text-sm"
-                    placeholder="Start writing your note... (Supports Markdown)"
-                  ></textarea>
-                  
-                  <!-- Rich Text Editor -->
-                  <div 
-                    id="noteRichEditor" 
-                    contenteditable="true"
-                     class="hidden absolute inset-0 overflow-y-auto p-4 notes-scroll">
-                    style="min-height: 200px;"
-                  ></div>
-                  
-                  <!-- Preview -->
-                  <div id="noteContentPreview" class="hidden w-full h-full p-4 overflow-y-auto notes-scroll markdown-preview"></div>
-                </div>
-
-              </div>
-
             </div>
 
+            <!-- Folders & Notes List -->
+            <div class="flex-1 overflow-y-auto notes-scroll p-3 space-y-2">
+              <div id="notesFolderList">
+                <!-- Folders will be rendered here -->
+              </div>
+              <div id="notesNotesList">
+                <!-- Notes will be rendered here -->
+              </div>
+            </div>
           </div>
 
+          <!-- Right Editor -->
+          <div class="flex-1 flex flex-col bg-white dark:bg-gray-800" style="min-width: 0;">
+            
+            <div id="notesEmptyState" class="flex-1 flex items-center justify-center text-center p-8">
+              <div>
+                <div class="text-6xl mb-4">📝</div>
+                <h3 class="text-xl font-semibold mb-2 text-gray-700 dark:text-gray-300">No Note Selected</h3>
+                <p class="text-gray-500 dark:text-gray-400">Select a note or create a new one to get started</p>
+              </div>
+            </div>
+
+            <div id="notesEditorArea" class="hidden flex-1 flex flex-col min-h-0">
+              <!-- Note Header -->
+              <div class="p-4 border-b border-gray-200 dark:border-gray-700 space-y-3">
+                <div class="flex items-start gap-3">
+                  <input 
+                    id="noteTitle" 
+                    type="text" 
+                    placeholder="Note Title" 
+                    class="flex-1 text-2xl font-bold bg-transparent border-none focus:outline-none"
+                  />
+                  <button id="notePinBtn" class="p-2 rounded-lg glass hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors pin-icon" title="Pin Note">
+                    📌
+                  </button>
+                </div>
+                
+                <!-- Tags Input -->
+                <div class="flex items-center gap-2">
+                  <span class="text-sm text-gray-500 dark:text-gray-400">🏷️</span>
+                  <input 
+                    id="noteTagsInput" 
+                    type="text" 
+                    placeholder="Add tags (comma-separated)" 
+                    class="flex-1 px-3 py-1 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent focus:outline-none focus:border-indigo-500 transition-colors"
+                  />
+                </div>
+
+                <!-- Folder Selection -->
+                <div class="flex items-center gap-2">
+                  <span class="text-sm text-gray-500 dark:text-gray-400">📁</span>
+                  <select 
+                    id="note_folderselect" 
+                    class="flex-1 px-3 py-1 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent focus:outline-none focus:border-indigo-500 transition-colors"
+                  >
+                    <option value="">No Folder</option>
+                  </select>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center gap-2 flex-wrap">
+                  <button id="noteVoiceBtn" class="px-3 py-1 text-sm rounded-lg glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+                    🎤 Voice
+                  </button>
+                  <button id="noteAISummaryBtn" class="px-3 py-1 text-sm rounded-lg glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+                    🤖 AI Summary
+                  </button>
+                  <button id="note_versionsBtn" class="px-3 py-1 text-sm rounded-lg glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+                    📜 Versions
+                  </button>
+                  <button id="note_attachmentsBtn" class="px-3 py-1 text-sm rounded-lg glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+                    📎 Attachments
+                  </button>
+                  <button id="noteExportPDFBtn" class="px-3 py-1 text-sm rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 transition-colors">
+                    📄 Export PDF
+                  </button>
+                  <button id="noteDeleteBtn" class="ml-auto px-3 py-1 text-sm rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 transition-colors">
+                    🗑️ Delete
+                  </button>
+                </div>
+
+                <!-- Auto-save indicator -->
+                <div id="noteSaveStatus" class="text-xs text-gray-500 dark:text-gray-400 italic"></div>
+              </div>
+
+              <!-- Editor Mode Toggle -->
+              <div class="flex border-b border-gray-200 dark:border-gray-700">
+                <button id="noteMarkdownModeBtn" class="flex-1 px-4 py-2 text-sm font-medium border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400">
+                  📝 Markdown
+                </button>
+                <button id="noteRichModeBtn" class="flex-1 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                  🎨 Rich Text
+                </button>
+                <button id="notePreviewTab" class="flex-1 px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                  👁️ Preview
+                </button>
+              </div>
+
+              <!-- Rich Text Toolbar (hidden by default) -->
+              <div id="richTextToolbar" class="hidden border-b border-gray-200 dark:border-gray-700 p-2 flex gap-1 flex-wrap bg-gray-50/50 dark:bg-gray-900/50">
+                <button data-cmd="bold" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Bold">
+                  <strong>B</strong>
+                </button>
+                <button data-cmd="italic" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Italic">
+                  <em>I</em>
+                </button>
+                <button data-cmd="underline" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Underline">
+                  <u>U</u>
+                </button>
+                <button data-cmd="strikeThrough" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Strikethrough">
+                  <s>S</s>
+                </button>
+                <span class="border-l border-gray-300 dark:border-gray-600 mx-1"></span>
+                <button data-cmd="insertUnorderedList" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Bullet List">
+                  • List
+                </button>
+                <button data-cmd="insertOrderedList" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Numbered List">
+                  1. List
+                </button>
+                <span class="border-l border-gray-300 dark:border-gray-600 mx-1"></span>
+                <button data-cmd="formatBlock:h1" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Heading 1">
+                  H1
+                </button>
+                <button data-cmd="formatBlock:h2" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Heading 2">
+                  H2
+                </button>
+                <button data-cmd="formatBlock:h3" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Heading 3">
+                  H3
+                </button>
+                <button data-cmd="formatBlock:p" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Paragraph">
+                  P
+                </button>
+                <span class="border-l border-gray-300 dark:border-gray-600 mx-1"></span>
+                <button data-cmd="justifyLeft" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Align Left">
+                  ⬅
+                </button>
+                <button data-cmd="justifyCenter" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Align Center">
+                  ↔
+                </button>
+                <button data-cmd="justifyRight" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Align Right">
+                  ➡
+                </button>
+                <span class="border-l border-gray-300 dark:border-gray-600 mx-1"></span>
+                <input type="color" id="textColorPicker" class="w-8 h-8 rounded border-0 cursor-pointer" title="Text Color" />
+                <input type="color" id="bgColorPicker" class="w-8 h-8 rounded border-0 cursor-pointer" title="Background Color" />
+                <span class="border-l border-gray-300 dark:border-gray-600 mx-1"></span>
+                <button data-cmd="createLink" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-indigo-50 dark:hover:bg-indigo-900/20" title="Insert Link">
+                  🔗
+                </button>
+                <button data-cmd="removeFormat" class="toolbar-btn px-3 py-1 text-sm rounded glass hover:bg-red-50 dark:hover:bg-red-900/20" title="Clear Formatting">
+                  🚫
+                </button>
+              </div>
+
+              <!-- Editor Content -->
+              <div class="flex-1 min-h-0 relative">
+                <textarea 
+                  id="noteContentEditor" 
+                  class="w-full h-full p-4 bg-transparent border-none resize-none focus:outline-none notes-editor notes-scroll font-mono text-sm"
+                  placeholder="Start writing your note... (Supports Markdown)"
+                ></textarea>
+                
+                <div 
+                  id="noteRichEditor" 
+                  contenteditable="true"
+                  class="hidden absolute inset-0 overflow-y-auto p-4 notes-scroll"
+                  style="min-height: 200px;"
+                ></div>
+                
+                <div id="noteContentPreview" class="hidden w-full h-full p-4 overflow-y-auto notes-scroll markdown-preview"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   `;
 
-  // Remove any existing modals
+  // Remove any existing instances
   const existingBackdrop = document.getElementById('notesBackdrop');
   if (existingBackdrop) existingBackdrop.remove();
 
-  // Insert modal
+  // Insert into DOM
   document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-  // Animate in
- setTimeout(() => {
-  const backdrop = document.getElementById('notesBackdrop');
-  if (backdrop) backdrop.classList.add('show');
-}, 10);
+  // Trigger the fade‑in animation
+  setTimeout(() => {
+    const backdrop = document.getElementById('notesBackdrop');
+    if (backdrop) backdrop.classList.add('show');
+  }, 10);
 
-  // Bind events
+  // Bind all event listeners
   bindNotesEvents();
 
-  // Render content
+  // Populate lists
   renderFoldersList();
   renderNotesList();
   renderTagsFilter();

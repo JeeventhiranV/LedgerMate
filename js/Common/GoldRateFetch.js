@@ -6,6 +6,9 @@ async function proxyFetchHTML() {
   });
 }
 async function showGoldRates() {
+  const box = document.getElementById("goldBox");
+  if (!box) return;
+
   try {
     const res = await fetch("https://www.goodreturns.in/gold-rates/chennai.html");
     const html = await res.text();
@@ -45,274 +48,140 @@ async function showGoldRates() {
     const history22 = updateHistory("gold22", gold22.today);
     const history18 = updateHistory("gold18", gold18.today);
 
-    const box = document.getElementById("goldBox");
     box.innerHTML = "";
 
     const cards = [
-      { title: "24K Gold", data: gold24, history: history24 },
-      { title: "22K Gold", data: gold22, history: history22 },
-      { title: "18K Gold", data: gold18, history: history18 },
+      { title: "24K Gold", data: gold24, history: history24, purityText: "999" },
+      { title: "22K Gold", data: gold22, history: history22, purityText: "916" },
+      { title: "18K Gold", data: gold18, history: history18, purityText: "750" },
     ];
 
-    // 🔽 Collapsible Section
-    const container = document.createElement("div");
-    container.className = "glass rounded-xl overflow-hidden shadow";
-
-    container.innerHTML = `
-      <button id="goldToggle" class="w-full flex justify-between items-center p-4 focus:outline-none hover:bg-white/10 transition-all">
-        <h2 class="text-lg font-semibold flex items-center gap-2">
-          📈 Today’s Gold Rates
-        </h2>
-        <span id="goldArrow" class="transform transition-transform">▼</span>
-      </button>
-      <div id="goldContent" class="hidden px-4 pb-4 pt-2 space-y-4"></div>
+    // Section heading
+    const heading = document.createElement("div");
+    heading.className = "flex items-center justify-between mb-4";
+    heading.innerHTML = `
+      <h2 class="text-xl font-semibold flex items-center gap-2">
+        📈 Today’s Gold Rates in Chennai
+      </h2>
+      <span class="text-xs text-muted">Source: goodreturns.in</span>
     `;
+    box.appendChild(heading);
 
-    const content = container.querySelector("#goldContent");
+    // Grid of cards
     const grid = document.createElement("div");
-    grid.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4";
+    grid.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
 
     cards.forEach((card, idx) => {
       const todayNum = parseFloat(card.data.today.replace(/[^0-9.]/g, "")) || 0;
 
       const historyHTML = card.history
-        .map(h => `<div class="flex justify-between text-xs" style="background: var(--glass-bg); border-color: var(--glass-border);"><span>${h.date}</span><span>${h.rate}</span></div>`)
+        .map(h => `<div class="flex justify-between text-xs"><span>${h.date}</span><span class="font-semibold">${h.rate}</span></div>`)
         .join("");
 
       const div = document.createElement("div");
-      div.className = "glass p-4 rounded-lg hover:shadow-md transition-all";
+      div.className = "p-5 rounded-xl glass hover:shadow-lg transition-all";
 
       div.innerHTML = `
-        <h3 class="text-base font-semibold mb-2">${card.title}</h3>
-        <div class="text-xs text-green-500">Today: <span class="font-bold">${card.data.today}</span></div>
-        <div class="text-xs text-red-500">Yesterday: <span>${card.data.yesterday}</span></div>
-        <div class="text-xs text-blue-500">Change: <span>${card.data.change}</span></div>
-
-        <div class="border-t border-white/10 dark:border-white/5 my-2"></div>
-
-        <div class="mt-2 flex gap-2 items-center">
-          <div class="flex-1">
-            <label class="text-xs font-medium block mb-1">Weight (g):</label>
-            <input type="number" id="grams-${idx}" value="8.000" min="0.001" step="0.001" class="w-full text-sm p-1.5 rounded-md bg-white/20 dark:bg-black/20 border border-white/20 focus:outline-none" />
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <h3 class="text-lg font-bold">${card.title}</h3>
+            <p class="text-xs text-muted">Purity ${card.purityText}</p>
           </div>
-          <div class="flex-1">
-            <label class="text-xs font-medium block mb-1">GST %:</label>
-            <input type="number" id="gst-${idx}" value="3" min="0" step="0.1" class="w-full text-sm p-1.5 rounded-md bg-white/20 dark:bg-black/20 border border-white/20 focus:outline-none" />
+          <div class="text-right">
+            <div class="text-2xl font-bold text-emerald-400">${card.data.today}</div>
+            <div class="text-xs text-muted">per gram</div>
           </div>
         </div>
 
-        <div class="mt-2">
-          <label class="text-xs font-medium block mb-1">Wastage %:</label>
-          <input type="number" id="wastage-${idx}" value="0" min="0" step="0.1" class="w-full text-sm p-1.5 rounded-md bg-white/20 dark:bg-black/20 border border-white/20 focus:outline-none" />
+        <div class="flex justify-between text-xs mb-4">
+          <span class="text-rose-400">Yesterday: ${card.data.yesterday}</span>
+          <span class="text-blue-400">Change: ${card.data.change}</span>
         </div>
 
-        <div class="mt-2 text-xs flex justify-between"><span>💰 Base Price:</span><span id="basePrice-${idx}">₹0.00</span></div>
-        <div class="text-xs flex justify-between"><span>💸 GST Amount:</span><span id="gstAmount-${idx}">₹0.00</span></div>
-        <div class="text-xs flex justify-between"><span>🪙 Wastage Amount:</span><span id="wastageAmount-${idx}">₹0.00</span></div>
-        <div class="text-xs flex justify-between font-bold text-green-600 dark:text-green-400"><span>✅ Final Total:</span><span id="totalAmount-${idx}">₹0.00</span></div>
+        <div class="space-y-3">
+          <div class="flex gap-3">
+            <div class="flex-1">
+              <label class="text-xs font-medium block mb-1">Weight (g)</label>
+              <input type="number" id="grams-${idx}" value="8.000" min="0.001" step="0.001"
+                class="w-full text-sm p-2 rounded-lg bg-[var(--bg3)] border border-[var(--border)] focus:outline-none focus:border-teal-400 transition" />
+            </div>
+            <div class="flex-1">
+              <label class="text-xs font-medium block mb-1">GST %</label>
+              <input type="number" id="gst-${idx}" value="3" min="0" step="0.1"
+                class="w-full text-sm p-2 rounded-lg bg-[var(--bg3)] border border-[var(--border)] focus:outline-none focus:border-teal-400 transition" />
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium block mb-1">Wastage %</label>
+            <input type="number" id="wastage-${idx}" value="0" min="0" step="0.1"
+              class="w-full text-sm p-2 rounded-lg bg-[var(--bg3)] border border-[var(--border)] focus:outline-none focus:border-teal-400 transition" />
+          </div>
+        </div>
 
-        <div class="bg-white/10 dark:bg-black/20 rounded-md p-2 mt-3">
-          <h4 class="text-xs font-semibold opacity-80 mb-1">📅 Last 3 Days</h4>
-          ${historyHTML}
+        <div class="mt-4 space-y-1 text-xs">
+          <div class="flex justify-between"><span>💰 Base Price</span><span id="basePrice-${idx}" class="font-semibold">₹0.00</span></div>
+          <div class="flex justify-between"><span>💸 GST Amount</span><span id="gstAmount-${idx}" class="font-semibold">₹0.00</span></div>
+          <div class="flex justify-between"><span>🪙 Wastage Amount</span><span id="wastageAmount-${idx}" class="font-semibold">₹0.00</span></div>
+          <div class="flex justify-between text-base font-bold text-emerald-400 border-t border-[var(--border)] pt-2 mt-2">
+            <span>✅ Final Total</span>
+            <span id="totalAmount-${idx}">₹0.00</span>
+          </div>
+        </div>
+
+        <div class="mt-4 p-3 rounded-lg bg-[var(--bg3)]">
+          <h4 class="text-xs font-semibold opacity-80 mb-2">📅 Last 3 Days</h4>
+          <div class="space-y-1">${historyHTML}</div>
         </div>
       `;
 
       grid.appendChild(div);
 
-      // 🔁 Update calculation dynamically
-      const gramsInput = div.querySelector(`#grams-${idx}`);
-      const gstInput = div.querySelector(`#gst-${idx}`);
+      // Calculator logic
+      const gramsInput  = div.querySelector(`#grams-${idx}`);
+      const gstInput    = div.querySelector(`#gst-${idx}`);
       const wastageInput = div.querySelector(`#wastage-${idx}`);
-      const baseEl = div.querySelector(`#basePrice-${idx}`);
-      const gstEl = div.querySelector(`#gstAmount-${idx}`);
+      const baseEl    = div.querySelector(`#basePrice-${idx}`);
+      const gstEl     = div.querySelector(`#gstAmount-${idx}`);
       const wastageEl = div.querySelector(`#wastageAmount-${idx}`);
-      const totalEl = div.querySelector(`#totalAmount-${idx}`);
+      const totalEl   = div.querySelector(`#totalAmount-${idx}`);
 
-      
-        function recalc() {
-    const grams = parseFloat(gramsInput.value) || 0;
-    const wastagePerc = parseFloat(wastageInput.value) || 0;
-    const gstPerc = parseFloat(gstInput.value) || 3;
+      function recalc() {
+        const grams = parseFloat(gramsInput.value) || 0;
+        const wastagePerc = parseFloat(wastageInput.value) || 0;
+        const gstPerc = parseFloat(gstInput.value) || 3;
 
-    // Step 1: Base price
-    const basePrice = todayNum * grams;
+        const basePrice = todayNum * grams;
+        const wastageAmt = (basePrice * wastagePerc) / 100;
+        const priceWithWastage = basePrice + wastageAmt;
+        const gstAmt = (priceWithWastage * gstPerc) / 100;
+        const total = priceWithWastage + gstAmt;
 
-    // Step 2: Add wastage
-    const wastageAmt = (basePrice * wastagePerc) / 100;
-    const priceWithWastage = basePrice + wastageAmt;
-
-    // Step 3: Add GST
-    const gstAmt = (priceWithWastage * gstPerc) / 100;
-
-    // Total price
-    const total = priceWithWastage + gstAmt;
-
-    // Update UI
-    baseEl.textContent = `₹${basePrice.toFixed(3)}`;
-    wastageEl.textContent = `₹${wastageAmt.toFixed(3)}`;
-    gstEl.textContent = `₹${gstAmt.toFixed(3)}`;
-    totalEl.textContent = `₹${total.toFixed(3)}`;
-    }
+        baseEl.textContent = `₹${basePrice.toFixed(3)}`;
+        gstEl.textContent = `₹${gstAmt.toFixed(3)}`;
+        wastageEl.textContent = `₹${wastageAmt.toFixed(3)}`;
+        totalEl.textContent = `₹${total.toFixed(3)}`;
+      }
 
       gramsInput.addEventListener("input", recalc);
       gstInput.addEventListener("input", recalc);
       wastageInput.addEventListener("input", recalc);
-
-      // 🔁 Initial calculation
       recalc();
     });
 
-    content.appendChild(grid);
-    box.appendChild(container);
-
-    // ✅ Collapse toggle logic
-    const toggle = document.getElementById("goldToggle");
-    const goldContent = document.getElementById("goldContent");
-    const goldArrow = document.getElementById("goldArrow");
-
-
-
-    toggle.addEventListener("click", () => {
-      const isHidden = goldContent.classList.toggle("hidden");
-      goldArrow.style.transform = isHidden ? "rotate(0deg)" : "rotate(180deg)";
-    }); 
-
-    function initHeaderMarquee() {
-  const source = doc.querySelector(".gd-stockmarket-data");
-  const track = document.querySelector("#header-marquee .header-marquee-track");
-
-  if (!source || !track) {
-    console.warn("Source or target not found");
-    return;
-  }
-
-  // clone twice for seamless loop
-  const clone1 = source.cloneNode(true);
-  const clone2 = source.cloneNode(true);
-
-  track.innerHTML = "";
-  track.appendChild(clone1);
-  track.appendChild(clone2);
-
-  formatTickerItems(track);
-}
-function formatTickerItems(root) {
-  const allowedItems = [
-    "gold",
-    "silver",
-    "petrol",
-    "diesel",
-    "nifty",
-    "sensex",
-    "usd"
-  ];
-
-  const commodityItems = [
-    "gold",
-    "silver",
-    "petrol",
-    "diesel"
-  ];
-
-  root.querySelectorAll("li").forEach(li => {
-    const nameEl = li.querySelector(".gd-market-data span");
-    const name = nameEl?.textContent.trim();
-
-    if (!name) {
-      li.remove();
-      return;
-    }
-
-    const nameLower = name.toLowerCase();
-
-    // ❌ REMOVE items not in your list
-    if (!allowedItems.some(item => nameLower.includes(item))) {
-      li.remove();
-      return;
-    }
-
-    const price = li.querySelector(".gd-marketpts")?.textContent
-      .replace(/\s+/g, " ")
-      .trim();
-
-    const changeEl = li.querySelector(".gd-marketupdown");
-    let change = changeEl
-      ? changeEl.textContent.replace(/\s+/g, " ").trim()
-      : "";
-
-    if (!price) return;
-
-    // Hide % for commodities
-    if (commodityItems.some(c => nameLower.includes(c))) {
-      change = "";
-    }
-
-    let directionClass = "market-flat";
-    let arrow = "";
-
-    if (change.includes("+")) {
-      directionClass = "market-up";
-      arrow = "▲";
-    } else if (change.includes("-")) {
-      directionClass = "market-down";
-      arrow = "▼";
-    }
-
-    change = change.replace("%", "");
-
-    // === Build final block ===
-    const block = document.createElement("div");
-    block.className = "ticker-block";
-
-    const nameDiv = document.createElement("div");
-    nameDiv.className = "ticker-name";
-    nameDiv.textContent = name;
-
-    const valueDiv = document.createElement("div");
-    valueDiv.className = `ticker-value ${directionClass}`;
-    valueDiv.textContent = change
-      ? `${price} ${arrow}${change}`
-      : price;
-
-    block.appendChild(nameDiv);
-    block.appendChild(valueDiv);
-
-    const link = li.querySelector("a");
-    li.innerHTML = "";
-
-    if (link) {
-      link.innerHTML = "";
-      link.appendChild(block);
-      li.appendChild(link);
-    } else {
-      li.appendChild(block);
-    }
-  });
-}
-
-/* TOUCH PAUSE (MOBILE) */
-const marquee = document.getElementById("header-marquee");
-
-marquee.addEventListener("touchstart", () => {
-  marquee.querySelector(".header-marquee-track").style.animationPlayState = "paused";
-});
-
-marquee.addEventListener("touchend", () => {
-  marquee.querySelector(".header-marquee-track").style.animationPlayState = "running";
-});
- initHeaderMarquee();
-
+    box.appendChild(grid);
 
   } catch (err) {
     console.error("❌ Gold rate fetch failed:", err);
-    document.getElementById("goldBox").innerHTML = `
-      <div class="text-red-500 text-sm p-4 bg-red-50 dark:bg-red-900/20 rounded-md shadow">
-        ⚠️ Unable to fetch gold rates. Please try again later.
-      </div>
-    `;
+    const box = document.getElementById("goldBox");
+    if (box) {
+      box.innerHTML = `
+        <div class="text-red-500 text-sm p-4 bg-red-50 dark:bg-red-900/20 rounded-md shadow">
+          ⚠️ Unable to fetch gold rates. Please try again later.
+        </div>
+      `;
+    }
   }
-}
+} 
 
-
-document.addEventListener("DOMContentLoaded", showGoldRates);
+//document.addEventListener("DOMContentLoaded", showGoldRates);
  
