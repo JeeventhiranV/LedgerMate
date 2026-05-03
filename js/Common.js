@@ -292,7 +292,6 @@ function bindUI(){
   document.getElementById('openBudgets1').onclick = showBudgetsModal;
   document.getElementById('openLoans').onclick = showLoansModal;
   document.getElementById('openGoals').onclick = showGoalsModal;
-  document.getElementById('MoreSidebarBtn')?.addEventListener('click', toggleSidebar);
   
   //document.getElementById('openRemainders').onclick = showRemindersModal;
   document.getElementById('openInvestments').onclick = showInvestmentsModal;
@@ -4621,7 +4620,7 @@ function renderBudgetOverview() {
   const month = new Date().toISOString().slice(0,7);
   const monthBudgets = state.budgets.filter(b=>b.month===month);
   if (!monthBudgets.length) {
-    wrap.innerHTML = '<div class="empty-state" style="padding:24px"><div class="empty-state-icon">🎯</div><div class="empty-state-text">No budgets set for this month. <button style="color:var(--teal);background:none;border:none;cursor:pointer;font-size:13px;" onclick="openModal(\'budgetModal\')">Add one →</button></div></div>';
+    wrap.innerHTML = '<div class="empty-state" style="padding:24px"><div class="empty-state-icon">🎯</div><div class="empty-state-text">No budgets set for this month. <button style="color:var(--teal);background:none;border:none;cursor:pointer;font-size:13px;" onclick="showBudgetsModal();">Add one →</button></div></div>';
     return;
   }
   wrap.innerHTML = monthBudgets.map(b => {
@@ -4655,7 +4654,7 @@ document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar
 document.addEventListener('click', function (e) {
   const sidebar = document.getElementById('sidebar');
   const menuBtn = document.getElementById('menuBtn');
-  const moreBtn = document.getElementById('MoreSidebarBtn');    
+  const moreBtn = document.getElementById('bnav-more');    
  
   if (
     !sidebar.contains(e.target) &&
@@ -4664,4 +4663,24 @@ document.addEventListener('click', function (e) {
   ) {
     closeSidebar();
   }
+});
+
+document.getElementById('bottomNav').addEventListener('click', function(e) {
+  const btn = e.target.closest('.bnav-item');
+  if (!btn) return;
+
+  const page = btn.id.replace('bnav-', '');
+
+  // The "More" button just toggles the sidebar, not a page
+  if (page === 'more') {
+    toggleSidebar();
+    return;
+  }
+
+  // Update bottom‑nav active state immediately
+  document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  // Now switch the page
+  showPage(page);
 });

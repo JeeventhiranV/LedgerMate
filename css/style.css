@@ -1032,7 +1032,7 @@ footer span { color: var(--teal); font-weight: 600; }
 /* Alert red border */
 .alert-red { border-color:var(--rose) !important; background:rgba(251,113,133,0.07) !important; }
 /* Panel overlay – hidden by default, flex when open */
- 
+ /* Notification panel overlay – hidden by default */
 #notifPanel {
   display: none;
   align-items: flex-start;
@@ -1041,28 +1041,31 @@ footer span { color: var(--teal); font-weight: 600; }
   background: var(--bg2);
   backdrop-filter: blur(6px);
   opacity: 0;
-  transition: opacity 0.2s;
+  transform: translateY(-20px);          /* start slightly above */
+  transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
+/* When the panel is shown */
 #notifPanel.show {
   display: flex;
   opacity: 1;
+  transform: translateY(0);
 }
 
-/* Card inside */
+/* Card inside the panel */
 #notifPanel > div {
   max-height: 85vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-   background: var(--bg2);
+  background: var(--bg2);          /* use your glass variable */
+  border: 1px solid var(--bg2);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
 }
 
 #notifList {
   overflow-y: auto;
-  flex: 1;              /* 🔥 CRITICAL */
+  flex: 1;
   padding-right: 4px;
-}
-#notifPanel {
-  padding: 16px;
 }
