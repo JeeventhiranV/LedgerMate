@@ -55,9 +55,9 @@
     </div>
 
     <div class="sidebar-section">
-      <div class="sidebar-section-label">Manage</div>
-      <button class="sidebar-nav-item" id="openLoans" >
-        <span class="nav-icon">💸</span> Loans
+      <div class="sidebar-section-label">Manage</div> 
+      <button class="sidebar-nav-item" onclick="showPage('loans')">
+        <span class="nav-icon">💰</span> Loans
       </button> 
       <button class="sidebar-nav-item" id="openInvestments">
         <span class="nav-icon">📈</span> Investments
@@ -453,9 +453,13 @@
       <!-- ─── TRANSACTIONS PAGE ───────────────────────── -->
         <div id="page-transactions">
          <div class="fade-up fade-up-5">
-          <div class="section-heading" style="margin-top:24px;">
+          <div>
+      <div class="page-greeting">Smart Financial Tracking</div>
+      <h1 class="page-title">Transaction  <em>History</em></h1>
+         </div> 
+          <!-- <div class="section-heading" style="margin-top:24px;">
             <div class="section-title"><span class="dot" style="background:var(--gold)" id="toggleRecentTxHDR"></span>Transaction History</div> 
-          </div> 
+          </div>  -->
         </div>
        <div class="tx-card w-full text-left p-4 rounded-xl glass" id="toggleRecentTxCard">
 
@@ -501,30 +505,18 @@
 
 </div>
 </div>
-      <!--<div id="page-transactions" style="display:none">
-        <div class="page-header fade-up fade-up-1">
+<!-- ─── LOANS PAGE ───────────────────────── -->
+        <div id="page-loans">
+         <div class="fade-up fade-up-5">
           <div>
-            <div class="page-greeting">All your money moves</div>
-            <h1 class="page-title">Transaction <em>History</em></h1>
-          </div>
-          <button class="btn-submit" style="width:auto; padding:10px 20px; margin:0;" onclick="openModal('addTxModal')">+ Add</button>
+      <div class="page-greeting">Manage borrowings</div>
+      <h1 class="page-title">Loan <em>Analytics</em></h1>
+         </div> 
+            <div class="loans-content" id="loansOverview"></div>
         </div>
-
-        <div class="tx-card fade-up fade-up-2">
-          <div class="tx-search-wrap">
-            <input type="text" class="tx-search-input" placeholder="🔍 Search transactions..." id="txSearch" oninput="filterTransactions()">
-            <select class="tx-filter-select" id="txTypeFilter" onchange="filterTransactions()">
-              <option value="all">All</option>
-              <option value="in">Income</option>
-              <option value="out">Expenses</option>
-            </select>
-            <select class="tx-filter-select" id="txCatFilter" onchange="filterTransactions()">
-              <option value="all">All Categories</option>
-            </select>
-          </div>
-          <div class="tx-list" id="txList"></div>
-        </div>
-      </div>-->
+      
+</div>
+ 
 
       <!-- ─── ANALYTICS PAGE ─────────────────────────── -->
       <div id="page-analytics" style="display:none">
@@ -595,6 +587,10 @@
   <button class="bnav-item" id="bnav-analytics">
     <span class="bnav-icon">📈</span>
     <span class="bnav-label">Analytics</span>
+  </button>
+  <button class="bnav-item" id="bnav-loans">
+    <span class="bnav-icon">💰</span>
+    <span class="bnav-label">Loans</span>
   </button>
   <button class="bnav-item" id="bnav-more">
     <span class="bnav-icon">⋯</span>
@@ -799,7 +795,7 @@ function showPage(page) {
   if (sideBtn) sideBtn.classList.add('active');
 
   // 3. Bottom nav active – ONLY the three main tabs
-  const mainPages = ['dashboard', 'transactions', 'analytics'];
+  const mainPages = ['dashboard', 'transactions', 'analytics', 'loans'];
   if (mainPages.includes(page)) {
     document.querySelectorAll('.bnav-item').forEach(i => i.classList.remove('active'));
     const bnav = document.getElementById('bnav-' + page);
@@ -824,6 +820,9 @@ function showPage(page) {
     }
     if (page === 'gold') {
       try { showGoldRates(); } catch (e) {}
+    }
+     if (page === 'loans') {
+      try { showLoansModal(); } catch (e) {}
     }
   } catch (e) {
     // ignore – main navigation must always complete
