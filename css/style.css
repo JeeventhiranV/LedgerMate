@@ -1070,3 +1070,181 @@ footer span { color: var(--teal); font-weight: 600; }
   padding-right: 4px;
 }
  
+
+/* ═══════════════════════════════════════════════
+   WEALTH & ESSENTIALS MODULE STYLES
+═══════════════════════════════════════════════ */
+
+/* ── Wealth / Essentials Sub-tabs ─────────────── */
+.wealth-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+.wealth-tab {
+  flex: 1;
+  min-width: 90px;
+  padding: 9px 14px;
+  border: none;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-b);
+  color: var(--text-3);
+  background: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.wealth-tab:hover { color: var(--text); background: var(--surface-h); }
+.wealth-tab.active {
+  background: linear-gradient(135deg, var(--teal), var(--teal-d));
+  color: #07091a;
+  box-shadow: 0 2px 10px rgba(0,212,180,0.3);
+}
+
+/* ── Wealth Table ─────────────────────────────── */
+.wealth-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.wealth-table th {
+  font-family: var(--font-m);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.wealth-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.wealth-table tr:last-child td { border-bottom: none; }
+.wealth-table tr:hover td { background: var(--surface-h); }
+.wealth-td-mono {
+  font-family: var(--font-m);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.wealth-row { transition: background 0.15s; }
+
+/* ── Health Badge ──────────────────────────────── */
+.health-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-m);
+  white-space: nowrap;
+}
+
+/* ── KPI Grid fixes for Wealth ─────────────────── */
+.kpi-grid.wealth-kpi {
+  grid-template-columns: repeat(3, 1fr);
+}
+@media (max-width: 600px) {
+  .kpi-grid.wealth-kpi { grid-template-columns: 1fr 1fr; }
+  .wealth-tab { min-width: 70px; font-size: 12px; padding: 8px 10px; }
+  .wealth-table { font-size: 11px; }
+  .wealth-table th, .wealth-table td { padding: 8px 6px; }
+}
+@media (max-width: 400px) {
+  .kpi-grid.wealth-kpi { grid-template-columns: 1fr; }
+}
+
+/* ── btn-secondary ──────────────────────────────── */
+.btn-secondary {
+  width: 100%;
+  padding: 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-b);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-secondary:hover {
+  background: var(--surface-h);
+  border-color: var(--border-h);
+  color: var(--text);
+}
+
+/* ── grid-2 utility ─────────────────────────────── */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 500px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+
+/* ── text-muted ─────────────────────────────────── */
+.text-muted { color: var(--text-3); font-size: 13px; }
+
+/* ── space-y-4 shim ────────────────────────────── */
+.space-y-4 > * + * { margin-top: 14px; }
+
+/* ── Essentials Goal bar ────────────────────────── */
+.goal-bar-bg {
+  background: var(--bg3);
+  border-radius: 99px;
+  height: 6px;
+  overflow: hidden;
+}
+
+/* ── form-label ─────────────────────────────────── */
+.form-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 6px;
+  font-family: var(--font-m);
+}
+
+/* ── form-textarea ──────────────────────────────── */
+.form-textarea {
+  resize: vertical;
+  min-height: 72px;
+  font-family: var(--font-b);
+  font-size: 13px;
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* ── Badge pill ─────────────────────────────────── */
+.badge-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-family: var(--font-m);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+

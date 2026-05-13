@@ -53,6 +53,15 @@
      <span class="nav-icon">🏅</span> Gold Rates
       </button>
     </div>
+     <div class="sidebar-section">
+      <div class="sidebar-section-label">Wealth</div>
+      <button class="sidebar-nav-item" onclick="showPage('wealth')">
+        <span class="nav-icon">📊</span> Wealth
+      </button>
+      <button class="sidebar-nav-item" onclick="showPage('essentials')">
+        <span class="nav-icon">🛡️</span> Essentials
+      </button>
+    </div>
 
     <div class="sidebar-section">
       <div class="sidebar-section-label">Manage</div> 
@@ -564,6 +573,19 @@
   <!-- This is where showGoldRates will inject the content -->
   <div id="goldBox" class="fade-up fade-up-2"></div>
 </div>
+ <!-- ─── WEALTH PAGE ──────────────────────────── -->
+      <div id="page-wealth" style="display:none;">
+        <!-- rendered by showWealthPage() in Wealth.js -->
+      </div>
+      <!-- container for wealth modals -->
+      <div id="wealthModals"></div>
+
+      <!-- ─── ESSENTIALS PAGE ─────────────────────── -->
+      <div id="page-essentials" style="display:none;">
+        <!-- rendered by showEssentialsPage() in Essentials.js -->
+      </div>
+      <!-- container for essentials modals -->
+      <div id="essentialModals"></div>
 
     </div><!-- /pageContent -->
     <footer>© <span id="year"></span> <span>LedgerMate</span> by Jeeventhiran &nbsp;·&nbsp;</br> All data stored offline</footer>
@@ -824,6 +846,12 @@ function showPage(page) {
      if (page === 'loans') {
       try { showLoansModal(); } catch (e) {}
     }
+    if (page === 'wealth') {
+      try { showWealthPage(); } catch (e) { console.error('Wealth page error:', e); }
+    }
+    if (page === 'essentials') {
+      try { showEssentialsPage(); } catch (e) { console.error('Essentials page error:', e); }
+    }
   } catch (e) {
     // ignore – main navigation must always complete
   }
@@ -940,6 +968,8 @@ function setGreeting() {
   <script  src="./js/Common/MonthlySummary.js"></script>   
   <script src="./js/Common/Cred.js"></script>
   <script src="./js/Common/Notes.js"></script>
+  <script src="./js/Wealth/Wealth.js"></script>
+  <script src="./js/Wealth/Essentials.js"></script>
 
 <!-- Modals / Hidden UI -->
       <div id="modals"></div>

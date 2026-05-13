@@ -52,7 +52,7 @@ let db = null;
 async function openDB() {
     return new Promise((resolve, reject) => {
         const DB_NAME = "ledgermate_db";
-        const DB_VERSION = 11; // bump this when schema changes
+        const DB_VERSION = 12; // bump this when schema changes
 
         const req = indexedDB.open(DB_NAME, DB_VERSION);
 
@@ -118,6 +118,11 @@ async function openDB() {
             ensureStore("note_versions", { keyPath: "id", autoIncrement: true }, ["noteId", "timestamp"]);
             ensureStore("note_attachments", { keyPath: "id", autoIncrement: true }, ["noteId"]);
             ensureStore("note_folders", { keyPath: "id", autoIncrement: true }, ["parentId"]);
+            ensureStore("emi_loans", { keyPath: "id", autoIncrement: true });
+            ensureStore("net_worth_snapshots", { keyPath: "id", autoIncrement: true }, ["date"]);
+            ensureStore("allocation_targets", { keyPath: "id" });
+            ensureStore("sip_plan", { keyPath: "id", autoIncrement: true });
+            ensureStore("essentials_settings", { keyPath: "key" });
             console.log("✅ DB schema upgrade complete");
         };
     });
@@ -178,7 +183,12 @@ let state = {
   note_folders: [],
   note_attachments: [],
   note_versions: [],
-  notes: []
+  notes: [],
+  emi_loans: [],
+  net_worth_snapshots: [],
+  allocation_targets: [],
+  sip_plan: [],
+  essentials_settings: {}
 };
 
 // Charts
@@ -248,6 +258,12 @@ if (dd.length) {
   state.note_versions = await getAll('note_versions');
   state.notes = await getAll('notes');
   state.audit_logs = await getAll('audit_logs');
+  state.emi_loans = await getAll('emi_loans');
+  state.net_worth_snapshots = await getAll('net_worth_snapshots');
+  state.allocation_targets = await getAll('allocation_targets');
+  state.sip_plan = await getAll('sip_plan');
+  const esAll = await getAll('essentials_settings');
+  state.essentials_settings = esAll.reduce((acc,x) => ({...acc,[x.key]:x.value}),{});
   // restore folder handle if present
   const fh = settingsAll.find(x=>x.key==='dataFolderHandle');
   if (fh) state.dataFolderHandle = fh.value;
@@ -3286,6 +3302,12 @@ async function fullImportJSONText(txt, source = "Unknown"){
     if (data.note_attachments) for (const attachment of data.note_attachments) await put('note_attachments', attachment);
     if (data.note_versions) for (const version of data.note_versions) await put('note_versions', version);
     if (data.audit_logs) for (const log of data.audit_logs) await put('audit_logs', log);
+    if (data.emi_loans) for (const loan of data.emi_loans) await put('emi_loans', loan);
+    if (data.net_worth_snapshots) for (const snapshot of data.net_worth_snapshots) await put('net_worth_snapshots', snapshot);
+    if (data.allocation_targets) for (const target of data.allocation_targets) await put('allocation_targets', target);
+    if (data.sip_plan) for (const plan of data.sip_plan) await put('sip_plan', plan);
+    if (data.essentials_settings) for (const [key, value] of Object.entries(data.essentials_settings)) await put('essentials_settings', { key, value });
+
     if(source!="Drive"){
     await loadAllFromDB(); 
     renderAll(); 
@@ -3296,7 +3318,7 @@ async function fullImportJSONText(txt, source = "Unknown"){
 }
 
 async function clearAllStores(){
-  const stores = ['transactions','budgets','loans','reminders','dropdowns','settings','users','savings','investments','trips','trip_routes','credentials','audit_logs','notes','note_folders','note_attachments','note_versions'];
+  const stores = ['transactions','budgets','loans','reminders','dropdowns','settings','users','savings','investments','trips','trip_routes','credentials','audit_logs','notes','note_folders','note_attachments','note_versions','emi_loans','net_worth_snapshots','allocation_targets','sip_plan','essentials_settings'];
   for (const s of stores){
     await new Promise((res,rej)=>{ const t = db.transaction(s,'readwrite'); const o = t.objectStore(s); const r=o.clear(); r.onsuccess=res; r.onerror=rej; });
   }
@@ -3374,7 +3396,12 @@ function packSnapshot(metaExtra = {}) {
     notes:        state.notes || [],
     note_folders: state.note_folders || [],
     note_attachments: state.note_attachments || [],
-    note_versions: state.note_versions || []
+    note_versions: state.note_versions || [],
+    emi_loans: state.emi_loans || [],
+    net_worth_snapshots: state.net_worth_snapshots || [],
+    allocation_targets: state.allocation_targets || [],
+    sip_plan: state.sip_plan || [],
+    essentials_settings: state.essentials_settings || {}
   };
 }
 
@@ -3427,6 +3454,15 @@ async function mergeRestore(payload) {
   await upsertList('note_attachments', payload.note_attachments || []);
   await upsertList('note_versions', payload.note_versions || []);
   await upsertList('audit_logs',   payload.audit_logs || []);
+  await upsertList('emi_loans',    payload.emi_loans || []);
+  await upsertList('net_worth_snapshots', payload.net_worth_snapshots || []);
+  await upsertList('allocation_targets', payload.allocation_targets || []);
+  await upsertList('sip_plan', payload.sip_plan || []);
+  if (payload.essentials_settings) {
+    for (const [key, value] of Object.entries(payload.essentials_settings)) {
+      await put('essentials_settings', { key, value });
+    }
+  }
 
   // refresh in-memory
   await loadAllFromDB(); // you already have this; used widely in the app
@@ -3719,6 +3755,11 @@ function clearAllData() {
       state.note_folders = [];
       state.note_attachments = [];
       state.note_versions = [];
+      state.emi_loans = [];
+      state.net_worth_snapshots = [];
+      state.allocation_targets = [];
+      state.sip_plan = [];
+      state.essentials_settings = {};
       renderAll();
       showToast('All data cleared', 'success');
     }
@@ -4131,6 +4172,11 @@ async function FinalJson(){
     note_folders: state.note_folders,
     note_attachments: state.note_attachments,
     note_versions: state.note_versions,
+    emi_loans: state.emi_loans,
+    net_worth_snapshots: state.net_worth_snapshots,
+    allocation_targets: state.allocation_targets,
+    sip_plan: state.sip_plan,
+    essentials_settings: state.essentials_settings,
     audit_logs: state.audit_logs,
     meta: { exportedAt: new Date().toISOString() }
   };
@@ -4699,3 +4745,70 @@ document.getElementById('bottomNav').addEventListener('click', function(e) {
   // Now switch the page
   showPage(page);
 });
+
+// ── Dashboard Wealth Summary Widget ──────────────────────────
+function renderDashboardWealthWidget() {
+  const wrap = document.getElementById('dashWealthWidget');
+  if (!wrap) return;
+
+  const investments = state.investments || [];
+  const emiLoans    = state.emi_loans   || [];
+
+  const totalAssets      = investments.reduce((s,a) => {
+    const qty    = parseFloat(a.qty || a.stockQty || 0) || 0;
+    const buyP   = parseFloat(a.buyPrice || a.avgCost || a.stockBuyPrice || 0) || 0;
+    const curP   = parseFloat(a.currentPrice || a.ltp || a.stockCurrentPrice || buyP) || 0;
+    const t      = (a.type || '').toUpperCase();
+    const simple = ['GOLD','SILVER','PHYSICAL','COMMODITY','STOCK'];
+    if (simple.includes(t)) return s + qty * (curP || buyP);
+    return s + (parseFloat(a.principal || a.currentValue || a.amount || 0) || 0);
+  }, 0);
+  const totalLiabilities = emiLoans.reduce((s,l) => s + (parseFloat(l.outstanding) || 0), 0);
+  const netWorth         = totalAssets - totalLiabilities;
+  const invested         = investments.reduce((s,a) => {
+    const qty  = parseFloat(a.qty || a.stockQty || 0) || 0;
+    const buyP = parseFloat(a.buyPrice || a.avgCost || a.stockBuyPrice || 0) || 0;
+    const t    = (a.type || '').toUpperCase();
+    const simple = ['GOLD','SILVER','PHYSICAL','COMMODITY','STOCK'];
+    if (simple.includes(t)) return s + qty * buyP;
+    return s + (parseFloat(a.principal || a.amount || 0) || 0);
+  }, 0);
+  const pnl  = totalAssets - invested;
+  const pnlP = invested > 0 ? ((pnl / invested) * 100).toFixed(1) : 0;
+
+  if (investments.length === 0 && emiLoans.length === 0) {
+    wrap.innerHTML = `
+      <div class="chart-card" style="text-align:center;padding:24px;">
+        <div style="font-size:28px;margin-bottom:8px;">💼</div>
+        <div style="font-size:14px;color:var(--text-3);margin-bottom:12px;">No wealth data yet</div>
+        <button class="btn-submit" style="width:auto;padding:8px 20px;margin:0;font-size:13px;" onclick="showPage('wealth')">Set Up Wealth →</button>
+      </div>`;
+    return;
+  }
+
+  wrap.innerHTML = `
+    <div class="chart-card">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:14px;">
+        <div>
+          <div class="kpi-label">NET WORTH</div>
+          <div style="font-family:var(--font-m);font-size:clamp(18px,3vw,24px);font-weight:700;color:${netWorth>=0?'var(--teal)':'var(--rose)'};">${fmtINR(netWorth)}</div>
+        </div>
+        <div>
+          <div class="kpi-label">ASSETS</div>
+          <div style="font-family:var(--font-m);font-size:clamp(18px,3vw,24px);font-weight:700;color:var(--emerald);">${fmtINR(totalAssets)}</div>
+        </div>
+        <div>
+          <div class="kpi-label">P&amp;L</div>
+          <div style="font-family:var(--font-m);font-size:16px;font-weight:600;color:${pnl>=0?'var(--emerald)':'var(--rose)'};">${pnl>=0?'+':''}${fmtINR(pnl)} <span style="font-size:11px;">(${pnlP}%)</span></div>
+        </div>
+        <div>
+          <div class="kpi-label">LIABILITIES</div>
+          <div style="font-family:var(--font-m);font-size:16px;font-weight:600;color:${totalLiabilities>0?'var(--rose)':'var(--text-3)'};">${fmtINR(totalLiabilities)}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="section-action" onclick="showPage('wealth')">📊 View Wealth →</button>
+        <button class="section-action" onclick="showPage('essentials')">🛡️ Health Check →</button>
+      </div>
+    </div>`;
+}
