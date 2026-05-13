@@ -74,9 +74,9 @@
       <button class="sidebar-nav-item" id="openBudgets">
         <span class="nav-icon">🎯</span> Budgets
       </button> 
-      <button class="sidebar-nav-item" id="openGoals">
+      <!-- <button class="sidebar-nav-item" id="openGoals">
         <span class="nav-icon">🏆</span> Savings Goals
-      </button>
+      </button> -->
       <button class="sidebar-nav-item" id="openTripPlannerBtn">
         <span class="nav-icon">✈️</span> Trips
       </button>
@@ -606,14 +606,22 @@
     <span class="bnav-icon">↕️</span>
     <span class="bnav-label">Transactions</span>
   </button>
-  <button class="bnav-item" id="bnav-analytics">
+  <!-- <button class="bnav-item" id="bnav-analytics">
     <span class="bnav-icon">📈</span>
     <span class="bnav-label">Analytics</span>
-  </button>
+  </button> -->
   <button class="bnav-item" id="bnav-loans">
     <span class="bnav-icon">💰</span>
     <span class="bnav-label">Loans</span>
   </button>
+   <button class="bnav-item" id="bnav-wealth">
+     <span class="bnav-icon">📊</span>
+    <span class="bnav-label">Wealth</span>
+  </button> 
+  <button class="bnav-item" id="bnav-essentials">
+    <span class="bnav-icon">🛡️</span>
+    <span class="bnav-label">Essentials</span>
+  </button> 
   <button class="bnav-item" id="bnav-more">
     <span class="bnav-icon">⋯</span>
     <span class="bnav-label">More</span>
@@ -800,12 +808,37 @@
 ══════════════════════════════════════════════════════ -->
 <script>
 
+const fabAddTx = document.getElementById('fabAddTx');
+const voiceTxBtn = document.getElementById('voiceTxBtn');
+const openAddLoanModalBtn = document.getElementById('openAddLoanModalBtn');
 
+function updateFabVisibility(page) {
+  const fabAddTx = document.getElementById('fabAddTx');
+  const voiceTxBtn = document.getElementById('voiceTxBtn');
+  const openAddLoanModalBtn = document.getElementById('openAddLoanModalBtn');
 
+  // Handle main FABs
+  if (fabAddTx && voiceTxBtn) {
+    if (page === 'transactions' || page === 'dashboard') {
+      fabAddTx.style.display = 'flex';
+      voiceTxBtn.style.display = 'flex';
+    } else {
+      fabAddTx.style.display = 'none';
+      voiceTxBtn.style.display = 'none';
+    }
+  }
+
+  // Handle loans FAB (may not exist yet – that's fine)
+  if (openAddLoanModalBtn) {
+    openAddLoanModalBtn.style.display = (page === 'loans') ? 'flex' : 'none';
+  }
+}
 /* ─────────────────────────────────────────────
    PAGE NAVIGATION
 ───────────────────────────────────────────── */
 function showPage(page) {
+    updateFabVisibility(page);
+
   // 1. Show / hide pages
   document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
   const pageEl = document.getElementById('page-' + page);
@@ -817,7 +850,7 @@ function showPage(page) {
   if (sideBtn) sideBtn.classList.add('active');
 
   // 3. Bottom nav active – ONLY the three main tabs
-  const mainPages = ['dashboard', 'transactions', 'analytics', 'loans'];
+  const mainPages = ['dashboard', 'transactions', 'analytics', 'loans', 'wealth', 'essentials'];
   if (mainPages.includes(page)) {
     document.querySelectorAll('.bnav-item').forEach(i => i.classList.remove('active'));
     const bnav = document.getElementById('bnav-' + page);

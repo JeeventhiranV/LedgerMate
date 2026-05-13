@@ -305,9 +305,7 @@ function bindUI(){
 
   //document.getElementById('openTransactions').onclick = showTransactionsModal;
   document.getElementById('openBudgets').onclick = showBudgetsModal;
-  document.getElementById('openBudgets1').onclick = showBudgetsModal;
-  //document.getElementById('openLoans').onclick = showLoansModal;
-  document.getElementById('openGoals').onclick = showGoalsModal;
+  document.getElementById('openBudgets1').onclick = showBudgetsModal; 
   
   //document.getElementById('openRemainders').onclick = showRemindersModal;
   document.getElementById('openInvestments').onclick = showInvestmentsModal;
@@ -829,13 +827,30 @@ async function applyLoanEdit(loan, updates, scope = 'this') {
   showLoansModal();
 }
 // ---------- Full UI: showLoansModal (Add/Edit/Delete/Mark + recurrence display) ----------
+/* ============================================================
+   Loans Module – LedgerMate
+   Modern, responsive, popup add form
+   ============================================================ */
+
+// Helper to escape HTML
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, function(m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    return m;
+  });
+}
+
+// Main function to display loans overview
 function showLoansModal(prefill = {}) {
   ensureDropdownKey('persons');
   ensureDropdownKey('categories');
   ensureDropdownKey('recurrences');
   ensureDropdownKey('loanCategories');
 
-  // ---- Grouping & sorting (unchanged) ----
+  // ----- Group loans by person + type -----
   const grouped = {};
   (state.loans || []).forEach(l => {
     const key = `${l.person}__${l.type}`;
@@ -856,6 +871,7 @@ function showLoansModal(prefill = {}) {
     else grouped[key].pendingTotal += signedAmount;
   });
 
+  // Calculate totals
   let totalGiven = 0, totalTaken = 0, totalOutstanding = 0;
   Object.values(grouped).forEach(group => {
     if (group.type === 'given') {
@@ -867,6 +883,7 @@ function showLoansModal(prefill = {}) {
     }
   });
 
+  // Sort groups: pending first, then by earliest due date
   const sortedGroups = Object.values(grouped).sort((a, b) => {
     const aPending = a.loans.filter(l => !l.collected);
     const bPending = b.loans.filter(l => !l.collected);
@@ -877,42 +894,39 @@ function showLoansModal(prefill = {}) {
     return aDate - bDate;
   });
 
-  // ---- Helper: individual loan row (using existing classes) ----
- const buildLoanHtml = l => {
+  // ----- Build loan row HTML (compact on mobile) -----
+  const buildLoanHtml = l => {
     const isOverdue = !l.collected && l.dueDate && new Date(l.dueDate) < new Date();
     const overdueClass = isOverdue ? 'border-l-4 border-l-rose-500 bg-rose-500/5' : '';
     const loanAmountColor = l.type === 'given' ? 'text-rose-400' : 'text-emerald-400';
     const loanSign = l.type === 'given' ? '-' : '+';
     const recurrenceLabel = l.recurrence && l.recurrence !== 'None' ? `🔁 ${l.recurrence}` : '';
-    const lastDone = l.completedLog?.length ? `Last: ${l.completedLog[l.completedLog.length - 1].time}` : '';
 
     return `
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg glass border ${overdueClass}" style="background: rgba(255,255,255,0.04); backdrop-filter: blur(8px);">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl glass border ${overdueClass} transition-all hover:shadow-md loan-card">
         <div class="flex-1 min-w-0">
-          <div class="text-xs text-muted flex flex-wrap gap-x-3 gap-y-1 mb-1">
-            <span>📅 Due: ${l.dueDate || 'N/A'}</span>
-            ${l.collected ? `<span>✅ Collected: ${l.collectedAt ? new Date(l.collectedAt).toLocaleString() : ''}</span>` : ''}
-            ${l.createdAt ? `<span>• ${new Date(l.createdAt).toLocaleString()}</span>` : ''}
+          <div class="flex flex-wrap gap-x-2 gap-y-1 text-xs text-slate-400 mb-0.5">
+            <span>📅 ${l.dueDate || 'N/A'}</span>
+            ${l.collected ? `<span>✅ Collected</span>` : ''}
             ${recurrenceLabel ? `<span class="px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs">${recurrenceLabel}</span>` : ''}
             ${isOverdue ? `<span class="px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-400 text-xs">⚠️ Overdue</span>` : ''}
           </div>
-          <div class="text-lg font-semibold ${loanAmountColor} truncate">
+          <div class="text-base sm:text-lg font-semibold ${loanAmountColor} truncate">
             ${loanSign}${fmtINR(l.amount)}
-            <span class="text-xs text-muted font-normal ml-1">${l.note || ''}</span>
+            <span class="text-xs text-slate-500 font-normal ml-1">${l.note || ''}</span>
           </div>
-          ${l.category ? `<div class="text-xs text-slate-500 mt-1">🏷️ ${l.category} ${lastDone ? ' • ' + lastDone : ''}</div>` : ''}
+          ${l.category ? `<div class="text-xs text-slate-500 mt-0.5">🏷️ ${l.category}</div>` : ''}
         </div>
-        <!-- BUTTON CONTAINER: self-end aligns to right on mobile, auto on desktop -->
-        <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto">
-          <button class="editLoan px-2 py-1 rounded text-xs bg-sky-500 hover:bg-sky-600 text-white transition" data-id="${l.id}">✏️</button>
-          <button class="markCollected px-2 py-1 rounded text-xs ${l.collected ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-yellow-500 hover:bg-yellow-600 text-black'} transition" data-id="${l.id}">${l.collected ? '✅' : '⏳'}</button>
-          <button class="delLoan px-2 py-1 rounded text-xs bg-rose-500 hover:bg-rose-600 text-white transition" data-id="${l.id}">🗑️</button>
+        <div class="flex items-center gap-1 flex-shrink-0 self-end sm:self-auto">
+          <button class="editLoan px-2 py-1 rounded-lg text-xs font-medium bg-sky-500 hover:bg-sky-600 text-white transition" data-id="${l.id}">✏️</button>
+          <button class="markCollected px-2 py-1 rounded-lg text-xs font-medium ${l.collected ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-amber-500 hover:bg-amber-600 text-black'} transition" data-id="${l.id}">${l.collected ? '✅' : '⏳'}</button>
+          <button class="delLoan px-2 py-1 rounded-lg text-xs font-medium bg-rose-500 hover:bg-rose-600 text-white transition" data-id="${l.id}">🗑️</button>
         </div>
       </div>
     `;
   };
 
-  // ---- Build each group card (improved with progress bar) ----
+  // ----- Build each group card -----
   const rows = sortedGroups.map(group => {
     const typeLabel = group.type === 'given' ? '💸 Given' : '📥 Taken';
     const pendingLoans = group.loans.filter(l => !l.collected);
@@ -926,7 +940,7 @@ function showLoansModal(prefill = {}) {
     const collectedHtml = collectedLoans.map(buildLoanHtml).join('');
 
     const collectedSection = collectedLoans.length ? `
-      <div class="mt-3">
+      <div class="mt-2">
         <button class="toggleCollected text-xs text-slate-400 hover:text-slate-200 transition flex items-center gap-1"
           data-person="${group.person}" data-type="${group.type}">
           📋 View ${collectedLoans.length} collected
@@ -934,208 +948,210 @@ function showLoansModal(prefill = {}) {
         <div class="collectedList hidden mt-2 space-y-2">${collectedHtml}</div>
       </div>` : '';
 
-   return `
-  <div class="mb-5 p-4 rounded-xl glass shadow-sm transition hover:border-[var(--border-h)]">
-    <div class="flex flex-wrap sm:flex-nowrap justify-between items-start gap-3 mb-3">
-      <div class="flex-1 min-w-0">
-        <div class="font-semibold text-base flex items-center gap-2 flex-wrap">
-          ${group.person || 'Unknown'}
-          <span class="text-xs px-2 py-0.5 rounded-full bg-[var(--bg3)] border border-[var(--border)]">${typeLabel}</span>
-        </div>
-        <div class="flex flex-wrap items-center gap-3 mt-1 text-xs">
-          <span class="text-rose-400 font-semibold">⏳ Pending: ${fmtINR(pendingTotalAbs)}</span>
-          <span class="text-emerald-400 font-semibold">✅ Collected: ${fmtINR(collectedTotalAbs)}</span>
-        </div>
-        ${totalSum > 0 ? `
-          <div class="w-32 mt-1 h-1.5 bg-[var(--bg3)] rounded-full overflow-hidden">
-            <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full" style="width: ${collectedPercent}%"></div>
+    return `
+      <div class="mb-4 p-3 rounded-xl glass shadow-sm border border-[var(--border)] hover:border-[var(--border-h)] transition-all loan-card">
+        <div class="flex flex-wrap sm:flex-nowrap justify-between items-start gap-2 mb-2 loan-group-header">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-base sm:text-lg font-semibold">${escapeHtml(group.person || 'Unknown')}</span>
+              <span class="text-xs px-1.5 py-0.5 rounded-full bg-[var(--bg3)] border border-[var(--border)]">${typeLabel}</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 mt-1 text-xs">
+              <span class="text-rose-400">⏳ ${fmtINR(pendingTotalAbs)}</span>
+              <span class="text-emerald-400">✅ ${fmtINR(collectedTotalAbs)}</span>
+            </div>
+            ${totalSum > 0 ? `
+              <div class="w-full max-w-[200px] mt-1 h-1.5 bg-[var(--bg3)] rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500" style="width: ${collectedPercent}%"></div>
+              </div>
+            ` : ''}
           </div>
-        ` : ''}
+          <button class="delLoanGroup px-2 py-1 rounded-lg text-xs font-medium bg-rose-500 hover:bg-rose-600 text-white transition flex-shrink-0" data-person="${group.person}" data-type="${group.type}">🗑️ All</button>
+        </div>
+        <div class="space-y-2">${pendingHtml || '<div class="text-xs text-slate-500 italic p-2 text-center">✨ No pending loans</div>'}</div>
+        ${collectedSection}
       </div>
-      <button class="delLoanGroup px-2 py-1 rounded text-xs bg-rose-500 hover:bg-rose-600 text-white transition flex-shrink-0 self-start"
-        data-person="${group.person}" data-type="${group.type}">🗑️</button>
-    </div>
-    <div class="space-y-2">${pendingHtml || '<div class="text-xs text-muted italic p-3 text-center">✨ No pending loans</div>'}</div>
-    ${collectedSection}
-  </div>
-`;
-  }).join('') || `<div class="text-center text-muted py-8 glass rounded-xl">✨ No loans added yet. Create your first loan below.</div>`;
+    `;
+  }).join('') || `<div class="text-center text-slate-500 py-6 glass rounded-xl">✨ No loans added yet. Tap + to create one.</div>`;
 
-  // ---- Summary KPI Cards (modern but using existing classes) ----
+  // ----- Summary Cards -----
   const summaryHtml = `
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-      <div class="glass rounded-xl p-4 text-center border border-[var(--border)]">
-        <div class="text-xs text-muted uppercase tracking-wide mb-1">💸 Given</div>
-        <div class="text-2xl font-bold text-rose-400">-${fmtINR(totalGiven)}</div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+      <div class="glass rounded-xl p-3 text-center border border-[var(--border)] loan-summary-card">
+        <div class="text-2xl sm:text-3xl mb-1">💸</div>
+        <div class="text-xs text-slate-400 uppercase">Given</div>
+        <div class="text-xl sm:text-2xl font-bold text-rose-400">-${fmtINR(totalGiven)}</div>
       </div>
-      <div class="glass rounded-xl p-4 text-center border border-[var(--border)]">
-        <div class="text-xs text-muted uppercase tracking-wide mb-1">📥 Taken</div>
-        <div class="text-2xl font-bold text-emerald-400">+${fmtINR(totalTaken)}</div>
+      <div class="glass rounded-xl p-3 text-center border border-[var(--border)] loan-summary-card">
+        <div class="text-2xl sm:text-3xl mb-1">📥</div>
+        <div class="text-xs text-slate-400 uppercase">Taken</div>
+        <div class="text-xl sm:text-2xl font-bold text-emerald-400">+${fmtINR(totalTaken)}</div>
       </div>
-      <div class="glass rounded-xl p-4 text-center border border-[var(--border)]">
-        <div class="text-xs text-muted uppercase tracking-wide mb-1">⚖️ Outstanding</div>
-        <div class="text-2xl font-bold ${totalOutstanding >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+      <div class="glass rounded-xl p-3 text-center border border-[var(--border)] loan-summary-card">
+        <div class="text-2xl sm:text-3xl mb-1">⚖️</div>
+        <div class="text-xs text-slate-400 uppercase">Outstanding</div>
+        <div class="text-xl sm:text-2xl font-bold ${totalOutstanding >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
           ${totalOutstanding >= 0 ? '+' : ''}${fmtINR(totalOutstanding)}
         </div>
       </div>
     </div>
   `;
 
-  // ---- Add Loan button (improved) ----
-  const addLoanLink = `
-    <div class="flex justify-end mb-4">
-      <button id="scrollToAddLoan" class="px-5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-sm font-semibold transition shadow-md flex items-center gap-2">
-        <span>➕</span> Add Loan
-      </button>
-    </div>
+  // ----- Main content (no form) -----
+  const mainContent = `
+    ${summaryHtml}
+    <div id="loanList" class="space-y-3">${rows}</div>
   `;
 
-  // ---- Add Loan Form (keep original but with minimal layout enhancements) ----
+  renderLoansPage(mainContent);
+
+  // ----- Floating Action Button to open add modal -----
+   // ---- FAB: remove old, create new, attach to body ----
+  const existingFab = document.getElementById('openAddLoanModalBtn');
+  if (existingFab) existingFab.remove();
+
+  const fab = document.createElement('button');
+  fab.id = 'openAddLoanModalBtn';
+  fab.className = 'fixed bottom-20  right-5 w-14 h-14 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 shadow-lg flex items-center justify-center text-2xl transition-all z-[9999]';
+  fab.textContent = '+';
+  fab.style.position = 'fixed';
+  fab.style.bottom = '30px';
+  fab.style.right = '16px';
+  fab.style.zIndex = '9999';
+  fab.onclick = () => openAddLoanModal();
+  document.body.appendChild(fab);
+
+
+  // ----- Attach event delegation for loan actions -----
+  attachLoanEvents();
+
+  // ----- Recurring loans -----
+  handleRecurringLoans().catch(err => console.error('recurring error', err));
+}
+
+// ----- Open Add Loan Modal (popup) -----
+function openAddLoanModal(prefill = {}) {
   const persons = state.dropdowns.persons || [];
   const categories = state.dropdowns.categories || [];
   const loanAccount = state.dropdowns.accounts || [];
-  const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.length ? state.dropdowns.recurrences : ['None','daily','weekly','monthly','yearly'];
+  const recurrences = (state.dropdowns.recurrences && state.dropdowns.recurrences.length)
+    ? state.dropdowns.recurrences
+    : ['None', 'daily', 'weekly', 'monthly', 'yearly'];
 
-  const addForm = `
-    <form id="addLoanForm" class="mt-6 space-y-4 p-4 rounded-xl glass shadow-sm border border-[var(--border)]">
-      <div class="flex gap-2">
-        <button type="button" class="type-btn given flex-1 py-2 rounded-md text-sm font-semibold border border-[var(--border)] ${prefill.type === 'given' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'text-slate-400'} transition" data-type="given">💸 Given</button>
-        <button type="button" class="type-btn taken flex-1 py-2 rounded-md text-sm font-semibold border border-[var(--border)] ${prefill.type === 'taken' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'text-slate-400'} transition" data-type="taken">📥 Taken</button>
-      </div>
-      <input type="hidden" id="loanType" value="${prefill.type || 'given'}" />
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <label class="text-xs text-muted font-semibold mb-1 block">Person(s)</label>
-          <div id="loanPersonCheckboxes" class="max-h-48 overflow-y-auto p-2 rounded-lg border border-[var(--border)] space-y-1 bg-[var(--bg3)]">
-            ${persons.map(p => `<label class="flex items-center gap-2 text-sm"><input type="checkbox" value="${p}" class="personCheckbox">${p}</label>`).join('')}
-          </div>
+  const modalHtml = `
+    <div class="modal-overlay show" id="addLoanModalOverlay">
+      <div class="modal" style="max-width: 500px;">
+        <div class="modal-header">
+          <h3 class="modal-title">➕ Add New Loan</h3>
+          <button class="modal-close" onclick="closeAddLoanModal()">×</button>
         </div>
-        <div>
-          <label class="text-xs text-muted font-semibold mb-1 block">Account</label>
-          <select id="loanAccount" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm focus:border-teal-400 transition">
-            ${loanAccount.map(a => `<option value="${(a||'').toString()}">${a}</option>`).join('')}
-          </select>
+        <div class="modal-body">
+          <form id="addLoanFormPopup" class="space-y-4">
+            <div class="flex gap-2">
+              <button type="button" class="type-btn given flex-1 py-2 rounded-md text-sm font-semibold border border-[var(--border)] bg-emerald-500/20 text-emerald-400 border-emerald-500/50" data-type="given">💸 Given</button>
+              <button type="button" class="type-btn taken flex-1 py-2 rounded-md text-sm font-semibold border border-[var(--border)] text-slate-400" data-type="taken">📥 Taken</button>
+            </div>
+            <input type="hidden" id="loanTypePopup" value="given" />
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs text-slate-400 font-semibold uppercase mb-1 block">Person(s)</label>
+                <div id="loanPersonCheckboxesPopup" class="max-h-48 overflow-y-auto p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] space-y-1">
+                  ${persons.map(p => `<label class="flex items-center gap-2 text-sm"><input type="checkbox" value="${p}" class="personCheckbox"> ${p}</label>`).join('')}
+                </div>
+              </div>
+              <div>
+                <label class="text-xs text-slate-400 font-semibold uppercase mb-1 block">Account</label>
+                <select id="loanAccountPopup" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">
+                  ${loanAccount.map(a => `<option value="${a}">${a}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs text-slate-400 font-semibold uppercase mb-1 block">Amount (₹)</label>
+                <input id="loanAmountPopup" type="number" min="1" step="0.01" placeholder="0.00" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-400 font-semibold uppercase mb-1 block">Due Date</label>
+                <input id="loanDueDatePopup" type="date" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs text-slate-400 font-semibold uppercase mb-1 block">Category</label>
+                <select id="loanCategoryPopup" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">
+                  ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="text-xs text-slate-400 font-semibold uppercase mb-1 block">Recurrence</label>
+                <select id="loanRecurrencePopup" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">
+                  ${recurrences.map(r => `<option value="${r.toLowerCase()}" ${r.toLowerCase() === 'none' ? 'selected' : ''}>${r}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-400 font-semibold uppercase mb-1 block">Note</label>
+              <input id="loanNotePopup" placeholder="What's this for?" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" />
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+              <label class="flex items-center gap-1 text-xs"><input type="checkbox" id="addReminderPopup" /> 🔔 Reminder</label>
+              <label class="flex items-center gap-1 text-xs"><input type="checkbox" id="AddTransactionPopup" checked /> 💰 Add transaction</label>
+            </div>
+
+            <button type="submit" class="w-full py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-900 font-semibold text-sm transition shadow-md">➕ Add Loan</button>
+          </form>
         </div>
       </div>
-
-      <div>
-        <label class="text-xs text-muted font-semibold mb-1 block">Amount (₹)</label>
-        <input id="loanAmount" type="number" min="1" step="0.01" placeholder="0.00" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm focus:border-teal-400 transition" />
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label class="text-xs text-muted font-semibold mb-1 block">Due Date</label>
-          <input id="loanDueDate" type="date" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm focus:border-teal-400 transition" />
-        </div>
-        <div>
-          <label class="text-xs text-muted font-semibold mb-1 block">Category</label>
-          <select id="loanCategory" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm focus:border-teal-400 transition">
-            ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
-          </select>
-        </div>
-      </div>
-
-      <div>
-        <label class="text-xs text-muted font-semibold mb-1 block">Note</label>
-        <input id="loanNote" placeholder="What's this for?" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm focus:border-teal-400 transition" />
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label class="text-xs text-muted font-semibold mb-1 block">Recurrence</label>
-          <select id="loanRecurrence" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm focus:border-teal-400 transition">
-            ${recurrences.map(r => {
-              const val = (r || '').toString().toLowerCase();
-              return `<option value="${val}" ${val === 'none' ? 'selected' : ''}>${r}</option>`;
-            }).join('')}
-          </select>
-        </div>
-        <div class="flex flex-col gap-2 justify-end pt-4">
-          <label class="flex items-center gap-2 text-xs text-muted cursor-pointer">
-            <input type="checkbox" id="addReminder" /> 🔔 Add reminder
-          </label>
-          <label class="flex items-center gap-2 text-xs text-muted cursor-pointer">
-            <input type="checkbox" id="AddTransaction" checked /> 💰 Add transaction
-          </label>
-        </div>
-      </div>
-
-      <button type="submit" class="w-full py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-900 font-semibold text-sm transition shadow-md">
-        ➕ Add Loan
-      </button>
-    </form>
+    </div>
   `;
 
-  const modalContent = `
-    ${addLoanLink}
-    ${summaryHtml}
-    <div id="loanList" class="space-y-1">${rows}</div>
-    ${addForm}
-  `;
+  let container = document.getElementById('globalModals');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'globalModals';
+    document.body.appendChild(container);
+  }
+  container.innerHTML = modalHtml;
 
-  // Use your existing modal function
-  //showSimpleModal('💰 Loans', modalContent);
-  renderLoansPage(modalContent);
-
-  // ---- Attach event handlers (same as original, but ensure they work) ----
-  setTimeout(() => {
-    // Scroll to add form
-    const scrollBtn = document.getElementById('scrollToAddLoan');
-    const addFormEl = document.getElementById('addLoanForm');
-    if (scrollBtn && addFormEl) {
-      scrollBtn.addEventListener('click', () => {
-        addFormEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        addFormEl.querySelector('input')?.focus();
+  // Type toggle inside modal
+  document.querySelectorAll('#addLoanModalOverlay .type-btn').forEach(btn => {
+    btn.onclick = () => {
+      const type = btn.dataset.type;
+      document.getElementById('loanTypePopup').value = type;
+      document.querySelectorAll('#addLoanModalOverlay .type-btn').forEach(b => {
+        b.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/50');
+        b.classList.add('text-slate-400');
       });
+      btn.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/50');
+    };
+  });
+
+  // Submit handler
+  document.getElementById('addLoanFormPopup').onsubmit = async (e) => {
+    e.preventDefault();
+    const type = document.getElementById('loanTypePopup').value;
+    const selectedPersons = Array.from(document.querySelectorAll('#loanPersonCheckboxesPopup .personCheckbox:checked')).map(cb => cb.value);
+    const amount = Number(document.getElementById('loanAmountPopup').value);
+    const dueDate = document.getElementById('loanDueDatePopup').value;
+    const note = document.getElementById('loanNotePopup').value.trim();
+    const category = document.getElementById('loanCategoryPopup').value || 'Loan';
+    const loanAccount = document.getElementById('loanAccountPopup').value || 'Cash';
+    const recurrence = document.getElementById('loanRecurrencePopup').value || 'None';
+    const addReminder = document.getElementById('addReminderPopup').checked;
+    const addTransaction = document.getElementById('AddTransactionPopup').checked;
+
+    if (!selectedPersons.length || !amount || !dueDate) {
+      showToast('Select person(s), amount and due date', 'error');
+      return;
     }
 
-    // Type toggle buttons
-    document.querySelectorAll('.type-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const type = btn.dataset.type;
-        document.getElementById('loanType').value = type;
-        document.querySelectorAll('.type-btn').forEach(b => {
-          b.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/50');
-          b.classList.add('text-slate-400');
-        });
-        btn.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/50');
-      });
-    });
-
-    // Toggle collected sections
-    document.querySelectorAll('.toggleCollected').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const parent = btn.closest('.glass');
-        const list = parent?.querySelector('.collectedList');
-        if (list) {
-          const isHidden = list.classList.contains('hidden');
-          list.classList.toggle('hidden', !isHidden);
-          btn.innerHTML = isHidden ? '▲ Hide collected' : `📋 View ${list.children.length} collected`;
-        }
-      });
-    });
-  }, 100);
-
-  // ---- Add Loan submit handler (unchanged logic) ----
-  document.getElementById('addLoanForm').onsubmit = async (e) => {
-    e.preventDefault();
-    const type = document.getElementById('loanType').value;
-    const selectedPersons = Array.from(document.querySelectorAll('#loanPersonCheckboxes .personCheckbox:checked')).map(cb => cb.value);
-    const amount = Number(document.getElementById('loanAmount').value);
-    const dueDate = document.getElementById('loanDueDate').value;
-    const note = document.getElementById('loanNote').value.trim();
-    const category = document.getElementById('loanCategory').value || 'Loan';
-    const loanAccount = document.getElementById('loanAccount').value || 'Cash';
-    const recurrence = document.getElementById('loanRecurrence').value || 'None';
-    const addReminder = document.getElementById('addReminder').checked;
-    const addTransaction = document.getElementById('AddTransaction').checked;
-
-    if (!selectedPersons.length || !amount || !dueDate) { showToast('Select person(s), amount and due date','error'); return; }
-
     const splitAmount = Number((amount / selectedPersons.length).toFixed(2));
-
     for (const person of selectedPersons) {
       const candidate = { person, type, amount: splitAmount, dueDate, note, category, recurrence, loanAccount, addTransaction };
       const key = loanKey(candidate);
@@ -1167,117 +1183,182 @@ function showLoansModal(prefill = {}) {
         state.reminders.push(rem);
       }
     }
-
     await handleRecurringLoans();
     autoBackup();
-    showToast('Loan(s) added!','success');
-    showLoansModal();
+    showToast('Loan(s) added!', 'success');
+    closeAddLoanModal();
+    showLoansModal(); // refresh
+  };
+}
+
+function closeAddLoanModal() {
+  const overlay = document.getElementById('addLoanModalOverlay');
+  if (overlay) overlay.classList.remove('show');
+  setTimeout(() => {
+    const container = document.getElementById('globalModals');
+    if (container) container.innerHTML = '';
+  }, 200);
+}
+
+// ----- Event delegation for loan actions (edit, delete, mark, delete group) -----
+function attachLoanEvents() {
+  const loanList = document.getElementById('loanList');
+  if (!loanList) return;
+
+  loanList.onclick = async (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const loan = id ? state.loans.find(l => String(l.id) === String(id)) : null;
+
+    // Delete single
+    if (btn.classList.contains('delLoan')) {
+      if (!confirm('Delete this loan?')) return;
+      await del('loans', id);
+      state.loans = state.loans.filter(l => l.id !== id);
+      if (loan) {
+        const toDeleteReminders = state.reminders.filter(r => r.title && r.title.includes(loan.person) && r.dueDate === loan.dueDate);
+        for (const r of toDeleteReminders) await del('reminders', r.id);
+        state.reminders = state.reminders.filter(r => !toDeleteReminders.includes(r));
+        await handleLoanTransaction(loan, false);
+      }
+      autoBackup();
+      showToast('Loan deleted', 'success');
+      showLoansModal();
+      return;
+    }
+
+    // Mark collected
+    if (btn.classList.contains('markCollected') && loan) {
+      loan.collected = !loan.collected;
+      loan.collectedAt = loan.collected ? nowISO1() : null;
+      await put('loans', loan);
+      if (loan.collected) await handleLoanTransaction(loan, true);
+      else await handleLoanTransaction(loan, false);
+      autoBackup();
+      renderNotifications();
+      showToast(loan.collected ? 'Collected ✅' : 'Pending ⏳', 'info');
+      showLoansModal();
+      return;
+    }
+
+    // Edit loan – open edit modal (original logic)
+    if (btn.classList.contains('editLoan') && loan) {
+      openEditLoanModal(loan);
+      return;
+    }
+
+    // Delete group
+    if (btn.classList.contains('delLoanGroup')) {
+      const person = btn.dataset.person;
+      const type = btn.dataset.type;
+      if (!confirm(`Delete ALL ${type} loans for ${person}?`)) return;
+      const toDelete = state.loans.filter(l => l.person === person && l.type === type);
+      for (const delLoan of toDelete) {
+        await del('loans', delLoan.id);
+        const rems = state.reminders.filter(r => r.title && r.title.includes(delLoan.person) && r.dueDate === delLoan.dueDate);
+        for (const r of rems) await del('reminders', r.id);
+        state.reminders = state.reminders.filter(r => !rems.includes(r));
+        await handleLoanTransaction(delLoan, false);
+      }
+      state.loans = state.loans.filter(l => !(l.person === person && l.type === type));
+      autoBackup();
+      showToast(`All ${type} loans for ${person} deleted`, 'success');
+      showLoansModal();
+      return;
+    }
   };
 
-  // ---- Delegated action handlers (exactly as original but with event delegation) ----
-  const loanListContainer = document.getElementById('loanList');
-  if (loanListContainer) {
-    loanListContainer.onclick = async (e) => {
-      const btn = e.target.closest('button');
-      if (!btn) return;
-      const id = btn.dataset.id;
-      const loan = id ? state.loans.find(l => String(l.id) === String(id)) : null;
+  // Toggle collected sections
+  document.querySelectorAll('.toggleCollected').forEach(btn => {
+    btn.removeEventListener('click', toggleCollectedHandler);
+    btn.addEventListener('click', toggleCollectedHandler);
+  });
+}
 
-      // Delete single loan
-      if (btn.classList.contains('delLoan')) {
-        if (!confirm('Are you sure you want to delete this loan?')) return;
-        await del('loans', id);
-        state.loans = state.loans.filter(l => l.id !== id);
-        if (loan) {
-          const toDeleteReminders = state.reminders.filter(r => r.title && r.title.includes(loan.person) && r.dueDate === loan.dueDate);
-          for (const r of toDeleteReminders) await del('reminders', r.id);
-          state.reminders = state.reminders.filter(r => !toDeleteReminders.includes(r));
-          await handleLoanTransaction(loan, false);
-        }
-        autoBackup();
-        showToast('Loan deleted!', 'success');
-        showLoansModal();
-        return;
-      }
+function toggleCollectedHandler(e) {
+  const btn = e.currentTarget;
+  const parent = btn.closest('.glass');
+  const list = parent?.querySelector('.collectedList');
+  if (list) {
+    const isHidden = list.classList.contains('hidden');
+    list.classList.toggle('hidden', !isHidden);
+    btn.innerHTML = isHidden ? '▲ Hide collected' : `📋 View ${list.children.length} collected`;
+  }
+}
 
-      // Toggle collected
-      if (btn.classList.contains('markCollected') && loan) {
-        const wasCollected = loan.collected;
-        loan.collected = !loan.collected;
-        loan.collectedAt = loan.collected ? nowISO1() : null;
-        await put('loans', loan);
-        if (loan.collected && !wasCollected) await handleLoanTransaction(loan, true);
-        else if (!loan.collected && wasCollected) await handleLoanTransaction(loan, false);
-        autoBackup();
-        renderNotifications();
-        showToast(loan.collected ? 'Marked as collected ✅' : 'Marked as pending ⏳', 'info');
-        showLoansModal();
-        return;
-      }
+// ----- Edit Loan Modal (unchanged from original, but must be defined) -----
+function openEditLoanModal(loan) {
+  const persons = state.dropdowns.persons || [];
+  const categories = state.dropdowns.categories || [];
+  const loanAccounts = state.dropdowns.accounts || [];
+  const recurrences = (state.dropdowns.recurrences && state.dropdowns.recurrences.length)
+    ? state.dropdowns.recurrences
+    : ['None', 'daily', 'weekly', 'monthly', 'yearly'];
 
-      // Edit loan (keep original edit modal)
-      if (btn.classList.contains('editLoan') && loan) {
-        const persons = state.dropdowns.persons || [];
-        const categories = state.dropdowns.categories || [];
-        const loanAccounts = state.dropdowns.accounts || [];
-        const recurrences = state.dropdowns.recurrences && state.dropdowns.recurrences.length ? state.dropdowns.recurrences : ['None','daily','weekly','monthly','yearly'];
-
-        const editModalHtml = `
-          <form id="editLoanForm" class="space-y-4 p-4">
+  const editModalHtml = `
+    <div class="modal-overlay show" id="editLoanModalOverlay">
+      <div class="modal" style="max-width: 500px;">
+        <div class="modal-header">
+          <h3 class="modal-title">✏️ Edit Loan</h3>
+          <button class="modal-close" onclick="closeEditLoanModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <form id="editLoanFormPopup" class="space-y-4">
             <div class="flex gap-2">
-              <button type="button" class="edit-type-btn given flex-1 py-2 rounded-md text-sm font-semibold border border-[var(--border)] ${loan.type==='given' ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400'}" data-type="given">💸 Given</button>
-              <button type="button" class="edit-type-btn taken flex-1 py-2 rounded-md text-sm font-semibold border border-[var(--border)] ${loan.type==='taken' ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400'}" data-type="taken">📥 Taken</button>
+              <button type="button" class="edit-type-btn given flex-1 py-2 rounded-md text-sm font-semibold border border-[var(--border)] ${loan.type === 'given' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'text-slate-400'}" data-type="given">💸 Given</button>
+              <button type="button" class="edit-type-btn taken flex-1 py-2 rounded-md text-sm font-semibold border border-[var(--border)] ${loan.type === 'taken' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'text-slate-400'}" data-type="taken">📥 Taken</button>
             </div>
             <input type="hidden" id="editLoanType" value="${loan.type}" />
 
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="text-xs text-muted font-semibold mb-1 block">Person</label>
+                <label class="text-xs text-slate-400 font-semibold uppercase mb-1 block">Person</label>
                 <select id="editLoanPerson" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">
-                  ${persons.map(p => `<option value="${p}" ${loan.person===p?'selected':''}>${p}</option>`).join('')}
+                  ${persons.map(p => `<option value="${p}" ${loan.person === p ? 'selected' : ''}>${p}</option>`).join('')}
                 </select>
               </div>
               <div>
-                <label class="text-xs text-muted font-semibold mb-1 block">Account</label>
-                <select id="editloanAccount" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">
-                  ${loanAccounts.map(a => `<option value="${a}" ${loan.loanAccount===a?'selected':''}>${a}</option>`).join('')}
+                <label class="text-xs text-slate-400 font-semibold uppercase mb-1 block">Account</label>
+                <select id="editLoanAccount" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">
+                  ${loanAccounts.map(a => `<option value="${a}" ${loan.loanAccount === a ? 'selected' : ''}>${a}</option>`).join('')}
                 </select>
               </div>
             </div>
 
             <div>
-              <label class="text-xs text-muted font-semibold mb-1 block">Amount (₹)</label>
+              <label class="text-xs text-slate-400 font-semibold uppercase mb-1 block">Amount (₹)</label>
               <input id="editLoanAmount" type="number" min="1" step="0.01" value="${loan.amount}" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" />
             </div>
 
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="text-xs text-muted font-semibold mb-1 block">Due Date</label>
+                <label class="text-xs text-slate-400 font-semibold uppercase mb-1 block">Due Date</label>
                 <input id="editLoanDueDate" type="date" value="${loan.dueDate}" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" />
               </div>
               <div>
-                <label class="text-xs text-muted font-semibold mb-1 block">Category</label>
+                <label class="text-xs text-slate-400 font-semibold uppercase mb-1 block">Category</label>
                 <select id="editLoanCategory" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">
-                  ${categories.map(c => `<option value="${c}" ${loan.category===c?'selected':''}>${c}</option>`).join('')}
+                  ${categories.map(c => `<option value="${c}" ${loan.category === c ? 'selected' : ''}>${c}</option>`).join('')}
                 </select>
               </div>
             </div>
 
             <div>
-              <label class="text-xs text-muted font-semibold mb-1 block">Note</label>
-              <input id="editLoanNote" value="${loan.note||''}" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" />
+              <label class="text-xs text-slate-400 font-semibold uppercase mb-1 block">Note</label>
+              <input id="editLoanNote" value="${loan.note || ''}" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" />
             </div>
 
             <div>
-              <label class="text-xs text-muted font-semibold mb-1 block">Recurrence</label>
+              <label class="text-xs text-slate-400 font-semibold uppercase mb-1 block">Recurrence</label>
               <select id="editLoanRecurrence" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">
-                ${recurrences.map(r => `<option value="${(r||'').toString().toLowerCase()}" ${loan.recurrence=== (r||'').toString().toLowerCase() ? 'selected' : ''}>${r}</option>`).join('')}
+                ${recurrences.map(r => `<option value="${r.toLowerCase()}" ${loan.recurrence === r.toLowerCase() ? 'selected' : ''}>${r}</option>`).join('')}
               </select>
             </div>
 
             ${loan.recurrence && loan.recurrence !== 'None' ? `
               <div>
-                <label class="text-xs text-muted font-semibold mb-1 block">Scope</label>
+                <label class="text-xs text-slate-400 font-semibold uppercase mb-1 block">Scope</label>
                 <select id="editScope" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">
                   <option value="this">Only This Loan</option>
                   <option value="future">This and Future Loans</option>
@@ -1286,90 +1367,112 @@ function showLoansModal(prefill = {}) {
               </div>
             ` : ''}
 
-            <label class="flex items-center gap-2 text-xs text-muted cursor-pointer">
+            <label class="flex items-center gap-2 text-xs cursor-pointer">
               <input type="checkbox" id="editLoanCollected" ${loan.collected ? 'checked' : ''} /> Collected
             </label>
 
-            <button type="submit" class="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold text-sm transition">
-              💾 Save
-            </button>
+            <button type="submit" class="w-full py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold text-sm transition">💾 Save</button>
           </form>
-        `;
-
-        showSimpleModal('✏️ Edit Loan', editModalHtml);
-
-        // Edit form type toggle buttons
-        document.querySelectorAll('.edit-type-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const type = btn.dataset.type;
-            document.getElementById('editLoanType').value = type;
-            document.querySelectorAll('.edit-type-btn').forEach(b => {
-              b.classList.remove('bg-emerald-500/20', 'text-emerald-400');
-              b.classList.add('text-slate-400');
-            });
-            btn.classList.add('bg-emerald-500/20', 'text-emerald-400');
-          });
-        });
-
-        document.getElementById('editLoanForm').onsubmit = async (ev) => {
-          ev.preventDefault();
-          const updates = {
-            type: document.getElementById('editLoanType').value,
-            person: document.getElementById('editLoanPerson').value,
-            amount: Number(document.getElementById('editLoanAmount').value),
-            dueDate: document.getElementById('editLoanDueDate').value,
-            note: document.getElementById('editLoanNote').value,
-            category: document.getElementById('editLoanCategory').value || 'Loan',
-            recurrence: document.getElementById('editLoanRecurrence').value || 'None',
-            collected: document.getElementById('editLoanCollected').checked,
-            modifiedAt: nowISO1(),
-            loanAccount: document.getElementById('editloanAccount').value || 'Cash'
-          };
-          const scope = document.getElementById('editScope') ? document.getElementById('editScope').value : 'this';
-
-          if (loan.recurrence !== updates.recurrence) {
-            if (updates.recurrence && updates.recurrence !== 'None' && !loan.seriesId) loan.seriesId = uid('series');
-            if (!updates.recurrence || updates.recurrence === 'None') loan.seriesId = null;
-          }
-
-          await applyLoanEdit(loan, updates, scope);
-        };
-        return;
-      }
-
-      // Delete group
-      if (btn.classList.contains('delLoanGroup')) {
-        const person = btn.dataset.person;
-        const type = btn.dataset.type;
-        if (!confirm(`Delete ALL ${type} loans for ${person}?`)) return;
-        const toDelete = state.loans.filter(l => l.person === person && l.type === type);
-        for (const loan of toDelete) {
-          await del('loans', loan.id);
-          const toDeleteReminders = state.reminders.filter(r => r.title && r.title.includes(loan.person) && r.dueDate === loan.dueDate);
-          for (const r of toDeleteReminders) await del('reminders', r.id);
-          state.reminders = state.reminders.filter(r => !toDeleteReminders.includes(r));
-          await handleLoanTransaction(loan, false);
-        }
-        state.loans = state.loans.filter(l => !(l.person === person && l.type === type));
-        autoBackup();
-        showToast(`All ${type} loans for ${person} deleted!`, 'success');
-        showLoansModal();
-        return;
-      }
-    };
-  }
-
-  // Ensure recurring items exist
-  handleRecurringLoans().catch(err => console.error('recurring error', err));
-} 
-function renderLoansPage(content) {
-  const page = document.getElementById('loansOverview');
-  page.innerHTML = `
-    <div class="loan-page-enter">
-      ${content}
+        </div>
+      </div>
     </div>
   `;
-  
+
+  let container = document.getElementById('globalModals');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'globalModals';
+    document.body.appendChild(container);
+  }
+  container.innerHTML = editModalHtml;
+
+  // Type toggle in edit modal
+  document.querySelectorAll('#editLoanModalOverlay .edit-type-btn').forEach(btn => {
+    btn.onclick = () => {
+      const type = btn.dataset.type;
+      document.getElementById('editLoanType').value = type;
+      document.querySelectorAll('#editLoanModalOverlay .edit-type-btn').forEach(b => {
+        b.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/50');
+        b.classList.add('text-slate-400');
+      });
+      btn.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/50');
+    };
+  });
+
+  // Submit edit
+  document.getElementById('editLoanFormPopup').onsubmit = async (e) => {
+    e.preventDefault();
+    const updates = {
+      type: document.getElementById('editLoanType').value,
+      person: document.getElementById('editLoanPerson').value,
+      amount: Number(document.getElementById('editLoanAmount').value),
+      dueDate: document.getElementById('editLoanDueDate').value,
+      note: document.getElementById('editLoanNote').value,
+      category: document.getElementById('editLoanCategory').value || 'Loan',
+      recurrence: document.getElementById('editLoanRecurrence').value || 'None',
+      collected: document.getElementById('editLoanCollected').checked,
+      modifiedAt: nowISO1(),
+      loanAccount: document.getElementById('editLoanAccount').value || 'Cash'
+    };
+    const scope = document.getElementById('editScope') ? document.getElementById('editScope').value : 'this';
+
+    if (loan.recurrence !== updates.recurrence) {
+      if (updates.recurrence && updates.recurrence !== 'None' && !loan.seriesId) loan.seriesId = uid('series');
+      if (!updates.recurrence || updates.recurrence === 'None') loan.seriesId = null;
+    }
+
+    await applyLoanEdit(loan, updates, scope);
+    closeEditLoanModal();
+    showToast('Loan updated', 'success');
+    showLoansModal();
+  };
+}
+
+function closeEditLoanModal() {
+  const overlay = document.getElementById('editLoanModalOverlay');
+  if (overlay) overlay.classList.remove('show');
+  setTimeout(() => {
+    const container = document.getElementById('globalModals');
+    if (container) container.innerHTML = '';
+  }, 200);
+}
+
+// ----- Responsive CSS (add to your global styles) -----
+const loansResponsiveCSS = `
+@media (max-width: 640px) {
+  .loan-card { padding: 0.5rem !important; }
+  .loan-card .text-base { font-size: 0.875rem !important; }
+  .loan-card .text-xs { font-size: 0.65rem !important; }
+  .loan-card button { padding: 0.2rem 0.4rem !important; font-size: 0.65rem !important; }
+  .loan-summary-card { padding: 0.5rem !important; }
+  .loan-summary-card .text-2xl { font-size: 1.25rem !important; }
+  .loan-summary-card .text-xl { font-size: 1rem !important; }
+  .loan-group-header .text-base { font-size: 0.875rem !important; }
+  .loan-group-header .gap-2 { gap: 0.25rem !important; }
+  #openAddLoanModalBtn {
+  position: fixed !important;
+  bottom: 5rem !important;
+  right: 1rem !important;
+  z-index: 9999 !important;
+}
+}
+`;
+if (!document.getElementById('loansResponsiveCSS')) {
+  const style = document.createElement('style');
+  style.id = 'loansResponsiveCSS';
+  style.textContent = loansResponsiveCSS;
+  document.head.appendChild(style);
+}
+// The renderLoansPage function remains unchanged (assumed to exist)
+function renderLoansPage(content) {
+  const page = document.getElementById('loansOverview');
+  if (page) {
+    page.innerHTML = `
+      <div class="loan-page-enter animate-fadeIn">
+        ${content}
+      </div>
+    `;
+  }
 }
 /*
 function showLoansModal(prefill = {}) {
@@ -1987,67 +2090,7 @@ function enableNotifications() {
     });
   }
 }
- 
-
-function showGoalsModal() {
-  const rows = (state.savings || []).map(g => `
-    <div class="flex justify-between items-center  rounded-lg p-3 mb-2 shadow-sm">
-      <div>
-        <div class="text-sm font-semibold ">${g.name || 'Goal'}</div>
-        <div class="text-xs text-muted">Target: ₹${fmtINR(g.target)} | Saved: ₹${fmtINR(g.current)}</div>
-      </div>
-      <button 
-        class="px-3 py-1 rounded-md bg-rose-500 hover:bg-rose-600  text-xs delGoal" 
-        data-id="${g.id}">
-        🗑️ Delete
-      </button>
-    </div>
-  `).join('');
-
-  const addForm = `
-    <form id="addGoalForm" class="mt-4 space-y-2">
-      <input id="goalName" placeholder="Goal Name" class="w-full p-2 rounded-lg glass border  " required />
-      <input id="goalTarget" type="number" min="1" placeholder="Target ₹" class="w-full p-2 rounded-lg glass border  " required />
-      <button class="w-full py-2 rounded-lg bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400 transition" type="submit">
-        ➕ Add Goal
-      </button>
-    </form>
-  `;
-
-  showSimpleModal(
-    '🎯 Savings Goals',
-    `<div class="space-y-3">${rows || `<div class="text-center text-muted">No goals added</div>`}${addForm}</div>`
-  );
-
-  document.getElementById('addGoalForm').onsubmit = async (e) => {
-    e.preventDefault();
-    const name = document.getElementById('goalName').value.trim();
-    const target = Number(document.getElementById('goalTarget').value);
-    if (!name || !target) return;
-
-    if (!(state.savings || []).some(g => g.name === name)) {
-      const goal = { id: uid('goal'), name, target, current: 0 };
-      await put('savings', goal);
-      state.savings.push(goal);
-      showGoalsModal();
-      autoBackup();
-      showToast('Goal added!', 'success');
-    } else {
-     // alert('Goal already exists!');
-      showToast('Goal already exists!', 'error');
-    }
-  };
-
-  document.querySelectorAll('.delGoal').forEach(btn => btn.onclick = async (e) => {
-    const id = btn.dataset.id;
-    if (!confirm('Are you sure you want to delete this goal?')) return;
-    await del('savings', id);
-    state.savings = state.savings.filter(g => g.id !== id);
-    showGoalsModal();
-    autoBackup();
-    showToast('Goal deleted!', 'success');
-  });
-}
+  
 /*
 function showRemindersModal() {
   const rows = (state.reminders || []).map(r => `
