@@ -811,11 +811,13 @@
 const fabAddTx = document.getElementById('fabAddTx');
 const voiceTxBtn = document.getElementById('voiceTxBtn');
 const openAddLoanModalBtn = document.getElementById('openAddLoanModalBtn');
+const wealthLoansFAB = document.getElementById('wealthLoansFAB');
 
 function updateFabVisibility(page) {
   const fabAddTx = document.getElementById('fabAddTx');
   const voiceTxBtn = document.getElementById('voiceTxBtn');
   const openAddLoanModalBtn = document.getElementById('openAddLoanModalBtn');
+  const wealthLoansFAB = document.getElementById('wealthLoansFAB');
 
   // Handle main FABs
   if (fabAddTx && voiceTxBtn) {
@@ -830,8 +832,14 @@ function updateFabVisibility(page) {
 
   // Handle loans FAB (may not exist yet – that's fine)
   if (openAddLoanModalBtn) {
-    openAddLoanModalBtn.style.display = (page === 'loans') ? 'flex' : 'none';
+    openAddLoanModalBtn.style.display = (page === 'loans' ) ? 'flex' : 'none';
   }
+    if (wealthLoansFAB) {
+      wealthLoansFAB.style.display = (page === 'loans' ) ? 'flex' : 'none';
+    }
+  /*if (page === 'loans') {
+  showLoansModal();
+  }*/
 }
 /* ─────────────────────────────────────────────
    PAGE NAVIGATION
@@ -877,7 +885,12 @@ function showPage(page) {
       try { showGoldRates(); } catch (e) {}
     }
      if (page === 'loans') {
-      try { showLoansModal(); } catch (e) {}
+      try { 
+        //showLoansModal();
+        const content = document.getElementById('loansOverview');
+        renderWealthLoans(content);
+
+       } catch (e) {}
     }
     if (page === 'wealth') {
       try { showWealthPage(); } catch (e) { console.error('Wealth page error:', e); }
