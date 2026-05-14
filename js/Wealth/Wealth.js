@@ -931,8 +931,12 @@ function ensureFAB() {
   const fab = document.createElement('button');
   fab.id = 'wealthLoansFAB';
   fab.innerHTML = '+';
+  // Use flexbox to center the plus sign perfectly
+  fab.style.display = 'flex';
+  fab.style.alignItems = 'center';
+  fab.style.justifyContent = 'center';
   fab.style.position = 'fixed';
-  fab.style.bottom = '5rem';
+  fab.style.bottom = '5rem';      // or '30px' – keep your preferred value
   fab.style.right = '16px';
   fab.style.width = '56px';
   fab.style.height = '56px';
@@ -940,6 +944,8 @@ function ensureFAB() {
   fab.style.backgroundColor = '#10b981';
   fab.style.color = 'white';
   fab.style.fontSize = '28px';
+  fab.style.fontWeight = 'normal'; // avoid bold shifting
+  fab.style.lineHeight = '1';      // remove extra line‑height
   fab.style.border = 'none';
   fab.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
   fab.style.zIndex = '9999';
