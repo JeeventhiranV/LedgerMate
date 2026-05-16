@@ -1,20 +1,8 @@
 let transactions = []; // All transactions will be stored here
   let settings = {};   
-/*
-  LedgerMate single-file app skeleton.
-  Implements: IndexedDB storage, charts, transactions CRUD, budgets, reminders, full export/import (JSON + CSV),
-  set data folder via File System Access API, auto-backup, configurable dropdowns, basic notifications UI,
-  placeholders/hooks for OCR/Voice/AI/Cloud/Encryption. Keep minimal dependencies: Tailwind + Chart.js.
-*/
-
-// ----------------------------
-// Utilities
-// ----------------------------
 const fmtINR = (v) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(v || 0);
 const nowISO = () => new Date().toISOString().slice(0,10);
 const uid = (prefix='id') => prefix + '_' + Math.random().toString(36).slice(2,9);
-
-// CSV parser (robustish)
 function parseCSV(text){
   const rows = [];
   let cur = '', inQuotes=false, row=[];
@@ -46,8 +34,6 @@ function arrayToCSV(rows){
     return s;
   }).join(',')).join('\n');
 }
-
-// IndexedDB wrapper
 let db = null;
 async function openDB() {
     return new Promise((resolve, reject) => {
@@ -127,10 +113,6 @@ async function openDB() {
         };
     });
 }
-
-
-
-
 function tx(store, mode='readonly'){
   return db.transaction(store, mode).objectStore(store);
 }
@@ -193,24 +175,6 @@ let state = {
 
 // Charts
 let cashflowChart=null, doughnutChart=null, budgetChart=null;
-
-// ----------------------------
-// Init
-// ----------------------------
-async function init(){
-  await openDB();
-  await seedDefaults();
-  await loadAllFromDB();
-  bindUI();
-  renderAll();
-  tryAutoLoadFolder();
-  //checkAllNotifications();  
-  //setInterval(checkAllNotifications, 60 * 60 * 1000);// Repeat every hour
-  //processRecurringTransactions();
-  setInterval(processRecurringTransactions, 60 * 60 * 1000); // check every hour
-  setGreeting();
-}
-
 async function seedDefaults(){
   // ensure dropdowns exist
   const ds = await getAll('dropdowns');
@@ -335,99 +299,6 @@ function showTransactionsModal() {
   ).join('');
   showSimpleModal('All Transactions', `<table class="w-full text-xs"><tr><th>Date</th><th>Category</th><th>Account</th><th>Amount</th><th>Note</th></tr>${rows||'<tr><td colspan=5>No transactions</td></tr>'}</table>`);
 }
-/*
-function showBudgetsModal() {
-  const month = new Date().toISOString().slice(0, 7);
-
-  const rows = state.budgets
-    .filter(b => b.month === month)
-    .map(b => `
-      <div class="flex justify-between items-center  rounded-lg p-3 mb-2 shadow-sm">
-        <div>
-          <div class="text-sm font-semibold ">${b.category}</div>
-          <div class="text-xs text-muted">
-            Limit: ${fmtINR(b.limit)} • Alert at ${Math.round((b.alertThreshold || 0.8) * 100)}%
-          </div>
-        </div>
-        <button 
-          class="px-3 py-1 rounded-md bg-rose-500 hover:bg-rose-600  text-xs delBudget" 
-          data-id="${b.id}">
-          🗑️ Delete
-        </button>
-      </div>
-    `).join('');
-
-  // Add form for unused categories
-  const unusedCats = state.dropdowns.categories
-    .filter(cat => !state.budgets.some(b => b.category === cat && b.month === month));
-
-  let addForm = '';
-  if (unusedCats.length) {
-    addForm = `
-      <form id="addBudgetForm" class="mt-4 space-y-2">
-        <div class="flex gap-2">
-          <select id="budgetCat" class="flex-1 p-2 rounded-lg glass border  ">
-            ${unusedCats.map(c => `<option>${c}</option>`).join('')}
-          </select>
-          <input 
-            id="budgetLimit" type="number" min="1" 
-            placeholder="Limit ₹" 
-            class="flex-1 p-2 rounded-lg glass border  " 
-            required 
-          />
-        </div>
-        <button 
-          class="w-full py-2 rounded-lg bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400 transition" 
-          type="submit">
-          ➕ Add Budget
-        </button>
-      </form>
-    `;
-  }
-
-  showSimpleModal(
-    '📊 Budgets (This Month)',
-    `
-      <div class="space-y-3">
-        ${rows || `<div class="text-center text-muted text-sm">No budgets set</div>`}
-        ${addForm}
-      </div>
-    `
-  );
-
-  // Add new budget handler
-  if (addForm) {
-    document.getElementById('addBudgetForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const cat = document.getElementById('budgetCat').value;
-      const limit = document.getElementById('budgetLimit').value;
-      try {
-        await setBudgetForMonth(cat, month, limit);
-        showBudgetsModal();
-        showToast('Budget added!', 'success');
-      } catch {
-        showToast('Failed to add budget', 'error');
-      }
-    };
-  }
-
-  // Delete budget handler
-  document.querySelectorAll('.delBudget').forEach(btn => 
-    btn.onclick = async () => {
-      const id = btn.dataset.id;
-       if (!confirm('Are you sure you want to delete this budget?')) return;
-      try {
-        await del('budgets', id);
-        state.budgets = state.budgets.filter(b => b.id !== id);
-        showBudgetsModal();
-        autoBackup();
-        showToast('Budget deleted!', 'success');
-      } catch {
-        showToast('Failed to delete budget', 'error');
-      }
-    }
-  );
-}*/
 async function showBudgetsModal() {
   const month = new Date().toISOString().slice(0, 7);
 
@@ -544,7 +415,6 @@ async function showBudgetsModal() {
     };
   });
 }
-
 function renderBudgetModalList() {
   const wrap = document.getElementById('budgetList');
   if (!wrap) return;
@@ -564,8 +434,6 @@ function renderBudgetModalList() {
     </div>`;
   }).join('');
 }
-
-
 /* ─────────────────────────────────────────────
    MODALS
 ───────────────────────────────────────────── */
@@ -1496,205 +1364,6 @@ function enableNotifications() {
     });
   }
 }
-  
-/*
-function showRemindersModal() {
-  const rows = (state.reminders || []).map(r => `
-    <div class="flex justify-between items-center  rounded-lg p-3 mb-2 shadow-sm">
-      <div>
-        <div class="text-sm font-semibold ">${r.title}</div>
-        <div class="text-xs text-muted">
-          📅 ${r.dueDate || 'N/A'} ${r.dueTime || ''} • 🔁 ${r.recurrence || 'None'} • 
-          ${r.completed ? '✅ Completed' : '⏳ Pending'}
-        </div>
-      </div>
-      <button 
-        class="px-3 py-1 rounded-md bg-rose-500 hover:bg-rose-600  text-xs delRem" 
-        data-id="${r.id}">
-        🗑️ Delete
-      </button>
-    </div>
-  `).join('');
-
-  const addForm = `
-    <form id="addReminderForm" class="mt-4 space-y-2">
-      <input id="reminderTitle" placeholder="Title" class="w-full p-2 rounded-lg glass border  " required />
-      <input id="reminderDate" type="date" class="w-full p-2 rounded-lg glass border  " required />
-      <input id="reminderTime" type="time" class="w-full p-2 rounded-lg glass border  " />
-      <select id="reminderRecurrence" class="w-full p-2 rounded-lg glass border  ">
-        <option value="">None</option>
-        <option value="daily">Daily</option>
-        <option value="weekly">Weekly</option>
-        <option value="monthly">Monthly</option>
-      </select>
-      <button class="w-full py-2 rounded-lg bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400 transition" type="submit">
-        ➕ Add Reminder
-      </button>
-    </form>
-  `;
-
-  showSimpleModal(
-    '🔔 Reminders',
-    `<div class="space-y-3">${rows || `<div class="text-center text-muted">No reminders</div>`}${addForm}</div>`
-  );
-
-  document.getElementById('addReminderForm').onsubmit = async (e) => {
-    e.preventDefault();
-    const title = document.getElementById('reminderTitle').value.trim();
-    const dueDate = document.getElementById('reminderDate').value;
-    const dueTime = document.getElementById('reminderTime').value;
-    const recurrence = document.getElementById('reminderRecurrence').value;
-    if (!title || !dueDate) return;
-
-    const exists = (state.reminders || []).some(r => r.title === title && r.dueDate === dueDate && r.dueTime === dueTime && r.recurrence === recurrence);
-    if (!exists) {
-      const reminder = { id: uid('rem'), title, dueDate, dueTime, recurrence, completed: false };
-      await put('reminders', reminder);
-      state.reminders.push(reminder);
-      showRemindersModal();
-      autoBackup();
-      showToast('Reminder added!', 'success');
-      renderNotifications();
-    } else {
-      showToast('Reminder already exists!', 'error');
-    }
-  };
-
-  document.querySelectorAll('.delRem').forEach(btn => btn.onclick = async (e) => {
-    const id = btn.dataset.id;
-    if (!confirm('Are you sure you want to delete this reminder?')) return;
-    await del('reminders', id);
-    state.reminders = state.reminders.filter(r => r.id !== id);
-    showRemindersModal();
-    autoBackup();
-    showToast('Reminder deleted!', 'success');
-    renderNotifications();
-  });
-}
-*/
-/*
-function showRemindersModal() {
-  const rows = (state.reminders || []).map(r => {
-    // Format completion log
-  const logHtml = (r.completedLog || [])
-      .map(l => `<div class="text-xs text-slate-500">${l.time} — ${l.status}</div>`)
-      .join('');
-
-    return `
-      <div class="flex flex-col  rounded-lg p-3 mb-2 shadow-sm">
-        <div class="flex justify-between items-center">
-          <div>
-            <div class="text-sm font-semibold ">${r.title}</div>
-            <div class="text-xs text-muted">
-              📅 ${r.dueDate || 'N/A'} ${r.dueTime || ''} • 🔁 ${r.recurrence || 'None'} • 
-              ${r.completed ? '✅ Completed' : '⏳ Pending'}
-            </div>
-          </div>
-          <div class="flex gap-2">
-            <button 
-              class="px-2 py-1 rounded-md ${r.completed ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-emerald-500 hover:bg-emerald-600'}  text-xs toggleRem" 
-              data-id="${r.id}">
-              ${r.completed ? '↩️' : '✅'}
-            </button>
-            <button 
-              class="px-2 py-1 rounded-md bg-rose-500 hover:bg-rose-600  text-xs delRem" 
-              data-id="${r.id}">
-              🗑️
-            </button>
-          </div>
-        </div>
-        ${logHtml ? `<div class="mt-2 space-y-1">${logHtml}</div>` : ''}
-      </div>
-    `;
-  }).join('');
-
-  const addForm = `
-    <form id="addReminderForm" class="mt-4 space-y-2">
-      <input id="reminderTitle" placeholder="Title" class="w-full p-2 rounded-lg glass border  " required />
-      <input id="reminderDate" type="date" class="w-full p-2 rounded-lg glass border  " required />
-      <input id="reminderTime" type="time" class="w-full p-2 rounded-lg glass border  " />
-      <select id="reminderRecurrence" class="w-full p-2 rounded-lg glass border  ">
-        <option value="">None</option>
-        <option value="daily">Daily</option>
-        <option value="weekly">Weekly</option>
-        <option value="monthly">Monthly</option>
-      </select>
-      <button class="w-full py-2 rounded-lg bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400 transition" type="submit">
-        ➕ Add Reminder
-      </button>
-    </form>
-  `;
-
-  showSimpleModal(
-    '🔔 Reminders',
-    `<div class="space-y-3">${rows || `<div class="text-center text-muted">No reminders</div>`}${addForm}</div>`
-  );
-
-  // Add Reminder
-  document.getElementById('addReminderForm').onsubmit = async (e) => {
-    e.preventDefault();
-    const title = document.getElementById('reminderTitle').value.trim();
-    const dueDate = document.getElementById('reminderDate').value;
-    const dueTime = document.getElementById('reminderTime').value;
-    const recurrence = document.getElementById('reminderRecurrence').value;
-    if (!title || !dueDate) return;
-
-    const exists = (state.reminders || []).some(r => 
-      r.title === title && r.dueDate === dueDate && r.dueTime === dueTime && r.recurrence === recurrence
-    );
-    if (!exists) {
-      const reminder = { 
-        id: uid('rem'), 
-        title, 
-        dueDate, 
-        dueTime, 
-        recurrence, 
-        completed: false, 
-        completedLog: [] 
-      };
-      await put('reminders', reminder);
-      state.reminders.push(reminder);
-      showRemindersModal();
-      autoBackup();
-      showToast('Reminder added!', 'success');
-      renderNotifications();
-    } else {
-      showToast('Reminder already exists!', 'error');
-    }
-  };
-
-  // Delete Reminder
-  document.querySelectorAll('.delRem').forEach(btn => btn.onclick = async (e) => {
-    const id = btn.dataset.id;
-    if (!confirm('Are you sure you want to delete this reminder?')) return;
-    await del('reminders', id);
-    state.reminders = state.reminders.filter(r => r.id !== id);
-    showRemindersModal();
-    autoBackup();
-    showToast('Reminder deleted!', 'success');
-    renderNotifications();
-  });
-
-  // Toggle Complete / Unmark
-  document.querySelectorAll('.toggleRem').forEach(btn => btn.onclick = async (e) => {
-    const id = btn.dataset.id;
-    const reminder = state.reminders.find(r => r.id === id);
-    if (!reminder) return;
-
-   reminder.completed = !reminder.completed;
-    if (!reminder.completedLog) reminder.completedLog = [];
-    reminder.completedLog.push({
-      time: new Date().toLocaleString(),
-      status: reminder.completed ? 'Done' : 'Undone'
-    }); 
-    await put('reminders', reminder);
-    showRemindersModal();
-    autoBackup();
-    showToast(reminder.completed ? 'Reminder marked as completed ✅' : 'Reminder set to pending ⏳', 'info');
-    renderNotifications();
-  });
-}*/
-
 // Simple modal utility
 function showSimpleModal(title, html) {
   const modals = document.getElementById('modals');
@@ -1763,24 +1432,6 @@ function renderDropdowns(){
   const sel = document.getElementById('accountFilter');
   sel.innerHTML = '<option value="all">All Accounts</option>' + state.dropdowns.accounts.map(a=>`<option value="${a}">${a}</option>`).join('');
 }
-
-// function renderKPIs(){
-//   const range = parseKpiRange();
-//   const end = new Date();
-//   const start = new Date(); start.setDate(end.getDate()-range+1);
-//   const txs = state.transactions.filter(t => new Date(t.date) >= start && new Date(t.date) <= end);
-//   const income = txs.filter(t=>t.type==='in').reduce((s,t)=>s+Number(t.amount),0);
-//   const expense = txs.filter(t=>t.type==='out').reduce((s,t)=>s+Number(t.amount),0);
-//   const balance = state.transactions.reduce((s,t)=> s + (t.type==='in'?Number(t.amount):-Number(t.amount)), 0);
-//   document.getElementById('kpiIncome').innerText = fmtINR(income);
-//   document.getElementById('kpiExpense').innerText = fmtINR(expense);
-//   document.getElementById('kpiPL').innerText = fmtINR(income-expense);
-//   document.getElementById('kpiBalance').innerText = fmtINR(balance);
-//   document.getElementById('kpiRangeLabel').innerText = range+'d';
-//   document.getElementById('kpiRangeLabel2').innerText = range+'d';
-//   renderAccountSummaries();
-// }
-
 function parseKpiRange(){
   const v = document.getElementById('kpiRange').value;
   if (v==='custom'){
@@ -1885,13 +1536,6 @@ function renderHeatmap() {
   }
 }
 
-// ----------------------------
-// Recent transactions list
-// ----------------------------
-
-// ----------------------------
-// Recent transactions list
-// ----------------------------
 function refreshRecentList() {
   const q = document.getElementById('searchTx').value.toLowerCase().trim();
   const list = document.getElementById('recentList');
@@ -2434,60 +2078,7 @@ function openAddTransactionModal(prefill = {}) {
 let dropdownManagerMinimized = true;
 let recentTxMinimized = false;
 let dashboardsMinimized = true; 
-/* comment for new dashboard
-function updateDropdownManagerVisibility() {
-  const dm = document.getElementById('dropdownManager');
-  const icon = document.getElementById('dropdownManagerToggleIcon');
-  if (dropdownManagerMinimized) {
-    dm.style.display = 'none';
-    icon.textContent = '+';
-  } else {
-    dm.style.display = '';
-    icon.textContent = '−';
-  }
-} 
 
-function updateRecentTxVisibility() {
-  const section = document.getElementById('recentTxSection');
-  const icon = document.getElementById('recentTxToggleIcon');
-  if (recentTxMinimized) {
-    section.style.display = 'none';
-    icon.textContent = '+';
-  } else {
-    section.style.display = '';
-    icon.textContent = '−';
-  }
-}
-document.getElementById('toggleRecentTx').onclick = function() {
-  recentTxMinimized = !recentTxMinimized;
-  updateRecentTxVisibility();
-};
-document.getElementById('toggleRecentTxHDR').onclick = function() {
-  recentTxMinimized = !recentTxMinimized;
-  updateRecentTxVisibility();
-};
- 
-function updateDashboardsVisibility() {
-  const section = document.getElementById('dashboardsSection');
-  const icon = document.getElementById('dashboardsToggleIcon');
-  if (dashboardsMinimized) {
-    section.style.display = 'none';
-    icon.textContent = '+';
-  } else {
-    section.style.display = '';
-    icon.textContent = '−';
-    setTimeout(renderCharts, 200); // re-render charts after expanding
-  }
-}
-document.getElementById('toggleDashboards').onclick = function() {
-  dashboardsMinimized = !dashboardsMinimized;
-  updateDashboardsVisibility();
-};
-
-window.addEventListener('DOMContentLoaded', updateDashboardsVisibility());
-window.addEventListener('DOMContentLoaded', updateRecentTxVisibility());*/
-//window.addEventListener('DOMContentLoaded', updateDropdownManagerVisibility);
- 
 // ----------------------------
 // Budgets & Alerts
 // ----------------------------
@@ -2496,24 +2087,6 @@ async function setBudgetForMonth(category, month, limit, threshold=0.8){
   await put('budgets', b); state.budgets.push(b); renderAll(); autoBackup();
 }
 
-/*function checkBudgetAlerts(){
-  const month = new Date().toISOString().slice(0,7);
-  const alerts = [];
-  state.budgets.filter(b=>b.month===month).forEach(b=>{
-    const actual = state.transactions.filter(t=>t.date.startsWith(month) && t.type==='out' && t.category===b.category).reduce((s,t)=>s+Number(t.amount),0);
-    if (actual >= b.limit*b.alertThreshold) alerts.push({type:'budget', category:b.category, actual, limit:b.limit});
-  });
-  // push to reminders store for in-app notifications
-  state.reminders = state.reminders.concat(alerts.map(a=>({id:uid('alert'), title:`Budget alert: ${a.category}`, dueDate: nowISO(), meta:a}))); 
-}*/
-/**
- * ✅ checkBudgetAlerts()
- * Checks all budgets and triggers alerts:
- * - ⚠️ When spending crosses configurable % (default 80%)
- * - ❌ When spending exceeds 100%
- * - ⏱️ When budget period is about to end (2 days before)
- * - 📣 Shows toast and pushes notifications
- */
 async function checkBudgetAlerts() {
   try {
     // 1️⃣ Load budgets & transactions from DB
@@ -2626,46 +2199,6 @@ const spent = transactions
     console.warn("❌ Error in checkBudgetAlerts:", err);
   }
 }
-
-// ----------------------------
-// Notifications
-// ----------------------------
-/*function renderNotifications(){
-  const list = document.getElementById('notifList'); list.innerHTML='';
-  const items = state.reminders.slice(-30).reverse();
-  items.forEach(r=>{ const div = document.createElement('div'); div.className='p-2 border-b border-slate-800'; div.innerHTML=`<div class='font-semibold'>${r.title||r.name||'Reminder'}</div><div class='text-xs text-muted'>${r.dueDate||''}</div>`; list.appendChild(div); });
-  document.getElementById('notifCount').innerText = items.length;
-}*//*
-function renderNotifications() {
-  const list = document.getElementById('notifList');
-  list.innerHTML = '';
-  // Show only pending reminders (not completed)
-  const items = (state.reminders || []).filter(r => !r.completed).slice(-30).reverse();
-  items.forEach(r => {
-    const div = document.createElement('div');
-    div.className = 'p-2 border-b border-slate-800 flex justify-between items-center';
-    div.innerHTML = `
-      <div>
-        <div class='font-semibold'>${r.title || r.name || 'Reminder'}</div>
-        <div class='text-xs text-muted'>${r.dueDate || ''} ${r.dueTime || ''} ${r.recurrence ? '(' + r.recurrence + ')' : ''}</div>
-      </div>
-      <button class="ml-2 px-2 py-1 rounded bg-emerald-500 text-slate-900 text-xs markRemDone" data-id="${r.id}">✅Done</button>
-    `;
-    list.appendChild(div);
-  });
-  document.querySelectorAll('.markRemDone').forEach(btn => btn.onclick = async (e) => {
-    const id = e.target.dataset.id;
-    const idx = state.reminders.findIndex(r => r.id === id);
-    if (idx !== -1) {
-      state.reminders[idx].completed = true;
-      await put('reminders', state.reminders[idx]);
-      renderNotifications();
-      autoBackup();
-    }
-  });
-  document.getElementById('notifCount').innerText = items.length;
-}
-function toggleNotifPanel(){ document.getElementById('notifPanel').classList.toggle('hidden'); }*/
 
 // ----------------------------
 // Full Export / Import (JSON) - bit-perfect
@@ -2807,14 +2340,7 @@ async function exportTransactionsCSV(){
   }
   const blob = new Blob([txt],{type:'text/csv'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`transactions-${nowISO()}.csv`; a.click(); URL.revokeObjectURL(url);
 }
-
-// ----------------------------
-// Auto-backup
-// ----------------------------
  
-// ========= Enhanced Auto-Backup & Restore (Zero Data Loss) =========
-
-// ---- Config ----
 const BACKUP_SCHEMA_VERSION = 1;            // bump when shape changes
 const BACKUP_INTERVAL_MS   = 1 * 60 * 1000; // scheduled backup every 5 min
 const BACKUP_RETENTION     = 50;            // keep last N rolling backups
@@ -2869,8 +2395,7 @@ function validateSnapshot(payload) {
     typeof payload.settings === 'object';
   return ok;
 }
-
-// ---- Merge (non-destructive) ----
+ 
 // Upserts by `id` when present; otherwise appends. Never clears stores.
 async function mergeRestore(payload) {
   if (!validateSnapshot(payload)) throw new Error('Invalid snapshot');
@@ -3412,24 +2937,7 @@ function levenshteinDistance(a, b) {
 
 searchInput.addEventListener('input', updateSuggestions);
 searchInput.addEventListener('blur', () => setTimeout(() => suggestionsBox.classList.add('hidden'), 200));
-/*
-const themeToggle = document.getElementById('themeToggle');
-  const root = document.documentElement;
 
-  // Load theme from localStorage if available
-  if(localStorage.getItem('theme') === 'dark') {
-    root.classList.add('dark');
-  }
-
-  // Toggle theme when button is clicked
-  themeToggle.addEventListener('click', () => {
-    root.classList.toggle('dark');
-    if(root.classList.contains('dark')) {
-      localStorage.setItem('theme', 'dark');
-    } else {
-      localStorage.setItem('theme', 'light');
-    }
-  });*/
 function getAccountSummaries() {
   const summaries = {};
   
@@ -3482,34 +2990,6 @@ function renderAccountSummaries() {
     container.appendChild(card);
   }
 }
-
-/*
-function renderAccountSummaries() {
-  const summaries = getAccountSummaries();
-  const container = document.getElementById('accountSummaries');
-  container.innerHTML = ''; // Clear previous content
-  
-  const grid = document.createElement('div');
-  grid.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4';
-  
-  for (const account in summaries) {
-    const summary = summaries[account];
-    
-    const div = document.createElement('div');
-    div.className = 'glass p-3 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer';
-    div.innerHTML = `
-      <h3 class="text-sm font-semibold mb-2 truncate">${account}</h3>
-      <div class="text-xs text-green-500">Income: ${fmtINR(summary.income)}</div>
-      <div class="text-xs text-red-500">Expense: ${fmtINR(summary.expense)}</div>
-      <div class="text-sm font-bold text-blue-500 mt-2">Balance: ${fmtINR(summary.balance)}</div>
-    `;
-    
-    grid.appendChild(div);
-  }
-  
-  container.appendChild(grid);
-}*/
-
 
 let amountsVisible = false; // tracks global state
 
