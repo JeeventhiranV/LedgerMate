@@ -2,21 +2,58 @@
   "id": "/",
   "name": "LedgerMate",
   "short_name": "LedgerMate",
+  "launcherName": "LedgerMate",
   "description": "Smart offline finance tracker to manage expenses, investments, profits and live market insights.",
-  "start_url": "/LedgerMate/",
-  "scope": "/LedgerMate/",
+  "start_url": "./index.html",
+  "scope": "/",
   "display": "standalone",
+  "display_override": [
+    "window-controls-overlay"
+  ],
   "orientation": "portrait",
   "theme_color": "#10b981",
   "background_color": "#1e293b",
+  "navigationColor": "#10b981",
   "lang": "en",
   "icons": [
     {
-      "src": "/LedgerMate/icons/icon-512.png",
+      "src": "./icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "categories": ["finance"]
+  "enableNotifications": true,
+  "packageId": "com.jeeva.ledgermate",
+  "host": "https://jeeventhiranv.github.io",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "signingKey": {
+    "path": "android.keystore",
+    "alias": "LedgermateJeeva"
+  },
+  "dir": "auto",
+  "edge_side_panel": {
+    "preferred_width": 0
+  },
+  "categories": [
+    "finance"
+  ],
+  "file_handlers": [
+  {
+    "action": "/import",
+    "name": "LedgerMate Backup Import",
+    "accept": {
+      "application/json": [".json"],
+      "text/csv": [".csv"]
+    }
+  }
+]
+
 }
