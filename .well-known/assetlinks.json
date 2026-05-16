@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.jeeva.ledgermate",
+      "sha256_cert_fingerprints": [
+        "64:F7:F2:85:6C:B3:3A:B2:7C:43:9C:D0:80:BF:67:23:0D:63:4A:67:0C:16:39:DD:F2:B3:F4:51:51:1B:5A:B1"
+      ]
+    }
+  }
+]
