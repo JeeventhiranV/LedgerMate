@@ -175,7 +175,6 @@ function switchWealthTab(tab) {
   if (!page) return;
   page.dataset.activeTab = tab;
   updateFabVisibility(tab);
-
   const TAB_MAP = { assets:'Assets', liabilities:'Liabilities', loans:'Loans',
                     networth:'Net Worth', allocation:'Allocation' };
   page.querySelectorAll('.wealth-tab').forEach(b =>

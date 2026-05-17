@@ -3,10 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy"
-content="
-default-src * data: blob: 'unsafe-inline' 'unsafe-eval';
-">
 <title>LedgerMate - Personal Finance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="./css/common.css">
@@ -852,7 +848,6 @@ function updateFabVisibility(page) {
 ───────────────────────────────────────────── */
 function showPage(page) {
     updateFabVisibility(page);
-
   // 1. Show / hide pages
   document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
   const pageEl = document.getElementById('page-' + page);
@@ -907,7 +902,9 @@ function showPage(page) {
   } catch (e) {
     // ignore – main navigation must always complete
   }
-
+  setTimeout(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, 50);
   closeSidebar();
 }
 function renderAccountBalances() {
@@ -1009,6 +1006,8 @@ function setGreeting() {
 
 </script>
   <script  src="./js/Common/Drive.js"></script>  
+  <script src="./js/Wealth/Wealth.js"></script>
+  <script src="./js/Wealth/Essentials.js"></script>
   <script  src="./js/Common.js"></script> 
   <script src="./js/Investments.js"></script>
   <script src="./js/Charts/Doughnut.js"></script> 
@@ -1020,8 +1019,6 @@ function setGreeting() {
   <script  src="./js/Common/MonthlySummary.js"></script>   
   <script src="./js/Common/Cred.js"></script>
   <script src="./js/Common/Notes.js"></script>
-  <script src="./js/Wealth/Wealth.js"></script>
-  <script src="./js/Wealth/Essentials.js"></script>
 
 <!-- Modals / Hidden UI -->
       <div id="modals"></div>

@@ -3182,7 +3182,13 @@ async function autoBackupToDrive() {
     //setDataFolder(); 
     setGreeting();
     
-   window.addEventListener('DOMContentLoaded', () => {
+ 
+  } catch (err) {
+    console.error('Startup error', err);
+  }
+})();
+
+  window.addEventListener('DOMContentLoaded', () => {
   console.log('DOMContentLoaded fired');
   setTimeout(() => {
     const lastPage = localStorage.getItem('ledgerMate_lastPage') || 'dashboard';
@@ -3194,10 +3200,6 @@ async function autoBackupToDrive() {
     }
   }, 100);
   });
-  } catch (err) {
-    console.error('Startup error', err);
-  }
-})();
 const sidebar = document.getElementById("sidebar");
 const sidebarOverlay = document.getElementById("sidebarOverlay");
 const menuBtn = document.getElementById("menuBtn");
