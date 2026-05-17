@@ -3181,8 +3181,11 @@ async function autoBackupToDrive() {
     setInterval(processRecurringTransactions, 60 * 60 * 1000); 
     //setDataFolder(); 
     setGreeting();
+    
+    window.addEventListener('DOMContentLoaded', () => {
     const lastPage = localStorage.getItem('ledgerMate_lastPage') || 'dashboard';
     showPage(lastPage);
+    });
   } catch (err) {
     console.error('Startup error', err);
   }

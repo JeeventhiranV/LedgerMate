@@ -81,10 +81,28 @@ function getAssetCategoryFromType(type) {
 }
 
 // ─── Totals ───────────────────────────────────────────────────
-function getTotalAssets()      { return (state.investments||[]).reduce((s,a)=>s+getAssetCurrentValue(a),0); }
-function getTotalLiabilities() { return (state.emi_loans||[]).reduce((s,l)=>s+toNum(l.outstanding||0),0); }
-function getNetWorth()         { return getTotalAssets() - getTotalLiabilities(); }
+// ─── Totals (Upgraded with personal loans) ───────────────────
+function getTotalAssets() {
+  const investments = (state.investments || []).reduce((s, a) => s + getAssetCurrentValue(a), 0);
+  // Money OWED TO you (given loans not yet collected)
+  const givenOutstanding = (state.loans || [])
+    .filter(l => l.type === 'given' && !l.collected)
+    .reduce((s, l) => s + toNum(l.amount), 0);
+  return investments + givenOutstanding;
+}
 
+function getTotalLiabilities() {
+  const emiLiabilities = (state.emi_loans || []).reduce((s, l) => s + toNum(l.outstanding || 0), 0);
+  // Money YOU OWE (taken loans not yet collected)
+  const takenOutstanding = (state.loans || [])
+    .filter(l => l.type === 'taken' && !l.collected)
+    .reduce((s, l) => s + toNum(l.amount), 0);
+  return emiLiabilities + takenOutstanding;
+}
+
+function getNetWorth() {
+  return getTotalAssets() - getTotalLiabilities();
+}
 /* ─────────────────────────────────────────────────────────────
    LOAN ANALYTICS HELPERS (reads state.loans from Common.js)
 ───────────────────────────────────────────────────────────── */
@@ -183,25 +201,32 @@ function renderWealthAssets(container) {
   const pnlPct        = totalInvested > 0 ? ((totalPnL/totalInvested)*100).toFixed(1) : 0;
   const pnlColor      = totalPnL >= 0 ? 'var(--emerald)' : 'var(--rose)';
 
+const givenOutstanding = (state.loans || []).filter(l => l.type === 'given' && !l.collected).reduce((s,l)=>s+toNum(l.amount),0);
+const takenOutstanding = (state.loans || []).filter(l => l.type === 'taken' && !l.collected).reduce((s,l)=>s+toNum(l.amount),0);
+const emiLiabilities = (state.emi_loans || []).reduce((s,l)=>s+toNum(l.outstanding||0),0);
+
   const summaryBar = `
     <div class="chart-card" style="margin-bottom:16px;">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:center;">
-        <div>
-          <div class="kpi-label">INVESTED</div>
-          <div class="kpi-value" style="color:var(--text);font-size:clamp(14px,2.5vw,20px);">${fmtINR(totalInvested)}</div>
-        </div>
-        <div>
-          <div class="kpi-label">CURRENT VALUE</div>
-          <div class="kpi-value" style="color:var(--teal);font-size:clamp(14px,2.5vw,20px);">${fmtINR(totalCurrent)}</div>
-        </div>
-        <div>
-          <div class="kpi-label">P&amp;L</div>
-          <div class="kpi-value" style="color:${pnlColor};font-size:clamp(14px,2.5vw,20px);">
-            ${totalPnL>=0?'+':''}${fmtINR(totalPnL)}
-            <span style="font-size:11px;">(${pnlPct}%)</span>
-          </div>
-        </div>
-      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+  <div>
+    <div class="kpi-label">INVESTMENTS</div>
+    <div style="font-family:var(--font-m);font-size:14px;font-weight:600;color:var(--emerald);">
+      ${fmtINR((state.investments||[]).reduce((s,a)=>s+getAssetCurrentValue(a),0))}
+    </div>
+  </div>
+  <div>
+    <div class="kpi-label">GIVEN LOANS (ASSET)</div>
+    <div style="font-family:var(--font-m);font-size:14px;font-weight:600;color:${givenOutstanding>=0?'var(--teal)':'var(--text-3)'};">
+      ${fmtINR(givenOutstanding)}
+    </div>
+  </div>
+  <div>
+    <div class="kpi-label">EMI + TAKEN LOANS</div>
+    <div style="font-family:var(--font-m);font-size:14px;font-weight:600;color:${emiLiabilities+takenOutstanding>0?'var(--rose)':'var(--text-3)'};">
+      ${fmtINR(emiLiabilities)} + ${fmtINR(takenOutstanding)}
+    </div>
+  </div>
+</div>
     </div>`;
 
   if (assets.length === 0) {
@@ -330,6 +355,26 @@ function renderWealthLiabilities(container) {
       </div>`;
     return;
   }
+  const personalTaken = (state.loans || []).filter(l => l.type === 'taken' && !l.collected);
+if (personalTaken.length > 0) {
+  container.innerHTML += `
+    <div class="section-heading" style="margin-top:24px;">
+      <div class="section-title"><span class="dot" style="background:var(--rose)"></span>Personal Loans (Taken)</div>
+      <button class="section-action" onclick="setTimeout(()=>showPage('loans'),150)">Manage →</button>
+    </div>
+    <div class="tx-card">
+      ${personalTaken.map(l => `
+        <div class="list-item">
+          <div class="tx-icon expense">📥</div>
+          <div>
+            <div class="list-item-name">${escapeHtml(l.person)}</div>
+            <div class="list-item-sub">Due: ${l.dueDate || 'N/A'} · ${l.category || 'Loan'}</div>
+          </div>
+          <div class="list-item-amount" style="color:var(--rose);">${fmtINR(l.amount)}</div>
+        </div>
+      `).join('')}
+    </div>`;
+}
 
   const cards = loans.map(l => {
     const pct = totalOutst > 0 ? ((toNum(l.outstanding)/totalOutst)*100).toFixed(1) : 0;
@@ -558,7 +603,7 @@ function renderWealthLoans(container) {
           <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Total people</span><span>${Object.keys(byPerson).length}</span></div>
           <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Total transactions</span><span>${s.totalLoans}</span></div>
         </div>
-        <button class="btn-submit" style="width:100%;margin-top:16px;padding:10px;font-size:13px;" onclick="showPage('loans');">Manage All Loans →</button>
+        
       </div>
       <div class="chart-card">
         <div class="chart-card-title"><span style="color:var(--emerald)">●</span> Given vs Taken by Person</div>
@@ -1854,3 +1899,4 @@ function switchToEssentialsGoals() {
 }
 
 window.toNum = window.toNum || function(v) { const n=parseFloat(v); return isNaN(n)?0:n; };
+window.renderWealthLoans = renderWealthLoans;
