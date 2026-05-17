@@ -3182,10 +3182,18 @@ async function autoBackupToDrive() {
     //setDataFolder(); 
     setGreeting();
     
-    window.addEventListener('DOMContentLoaded', () => {
+   window.addEventListener('DOMContentLoaded', () => {
+  console.log('DOMContentLoaded fired');
+  setTimeout(() => {
     const lastPage = localStorage.getItem('ledgerMate_lastPage') || 'dashboard';
-    showPage(lastPage);
-    });
+    console.log('Restoring page:', lastPage);
+    if (typeof showPage === 'function') {
+      showPage(lastPage);
+    } else {
+      console.error('showPage not defined');
+    }
+  }, 100);
+  });
   } catch (err) {
     console.error('Startup error', err);
   }
