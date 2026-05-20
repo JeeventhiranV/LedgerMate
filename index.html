@@ -236,11 +236,13 @@
       <button id="menuBtn" onclick="toggleSidebar()">☰</button>
       <div class="topbar-title">Ledger<span>Mate</span></div>
       <div class="topbar-actions">
-        <div style="position:relative; display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:4px 6px;">
+        <div style="display:none;">
+        <div style="position:relative; display:none; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:4px 6px;">
           <span style="font-size:11px; color:var(--text-3); font-family:var(--font-m);">ACC:</span>
           <select id="accFilter" style="background:none; border:none; font-size:12px; color:var(--text); outline:none; font-family:var(--font-b); cursor:pointer;" onchange="renderAll()">
             <option value="all">All</option>
           </select>
+        </div>
         </div>
         <!-- User Chip with dropdown -->
         <div style="position:relative;">

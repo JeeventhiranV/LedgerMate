@@ -49,11 +49,11 @@
   /* ══════════════════════════════════════════════════════
      PANEL SHELL
   ══════════════════════════════════════════════════════ */
-  function _renderPanel() {
+ function _renderPanel() {
     document.getElementById('adminPanelOverlay')?.remove();
 
     const overlay = document.createElement('div');
-    overlay.id    = 'adminPanelOverlay';
+    overlay.id = 'adminPanelOverlay';
     overlay.innerHTML = `
 <div id="adminPanel">
   <!-- HEADER -->
@@ -68,16 +68,16 @@
     <button onclick="window.LM_Admin.close()" class="modal-close" title="Close">✕</button>
   </div>
 
-  <!-- BODY -->
+  <!-- BODY with TOP TABS -->
   <div class="admin-body">
-    <!-- LEFT NAV -->
-    <nav class="admin-nav">
-      <button class="admin-nav-item active" data-tab="users"     onclick="window.LM_Admin.switchTab('users')">    👥 Users</button>
-      <button class="admin-nav-item"        data-tab="activity"  onclick="window.LM_Admin.switchTab('activity')"> 📋 Activity Log</button>
-      <button class="admin-nav-item"        data-tab="stats"     onclick="window.LM_Admin.switchTab('stats')">    📊 Statistics</button>
-      <button class="admin-nav-item"        data-tab="storage"   onclick="window.LM_Admin.switchTab('storage')">  💾 Storage</button>
+    <!-- TOP NAVIGATION (TABS) -->
+    <nav class="admin-tabs">
+      <button class="admin-nav-item active" data-tab="users"      onclick="window.LM_Admin.switchTab('users')">      👥 Users</button>
+      <button class="admin-nav-item"        data-tab="activity"   onclick="window.LM_Admin.switchTab('activity')">   📋 Activity Log</button>
+      <button class="admin-nav-item"        data-tab="stats"      onclick="window.LM_Admin.switchTab('stats')">      📊 Statistics</button>
+      <button class="admin-nav-item"        data-tab="storage"    onclick="window.LM_Admin.switchTab('storage')">    💾 Storage</button>
       <button class="admin-nav-item"        data-tab="appsettings" onclick="window.LM_Admin.switchTab('appsettings')">🔧 App Settings</button>
-      <button class="admin-nav-item"        data-tab="backup"    onclick="window.LM_Admin.switchTab('backup')">   🗄️ Backup</button>
+      <button class="admin-nav-item"        data-tab="backup"     onclick="window.LM_Admin.switchTab('backup')">     🗄️ Backup</button>
     </nav>
 
     <!-- CONTENT AREA -->
@@ -89,7 +89,7 @@
 `;
     document.body.appendChild(overlay);
     _switchTab('users');
-  }
+}
 
   /* ══════════════════════════════════════════════════════
      TAB SWITCHER
@@ -524,9 +524,45 @@
       selfRegistration : document.getElementById('as_selfReg')?.value === 'true',
       sessionTTL       : parseInt(document.getElementById('as_sessionTTL')?.value || '0') || 0
     };
-    localStorage.setItem('lm_app_settings', JSON.stringify(settings));
-    if (typeof showToast === 'function') showToast('✅ Settings saved!', 'success');
-    window.LM_UserStore.logActivity(window.LM_Auth.getCurrentUserId(), 'app_settings', 'Updated app settings');
+    localStorage.setItem('lm_app_settings', JSON.stringify(settings)); 
+  const newTheme = settings.theme; 
+  /* Apply immediately to both html and body */
+  document.documentElement.setAttribute('data-theme', newTheme);
+  document.body.setAttribute('data-theme', newTheme); 
+  /* Keep BOTH settings objects in sync (module-level + state) */
+  settings.theme = newTheme;
+  if (window.state) state.settings = { ...(state.settings || {}), theme: newTheme }; 
+  /* Update icon */
+  const iconValue = newTheme === 'dark' ? '🌙' : '☀️';
+  ['themeIcon','themeBtn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = iconValue;
+  }); 
+   const merged = { ...(state.settings || {}), ...settings, theme: settings.theme || state.settings?.theme || 'dark' };
+
+  /* Write to IDB: both keys so all read paths get the correct value */
+  if (db) {
+    try {
+      const t = db.transaction(['settings'], 'readwrite').objectStore('settings');
+      t.put({ key: 'appSettings', value: merged });
+      t.put({ key: 'meta',        value: merged });
+    } catch (e) {
+      console.warn('[LM] saveSettingsToStore IDB write failed:', e);
+    }
+  }
+
+  /* Always write to localStorage — primary theme source on startup */
+  localStorage.setItem('appSettings', JSON.stringify(merged));
+
+  /* Per-user scoped key */
+  const uid = window.LM_Auth?.getCurrentUserId?.();
+  if (uid) localStorage.setItem(`lm_u_${uid}_appSettings`, JSON.stringify(merged));
+
+  /* Keep state.settings current */
+  if (window.state) state.settings = merged;
+  settings = merged;
+  if (typeof showToast === 'function') showToast('✅ Settings saved!', 'success'); 
+  window.LM_UserStore.logActivity(window.LM_Auth.getCurrentUserId(), 'app_settings', 'Updated app settings');
   }
 
   /* ══════════════════════════════════════════════════════
