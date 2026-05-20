@@ -4,12 +4,52 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LedgerMate - Personal Finance</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0a0f1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<!-- ⚡ Inline theme – applied synchronously to prevent flash of wrong theme -->
+<script>
+  (function(){
+    try {
+      var theme = 'dark';
+      /* Try user-scoped key first (if session exists) */
+      var sess = localStorage.getItem('lm_session');
+      if (sess) {
+        var uid = JSON.parse(sess).userId;
+        var userRaw = uid ? localStorage.getItem('lm_u_' + uid + '_appSettings') : null;
+        if (userRaw) { theme = JSON.parse(userRaw).theme || 'dark'; }
+      }
+      /* Fallback to shared key */
+      if (!userRaw) {
+        var s = localStorage.getItem('appSettings');
+        if (s) theme = JSON.parse(s).theme || 'dark';
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+      /* body gets set after DOMContentLoaded */
+      document.addEventListener('DOMContentLoaded', function() {
+        document.body.setAttribute('data-theme', theme);
+        var icon = document.getElementById('themeIcon');
+        if (icon) icon.textContent = theme === 'dark' ? '🌙' : '☀️';
+      });
+    } catch(e) {}
+  })();
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="./css/common.css">
-<script  src="./libs/chart.umd.min.js"></script> 
+<link rel="stylesheet" href="./css/auth.css">
+<script src="./libs/chart.umd.min.js"></script> 
   <link rel="stylesheet" href="./css/style.css">
   <link rel="stylesheet" href="./css/Notes.css"> 
   <script src="./libs/tailwind.min.js"></script>
+  <!-- AppBus FIRST – event bus used by all modules -->
+  <script src="./js/Core/AppBus.js"></script>
+  <!-- Auth layer – MUST load before Common.js -->
+  <script src="./js/Auth/AuthManager.js"></script>
+  <script src="./js/Auth/UserStore.js"></script>
   <script src="./libs/chart.min.js"></script>
   <script src="./libs/jspdf.umd.min.js"></script>
   <script src="./libs/html2canvas.min.js"></script>
@@ -27,7 +67,62 @@
   </script>
 </head>
 <body>
-<div id="app">
+
+<!-- ─── PAGE LOAD BAR ────────────────────────────────── -->
+<div id="pageLoadBar"></div>
+
+<!-- ─── LOGIN SCREEN ──────────────────────────────────── -->
+<div id="loginScreen">
+  <div class="login-card">
+    <!-- Header -->
+    <div class="login-header">
+      <div class="login-logo-wrap">📒</div>
+      <div class="login-app-name">Ledger<em>Mate</em></div>
+      <div class="login-tagline">Personal Finance · Offline First</div>
+    </div>
+
+    <!-- Body -->
+    <div class="login-body">
+      <div class="login-greeting" id="loginGreeting">Welcome back 👋</div>
+      <div class="login-sub">Sign in to access your financial dashboard</div>
+
+      <!-- Error -->
+      <div id="loginError"></div>
+
+      <!-- Form -->
+      <form id="loginForm" autocomplete="on">
+        <div class="login-field">
+          <label class="login-label" for="loginUsername">Username</label>
+          <input id="loginUsername" class="form-input" type="text"
+            placeholder="Enter your username"
+            autocomplete="username" spellcheck="false">
+        </div>
+        <div class="login-field">
+          <label class="login-label" for="loginPassword">Password</label>
+          <div class="login-pw-wrap">
+            <input id="loginPassword" class="form-input" type="password"
+              placeholder="Enter your password"
+              autocomplete="current-password">
+            <button type="button" id="toggleLoginPw" class="login-pw-toggle" title="Show/hide password">👁</button>
+          </div>
+        </div>
+        <button type="submit" id="btnLogin" class="btn-submit">Sign In →</button>
+      </form>
+
+      <!-- First-run hint -->
+      <div class="login-hint" id="loginDefaultHint">
+        🔑 Default: <strong>admin</strong> / <strong>admin123</strong>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="login-footer">
+      🔒 All data stored offline on this device
+    </div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
 
   <!-- ─── SIDEBAR ─────────────────────────────────────── -->
   <div id="sidebarOverlay"></div>
@@ -36,65 +131,70 @@
       <div class="sidebar-logo-icon">📒</div>
       <div>
         <div class="sidebar-logo-text">LedgerMate</div>
-        <div class="sidebar-logo-sub">Jeeventhiran</div>
+        <div class="sidebar-logo-sub" id="sidebarUserName">Loading…</div>
       </div>
     </div>
 
     <div class="sidebar-section">
       <div class="sidebar-section-label">Overview</div>
-      <button class="sidebar-nav-item active" onclick="showPage('dashboard')">
+      <button class="sidebar-nav-item active" onclick="showPage('dashboard')" data-module="dashboard">
         <span class="nav-icon">📊</span> Dashboard
       </button>
-      <button class="sidebar-nav-item" onclick="showPage('transactions')">
+      <button class="sidebar-nav-item" onclick="showPage('transactions')" data-module="transactions">
         <span class="nav-icon">↕️</span> Transactions
       </button>
-      <button class="sidebar-nav-item" onclick="showPage('analytics')">
+      <button class="sidebar-nav-item" onclick="showPage('analytics')" data-module="analytics">
         <span class="nav-icon">📈</span> Analytics
       </button>
-      <button class="sidebar-nav-item" onclick="showPage('gold')">
+      <button class="sidebar-nav-item" onclick="showPage('gold')" data-module="gold">
      <span class="nav-icon">🏅</span> Gold Rates
       </button>
     </div>
      <div class="sidebar-section">
       <div class="sidebar-section-label">Wealth</div>
-      <button class="sidebar-nav-item" onclick="showPage('wealth')">
+      <button class="sidebar-nav-item" onclick="showPage('wealth')" data-module="wealth">
         <span class="nav-icon">📊</span> Wealth
       </button>
-      <button class="sidebar-nav-item" onclick="showPage('essentials')">
+      <button class="sidebar-nav-item" onclick="showPage('essentials')" data-module="essentials">
         <span class="nav-icon">🛡️</span> Essentials
       </button>
     </div>
 
     <div class="sidebar-section">
       <div class="sidebar-section-label">Manage</div> 
-      <button class="sidebar-nav-item" onclick="showPage('loans')">
+      <button class="sidebar-nav-item" onclick="showPage('loans')" data-module="loans">
         <span class="nav-icon">💰</span> Loans
       </button> 
-      <button class="sidebar-nav-item" id="openInvestments">
+      <button class="sidebar-nav-item" id="openInvestments" data-module="investments">
         <span class="nav-icon">📈</span> Investments
       </button>
-      <button class="sidebar-nav-item" id="openBudgets">
+      <button class="sidebar-nav-item" id="openBudgets" data-module="budgets">
         <span class="nav-icon">🎯</span> Budgets
       </button> 
-      <!-- <button class="sidebar-nav-item" id="openGoals">
-        <span class="nav-icon">🏆</span> Savings Goals
-      </button> -->
-      <button class="sidebar-nav-item" id="openTripPlannerBtn">
+      <button class="sidebar-nav-item" id="openTripPlannerBtn" data-module="trips">
         <span class="nav-icon">✈️</span> Trips
       </button>
         <button class="sidebar-nav-item" id="openMonthlySummary">
           <span class="nav-icon">📅</span> Monthly Summary
         </button>
-        <button class="sidebar-nav-item" onclick="showCredentialsVault()">
+        <button class="sidebar-nav-item" onclick="showCredentialsVault()" data-module="credentials">
           <span class="nav-icon">🔐</span> Credentials Vault
         </button>
-         <button class="sidebar-nav-item" onclick="showNotesModal();" id="openNotes1">
+         <button class="sidebar-nav-item" onclick="showNotesModal();" id="openNotes1" data-module="notes">
           <span class="nav-icon">📝</span> Notes
         </button>
         <button class="sidebar-nav-item" id="openDropdownManagerBtn">
           <span class="nav-icon">🔽</span> Dropdown Manager
         </button>
         
+    </div>
+
+    <!-- ─── ADMIN SECTION (shown only for admin role) ─── -->
+    <div class="sidebar-section" id="adminSidebarSection" style="display:none;">
+      <div class="sidebar-section-label">Administration</div>
+      <button class="sidebar-nav-item" onclick="window.LM_Admin?.show()">
+        <span class="nav-icon">⚙️</span> Admin Panel
+      </button>
     </div>
       
 
@@ -110,6 +210,11 @@
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
       <button class="sidebar-nav-item" id="clearData">
         <span class="nav-icon">🗑️</span> Clear All Data
+      </button>
+      <button class="sidebar-nav-item" id="btnLogout"
+        onclick="if(confirm('Sign out of LedgerMate?')) window.LM_Auth.logout();"
+        style="margin-top:8px; border-top:1px solid var(--border); color:var(--rose);">
+        <span class="nav-icon">🚪</span> Sign Out
       </button>
     </div>
   </br>
@@ -136,6 +241,25 @@
           <select id="accFilter" style="background:none; border:none; font-size:12px; color:var(--text); outline:none; font-family:var(--font-b); cursor:pointer;" onchange="renderAll()">
             <option value="all">All</option>
           </select>
+        </div>
+        <!-- User Chip with dropdown -->
+        <div style="position:relative;">
+          <div class="topbar-user-chip" id="topbarUserChipWrap" onclick="document.getElementById('userDropdownMenu').classList.toggle('open')" title="Account">
+            <div class="topbar-user-avatar" id="topbarUserChip">A</div>
+            <div class="topbar-user-info">
+              <span id="topbarUserName">User</span>
+              <span id="topbarUserRole">👤 User</span>
+            </div>
+          </div>
+          <div class="topbar-user-menu" id="userDropdownMenu">
+            <button class="topbar-user-menu-item" onclick="window.LM_Admin?.show(); document.getElementById('userDropdownMenu').classList.remove('open')">
+              ⚙️ Admin Panel
+            </button>
+            <div class="topbar-user-menu-divider"></div>
+            <button class="topbar-user-menu-item" onclick="document.getElementById('userDropdownMenu').classList.remove('open'); if(confirm('Sign out?')) window.LM_Auth.logout();" style="color:var(--rose)">
+              🚪 Sign Out
+            </button>
+          </div>
         </div>
          <button id="openDriveManagerBtn"
   class="icon-btn"
@@ -867,8 +991,10 @@ function showPage(page) {
   }
   // else: leave the last main tab highlighted
 
-  // 4. Save last page
-  localStorage.setItem('ledgerMate_lastPage', page);
+  // 4. Save last page (user-scoped)
+  const _lmUid = window.LM_Auth?.getCurrentUserId() || 'default';
+  localStorage.setItem(`lm_u_${_lmUid}_lastPage`, page);
+  localStorage.setItem('ledgerMate_lastPage', page); // legacy fallback
 
   // 5. Page‑specific rendering – wrapped in try/catch so it never breaks the bottom nav
   try {
@@ -1006,7 +1132,9 @@ function setGreeting() {
 
 </script>
   <script  src="./js/Common/Drive.js"></script>  
-  <script  src="./js/Common.js"></script> 
+  <script  src="./js/Common.js"></script>
+  <!-- StorePatch MUST come right after Common.js to wrap put/getAll -->
+  <script src="./js/Auth/StorePatch.js"></script>
   <script src="./js/Wealth/Wealth.js"></script>
   <script src="./js/Wealth/Essentials.js"></script>
   <script src="./js/Investments.js"></script>
@@ -1019,8 +1147,74 @@ function setGreeting() {
   <script src="./js/Common/MonthlySummary.js"></script>
   <script src="./js/Common/Cred.js"></script>
   <script src="./js/Common/Notes.js"></script>
+  <!-- Admin Panel -->
+  <script src="./js/Admin/AdminPanel.js"></script>
 
 <!-- Modals / Hidden UI -->
       <div id="modals"></div>
+
+<!-- ─── AUTH BOOTSTRAP ─────────────────────────────────────
+     Runs after ALL scripts loaded. Checks session and
+     either shows login screen or starts the app.
+─────────────────────────────────────────────────────────── -->
+<script>
+(function() {
+  /* ── Page load progress bar ─────────────────────── */
+  const bar = document.getElementById('pageLoadBar');
+  function showBar() { if (bar) { bar.className = 'active'; } }
+  function hideBar() { if (bar) { bar.className = 'done'; setTimeout(() => { bar.className = ''; bar.style.width = '0'; }, 700); } }
+
+  /* ── Set greeting on login screen ──────────────── */
+  const h  = new Date().getHours();
+  const gr = h < 12 ? 'Good morning ☀️' : h < 17 ? 'Good afternoon 🌤️' : 'Good evening 🌙';
+  const grEl = document.getElementById('loginGreeting');
+  if (grEl) grEl.textContent = gr + ', welcome back 👋';
+
+  /* ── Close user dropdown on outside click ───────── */
+  document.addEventListener('click', function(e) {
+    const chip = document.getElementById('topbarUserChipWrap');
+    const menu = document.getElementById('userDropdownMenu');
+    if (menu && chip && !chip.contains(e.target)) menu.classList.remove('open');
+  });
+
+  /* ── Hide default-credentials hint post first login */
+  const users = window.LM_UserStore?.getUsers() || [];
+  const hintEl = document.getElementById('loginDefaultHint');
+  if (users.some(u => u.loginCount > 0) && hintEl) hintEl.style.display = 'none';
+
+  /* ── Patch LM_StartApp to emit events + load bar ── */
+  const _origStartApp = window.LM_StartApp;
+  window.LM_StartApp = async function() {
+    showBar();
+    try {
+      await _origStartApp();
+    } finally {
+      hideBar();
+    }
+    /* Apply store patch after DB opens */
+    if (typeof window.LM_applyStorePatch === 'function') window.LM_applyStorePatch();
+    /* Restore last-visited page */
+    setTimeout(() => {
+      if (typeof window._LM_restoreLastPage === 'function') window._LM_restoreLastPage();
+    }, 120);
+  };
+
+  /* ── Register service worker ──────────────────── */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js', { scope: './' })
+        .then(r => console.log('[SW] Registered, scope:', r.scope))
+        .catch(e => console.warn('[SW] Registration failed:', e));
+    });
+  }
+
+  /* ── Bootstrap auth on DOMContentLoaded ─────────── */
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.LM_Auth && typeof window.LM_Auth.init === 'function') {
+      window.LM_Auth.init();
+    }
+  });
+})();
+</script>
 </body>
 </html>

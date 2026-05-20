@@ -449,13 +449,20 @@ document.getElementById('notifPanel')?.addEventListener('click', function(e) {
   }
 
   // ========== CHECK ALL NOTIFICATIONS (time‑gated, cooldown applied) ==========
-  async function checkAllNotifications() {
+    async function checkAllNotifications() {
+    /* ── Guards: don't run before login or DB is ready ── */
+    if (window.LM_Auth && !window.LM_Auth.isLoggedIn()) return;
+    if (!window.db) {
+      /* DB not open yet – retry; this path is rare post-login */
+      setTimeout(checkAllNotifications, 1000);
+      return;
+    }
     try {
       const result = await getAll('reminders');
       state.reminders = Array.isArray(result) ? result.filter(r => r && typeof r === "object") : [];
     } catch (e) {
-      console.warn('DB not ready, retrying in 1s', e);
-      setTimeout(checkAllNotifications, 1000);
+      console.warn('Notifications: DB read failed, retrying in 5s', e);
+      setTimeout(checkAllNotifications, 5000);
       return;
     }
 
@@ -584,11 +591,15 @@ document.getElementById('notifPanel')?.addEventListener('click', function(e) {
   }
 
   // ========== INIT ==========
-  // Idempotent initialisation
+  // Idempotent initialisation – never auto-starts DB polling here.
+  // checkAllNotifications is called by LM_StartApp after DB is open.
   if (!window.__notifInit) {
     wireNotifUIonce();
     window.checkAllNotifications = checkAllNotifications;
-    setTimeout(checkAllNotifications, 1500);
+    /* Listen for app:ready event as a secondary trigger (e.g. page refresh while logged in) */
+    document.addEventListener('lm:app:ready', () => {
+      checkAllNotifications();
+    });
     window.__notifInit = true;
   }
 

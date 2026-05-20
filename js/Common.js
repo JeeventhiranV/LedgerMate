@@ -37,27 +37,23 @@ function arrayToCSV(rows){
 let db = null;
 async function openDB() {
     return new Promise((resolve, reject) => {
-        const DB_NAME = "ledgermate_db";
-        const DB_VERSION = 13; // bump this when schema changes
+        const DB_NAME    = "ledgermate_db";
+        const DB_VERSION = 13;
 
         const req = indexedDB.open(DB_NAME, DB_VERSION);
 
         req.onerror = (e) => {
             console.error("❌ IndexedDB error:", e.target.error);
-            showToast(`❌ DB error: ${e.target.error}`, "error");
+            if (typeof showToast === 'function') showToast(`❌ DB error: ${e.target.error}`, "error");
             reject(e.target.error);
         };
 
         req.onsuccess = (e) => {
             db = e.target.result;
-           // console.log("✅ IndexedDB connected");
-            showToast("✅ IndexedDB connected!", "success");
-
-            // Handle future errors
+            window.db = db;          /* expose to StorePatch + other modules */
             db.onerror = (err) => {
                 console.error("DB runtime error:", err.target.error);
             };
-
             resolve(db);
         };
 
@@ -113,18 +109,33 @@ async function openDB() {
         };
     });
 }
+/* ─── Expose key functions for cross-module access ── */
+window.LM_resetDB = function() {
+  try { if (db) { db.close(); } } catch {}
+  db        = null;
+  window.db = null;
+  window.LM_DB_READY = false;
+};
+window.mergeRestore       = mergeRestore;
+window.fullImportJSONText = fullImportJSONText;
+window.FinalJson          = FinalJson;
 function tx(store, mode='readonly'){
+  if (!db) throw new Error('[LM] IndexedDB not ready – openDB() not yet called');
   return db.transaction(store, mode).objectStore(store);
 }
 async function getAll(storeName){
+  if (!db) return [];          /* DB not yet open – return empty silently */
   return new Promise((res,rej)=>{
-    const store = tx(storeName);
-    const req = store.getAll();
-    req.onsuccess = ()=>res(req.result||[]);
-    req.onerror = ()=>rej(req.error);
+    try {
+      const store = tx(storeName);
+      const req = store.getAll();
+      req.onsuccess = ()=>res(req.result||[]);
+      req.onerror = ()=>rej(req.error);
+    } catch(e) { rej(e); }
   });
 }
 async function put(storeName, obj){
+  if (!db) throw new Error('[LM] IndexedDB not ready');
   return new Promise((res,rej)=>{
     const t = db.transaction(storeName,'readwrite');
     const s = t.objectStore(storeName);
@@ -134,6 +145,7 @@ async function put(storeName, obj){
   });
 }
 async function del(storeName, key){
+  if (!db) throw new Error('[LM] IndexedDB not ready');
   return new Promise((res,rej)=>{
     const t = db.transaction(storeName,'readwrite');
     const s = t.objectStore(storeName);
@@ -195,7 +207,11 @@ async function seedDefaults(){
   // put default settings if missing
   const settingsAll = await getAll('settings');
   const hasMeta = settingsAll.find(x=>x.key==='meta');
-  if (!hasMeta) await put('settings',{key:'meta', value:{theme:'dark', kpiRange:90}});
+  if (!hasMeta) {
+    const defaultSettings = { theme: 'dark', kpiRange: 90 };
+    await put('settings',{ key:'meta',        value: defaultSettings });
+    await put('settings',{ key:'appSettings', value: defaultSettings });
+  }
 }
 
 async function loadAllFromDB(){
@@ -210,7 +226,20 @@ if (dd.length) {
   state.dropdowns = {id:'main',accounts:[],categories:[],persons:[],reminderTypes:[],recurrences:[]}; 
 }
  // state.dropdowns = dd.length?dd[0]:{id:'main',accounts:[],categories:[],persons:[],reminderTypes:[],recurrences:[]};
-  const settingsAll = await getAll('settings'); state.settings = (settingsAll.find(x=>x.key==='meta')||{value:{}}).value;
+  const settingsAll = await getAll('settings');
+  const metaRec = settingsAll.find(x=>x.key==='meta');
+  const appRec  = settingsAll.find(x=>x.key==='appSettings');
+  /* Prefer appSettings (updated by toggleTheme) over meta */
+  const loadedSettings = appRec?.value || metaRec?.value || {};
+  state.settings = loadedSettings;
+  /* Sync module-level settings variable */
+  settings = { ...loadedSettings };
+  /* Re-apply theme immediately after loading from DB */
+  const theme = settings.theme || 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  document.body.setAttribute('data-theme', theme);
+  const iconEl = document.getElementById('themeIcon');
+  if (iconEl) iconEl.textContent = theme === 'dark' ? '🌙' : '☀️';
   state.users = await getAll('users');
   state.savings = await getAll('savings');
   state.investments = await getAll('investments');
@@ -256,7 +285,24 @@ function autoSortDropdowns(data) {
 function bindUI(){
   document.getElementById('btnSetFolder').onclick = setDataFolder;
   document.getElementById('btnFullExport').onclick = fullExport;
-  document.getElementById('btnImport').onclick = ()=>document.getElementById('fileImport')?.click();
+
+  /* Import – bind to the correct file input ID (#importFile in HTML) */
+  const importFileEl = document.getElementById('importFile') || document.getElementById('fileImport');
+  document.getElementById('btnImport').onclick = () => importFileEl?.click();
+  if (importFileEl && !importFileEl.dataset.bound) {
+    importFileEl.dataset.bound = '1';
+    importFileEl.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const txt = await file.text();
+      if (file.name.endsWith('.csv')) {
+        await importCSVText(txt);
+      } else {
+        await fullImportJSONText(txt, 'Manual');
+      }
+      e.target.value = ''; /* reset so same file can be re-imported */
+    });
+  }
   // document.getElementById('kpiRange').onchange = onKpiRangeChange;
   //document.getElementById('btnQuickAdd').onclick = () => openAddTransactionModal();
   document.getElementById('fabAddTx').onclick = () => openAddTransactionModal();
@@ -1415,12 +1461,18 @@ function showSimpleModal(title, html) {
 // ----------------------------
 // Renderers
 // ----------------------------
+let _renderAllTimer = null;
 function renderAll(){
+  /* Debounce: collapse rapid successive calls into one 60ms render */
+  if (_renderAllTimer) { clearTimeout(_renderAllTimer); }
+  _renderAllTimer = setTimeout(_doRenderAll, 60);
+}
+function _doRenderAll(){
+  _renderAllTimer = null;
   renderDropdowns();
   renderKPIs();
   renderCharts();
   refreshRecentList();
-  //renderDropdownManager();
   renderHeatmap();
   checkBudgetAlerts();
   //renderNotifications();
@@ -1430,15 +1482,20 @@ function renderAll(){
 
 function renderDropdowns(){
   const sel = document.getElementById('accountFilter');
-  sel.innerHTML = '<option value="all">All Accounts</option>' + state.dropdowns.accounts.map(a=>`<option value="${a}">${a}</option>`).join('');
+  if (!sel) return;
+  sel.innerHTML = '<option value="all">All Accounts</option>' +
+    (state.dropdowns?.accounts || []).map(a=>`<option value="${a}">${a}</option>`).join('');
 }
 function parseKpiRange(){
-  const v = document.getElementById('kpiRange').value;
+  const el = document.getElementById('kpiRange');
+  if (!el) return 30;
+  const v = el.value;
   if (v==='custom'){
-    const from = document.getElementById('customFrom').value;
-    const to = document.getElementById('customTo').value;
+    const from = document.getElementById('customFrom')?.value;
+    const to   = document.getElementById('customTo')?.value;
     if (!from||!to) return 30;
-    const diff = (new Date(to)-new Date(from))/(24*3600*1000)+1; return Math.max(1,Math.floor(diff));
+    const diff = (new Date(to)-new Date(from))/(24*3600*1000)+1;
+    return Math.max(1,Math.floor(diff));
   }
   return Number(v);
 }
@@ -1510,6 +1567,7 @@ function renderCashflow(){
 
 function renderHeatmap() {
   const grid = document.getElementById('heatmap');
+  if (!grid) return;
   grid.innerHTML = '';
 
   const days = 30;
@@ -1537,10 +1595,15 @@ function renderHeatmap() {
 }
 
 function refreshRecentList() {
-  const q = document.getElementById('searchTx').value.toLowerCase().trim();
-  const list = document.getElementById('recentList');
+  const searchEl = document.getElementById('searchTx');
+  const listEl   = document.getElementById('recentList');
+  const accEl    = document.getElementById('accountFilter');
+  if (!listEl) return;
+
+  const q   = searchEl?.value?.toLowerCase?.()?.trim() || '';
+  const list = listEl;
   list.innerHTML = '';
-  const acc = document.getElementById('accountFilter').value;
+  const acc = accEl?.value || 'all';
 const today = new Date();
   const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const isSameDay = (d1, d2) => startOfDay(d1).getTime() === startOfDay(d2).getTime();
@@ -1883,61 +1946,32 @@ let activeToasts = 0;  // Count active toasts
 const MAX_TOASTS = 2;  //  Max toasts visible at a time
 
 function showToast(message, type = 'info', duration = 3000) {
-  toastQueue.push({ message, type, duration });
-  processToastQueue();
-}
-function processToastQueue() {
-  if (activeToasts >= MAX_TOASTS || toastQueue.length === 0) return;
-
-  const { message, type, duration } = toastQueue.shift();
-  activeToasts++;
-
-  // Toast colors (only background)
-  const colors = {
-    success: 'background:#059669',
-    error:   'background:#dc2626',
-    warning: 'background:#f59e0b;color:black',
-    info:    'background:#0284c7',
-  };
-
-  // Create container if not exists – rely on CSS for positioning, gap, and max-height
+  /* Ensure container exists */
   let container = document.getElementById('toastContainer');
   if (!container) {
     container = document.createElement('div');
     container.id = 'toastContainer';
-    // only fixed + flex-col, all positioning comes from CSS
-    container.className = 'fixed z-[9999] flex flex-col';
     document.body.appendChild(container);
   }
 
-  // Create toast element
   const toast = document.createElement('div');
-  toast.className = `
-    max-w-xs px-4 py-3 rounded-lg shadow-lg font-medium
-    transition-all transform duration-300 ease-out opacity-0 translate-x-6
-  `;
-  toast.textContent = message;
-  toast.setAttribute('style', colors[type] || colors.info);   // only background color
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span>${message}</span>`;
 
   container.appendChild(toast);
 
-  // Animate in
-  requestAnimationFrame(() => {
-    toast.classList.remove('opacity-0', 'translate-x-6');
-    toast.classList.add('opacity-100', 'translate-x-0');
-  });
+  /* Animate in */
+  requestAnimationFrame(() => toast.classList.add('show'));
 
-  // Auto-remove after duration
-  setTimeout(() => {
-    toast.classList.remove('opacity-100', 'translate-x-0');
-    toast.classList.add('opacity-0', 'translate-x-6');
-    setTimeout(() => {
-      toast.remove();
-      activeToasts--;
-      processToastQueue();
-    }, 300);
-  }, duration);
+  /* Auto-remove */
+  const remove = () => {
+    toast.classList.add('toast-out');
+    setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 250);
+  };
+  const timer = setTimeout(remove, duration);
+  toast.addEventListener('click', () => { clearTimeout(timer); remove(); });
 }
+function processToastQueue() {} /* no-op – kept for backward compat */
 
 // ----------------------------
 // Transaction modals
@@ -2264,45 +2298,108 @@ async function fullExport() {
 async function fullImportJSONText(txt, source = "Unknown"){
   try{
     const data = JSON.parse(txt);
-    // simple merge strategy: clear existing stores and replace - preserve ids
-    // For zero data loss, user should ensure this is the desired action.
-    await clearAllStores();
-    for (const t of (data.transactions||[])) await put('transactions', t);
-    for (const b of (data.budgets||[])) await put('budgets', b);
-    for (const l of (data.loans||[])) await put('loans', l);
-    for (const r of (data.reminders||[])) await put('reminders', r);
-    if (data.dropdowns) await put('dropdowns', data.dropdowns);
-    if (data.settings) await put('settings', {key:'meta', value:data.settings});
-    if (data.users) for (const u of data.users) await put('users', u);
-    if (data.savings) for (const s of data.savings) await put('savings', s);
-    if (data.investments) for (const inv of data.investments) await put('investments', inv);
-    if (data.trips) for (const trip of data.trips) await put('trips', trip);
-    if (data.routes) for (const route of data.routes) await put('trip_routes', route);
-    if (data.credentials) for (const cred of data.credentials) await put('credentials', cred);
-    if (data.notes) for (const note of data.notes) await put('notes', note);
-    if (data.note_folders) for (const folder of data.note_folders) await put('note_folders', folder);
-    if (data.note_attachments) for (const attachment of data.note_attachments) await put('note_attachments', attachment);
-    if (data.note_versions) for (const version of data.note_versions) await put('note_versions', version);
-    if (data.audit_logs) for (const log of data.audit_logs) await put('audit_logs', log);
-    if (data.emi_loans) for (const loan of data.emi_loans) await put('emi_loans', loan);
-    if (data.net_worth_snapshots) for (const snapshot of data.net_worth_snapshots) await put('net_worth_snapshots', snapshot);
-    if (data.allocation_targets) for (const target of data.allocation_targets) await put('allocation_targets', target);
-    if (data.sip_plan) for (const plan of data.sip_plan) await put('sip_plan', plan);
-    if (data.essentials_settings) for (const [key, value] of Object.entries(data.essentials_settings)) await put('essentials_settings', { key, value });
 
-    if(source!="Drive"){
-    await loadAllFromDB(); 
-    renderAll(); 
-    showToast('Import complete', 'success');
+    /* Clear only the current user's data (not other users') */
+    await clearAllStores();
+
+    /* Restore all data stores */
+    for (const t of (data.transactions||[]))        await put('transactions', t);
+    for (const b of (data.budgets||[]))              await put('budgets', b);
+    for (const l of (data.loans||[]))               await put('loans', l);
+    for (const r of (data.reminders||[]))           await put('reminders', r);
+    if (data.dropdowns)                             await put('dropdowns', data.dropdowns);
+    if (data.settings)                              await put('settings', {key:'meta', value:data.settings});
+    if (data.users)       for (const u of data.users)                   await put('users', u);
+    if (data.savings)     for (const s of data.savings)                 await put('savings', s);
+    if (data.investments) for (const inv of data.investments)           await put('investments', inv);
+    if (data.trips)       for (const trip of data.trips)                await put('trips', trip);
+    if (data.routes)      for (const route of data.routes)              await put('trip_routes', route);
+    if (data.credentials) for (const cred of data.credentials)          await put('credentials', cred);
+    if (data.notes)       for (const note of data.notes)                await put('notes', note);
+    if (data.note_folders)      for (const f of data.note_folders)      await put('note_folders', f);
+    if (data.note_attachments)  for (const a of data.note_attachments)  await put('note_attachments', a);
+    if (data.note_versions)     for (const v of data.note_versions)     await put('note_versions', v);
+    if (data.audit_logs)        for (const lg of data.audit_logs)       await put('audit_logs', lg);
+    if (data.emi_loans)         for (const el of data.emi_loans)        await put('emi_loans', el);
+    if (data.net_worth_snapshots) for (const s of data.net_worth_snapshots) await put('net_worth_snapshots', s);
+    if (data.allocation_targets)  for (const t of data.allocation_targets)  await put('allocation_targets', t);
+    if (data.sip_plan)            for (const p of data.sip_plan)             await put('sip_plan', p);
+    if (data.essentials_settings) {
+      for (const [key, value] of Object.entries(data.essentials_settings))
+        await put('essentials_settings', { key, value });
     }
-   
-  }catch(err){ showToast('Import failed: '+err.message, 'error'); }
+
+    /* ── Restore appSettings / theme ─────────────────── */
+    if (data.appSettings && typeof data.appSettings === 'object') {
+      Object.assign(settings, data.appSettings);
+      localStorage.setItem('appSettings', JSON.stringify(settings));
+      const uid = window.LM_Auth?.getCurrentUserId?.();
+      if (uid) localStorage.setItem(`lm_u_${uid}_appSettings`, JSON.stringify(settings));
+      /* Apply restored theme immediately */
+      const theme = settings.theme || 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+      document.body.setAttribute('data-theme', theme);
+      const iconValue = theme === 'dark' ? '🌙' : '☀️';
+      const icon = document.getElementById('themeIcon');
+      if (icon) icon.textContent = iconValue;
+    }
+
+    if(source !== "Drive"){
+      await loadAllFromDB();
+      renderAll();
+      showToast('✅ Import complete', 'success');
+    }
+  } catch(err) {
+    console.error('[LM] Import failed:', err);
+    showToast('❌ Import failed: ' + err.message, 'error');
+  }
 }
 
 async function clearAllStores(){
-  const stores = ['transactions','budgets','loans','reminders','dropdowns','settings','users','savings','investments','trips','trip_routes','credentials','audit_logs','notes','note_folders','note_attachments','note_versions','emi_loans','net_worth_snapshots','allocation_targets','sip_plan','essentials_settings'];
+  const profileId = window.LM_Auth?.getCurrentUserId?.() || null;
+  const stores = [
+    'transactions','budgets','loans','reminders','savings','investments',
+    'trips','trip_routes','credentials','audit_logs','notes','note_folders',
+    'note_attachments','note_versions','emi_loans','net_worth_snapshots',
+    'allocation_targets','sip_plan','essentials_settings'
+  ];
+
   for (const s of stores){
-    await new Promise((res,rej)=>{ const t = db.transaction(s,'readwrite'); const o = t.objectStore(s); const r=o.clear(); r.onsuccess=res; r.onerror=rej; });
+    if (!db || !db.objectStoreNames.contains(s)) continue;
+    if (profileId) {
+      /* Delete only current user's records */
+      await new Promise((res, rej) => {
+        const t   = db.transaction(s, 'readwrite');
+        const sto = t.objectStore(s);
+        const req = sto.openCursor();
+        req.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            if (!cursor.value.profile || cursor.value.profile === profileId) cursor.delete();
+            cursor.continue();
+          } else { res(); }
+        };
+        req.onerror = () => rej(req.error);
+        t.oncomplete = res;
+      });
+    } else {
+      /* Legacy: clear whole store */
+      await new Promise((res, rej) => {
+        const t = db.transaction(s, 'readwrite');
+        const r = t.objectStore(s).clear();
+        r.onsuccess = res; r.onerror = rej;
+      });
+    }
+  }
+
+  /* Also clear shared stores (dropdowns, settings) if needed */
+  for (const s of ['dropdowns', 'settings']){
+    if (!db || !db.objectStoreNames.contains(s)) continue;
+    await new Promise((res, rej) => {
+      const t = db.transaction(s, 'readwrite');
+      const r = t.objectStore(s).clear();
+      r.onsuccess = res; r.onerror = rej;
+    });
   }
 }
 
@@ -2381,65 +2478,89 @@ function packSnapshot(metaExtra = {}) {
 }
 
 function validateSnapshot(payload) {
-  const ok =
-    payload && payload._type === 'LedgerMateBackup' &&
-    typeof payload._schema === 'number' &&
-    Array.isArray(payload.transactions) &&
-    Array.isArray(payload.budgets) &&
-    Array.isArray(payload.loans) &&
-    Array.isArray(payload.reminders) &&
-    Array.isArray(payload.users) &&
-    Array.isArray(payload.savings) &&
-    Array.isArray(payload.investments) &&
-    typeof payload.dropdowns === 'object' &&
-    typeof payload.settings === 'object';
-  return ok;
+  /* Accept both the strict packSnapshot format (_type:'LedgerMateBackup')
+     and the looser FinalJson / AdminPanel export format. */
+  if (!payload || typeof payload !== 'object') return false;
+
+  /* Strict format (auto-backup / packSnapshot) */
+  if (payload._type === 'LedgerMateBackup') {
+    return typeof payload._schema === 'number' &&
+           Array.isArray(payload.transactions);
+  }
+
+  /* Loose format (FinalJson / AdminPanel export / user manual export) */
+  return Array.isArray(payload.transactions) ||
+         Array.isArray(payload.budgets)      ||
+         Array.isArray(payload.savings)      ||
+         Array.isArray(payload.investments);
 }
  
 // Upserts by `id` when present; otherwise appends. Never clears stores.
 async function mergeRestore(payload) {
-  if (!validateSnapshot(payload)) throw new Error('Invalid snapshot');
+  if (!validateSnapshot(payload)) throw new Error('Invalid or unrecognised backup format.');
+  if (!db) throw new Error('Database not ready. Please log in first.');
 
   const upsertList = async (store, arr) => {
+    if (!Array.isArray(arr)) return;
     for (const item of arr) {
-      if (item && item.id != null) {
-        await put(store, item);
-      } else {
-        // generate id if missing
-        await put(store, { id: uid(store.slice(0,2)), ...item });
+      if (!item || typeof item !== 'object') continue;
+      try {
+        if (item.id != null) {
+          await put(store, item);
+        } else {
+          await put(store, { id: uid(store.slice(0, 3)), ...item });
+        }
+      } catch (e) {
+        console.warn(`[mergeRestore] Failed to write to ${store}:`, e);
       }
     }
   };
 
-  await upsertList('transactions', payload.transactions || []);
-  await upsertList('budgets',      payload.budgets || []);
-  await upsertList('loans',        payload.loans || []);
-  await upsertList('reminders',    payload.reminders || []);
-  if (payload.dropdowns) await put('dropdowns', payload.dropdowns);
-  if (payload.settings)  await put('settings',  { key: 'meta', value: payload.settings });
-  await upsertList('users',        payload.users || []);
-  await upsertList('savings',      payload.savings || []);
-  await upsertList('investments',  payload.investments || []);
-  await upsertList('trips',        payload.trips || []);
-  await upsertList('trip_routes',  payload.routes || []);
-  await upsertList('credentials',  payload.credentials || []);
-  await upsertList('notes',        payload.notes || []);
-  await upsertList('note_folders', payload.note_folders || []);
-  await upsertList('note_attachments', payload.note_attachments || []);
-  await upsertList('note_versions', payload.note_versions || []);
-  await upsertList('audit_logs',   payload.audit_logs || []);
-  await upsertList('emi_loans',    payload.emi_loans || []);
+  await upsertList('transactions',        payload.transactions || []);
+  await upsertList('budgets',             payload.budgets || []);
+  await upsertList('loans',               payload.loans || []);
+  await upsertList('reminders',           payload.reminders || []);
+  if (payload.dropdowns && typeof payload.dropdowns === 'object')
+    await put('dropdowns', payload.dropdowns);
+  if (payload.settings && typeof payload.settings === 'object')
+    await put('settings', { key: 'meta', value: payload.settings });
+  await upsertList('users',               payload.users || []);
+  await upsertList('savings',             payload.savings || []);
+  await upsertList('investments',         payload.investments || []);
+  await upsertList('trips',               payload.trips || []);
+  await upsertList('trip_routes',         payload.routes || payload.trip_routes || []);
+  await upsertList('credentials',         payload.credentials || []);
+  await upsertList('notes',               payload.notes || []);
+  await upsertList('note_folders',        payload.note_folders || []);
+  await upsertList('note_attachments',    payload.note_attachments || []);
+  await upsertList('note_versions',       payload.note_versions || []);
+  await upsertList('audit_logs',          payload.audit_logs || []);
+  await upsertList('emi_loans',           payload.emi_loans || []);
   await upsertList('net_worth_snapshots', payload.net_worth_snapshots || []);
-  await upsertList('allocation_targets', payload.allocation_targets || []);
-  await upsertList('sip_plan', payload.sip_plan || []);
-  if (payload.essentials_settings) {
+  await upsertList('allocation_targets',  payload.allocation_targets || []);
+  await upsertList('sip_plan',            payload.sip_plan || []);
+
+  if (payload.essentials_settings && typeof payload.essentials_settings === 'object') {
     for (const [key, value] of Object.entries(payload.essentials_settings)) {
-      await put('essentials_settings', { key, value });
+      try { await put('essentials_settings', { key, value }); } catch {}
     }
   }
 
-  // refresh in-memory
-  await loadAllFromDB(); // you already have this; used widely in the app
+  /* ── Restore appSettings / theme ────────────────────── */
+  if (payload.appSettings && typeof payload.appSettings === 'object') {
+    Object.assign(settings, payload.appSettings);
+    localStorage.setItem('appSettings', JSON.stringify(settings));
+    const userId = window.LM_Auth?.getCurrentUserId?.();
+    if (userId) localStorage.setItem(`lm_u_${userId}_appSettings`, JSON.stringify(settings));
+    const theme = settings.theme || 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    document.body.setAttribute('data-theme', theme);
+    const icon = document.getElementById('themeIcon');
+    if (icon) icon.textContent = theme === 'dark' ? '🌙' : '☀️';
+  }
+
+  /* ── Refresh in-memory state ─────────────────────────── */
+  if (db) await loadAllFromDB();
 }
 
 // ---- Write targets ----
@@ -2652,7 +2773,20 @@ async function voiceAddTransaction(){
 // ----------------------------
 // Misc helpers
 // ----------------------------
-async function saveSettings(){ await put('settings',{key:'meta', value:state.settings}); }
+async function saveSettings(){
+  const merged = { ...(state.settings || {}), ...settings };
+  state.settings = merged;
+  settings = merged;
+  if (db) {
+    try {
+      await put('settings', { key:'meta',        value: merged });
+      await put('settings', { key:'appSettings', value: merged });
+    } catch(e) { console.warn('[LM] saveSettings failed:', e); }
+  }
+  localStorage.setItem('appSettings', JSON.stringify(merged));
+  const uid = window.LM_Auth?.getCurrentUserId?.();
+  if (uid) localStorage.setItem(`lm_u_${uid}_appSettings`, JSON.stringify(merged));
+}
 
 
 function onKpiRangeChange(e) {
@@ -2671,29 +2805,53 @@ function onKpiRangeChange(e) {
 }
  
  function toggleTheme() {
-  const currentTheme = document.body.getAttribute('data-theme') || 'dark';
+  /* Read from documentElement (html) — always the authoritative source */
+  const currentTheme = document.documentElement.getAttribute('data-theme') ||
+                       document.body.getAttribute('data-theme') || 'dark';
   const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
 
+  /* Apply immediately to both html and body */
+  document.documentElement.setAttribute('data-theme', newTheme);
   document.body.setAttribute('data-theme', newTheme);
+
+  /* Keep BOTH settings objects in sync (module-level + state) */
   settings.theme = newTheme;
+  if (window.state) state.settings = { ...(state.settings || {}), theme: newTheme };
 
-  // ✅ Safe update (supports both structures)
-  const icon = document.getElementById('themeIcon');
-  const btn = document.getElementById('themeBtn');
-
+  /* Update icon */
   const iconValue = newTheme === 'dark' ? '🌙' : '☀️';
-
-  if (icon) icon.textContent = iconValue;
-  else if (btn) btn.textContent = iconValue;
+  ['themeIcon','themeBtn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = iconValue;
+  });
 
   saveSettingsToStore();
 }
-function saveSettingsToStore() {
-  const tx = db.transaction(['settings'], 'readwrite').objectStore('settings');
-  tx.put({ key: 'appSettings', value: settings });
 
-  // ✅ Backup
-  localStorage.setItem('appSettings', JSON.stringify(settings));
+function saveSettingsToStore() {
+  const merged = { ...(state.settings || {}), ...settings, theme: settings.theme || state.settings?.theme || 'dark' };
+
+  /* Write to IDB: both keys so all read paths get the correct value */
+  if (db) {
+    try {
+      const t = db.transaction(['settings'], 'readwrite').objectStore('settings');
+      t.put({ key: 'appSettings', value: merged });
+      t.put({ key: 'meta',        value: merged });
+    } catch (e) {
+      console.warn('[LM] saveSettingsToStore IDB write failed:', e);
+    }
+  }
+
+  /* Always write to localStorage — primary theme source on startup */
+  localStorage.setItem('appSettings', JSON.stringify(merged));
+
+  /* Per-user scoped key */
+  const uid = window.LM_Auth?.getCurrentUserId?.();
+  if (uid) localStorage.setItem(`lm_u_${uid}_appSettings`, JSON.stringify(merged));
+
+  /* Keep state.settings current */
+  if (window.state) state.settings = merged;
+  settings = merged;
 }
 function clearAllData() {
   if (!db) {
@@ -2701,21 +2859,48 @@ function clearAllData() {
     return;
   }
   autoBackup();
-  if (confirm('This will permanently delete all data. Are you sure?')) {
+  if (confirm('This will permanently delete YOUR financial data. Are you sure?')) {
     if (confirm('Last chance! This cannot be undone.')) {
-      const existingStores = Array.from(db.objectStoreNames); // get all store names
+      const profileId = window.LM_Auth?.getCurrentUserId() || null;
+      const userDataStores = ['transactions','budgets','loans','reminders','savings',
+        'investments','recurringTransactions','audit_logs','auditLog',
+        'trips','trip_routes','credentials','notes','note_versions',
+        'note_attachments','note_folders','emi_loans','net_worth_snapshots',
+        'allocation_targets','sip_plan'];
 
-      existingStores.forEach(storeName => {
-        const tx = db.transaction(storeName, 'readwrite');
-        tx.objectStore(storeName).clear();
-      });
+      if (profileId) {
+        /* Delete only current user's records */
+        userDataStores.forEach(storeName => {
+          if (!db.objectStoreNames.contains(storeName)) return;
+          const txn = db.transaction(storeName, 'readwrite');
+          const store = txn.objectStore(storeName);
+          const req = store.openCursor();
+          req.onsuccess = (e) => {
+            const cursor = e.target.result;
+            if (cursor) {
+              if (!cursor.value.profile || cursor.value.profile === profileId) {
+                cursor.delete();
+              }
+              cursor.continue();
+            }
+          };
+        });
+        /* Clear user-scoped localStorage */
+        Object.keys(localStorage).filter(k => k.startsWith(`lm_u_${profileId}_`))
+          .forEach(k => localStorage.removeItem(k));
+      } else {
+        /* Fallback: clear all stores (single-user legacy mode) */
+        Array.from(db.objectStoreNames).forEach(storeName => {
+          const txn = db.transaction(storeName, 'readwrite');
+          txn.objectStore(storeName).clear();
+        });
+      }
 
-      // Clear memory arrays
+      /* Clear memory arrays */
       state.transactions = [];
       state.budgets = [];   
       state.loans = [];
       state.reminders = [];
-     // state.dropdowns = { categories: [], persons: [] };
       state.users = [];
       state.savings = [];
       state.investments = []; 
@@ -2735,7 +2920,7 @@ function clearAllData() {
       state.sip_plan = [];
       state.essentials_settings = {};
       renderAll();
-      showToast('All data cleared', 'success');
+      showToast('Your data cleared', 'success');
     }
   }
 }
@@ -3084,33 +3269,39 @@ async function loadFromDrive() {
 
 
 async function FinalJson(){
- const payload = {
-    transactions: state.transactions,
-    budgets: state.budgets,
-    loans: state.loans,
-    reminders: state.reminders,
-    dropdowns: state.dropdowns,
-    settings: state.settings,
-    users: state.users,
-    savings: state.savings,
-    investments: state.investments,
-    trips: state.trips,
-    routes: state.routes,
-    credentials: state.credentials,
-    notes: state.notes,
-    note_folders: state.note_folders,
-    note_attachments: state.note_attachments,
-    note_versions: state.note_versions,
-    emi_loans: state.emi_loans,
+  const userId = window.LM_Auth?.getCurrentUserId?.() || 'default';
+  const payload = {
+    transactions       : state.transactions,
+    budgets            : state.budgets,
+    loans              : state.loans,
+    reminders          : state.reminders,
+    dropdowns          : state.dropdowns,
+    settings           : state.settings,
+    appSettings        : settings,       /* theme + kpiRange */
+    users              : state.users,
+    savings            : state.savings,
+    investments        : state.investments,
+    trips              : state.trips,
+    routes             : state.routes,
+    credentials        : state.credentials,
+    notes              : state.notes,
+    note_folders       : state.note_folders,
+    note_attachments   : state.note_attachments,
+    note_versions      : state.note_versions,
+    emi_loans          : state.emi_loans,
     net_worth_snapshots: state.net_worth_snapshots,
-    allocation_targets: state.allocation_targets,
-    sip_plan: state.sip_plan,
+    allocation_targets : state.allocation_targets,
+    sip_plan           : state.sip_plan,
     essentials_settings: state.essentials_settings,
-    audit_logs: state.audit_logs,
-    meta: { exportedAt: new Date().toISOString() }
+    audit_logs         : state.audit_logs,
+    meta: {
+      exportedAt   : new Date().toISOString(),
+      exportedBy   : window.LM_Auth?.getCurrentUser?.()?.username || 'user',
+      profileId    : userId,
+      version      : '2.0'
+    }
   };
-  const txt = JSON.stringify(payload, null, 2);
-    return txt;
+  return JSON.stringify(payload, null, 2);
 }
 
 // ====================== STEP 9: Auto Backup to Drive ======================
@@ -3132,7 +3323,10 @@ async function autoBackupToDrive() {
 // Start
 // ----------------------------
 //init();
-(async () => {
+/* ─── LM_StartApp: called by AuthManager after login ─── */
+window.LM_StartApp = async function LM_StartApp() {
+  // Re-apply store patches after DB is open
+  if (typeof window.LM_applyStorePatch === 'function') window.LM_applyStorePatch();
   try {
     await openDB();
     await seedDefaults();
@@ -3179,27 +3373,32 @@ async function autoBackupToDrive() {
    // setInterval(checkAllNotifications, 60 * 60 * 1000);
     processRecurringTransactions();
     setInterval(processRecurringTransactions, 60 * 60 * 1000); 
-    //setDataFolder(); 
     setGreeting();
+
+    /* ── Signal that the app is fully booted ─────────── */
+    window.LM_DB_READY = true;
+    if (window.LM_Bus) {
+      LM_Bus.emit('lm:app:ready', { user: window.LM_Auth?.getCurrentUser() });
+      LM_Bus.emit('lm:auth:login', { user: window.LM_Auth?.getCurrentUser() });
+    }
+    /* Kick off notification polling after DB is ready */
+    if (typeof window.checkAllNotifications === 'function') {
+      window.checkAllNotifications();
+      setInterval(window.checkAllNotifications, 60 * 60 * 1000);
+    }
     
- 
   } catch (err) {
     console.error('Startup error', err);
   }
-})();
+}; /* end LM_StartApp */
 
-  window.addEventListener('DOMContentLoaded', () => {
-  console.log('DOMContentLoaded fired');
-  setTimeout(() => {
-    const lastPage = localStorage.getItem('ledgerMate_lastPage') || 'dashboard';
-    console.log('Restoring page:', lastPage);
-    if (typeof showPage === 'function') {
-      showPage(lastPage);
-    } else {
-      console.error('showPage not defined');
-    }
-  }, 100);
-  });
+/* ─── Last-page restore (runs after LM_StartApp completes) ─── */
+window._LM_restoreLastPage = function() {
+  const userId   = window.LM_Auth?.getCurrentUserId() || 'default';
+  const uKey     = `lm_u_${userId}_lastPage`;
+  const lastPage = localStorage.getItem(uKey) || localStorage.getItem('ledgerMate_lastPage') || 'dashboard';
+  if (typeof showPage === 'function') showPage(lastPage);
+};
 const sidebar = document.getElementById("sidebar");
 const sidebarOverlay = document.getElementById("sidebarOverlay");
 const menuBtn = document.getElementById("menuBtn");
@@ -3436,11 +3635,12 @@ function getKpiIcon(title) {
 function renderKPIs() {
   const k = calculateKPIs();
   const row = document.getElementById("kpiCards");
+  if (!row) return;
 
   row.innerHTML = `
   ${kpiCard("Balance", fmtINR(k.balance), "All accounts", "blue")}
   ${kpiCard("Income", fmtINR(k.income), k.days + " days", "green")}
-  ${kpiCard("Expense", fmtINR(k.expense), k.days + "days", "red")}
+  ${kpiCard("Expense", fmtINR(k.expense), k.days + " days", "red")}
   ${kpiCard("Profit/Loss", fmtINR(k.profitLoss), k.savingsRate + "% saved", "purple")}
   ${kpiCard("Forecast", fmtINR(k.expenseForecast), "Next 30 days", "teal")}
 `;
@@ -3575,46 +3775,54 @@ document.addEventListener("DOMContentLoaded", function () {
 
 });
 async function loadSettings() {
+  /* Guard: DB not open yet → resolve immediately, theme comes from localStorage */
+  if (!db) return;
   return new Promise((resolve) => {
-    const tx = db.transaction(['settings'], 'readonly');
-    const store = tx.objectStore('settings');
-    const req = store.get('appSettings');
-
-    req.onsuccess = () => {
-      if (req.result && req.result.value) {
-        settings = req.result.value;
-      }
+    try {
+      const t   = db.transaction(['settings'], 'readonly');
+      const s   = t.objectStore('settings');
+      const req = s.get('appSettings');
+      req.onsuccess = () => {
+        if (req.result && req.result.value) settings = req.result.value;
+        resolve();
+      };
+      req.onerror = () => resolve();
+    } catch (e) {
+      /* IDB not ready – resolve silently */
       resolve();
-    };
-
-    req.onerror = () => resolve();
+    }
   });
 }
-document.addEventListener('DOMContentLoaded', async () => {
-  // 1️⃣ Load from IndexedDB first
-  await loadSettings();
 
-  // 2️⃣ 🔥 Fallback to localStorage (PUT HERE)
-  if (!settings.theme) {
-    const local = localStorage.getItem('appSettings');
-    if (local) {
-      settings = JSON.parse(local);
+document.addEventListener('DOMContentLoaded', () => {
+  /* Apply theme synchronously from best available source */
+  let loaded = {};
+  try {
+    /* 1. Try user-scoped key first (most recent save) */
+    const uid = window.LM_Auth?.getCurrentUserId?.();
+    if (uid && uid !== 'default') {
+      const raw = localStorage.getItem(`lm_u_${uid}_appSettings`);
+      if (raw) loaded = JSON.parse(raw);
     }
-  }
+    /* 2. Fallback to shared appSettings */
+    if (!loaded.theme) {
+      const raw = localStorage.getItem('appSettings');
+      if (raw) loaded = JSON.parse(raw);
+    }
+  } catch {}
 
-  // 3️⃣ Apply theme
+  /* Merge into module-level settings */
+  settings = { ...loaded };
+
+  /* Apply theme to BOTH html and body */
   const theme = settings.theme || 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
   document.body.setAttribute('data-theme', theme);
 
-  // 4️⃣ Update icon
-  const icon = document.getElementById('themeIcon');
-  const btn = document.getElementById('themeBtn');
-
+  /* Sync icon */
   const iconValue = theme === 'dark' ? '🌙' : '☀️';
-
+  const icon = document.getElementById('themeIcon');
   if (icon) icon.textContent = iconValue;
-  else if (btn) btn.textContent = iconValue;
-
 });
 
 
