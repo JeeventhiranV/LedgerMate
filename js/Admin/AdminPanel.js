@@ -123,8 +123,8 @@
   </td>
   <td><span class="admin-badge ${u.role === 'admin' ? 'badge-admin' : 'badge-user'}">${u.role}</span></td>
   <td><span class="admin-badge ${u.active ? 'badge-active' : 'badge-inactive'}">${u.active ? 'Active' : 'Inactive'}</span></td>
-  <td style="font-size:11px;color:var(--text-3);">${u.lastLogin ? new Date(u.lastLogin).toLocaleString() : '—'}</td>
-  <td style="font-size:11px;color:var(--text-3);">${u.loginCount || 0}</td>
+  <td class="hide-mobile" style="font-size:11px;color:var(--text-3);">${u.lastLogin ? new Date(u.lastLogin).toLocaleString() : '—'}</td>
+  <td class="hide-mobile" style="font-size:11px;color:var(--text-3);">${u.loginCount || 0}</td>
   <td>
     <div style="display:flex;gap:6px;flex-wrap:wrap;">
       <button class="admin-btn admin-btn-sm" onclick="window.LM_Admin.editUser('${u.id}')">✏️ Edit</button>
@@ -148,7 +148,7 @@
   <table class="admin-table">
     <thead>
       <tr>
-        <th>User</th><th>Role</th><th>Status</th><th>Last Login</th><th>Logins</th><th>Actions</th>
+        <th>User</th><th>Role</th><th>Status</th><th class="hide-mobile">Last Login</th><th class="hide-mobile">Logins</th><th>Actions</th>
       </tr>
     </thead>
     <tbody id="userTableBody">${rows || '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-3)">No users found</td></tr>'}</tbody>

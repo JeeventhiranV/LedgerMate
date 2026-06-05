@@ -1,118 +1,185 @@
-// # Dropdown Manager Modal
+/* ════════════════════════════════════════════════════════════
+   DROPDOWN MANAGER — Premium UI with Default Value Support
+════════════════════════════════════════════════════════════ */
+
+const DD_META = {
+  accounts:    { label: 'Accounts',           icon: '🏦', color: 'var(--blue)' },
+  categories:  { label: 'Categories',         icon: '📂', color: 'var(--violet)' },
+  persons:     { label: 'Persons (Loans)',     icon: '👤', color: 'var(--teal)' },
+  recurrences: { label: 'Recurrence Types',   icon: '🔁', color: 'var(--gold)' }
+};
+
 function renderDropdownManager() {
   const dv = state.dropdowns || { accounts: [], categories: [], persons: [], recurrences: [] };
+  if (!dv.defaults) dv.defaults = {};
 
-  const makeList = (title, arrKey) => {
-    const rows = (dv[arrKey] || []).map((item, idx) => `
-      <div class="flex items-center justify-between px-2 py-1 rounded glass">
-        <div class="flex-1 text-sm text-[var(--text)] truncate">${item}</div>
-        <div class="flex gap-1">
-          <button data-idx="${idx}" data-key="${arrKey}" 
-            class="editDd text-xs px-2 py-1 rounded bg-[var(--btn-blue)] text-[var(--text)] hover:opacity-80 transition">
-            ✏️
-          </button>
-          <button data-idx="${idx}" data-key="${arrKey}" 
-            class="delDd text-xs px-2 py-1 rounded bg-rose-600 text-white hover:opacity-80 transition">
-            🗑️
-          </button>
-        </div>
-      </div>
-    `).join('');
+  const makeSection = (arrKey) => {
+    const meta  = DD_META[arrKey];
+    const items = dv[arrKey] || [];
+    const def   = dv.defaults[arrKey] || '';
+
+    const rows = items.length
+      ? items.map((item, idx) => {
+          const isDefault = item === def;
+          return `
+            <div class="dd-row" data-key="${arrKey}" data-idx="${idx}">
+              <div class="dd-row-left">
+                <span class="dd-row-text">${item}</span>
+                ${isDefault ? `<span class="dd-default-badge">DEFAULT</span>` : ''}
+              </div>
+              <div class="dd-row-actions">
+                <button class="dd-btn dd-star ${isDefault ? 'active' : ''}"
+                        data-key="${arrKey}" data-idx="${idx}"
+                        title="${isDefault ? 'Remove default' : 'Set as default'}">
+                  ${isDefault ? '⭐' : '☆'}
+                </button>
+                <button class="dd-btn dd-edit" data-key="${arrKey}" data-idx="${idx}" title="Rename">✏️</button>
+                <button class="dd-btn dd-del dd-del-btn" data-key="${arrKey}" data-idx="${idx}" title="Delete">🗑️</button>
+              </div>
+            </div>`;
+        }).join('')
+      : `<div class="dd-empty">No items yet — add your first below</div>`;
 
     return `
-      <div class="glass p-3 rounded-xl mb-3">
-        <div class="font-semibold text-indigo-500 mb-2">${title}</div>
-        <div class="space-y-1">${rows || `<div class="text-sm text-gray-400 italic">No items yet</div>`}</div>
-        <div class="flex gap-2 mt-3">
-          <input placeholder="Add new ${title}" data-key="${arrKey}"
-            class="flex-1 p-2 rounded glass text-sm border border-gray-300 dark:border-gray-700 bg-transparent focus:ring-2 focus:ring-indigo-400 outline-none text-[var(--text)]"/>
-          <button class="addDd px-3 py-1 rounded bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-600 transition">
-            ➕ Add
-          </button>
+      <div class="dd-section">
+        <div class="dd-section-header">
+          <span class="dd-section-icon" style="background:${meta.color}20;color:${meta.color};">${meta.icon}</span>
+          <span class="dd-section-label">${meta.label}</span>
+          <span class="dd-section-count">${items.length}</span>
         </div>
-      </div>
-    `;
+        ${def ? `<div class="dd-current-default">Default: <b>${def}</b> — auto-selected in new forms</div>` : ''}
+        <div class="dd-rows">${rows}</div>
+        <div class="dd-add-row">
+          <input class="form-input dd-input" data-key="${arrKey}"
+                 placeholder="Add new ${meta.label.toLowerCase()}…" autocomplete="off" />
+          <button class="dd-btn-add addDd" data-key="${arrKey}">+ Add</button>
+        </div>
+      </div>`;
   };
 
-  // 🔹 Main modal content
   const html = `
-    <div class="max-h-[80vh] overflow-y-auto space-y-3 p-2 md:p-4">
-      ${makeList('🏦 Accounts', 'accounts')}
-      ${makeList('📂 Categories', 'categories')}
-      ${makeList('👤 Persons (Loans)', 'persons')}
-      ${makeList('🔁 Recurrences', 'recurrences')}
-    </div>
-  `;
+    <div class="dd-manager">
+      <div class="dd-info-banner">
+        <span style="color:var(--teal);">⭐</span>
+        Mark an item as <b>Default</b> — it will be pre-selected when you add new transactions, loans, or reminders.
+      </div>
+      ${Object.keys(DD_META).map(k => makeSection(k)).join('')}
+    </div>`;
 
-  // 🔹 Show modal using LedgerMate style
   showSimpleModal('🔽 Manage Dropdowns', html);
 
-  // --- Handlers after modal render ---
   setTimeout(() => {
+    /* ── Add ── */
     document.querySelectorAll('.addDd').forEach(btn => {
-      btn.onclick = async (e) => {
-        const ip = e.target.previousElementSibling;
-        const key = ip.dataset.key;
-        const v = ip.value.trim();
-        if (!v) return showToast('Please enter a value', 'error');
-
-        try {
-          state.dropdowns[key] = state.dropdowns[key] || [];
-          if (state.dropdowns[key].includes(v)) {
-            showToast('Already exists!', 'warning');
-            return;
-          }
-          state.dropdowns[key].push(v);
-          await put('dropdowns', state.dropdowns);
-          autoBackup();
-          showToast('Added successfully', 'success');
-          renderDropdownManager(); // refresh modal
-        } catch (err) {
-          console.error(err);
-          showToast('Failed to add item', 'error');
-        }
+      btn.onclick = async () => {
+        const key = btn.dataset.key;
+        const ip  = btn.previousElementSibling;
+        const v   = ip.value.trim();
+        if (!v) return showToast('Enter a value first', 'error');
+        state.dropdowns[key] = state.dropdowns[key] || [];
+        if (state.dropdowns[key].includes(v)) return showToast('Already exists!', 'warning');
+        state.dropdowns[key].push(v);
+        await put('dropdowns', state.dropdowns);
+        autoBackup();
+        showToast(`"${v}" added`, 'success');
+        renderDropdownManager();
       };
     });
 
-    document.querySelectorAll('.delDd').forEach(btn => {
-      btn.onclick = async (e) => {
-        const key = e.target.dataset.key;
-        const idx = Number(e.target.dataset.idx);
-        if (!confirm('Delete this item?')) return;
+    /* ── Add on Enter ── */
+    document.querySelectorAll('.dd-input').forEach(ip => {
+      ip.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') ip.nextElementSibling?.click();
+      });
+    });
 
-        try {
-          state.dropdowns[key].splice(idx, 1);
+    /* ── Set Default (star) ── */
+    document.querySelectorAll('.dd-star').forEach(btn => {
+      btn.onclick = async () => {
+        const key  = btn.dataset.key;
+        const idx  = Number(btn.dataset.idx);
+        const item = state.dropdowns[key][idx];
+        if (!state.dropdowns.defaults) state.dropdowns.defaults = {};
+        // Toggle: if already default, clear it
+        state.dropdowns.defaults[key] = (state.dropdowns.defaults[key] === item) ? '' : item;
+        await put('dropdowns', state.dropdowns);
+        autoBackup();
+        const action = state.dropdowns.defaults[key] ? `"${item}" is now the default` : 'Default cleared';
+        showToast(action, 'success');
+        renderDropdownManager();
+      };
+    });
+
+    /* ── Inline Edit (no prompt!) ── */
+    document.querySelectorAll('.dd-edit').forEach(btn => {
+      btn.onclick = () => {
+        const key  = btn.dataset.key;
+        const idx  = Number(btn.dataset.idx);
+        const row  = btn.closest('.dd-row');
+        const text = row.querySelector('.dd-row-text');
+        const cur  = state.dropdowns[key][idx];
+
+        // Replace text span with inline input
+        const inp = document.createElement('input');
+        inp.className = 'form-input dd-inline-input';
+        inp.value = cur;
+        inp.style.cssText = 'flex:1;padding:4px 8px;font-size:13px;height:30px;border-radius:6px;min-width:0;';
+        text.replaceWith(inp);
+        inp.focus();
+        inp.select();
+
+        // Replace edit btn with save btn
+        btn.textContent = '💾';
+        btn.title = 'Save';
+
+        const saveEdit = async () => {
+          const nv = inp.value.trim();
+          if (!nv || nv === cur) { renderDropdownManager(); return; }
+          if (state.dropdowns[key].includes(nv)) { showToast('Already exists!', 'warning'); renderDropdownManager(); return; }
+          // Update default if it pointed to old value
+          if (state.dropdowns.defaults?.[key] === cur) state.dropdowns.defaults[key] = nv;
+          state.dropdowns[key][idx] = nv;
           await put('dropdowns', state.dropdowns);
           autoBackup();
-          showToast('Deleted', 'success');
+          showToast(`Renamed to "${nv}"`, 'success');
           renderDropdownManager();
-        } catch (err) {
-          console.error(err);
-          showToast('Failed to delete', 'error');
-        }
+        };
+
+        btn.onclick = saveEdit;
+        inp.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') saveEdit();
+          if (e.key === 'Escape') renderDropdownManager();
+        });
+        inp.addEventListener('blur', () => setTimeout(saveEdit, 150));
       };
     });
 
-    document.querySelectorAll('.editDd').forEach(btn => {
-      btn.onclick = async (e) => {
-        const key = e.target.dataset.key;
-        const idx = Number(e.target.dataset.idx);
-        const oldVal = state.dropdowns[key][idx];
-        const newVal = prompt('Rename item:', oldVal);
-        if (!newVal || newVal === oldVal) return;
-
-        try {
-          state.dropdowns[key][idx] = newVal;
-          await put('dropdowns', state.dropdowns);
-          autoBackup();
-          showToast('Renamed successfully', 'success');
-          renderDropdownManager();
-        } catch (err) {
-          console.error(err);
-          showToast('Failed to rename', 'error');
-        }
+    /* ── Delete ── */
+    document.querySelectorAll('.dd-del-btn').forEach(btn => {
+      btn.onclick = async () => {
+        const key  = btn.dataset.key;
+        const idx  = Number(btn.dataset.idx);
+        const item = state.dropdowns[key][idx];
+        if (!confirm(`Delete "${item}"? This won't affect existing transactions.`)) return;
+        // Clear default if it was this item
+        if (state.dropdowns.defaults?.[key] === item) state.dropdowns.defaults[key] = '';
+        state.dropdowns[key].splice(idx, 1);
+        await put('dropdowns', state.dropdowns);
+        autoBackup();
+        showToast(`"${item}" deleted`, 'success');
+        renderDropdownManager();
       };
     });
-  }, 100);
+  }, 80);
 }
- document.getElementById("openDropdownManagerBtn").onclick = () => renderDropdownManager();
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('openDropdownManagerBtn');
+  if (btn) btn.onclick = () => renderDropdownManager();
+});
+
+/* ── Expose helper: get default value for a key ── */
+function getDropdownDefault(key) {
+  return state.dropdowns?.defaults?.[key] || state.dropdowns?.[key]?.[0] || '';
+}
+window.getDropdownDefault = getDropdownDefault;

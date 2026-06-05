@@ -199,6 +199,8 @@ function renderWealthAssets(container) {
   const totalPnL      = totalCurrent - totalInvested;
   const pnlPct        = totalInvested > 0 ? ((totalPnL/totalInvested)*100).toFixed(1) : 0;
   const pnlColor      = totalPnL >= 0 ? 'var(--emerald)' : 'var(--rose)';
+  const xirrRate      = typeof getPortfolioXIRR === 'function' ? getPortfolioXIRR() : null;
+  const xirrDisplay   = xirrRate !== null && isFinite(xirrRate) ? (xirrRate * 100).toFixed(1) + '%' : '—';
 
 const givenOutstanding = (state.loans || []).filter(l => l.type === 'given' && !l.collected).reduce((s,l)=>s+toNum(l.amount),0);
 const takenOutstanding = (state.loans || []).filter(l => l.type === 'taken' && !l.collected).reduce((s,l)=>s+toNum(l.amount),0);
@@ -223,6 +225,12 @@ const emiLiabilities = (state.emi_loans || []).reduce((s,l)=>s+toNum(l.outstandi
     <div class="kpi-label">EMI + TAKEN LOANS</div>
     <div style="font-family:var(--font-m);font-size:14px;font-weight:600;color:${emiLiabilities+takenOutstanding>0?'var(--rose)':'var(--text-3)'};">
       ${fmtINR(emiLiabilities)} + ${fmtINR(takenOutstanding)}
+    </div>
+  </div>
+  <div>
+    <div class="kpi-label">XIRR (TRUE RETURN)</div>
+    <div style="font-family:var(--font-m);font-size:14px;font-weight:600;color:var(--violet);" title="Internal Rate of Return — time-weighted">
+      ${xirrDisplay} p.a.
     </div>
   </div>
 </div>

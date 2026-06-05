@@ -38,7 +38,7 @@ let db = null;
 async function openDB() {
     return new Promise((resolve, reject) => {
         const DB_NAME    = "ledgermate_db";
-        const DB_VERSION = 14;
+        const DB_VERSION = 16;
 
         const req = indexedDB.open(DB_NAME, DB_VERSION);
 
@@ -106,6 +106,10 @@ async function openDB() {
             ensureStore("sip_plan", { keyPath: "id", autoIncrement: true });
             ensureStore("essentials_settings", { keyPath: "id", autoIncrement: true }, ["key", "profile"]);
             ensureStore("savings_goals",       { keyPath: "id", autoIncrement: true }, ["profile", "targetDate"]);
+            ensureStore("subscriptions",       { keyPath: "id", autoIncrement: true }, ["profile"]);
+            ensureStore("fd_rd",               { keyPath: "id", autoIncrement: true }, ["profile"]);
+            ensureStore("tx_templates",        { keyPath: "id", autoIncrement: true }, ["profile"]);
+            ensureStore("dashboard_config",    { keyPath: "id" });
             console.log("✅ DB schema upgrade complete");
         };
     });
@@ -184,7 +188,11 @@ let state = {
   allocation_targets: [],
   sip_plan: [],
   essentials_settings: {},
-  savings_goals: []
+  savings_goals: [],
+  subscriptions: [],
+  fd_rd: [],
+  tx_templates: [],
+  dashboard_config: {}
 };
 
 // Charts
@@ -291,6 +299,27 @@ if (dd.length) {
   } else {
     state.savings_goals = [];
   }
+  if (db && db.objectStoreNames.contains('subscriptions')) {
+    state.subscriptions = await getAll('subscriptions');
+  } else {
+    state.subscriptions = [];
+  }
+  if (db && db.objectStoreNames.contains('fd_rd')) {
+    state.fd_rd = await getAll('fd_rd');
+  } else {
+    state.fd_rd = [];
+  }
+  if (db && db.objectStoreNames.contains('tx_templates')) {
+    state.tx_templates = await getAll('tx_templates');
+  } else {
+    state.tx_templates = [];
+  }
+  if (db && db.objectStoreNames.contains('dashboard_config')) {
+    const dc = await getAll('dashboard_config');
+    state.dashboard_config = dc[0] || { id: 'main', widgets: null };
+  } else {
+    state.dashboard_config = { id: 'main', widgets: null };
+  }
 
   // restore folder handle if present
   const fh = settingsAll.find(x => x.key === `${userId}_dataFolderHandle` || x.key === 'dataFolderHandle');
@@ -341,8 +370,17 @@ function bindUI(){
   // document.getElementById('kpiRange').onchange = onKpiRangeChange;
   //document.getElementById('btnQuickAdd').onclick = () => openAddTransactionModal();
   document.getElementById('fabAddTx').onclick = () => openAddTransactionModal();
-  //document.getElementById('btnQuickAdd1').onclick = () => openAddTransactionModal();
-   
+
+  // Global keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (e.key === 'n' || e.key === 'N') { e.preventDefault(); openAddTransactionModal(); }
+    if (e.key === '/' || e.key === 'f') { e.preventDefault(); document.getElementById('searchTx')?.focus(); }
+    if (e.key === 'd') { e.preventDefault(); showPage('dashboard'); }
+    if (e.key === 't') { e.preventDefault(); showPage('transactions'); }
+  });
+
   document.getElementById('searchTx').oninput = refreshRecentList;
   //document.getElementById('notifBell').onclick = ()=>toggleNotifPanel();
   //document.getElementById('btnToggleTheme').onclick = toggleTheme;
@@ -435,6 +473,10 @@ async function showBudgetsModal() {
           <input id="budgetLimit" type="number" min="1" placeholder="Limit ₹" class="p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border-color: var(--input-border)" required/>
           <input id="budgetAlert" type="number" min="1" max="100" placeholder="Alert %" class="p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border-color: var(--input-border)" value="80" required/>
         </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-top:6px;">
+          <input type="checkbox" id="budgetRollover" style="width:15px;height:15px;">
+          <span>Rollover unspent budget to next month</span>
+        </label>
         <button class="w-full py-2 rounded" style="background: var(--btn-green); color: var(--text);" type="submit">➕ Add Budget</button>
       </form>
     `;
@@ -452,7 +494,8 @@ async function showBudgetsModal() {
       const cat = document.getElementById('budgetCat').value;
       const limit = Number(document.getElementById('budgetLimit').value);
       const alertThreshold = Number(document.getElementById('budgetAlert').value)/100;
-      const budget = { id: uid('budget'), month, category: cat, limit, alertThreshold };
+      const rollover = document.getElementById('budgetRollover')?.checked || false;
+      const budget = { id: uid('budget'), month, category: cat, limit, alertThreshold, rollover };
       await put('budgets', budget);
       state.budgets.push(budget);
       autoBackup();
@@ -504,11 +547,12 @@ function renderBudgetModalList() {
   if (!monthBudgets.length) { wrap.innerHTML = '<div class="empty-state" style="padding:16px"><div class="empty-state-icon">🎯</div><div class="empty-state-text">No budgets for this month</div></div>'; return; }
   wrap.innerHTML = monthBudgets.map(b => {
     const actual = state.transactions.filter(t=>t.type==='out'&&t.category===b.category&&t.date.startsWith(month)).reduce((s,t)=>s+(+t.amount||0),0);
-    const pct = b.limit>0?Math.min(Math.round((actual/b.limit)*100),100):0;
-    const cls = pct>90?'over':pct>70?'warn':'safe';
+    const rawPct = b.limit>0?Math.round((actual/b.limit)*100):0;
+    const pct = Math.min(rawPct,100);
+    const cls = rawPct>=100?'over':pct>90?'danger':pct>70?'warning':'safe';
     return `<div class="list-item" style="flex-direction:column; align-items:stretch;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div><div class="list-item-name">${b.category}</div><div class="list-item-sub">${fmtINR(actual)} / ${fmtINR(b.limit)} (${pct}%)</div></div>
+        <div><div class="list-item-name">${b.category}</div><div class="list-item-sub">${fmtINR(actual)} / ${fmtINR(b.limit)} (${rawPct}%)</div></div>
         <button class="btn-danger" style="font-size:11px; padding:4px 8px;" onclick="deleteBudget('${b.id}')">✕</button>
       </div>
       <div class="budget-bar-bg" style="margin-top:6px;"><div class="budget-bar-fill ${cls}" style="width:${pct}%"></div></div>
@@ -1493,6 +1537,11 @@ function showSimpleModal(title, html) {
   `;
 }
 
+function closeSimpleModal() {
+  const modals = document.getElementById('modals');
+  if (modals) modals.innerHTML = '';
+}
+
 // ----------------------------
 // Renderers
 // ----------------------------
@@ -1513,6 +1562,7 @@ function _doRenderAll(){
   //renderNotifications();
   processRecurringTransactions();
   renderBudgetOverview();
+  try { applyDashboardConfig(); } catch(e) {}
 }
 
 function renderDropdowns(){
@@ -1622,8 +1672,7 @@ function renderHeatmap() {
     const el = document.createElement('div');
     el.className = 'heatmap-cell';
     el.style.background = bg;
-    el.title = `${d.toLocaleDateString()}: ₹${total.toLocaleString()}`;
-    el.innerText = d.getDate();
+    el.title = `${d.toLocaleDateString('en-IN', {day:'numeric',month:'short'})}: ₹${total.toLocaleString('en-IN')}`;
 
     grid.appendChild(el);
   }
@@ -1772,6 +1821,20 @@ if (!q) {
         return;
     }
 
+  // Category color palette for dots
+  const CAT_COLORS = {
+    Food:'#f59e0b', Transport:'#3b82f6', Bills:'#8b5cf6', Shopping:'#ec4899',
+    Salary:'#10b981', Healthcare:'#06b6d4', Entertainment:'#f97316',
+    Education:'#6366f1', Housing:'#84cc16', Loan:'#ef4444', Snacks:'#fb923c', Other:'#94a3b8'
+  };
+
+  // Highlight search term in text
+  const hlText = (text, term) => {
+    if (!term || !text) return text || '';
+    const re = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+    return String(text).replace(re, '<mark>$1</mark>');
+  };
+
   items.forEach((t) => {
     const row = document.createElement('div');
     row.className = 'tx-item';
@@ -1780,6 +1843,8 @@ if (!q) {
     const iconMap = { Food:'🍽️', Transport:'🚗', Bills:'💡', Shopping:'🛍️', Salary:'💼', Healthcare:'🏥', Entertainment:'🎬', Education:'📚', Housing:'🏠', Loan:'💸', Snacks:'🧆', Other:'💳' };
     const icon = iconMap[t.category] || '💳';
     const typeCls = t.type === 'in' ? 'income' : 'expense';
+    const catDotColor = CAT_COLORS[t.category] || 'var(--text-3)';
+    const simpleQ = (q && !q.includes(':') && !q.match(/^amount/)) ? q : '';
 
     // Badges
     const recurrenceBadge = t.recurrence && t.recurrence.toLowerCase() !== 'none'
@@ -1796,32 +1861,31 @@ if (!q) {
       <div class="tx-row">
 
         <div class="tx-left">
-          <!-- Icon dot -->
-          <div class="tx-icon-dot ${typeCls}">${icon}</div>
+          <!-- Icon dot with category color ring -->
+          <div class="tx-icon-dot ${typeCls}" style="box-shadow:0 0 0 2px ${catDotColor}44;">${icon}</div>
 
           <!-- Text block -->
           <div class="tx-text">
-            <div class="tx-top">
-              <span class="tx-category">${t.category || 'Uncategorized'}</span>
-              <span class="tx-date">${t.date}</span>
-              ${recurrenceBadge}
-              ${autoBadge}
-            </div>
-            <div class="tx-title">${t.note || '(No Note)'}</div>
+            <div class="tx-title">${hlText(t.note || '(No Note)', simpleQ)}</div>
             <div class="tx-meta">
-              <span class="tx-meta-acc">${t.account || '—'}</span>
-              <span class="tx-time">${ts}</span>
+              <span class="tx-category" style="display:inline-flex;align-items:center;gap:3px;">
+                <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${catDotColor};flex-shrink:0;"></span>
+                ${hlText(t.category || 'Uncategorized', simpleQ)}
+              </span>
+              <span class="tx-meta-sep">·</span>
+              <span class="tx-meta-acc">${hlText(t.account || '—', simpleQ)}</span>
+              <span class="tx-meta-sep">·</span><span class="tx-time">${t.date}</span>
+              ${recurrenceBadge}${autoBadge}
             </div>
           </div>
         </div>
 
         <div class="tx-right">
-          <div class="tx-amount ${typeCls}">
-            ${t.type === 'in' ? '+' : '−'}${fmtINR(t.amount)}
-          </div>
+          <div class="tx-amount ${typeCls}">${t.type === 'in' ? '+' : '−'}${fmtINR(t.amount)}</div>
           <div class="tx-actions">
-            <button data-id="${t.id}" class="editTx" title="Edit">✏️</button>
-            <button data-id="${t.id}" class="delTx"  title="Delete">🗑️</button>
+            <button data-id="${t.id}" class="editTx"  title="Edit">✏️</button>
+            <button data-id="${t.id}" class="splitTx" title="Split">✂️</button>
+            <button data-id="${t.id}" class="delTx"   title="Delete">🗑️</button>
           </div>
         </div>
 
@@ -1847,6 +1911,9 @@ if (!q) {
   );
   document.querySelectorAll('.editTx').forEach((btn) =>
     btn.onclick = (e) => openEditTransactionModal(e.target.dataset.id)
+  );
+  document.querySelectorAll('.splitTx').forEach((btn) =>
+    btn.onclick = (e) => openSplitModal(e.target.dataset.id)
   );
 }
 function openEditTransactionModal(id) {
@@ -2014,74 +2081,127 @@ function processToastQueue() {} /* no-op – kept for backward compat */
 function openAddTransactionModal(prefill = {}) {
   const id = uid('tx');
   const today = prefill.date || nowISO();
-  prefill.category = prefill.category || 'Food';
-  prefill.account = prefill.account || 'Cash';
-  ensureDropdownKey('recurrences');
-  prefill.recurrence = prefill.recurrence || 'None';
 
-  const recurrences = state.dropdowns.recurrences || ['None','daily','weekly','monthly','yearly'];
+  // Apply dropdown defaults when not prefilling
+  const defAcct = getDropdownDefault('accounts');
+  const defCat  = getDropdownDefault('categories');
+  const defRecur = getDropdownDefault('recurrences');
+  prefill.account    = prefill.account    || defAcct || 'Cash';
+  prefill.category   = prefill.category   || defCat  || 'Food';
+  prefill.recurrence = prefill.recurrence || defRecur || 'None';
+
+  ensureDropdownKey('recurrences');
+  const recurrences = state.dropdowns.recurrences || ['None','Daily','Weekly','Monthly','Yearly'];
+  const accounts    = state.dropdowns.accounts    || ['Cash'];
+  const categories  = state.dropdowns.categories  || ['Food','Other'];
+
+  // Quick-amount chips
+  const amtChips = [100, 500, 1000, 2000, 5000, 10000];
+
+  // Category icon map
+  const CAT_ICONS = {
+    food:'🍔', groceries:'🛒', transport:'🚗', travel:'✈️',
+    entertainment:'🎬', shopping:'🛍️', bills:'💡', health:'🏥',
+    salary:'💼', rent:'🏠', education:'📚', finance:'📈', other:'📌'
+  };
+  const getCatIcon = c => CAT_ICONS[c?.toLowerCase()] || '📌';
 
   const modalHTML = `
     <div class="modal-overlay" id="addTxOverlay">
-      <div class="modal" style="max-width:600px;">
-        <div class="modal-header">
-          <h3 class="modal-title text-lg font-semibold flex items-center gap-2">➕ Add Transaction</h3>
-          <button id="cancelTx" class="modal-close text-2xl leading-none">×</button>
+      <div class="modal atx-modal">
+        <div class="modal-header" style="padding:16px 20px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;background:linear-gradient(135deg,var(--teal),var(--violet));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;">➕</div>
+            <div>
+              <div class="modal-title" style="font-size:15px;">New Transaction</div>
+              <div style="font-size:11px;color:var(--text-3);font-family:var(--font-m);">Press Esc to cancel</div>
+            </div>
+          </div>
+          <button id="cancelTx" class="modal-close">×</button>
         </div>
-        <div class="modal-body">
-          <form id="txForm" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
+        <div class="modal-body" style="padding:16px 20px 20px;">
+          <form id="txForm" autocomplete="off">
+
+            <!-- TYPE TOGGLE -->
+            <div class="atx-type-toggle" id="atxTypeToggle">
+              <button type="button" class="atx-type-btn expense ${(!prefill.type || prefill.type==='out') ? 'active' : ''}" data-val="out">
+                <span class="atx-type-icon">💸</span> Expense
+              </button>
+              <button type="button" class="atx-type-btn income ${prefill.type==='in' ? 'active' : ''}" data-val="in">
+                <span class="atx-type-icon">💰</span> Income
+              </button>
+              <button type="button" class="atx-type-btn transfer ${prefill.type==='transfer' ? 'active' : ''}" data-val="transfer">
+                <span class="atx-type-icon">🔄</span> Transfer
+              </button>
+            </div>
+            <input type="hidden" id="tx_type" value="${prefill.type || 'out'}">
+
+            <!-- AMOUNT -->
+            <div class="atx-amount-wrap">
+              <span class="atx-currency-symbol">₹</span>
+              <input id="tx_amount" type="number" step="0.01" inputmode="decimal"
+                     class="atx-amount-input" placeholder="0.00"
+                     value="${prefill.amount || ''}" required autofocus />
+            </div>
+            <!-- Quick chips -->
+            <div class="atx-chips">
+              ${amtChips.map(v => `<button type="button" class="atx-chip" data-amt="${v}">+${v >= 1000 ? (v/1000)+'k' : v}</button>`).join('')}
+              <button type="button" class="atx-chip atx-chip-clear" id="atxClearAmt">✕ Clear</button>
+            </div>
+
+            <!-- DATE + ACCOUNT ROW -->
+            <div class="atx-row">
+              <div class="atx-field">
                 <label class="form-label">Date</label>
                 <input id="tx_date" type="date" value="${today}" class="form-input" required />
               </div>
-              <div>
-                <label class="form-label">Type</label>
-                <select id="tx_type" class="form-input">
-                  <option value="out" ${prefill.type === 'out' ? 'selected' : ''}>💸 Expense</option>
-                  <option value="in" ${prefill.type === 'in' ? 'selected' : ''}>💰 Income</option>
-                </select>
-              </div>
-              <div>
-                <label class="form-label">Amount</label>
-                <input id="tx_amount" type="number" step="0.01"
-                  value="${prefill.amount || ''}"
-                  class="form-input"
-                  placeholder="0.00" required />
-              </div>
-              <div>
-                <label class="form-label">Account</label>
+              <div class="atx-field">
+                <label class="form-label">Account
+                  ${defAcct ? `<span class="dd-default-badge" style="margin-left:4px;">DEFAULT</span>` : ''}
+                </label>
                 <select id="tx_account" class="form-input">
-                  ${state.dropdowns.accounts.map(a => `<option ${a === prefill.account ? 'selected' : ''}>${a}</option>`).join('')}
+                  ${accounts.map(a => `<option value="${a}" ${a === prefill.account ? 'selected' : ''}>${a}</option>`).join('')}
                 </select>
               </div>
-              <div>
-                <label class="form-label">Category</label>
-                <select id="tx_category" class="form-input">
-                  ${state.dropdowns.categories.map(c => `<option ${c === prefill.category ? 'selected' : ''}>${c}</option>`).join('')}
-                </select>
+            </div>
+
+            <!-- CATEGORY GRID -->
+            <div class="atx-field" style="margin-bottom:14px;">
+              <label class="form-label">Category
+                ${defCat ? `<span class="dd-default-badge" style="margin-left:4px;">DEFAULT</span>` : ''}
+              </label>
+              <div class="atx-cat-grid" id="atxCatGrid">
+                ${categories.map(c => `
+                  <button type="button" class="atx-cat-chip ${c === prefill.category ? 'active' : ''}" data-cat="${c}">
+                    <span>${getCatIcon(c)}</span>
+                    <span class="atx-cat-label">${c}</span>
+                  </button>`).join('')}
               </div>
-              <div>
+              <input type="hidden" id="tx_category" value="${prefill.category}">
+            </div>
+
+            <!-- RECURRENCE + NOTE ROW -->
+            <div class="atx-row">
+              <div class="atx-field">
                 <label class="form-label">Recurrence</label>
                 <select id="tx_recurrence" class="form-input">
                   ${recurrences.map(r => {
                     const val = r.toLowerCase();
-                    return `<option value="${val}" ${val === prefill.recurrence.toLowerCase() ? 'selected' : ''}>${r}</option>`;
+                    return `<option value="${val}" ${val === (prefill.recurrence||'none').toLowerCase() ? 'selected' : ''}>${r}</option>`;
                   }).join('')}
                 </select>
               </div>
+              <div class="atx-field">
+                <label class="form-label">Note / Description</label>
+                <input id="tx_note" class="form-input" placeholder="What was this for?"
+                       value="${prefill.note || ''}" />
+              </div>
             </div>
-            <div>
-              <label class="form-label">Note</label>
-              <input id="tx_note"
-                value="${prefill.note || ''}"
-                class="form-input"
-                placeholder="Optional note" />
-            </div>
-            <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-[var(--border)]">
-              <button type="submit" class="btn-submit flex-1">💾 Save</button>
-              <button type="button" id="cancelTx2" class="btn-secondary flex-1">Cancel</button>
-            </div>
+
+            <!-- SAVE -->
+            <button type="submit" class="btn-submit" style="margin-top:8px;">
+              Save Transaction
+            </button>
           </form>
         </div>
       </div>
@@ -2106,24 +2226,66 @@ function openAddTransactionModal(prefill = {}) {
   };
 
   document.getElementById('cancelTx').onclick = closeModal;
-  document.getElementById('cancelTx2').onclick = closeModal;
   document.getElementById('addTxOverlay').onclick = (e) => {
     if (e.target.id === 'addTxOverlay') closeModal();
   };
 
+  // Keyboard: Esc to close
+  const _escHandler = (e) => { if (e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', _escHandler); } };
+  document.addEventListener('keydown', _escHandler);
+
+  // Type toggle
+  document.querySelectorAll('.atx-type-btn').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.atx-type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tx_type').value = btn.dataset.val;
+    };
+  });
+
+  // Quick-amount chips
+  document.querySelectorAll('.atx-chip[data-amt]').forEach(chip => {
+    chip.onclick = () => {
+      const inp = document.getElementById('tx_amount');
+      inp.value = (parseFloat(inp.value) || 0) + parseFloat(chip.dataset.amt);
+    };
+  });
+  const clearBtn = document.getElementById('atxClearAmt');
+  if (clearBtn) clearBtn.onclick = () => { document.getElementById('tx_amount').value = ''; };
+
+  // Category grid
+  document.querySelectorAll('.atx-cat-chip').forEach(chip => {
+    chip.onclick = () => {
+      document.querySelectorAll('.atx-cat-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      document.getElementById('tx_category').value = chip.dataset.cat;
+    };
+  });
+
   document.getElementById('txForm').onsubmit = async (e) => {
     e.preventDefault();
+    const amount = Number(document.getElementById('tx_amount').value || 0);
+    if (!amount || amount <= 0) {
+      document.getElementById('tx_amount').classList.add('input-error');
+      showToast('Enter a valid amount', 'error');
+      return;
+    }
     const txObj = {
       id,
       date: document.getElementById('tx_date').value,
       type: document.getElementById('tx_type').value,
-      amount: Number(document.getElementById('tx_amount').value || 0),
-      account: document.getElementById('tx_account').value,
-      category: document.getElementById('tx_category').value,
+      amount,
+      account:    document.getElementById('tx_account').value,
+      category:   document.getElementById('tx_category').value,
       recurrence: document.getElementById('tx_recurrence').value,
-      note: document.getElementById('tx_note').value || '',
-      createdAt: nowISO1()
+      note:       document.getElementById('tx_note').value.trim() || '',
+      createdAt:  nowISO1()
     };
+
+    // If recurring, also add to recurringTransactions store
+    if (txObj.recurrence && txObj.recurrence !== 'none') {
+      await put('recurringTransactions', { ...txObj, id: uid('rec'), originalTxId: txObj.id });
+    }
 
     try {
       await put('transactions', txObj);
@@ -2131,9 +2293,10 @@ function openAddTransactionModal(prefill = {}) {
       renderAll();
       closeModal();
       autoBackup();
-      showToast('✅ Transaction added successfully!', 'success');
-    } catch (e) {
-      showToast('❌ Failed to add transaction!', 'error');
+      const amtStr = fmtINR(amount);
+      showToast(`${txObj.type === 'in' ? '💰 Income' : '💸 Expense'} ${amtStr} saved`, 'success');
+    } catch (err) {
+      showToast('Failed to save transaction', 'error');
     }
   };
 }
@@ -3006,8 +3169,8 @@ else if (t.recurrence.toLowerCase() === "yearly") {
 
     if (shouldAdd) {
       // Prevent duplicate for today
-      if (state.transactions.some(x => x.date === t.date && x.recurringOrigin === t.id)) return;
-      const newTx = { ...t, id: uid('tx'), date: t.date, recurringOrigin: t.id, createdAt: nowISO1(), modifiedAt: nowISO1() };
+      if (state.transactions.some(x => x.date === today && x.recurringOrigin === t.id)) return;
+      const newTx = { ...t, id: uid('tx'), date: today, recurringOrigin: t.id, createdAt: nowISO1(), modifiedAt: nowISO1() };
       delete newTx.recurrence; // Only the original holds recurrence
       put('transactions', newTx).then(() => {
         state.transactions.push(newTx);
@@ -3407,8 +3570,13 @@ window.LM_StartApp = async function LM_StartApp() {
    // checkAllNotifications();
    // setInterval(checkAllNotifications, 60 * 60 * 1000);
     processRecurringTransactions();
-    setInterval(processRecurringTransactions, 60 * 60 * 1000); 
+    setInterval(processRecurringTransactions, 60 * 60 * 1000);
     setGreeting();
+    autoNetWorthSnapshot();
+    checkLowBalanceAlert();
+    checkSpendingAnomalyAlerts();
+    checkBudgetRollover();
+    schedulePushNotifications();
 
     /* ── Signal that the app is fully booted ─────────── */
     window.LM_DB_READY = true;
@@ -3624,7 +3792,7 @@ function calculateKPIs() {
 /* =========================
    RENDER KPI (ULTRA-COMPACT)
    ========================= */
-  function kpiCard(title, value, sub, type) {
+  function kpiCard(title, value, sub, type, valueColor) {
 
   const typeMap = {
     blue: "teal",
@@ -3638,14 +3806,14 @@ function calculateKPIs() {
 
   return `
     <div class="kpi-card ${cls}">
-      
+
       <div class="kpi-icon ${cls}">
         ${getKpiIcon(title)}
       </div>
 
       <div class="kpi-label">${title}</div>
 
-      <div class="kpi-value">${value}</div>
+      <div class="kpi-value animate-in" style="color:${valueColor || 'var(--text)'};">${value}</div>
 
       <div class="kpi-sub">${sub}</div>
 
@@ -3672,12 +3840,15 @@ function renderKPIs() {
   const row = document.getElementById("kpiCards");
   if (!row) return;
 
+  const balanceColor    = k.balance    >= 0 ? 'var(--teal)'    : 'var(--rose)';
+  const profitColor     = k.profitLoss >= 0 ? 'var(--emerald)' : 'var(--rose)';
+
   row.innerHTML = `
-  ${kpiCard("Balance", fmtINR(k.balance), "All accounts", "blue")}
-  ${kpiCard("Income", fmtINR(k.income), k.days + " days", "green")}
-  ${kpiCard("Expense", fmtINR(k.expense), k.days + " days", "red")}
-  ${kpiCard("Profit/Loss", fmtINR(k.profitLoss), k.savingsRate + "% saved", "purple")}
-  ${kpiCard("Forecast", fmtINR(k.expenseForecast), "Next 30 days", "teal")}
+  ${kpiCard("Balance",     fmtINR(k.balance),            "All accounts",          "blue",   balanceColor)}
+  ${kpiCard("Income",      fmtINR(k.income),             k.days + " days",        "green",  'var(--emerald)')}
+  ${kpiCard("Expense",     fmtINR(k.expense),            k.days + " days",        "red",    'var(--rose)')}
+  ${kpiCard("Profit/Loss", fmtINR(k.profitLoss),         k.savingsRate + "% saved","purple", profitColor)}
+  ${kpiCard("Forecast",    fmtINR(k.expenseForecast),    "Next 30 days",          "teal",   'var(--gold)')}
 `;
 
 
@@ -3753,8 +3924,12 @@ topCatEl.innerHTML = k.topCategories
 
   /* New dashboard widgets */
   try { renderHealthScore(); } catch (e) { console.warn('[LM] renderHealthScore:', e); }
+  try { renderNWSparkline(); } catch (e) { console.warn('[LM] NW sparkline:', e); }
   try { renderMoMWidget(); } catch (e) { console.warn('[LM] renderMoMWidget:', e); }
-  try { renderDashboardWealthWidget(); } catch (e) {}
+  try {
+    if (typeof renderWealthDashboard === 'function') renderWealthDashboard();
+    else renderDashboardWealthWidget();
+  } catch (e) { console.warn('[LM] wealth widget:', e); }
 }
 
 /* =========================
@@ -3876,12 +4051,14 @@ function renderBudgetOverview() {
   }
   wrap.innerHTML = monthBudgets.map(b => {
     const actual = state.transactions.filter(t=>t.type==='out'&&t.category===b.category&&t.date.startsWith(month)).reduce((s,t)=>s+(+t.amount||0),0);
-    const pct = b.limit > 0 ? Math.min(Math.round((actual/b.limit)*100), 100) : 0;
-    const cls = pct>90 ? 'over' : pct>70 ? 'warn' : 'safe';
+    const rawPct = b.limit > 0 ? Math.round((actual/b.limit)*100) : 0;
+    const pct = Math.min(rawPct, 100);
+    const cls = rawPct >= 100 ? 'over' : pct > 90 ? 'danger' : pct > 70 ? 'warning' : 'safe';
+    const pctLabel = rawPct > 100 ? `<span style="color:var(--rose);font-weight:700;font-size:11px;">+${rawPct-100}% over</span>` : `${rawPct}%`;
     return `<div class="budget-item">
       <div class="budget-item-header">
         <span class="budget-item-name">${b.category}</span>
-        <span class="budget-item-amounts">${fmtINR(actual)} / ${fmtINR(b.limit)}</span>
+        <span class="budget-item-amounts">${fmtINR(actual)} / ${fmtINR(b.limit)} &nbsp;${pctLabel}</span>
       </div>
       <div class="budget-bar-bg"><div class="budget-bar-fill ${cls}" style="width:${pct}%"></div></div>
     </div>`;
@@ -4379,7 +4556,7 @@ async function confirmCsvImport() {
       date: get('date') || nowISO(),
       type,
       amount,
-      category: get('category') || 'Other',
+      category: get('category') || merchantToCategory(get('note') || get('account')) || 'Other',
       account: get('account') || (state.dropdowns?.accounts?.[0] || 'Cash'),
       note: get('note') || '',
       createdAt: new Date().toISOString()
@@ -4407,4 +4584,2381 @@ async function smartImportCSV(txt) {
     return importCSVText(txt);
   }
   openCsvImportModal(txt);
+}
+
+/* ════════════════════════════════════════════════════════════
+   AUTO NET WORTH SNAPSHOT – once per day on app start
+════════════════════════════════════════════════════════════ */
+function autoNetWorthSnapshot() {
+  setTimeout(async () => {
+    try {
+      const snaps = state.net_worth_snapshots || [];
+      const lastSnap = snaps[snaps.length - 1];
+      const today = nowISO();
+      if (!lastSnap || lastSnap.date !== today) {
+        if (typeof takeNetWorthSnapshot === 'function') {
+          await takeNetWorthSnapshot();
+          console.log('[LM] Auto net worth snapshot taken for', today);
+        }
+      }
+    } catch (e) { console.warn('[LM] Auto net worth snapshot failed:', e); }
+  }, 2500);
+}
+
+/* ════════════════════════════════════════════════════════════
+   LOW BALANCE ALERT – warn when account balance drops below threshold
+════════════════════════════════════════════════════════════ */
+function checkLowBalanceAlert() {
+  try {
+    const threshold = parseFloat(state.settings?.lowBalanceThreshold || 0);
+    if (!threshold || threshold <= 0) return;
+
+    const txs = state.transactions || [];
+    const accounts = [...new Set(txs.map(t => t.account).filter(Boolean))];
+
+    accounts.forEach(acct => {
+      const bal = txs.reduce((sum, t) => {
+        if (t.account !== acct) return sum;
+        return t.type === 'income' ? sum + parseFloat(t.amount || 0)
+             : t.type === 'expense' ? sum - parseFloat(t.amount || 0)
+             : sum;
+      }, 0);
+      if (bal < threshold) {
+        const fmt = n => '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+        showToast(`Low balance: "${acct}" has ${fmt(bal)} (threshold: ${fmt(threshold)})`, 'warning');
+      }
+    });
+  } catch (e) { console.warn('[LM] Low balance check failed:', e); }
+}
+
+/* ════════════════════════════════════════════════════════════
+   SPENDING ANOMALY ALERTS – flag unusual category spikes
+════════════════════════════════════════════════════════════ */
+function checkSpendingAnomalyAlerts() {
+  try {
+    if (state.settings?.anomalyAlertsEnabled === false) return;
+    const txs = state.transactions || [];
+    if (txs.length < 10) return; // not enough data
+
+    const now = new Date();
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    // Build per-category monthly totals (last 6 months)
+    const catMonthly = {};
+    txs.filter(t => t.type === 'expense').forEach(t => {
+      const m = (t.date || '').slice(0, 7);
+      const cat = t.category || 'Uncategorized';
+      if (!catMonthly[cat]) catMonthly[cat] = {};
+      catMonthly[cat][m] = (catMonthly[cat][m] || 0) + parseFloat(t.amount || 0);
+    });
+
+    const anomalies = [];
+    Object.entries(catMonthly).forEach(([cat, months]) => {
+      const current = months[thisMonth] || 0;
+      if (!current) return;
+      const history = Object.entries(months)
+        .filter(([m]) => m < thisMonth)
+        .map(([, v]) => v);
+      if (history.length < 2) return;
+      const avg = history.reduce((a, b) => a + b, 0) / history.length;
+      if (avg > 0 && current > avg * 1.8) {
+        anomalies.push({ cat, current, avg, pct: Math.round((current / avg - 1) * 100) });
+      }
+    });
+
+    if (anomalies.length === 0) return;
+
+    // Show top anomaly as toast
+    anomalies.sort((a, b) => b.pct - a.pct);
+    const top = anomalies[0];
+    const fmt = n => '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+    showToast(
+      `Spending spike: "${top.cat}" is ${fmt(top.current)} this month (+${top.pct}% vs avg ${fmt(top.avg)})`,
+      'warning'
+    );
+
+    if (anomalies.length > 1) {
+      setTimeout(() => {
+        anomalies.slice(1, 3).forEach((a, i) => {
+          setTimeout(() => {
+            showToast(`High spend: "${a.cat}" up ${a.pct}% vs monthly average`, 'warning');
+          }, i * 1500);
+        });
+      }, 2000);
+    }
+  } catch (e) { console.warn('[LM] Spending anomaly check failed:', e); }
+}
+
+/* ════════════════════════════════════════════════════════════
+   PREFERENCES MODAL – alert thresholds, session timeout
+════════════════════════════════════════════════════════════ */
+function openPreferencesModal() {
+  const s = state.settings || {};
+  const el = document.getElementById('preferencesModal');
+  if (!el) return;
+
+  const threshold = document.getElementById('prefLowBalanceThreshold');
+  const anomaly   = document.getElementById('prefAnomalyAlerts');
+  const timeout   = document.getElementById('prefSessionTimeout');
+
+  if (threshold) threshold.value = s.lowBalanceThreshold || 0;
+  if (anomaly)   anomaly.checked = s.anomalyAlertsEnabled !== false;
+  if (timeout) {
+    const mins = s.sessionTimeoutMins ?? 30;
+    timeout.value = [30, 60, 120, 0].includes(+mins) ? String(mins) : '30';
+  }
+  el.style.display = 'flex';
+}
+
+function closePreferencesModal() {
+  const el = document.getElementById('preferencesModal');
+  if (el) el.style.display = 'none';
+}
+
+async function savePreferences() {
+  const threshold = parseFloat(document.getElementById('prefLowBalanceThreshold')?.value || 0);
+  const anomaly   = document.getElementById('prefAnomalyAlerts')?.checked !== false;
+  const timeoutMins = parseInt(document.getElementById('prefSessionTimeout')?.value || 30);
+
+  state.settings = {
+    ...(state.settings || {}),
+    lowBalanceThreshold: isNaN(threshold) ? 0 : threshold,
+    anomalyAlertsEnabled: anomaly,
+    sessionTimeoutMins: timeoutMins
+  };
+  settings = { ...settings, ...state.settings };
+  await saveSettingsToStore();
+
+  // Apply new session timeout immediately
+  if (window.LM_Auth?.startInactivityWatcher) {
+    // Re-define INACTIVITY_MS via override approach
+    window._LM_InactivityOverride = timeoutMins > 0 ? timeoutMins * 60 * 1000 : null;
+    window.LM_Auth.resetInactivityTimer();
+  }
+
+  closePreferencesModal();
+  showToast('Preferences saved.', 'success');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAX ESTIMATOR — India FY 2024-25 Old vs New Regime
+══════════════════════════════════════════════════════════════ */
+function showTaxPage() {
+  const el = document.getElementById('taxPlannerContent');
+  if (!el) return;
+
+  const now = new Date();
+  const fy = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  const fyStart = `${fy}-04-01`, fyEnd = `${fy + 1}-03-31`;
+  const annualIncome = state.transactions
+    .filter(t => t.type === 'income' || t.type === 'in')
+    .filter(t => t.date >= fyStart && t.date <= fyEnd)
+    .reduce((s, t) => s + parseFloat(t.amount || 0), 0);
+
+  el.innerHTML = `
+    <div class="tx-card" style="margin-bottom:16px;">
+      <div class="section-heading"><div class="section-title"><span class="dot" style="background:var(--gold)"></span>Income &amp; Deductions (FY ${fy}-${fy+1})</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label class="form-label">Annual Income (₹)</label>
+          <input type="number" id="taxIncome" class="form-input" value="${Math.round(annualIncome)}" oninput="calcTax()" placeholder="Gross annual income">
+        </div>
+        <div>
+          <label class="form-label">Age Group</label>
+          <select id="taxAge" class="form-input" onchange="calcTax()">
+            <option value="below60">Below 60</option>
+            <option value="senior">60-79 (Senior)</option>
+            <option value="super">80+ (Super Senior)</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">80C Investments (max ₹1,50,000)</label>
+          <input type="number" id="tax80C" class="form-input" value="0" oninput="calcTax()" placeholder="PPF, ELSS, LIC, PF…">
+        </div>
+        <div>
+          <label class="form-label">80D Health Insurance (₹)</label>
+          <input type="number" id="tax80D" class="form-input" value="0" oninput="calcTax()" placeholder="Medical insurance premium">
+        </div>
+        <div>
+          <label class="form-label">HRA Exemption (₹)</label>
+          <input type="number" id="taxHRA" class="form-input" value="0" oninput="calcTax()" placeholder="If applicable">
+        </div>
+        <div>
+          <label class="form-label">Other Deductions (₹)</label>
+          <input type="number" id="taxOther" class="form-input" value="0" oninput="calcTax()" placeholder="80E, 80G, NPS…">
+        </div>
+      </div>
+    </div>
+    <div id="taxResult"></div>
+  `;
+  calcTax();
+}
+
+function calcTax() {
+  const income = parseFloat(document.getElementById('taxIncome')?.value || 0);
+  const age    = document.getElementById('taxAge')?.value || 'below60';
+  const c80C   = Math.min(parseFloat(document.getElementById('tax80C')?.value || 0), 150000);
+  const c80D   = Math.min(parseFloat(document.getElementById('tax80D')?.value || 0), age === 'senior' || age === 'super' ? 50000 : 25000);
+  const hra    = parseFloat(document.getElementById('taxHRA')?.value || 0);
+  const other  = parseFloat(document.getElementById('taxOther')?.value || 0);
+
+  // Old Regime
+  const stdOld     = 50000;
+  const taxableOld = Math.max(0, income - stdOld - c80C - c80D - hra - other);
+  const oldTax     = _computeOldRegimeTax(taxableOld, age);
+  const oldRebate  = income <= 500000 ? Math.min(oldTax, 12500) : 0;
+  const oldAfterR  = Math.max(0, oldTax - oldRebate);
+  const oldSurcharge = _getSurcharge(oldAfterR, income);
+  const oldCess    = (oldAfterR + oldSurcharge) * 0.04;
+  const oldFinal   = oldAfterR + oldSurcharge + oldCess;
+  const oldEffRate = income > 0 ? (oldFinal / income * 100).toFixed(1) : '0.0';
+
+  // New Regime 2024-25
+  const stdNew     = 75000;
+  const taxableNew = Math.max(0, income - stdNew);
+  const newTax     = _computeNewRegimeTax(taxableNew);
+  const newRebate  = income <= 700000 ? Math.min(newTax, 25000) : 0;
+  const newAfterR  = Math.max(0, newTax - newRebate);
+  const newSurcharge = _getSurcharge(newAfterR, income);
+  const newCess    = (newAfterR + newSurcharge) * 0.04;
+  const newFinal   = newAfterR + newSurcharge + newCess;
+  const newEffRate = income > 0 ? (newFinal / income * 100).toFixed(1) : '0.0';
+
+  const savings = oldFinal - newFinal;
+  const better  = savings > 100 ? 'new' : savings < -100 ? 'old' : 'same';
+
+  const headroom80C = Math.max(0, 150000 - c80C);
+
+  const res = document.getElementById('taxResult');
+  if (!res) return;
+  res.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+      <div class="tx-card" style="${better==='old'?'border:2px solid var(--emerald);':''}">
+        <div class="section-heading"><div class="section-title" style="font-size:14px;">📘 Old Regime</div></div>
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:8px;">Taxable: <b style="color:var(--text)">${fmtINR(taxableOld)}</b> | Std Deduction: ₹50,000</div>
+        ${_taxBreakdown(oldTax, oldRebate, oldSurcharge, oldCess, oldFinal, oldEffRate)}
+        ${better==='old'?`<div style="margin-top:8px;padding:6px 10px;background:rgba(52,211,153,0.12);border-radius:8px;font-size:12px;color:var(--emerald);font-weight:600;">✓ Better — save ${fmtINR(Math.abs(savings))}</div>`:''}
+      </div>
+      <div class="tx-card" style="${better==='new'?'border:2px solid var(--emerald);':''}">
+        <div class="section-heading"><div class="section-title" style="font-size:14px;">📗 New Regime</div></div>
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:8px;">Taxable: <b style="color:var(--text)">${fmtINR(taxableNew)}</b> | Std Deduction: ₹75,000</div>
+        ${_taxBreakdown(newTax, newRebate, newSurcharge, newCess, newFinal, newEffRate)}
+        ${better==='new'?`<div style="margin-top:8px;padding:6px 10px;background:rgba(52,211,153,0.12);border-radius:8px;font-size:12px;color:var(--emerald);font-weight:600;">✓ Better — save ${fmtINR(Math.abs(savings))}</div>`:''}
+        ${better==='same'?`<div style="margin-top:8px;padding:6px 10px;background:rgba(251,191,36,0.12);border-radius:8px;font-size:12px;color:var(--gold);">Both regimes give similar tax</div>`:''}
+      </div>
+    </div>
+    <div class="tx-card" style="margin-bottom:16px;">
+      <div class="section-heading"><div class="section-title"><span class="dot" style="background:var(--violet)"></span>80C Headroom &amp; Advice</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center;">
+        <div style="padding:12px;background:var(--bg3);border-radius:10px;">
+          <div style="font-size:12px;color:var(--text-3);">80C Headroom</div>
+          <div style="font-size:18px;font-weight:700;color:var(--teal)">${fmtINR(headroom80C)}</div>
+          <div style="font-size:11px;color:var(--text-3);">more can be invested</div>
+        </div>
+        <div style="padding:12px;background:var(--bg3);border-radius:10px;">
+          <div style="font-size:12px;color:var(--text-3);">Max Old-Regime Saving</div>
+          <div style="font-size:18px;font-weight:700;color:var(--emerald)">${fmtINR(headroom80C * 0.3)}</div>
+          <div style="font-size:11px;color:var(--text-3);">at 30% slab</div>
+        </div>
+        <div style="padding:12px;background:var(--bg3);border-radius:10px;">
+          <div style="font-size:12px;color:var(--text-3);">Monthly Tax (Old)</div>
+          <div style="font-size:18px;font-weight:700;color:var(--rose)">${fmtINR(oldFinal / 12)}</div>
+          <div style="font-size:11px;color:var(--text-3);">advance tax per month</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function _taxBreakdown(tax, rebate, surcharge, cess, total, effRate) {
+  return `
+    <div style="font-size:12px;color:var(--text-2);display:flex;flex-direction:column;gap:5px;">
+      <div style="display:flex;justify-content:space-between;"><span>Income Tax</span><span>${fmtINR(tax)}</span></div>
+      ${rebate > 0 ? `<div style="display:flex;justify-content:space-between;color:var(--emerald);"><span>87A Rebate</span><span>−${fmtINR(rebate)}</span></div>` : ''}
+      ${surcharge > 0 ? `<div style="display:flex;justify-content:space-between;"><span>Surcharge</span><span>${fmtINR(surcharge)}</span></div>` : ''}
+      <div style="display:flex;justify-content:space-between;"><span>4% Cess</span><span>${fmtINR(cess)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--border);padding-top:5px;margin-top:2px;">
+        <span>Total Tax</span><span style="color:var(--rose);font-size:14px;">${fmtINR(total)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;color:var(--text-3);font-size:11px;">
+        <span>Effective Rate</span><span>${effRate}%</span>
+      </div>
+    </div>`;
+}
+
+function _computeOldRegimeTax(income, age) {
+  const exempt = age === 'super' ? 500000 : age === 'senior' ? 300000 : 250000;
+  if (income <= exempt) return 0;
+  let tax = 0;
+  const bands = [[exempt, 500000, 0.05], [500000, 1000000, 0.20], [1000000, Infinity, 0.30]];
+  for (const [lo, hi, rate] of bands) {
+    if (income > lo) tax += (Math.min(income, hi) - lo) * rate;
+  }
+  return tax;
+}
+
+function _computeNewRegimeTax(income) {
+  if (income <= 300000) return 0;
+  let tax = 0;
+  const bands = [
+    [300000, 700000, 0.05], [700000, 1000000, 0.10],
+    [1000000, 1200000, 0.15], [1200000, 1500000, 0.20],
+    [1500000, Infinity, 0.30]
+  ];
+  for (const [lo, hi, rate] of bands) {
+    if (income > lo) tax += (Math.min(income, hi) - lo) * rate;
+  }
+  return tax;
+}
+
+function _getSurcharge(tax, income) {
+  if (income <= 5000000) return 0;
+  if (income <= 10000000) return tax * 0.10;
+  if (income <= 20000000) return tax * 0.15;
+  if (income <= 50000000) return tax * 0.25;
+  return tax * 0.37;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SUBSCRIPTION TRACKER
+══════════════════════════════════════════════════════════════ */
+function renderSubscriptionPage() {
+  const el = document.getElementById('subscriptionsContent');
+  if (!el) return;
+
+  const manual = state.subscriptions || [];
+  const detected = detectSubscriptions();
+  const toMonthly = (s) => {
+    if (s.cycle === 'yearly') return s.amount / 12;
+    if (s.cycle === 'quarterly') return s.amount / 3;
+    if (s.cycle === 'weekly') return s.amount * 4.33;
+    return s.amount;
+  };
+  const totalMonthly = manual.reduce((sum, s) => sum + toMonthly(s), 0)
+                     + detected.reduce((sum, s) => sum + s.amount, 0);
+
+  const manualHTML = manual.length
+    ? manual.map(s => `
+      <div class="list-item">
+        <div class="tx-icon" style="background:rgba(96,165,250,0.15);color:var(--blue);font-size:18px;">🔄</div>
+        <div class="list-item-info">
+          <div class="list-item-name">${s.name}</div>
+          <div class="list-item-sub">${s.category || ''} · ${s.cycle} · Next: ${s.dueDate || '—'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="list-item-amount" style="color:var(--rose);">−${fmtINR(s.amount)}</div>
+          <button style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;" onclick="deleteSubscription('${s.id}')">🗑️</button>
+          <button style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;" onclick="editSubscription('${s.id}')">✏️</button>
+        </div>
+      </div>`).join('')
+    : '<div style="padding:16px;text-align:center;color:var(--text-3);font-size:13px;">No manual subscriptions. Add one above.</div>';
+
+  const detectedHTML = detected.length
+    ? detected.map(s => `
+      <div class="list-item">
+        <div class="tx-icon" style="background:rgba(167,139,250,0.15);color:var(--violet);font-size:18px;">📡</div>
+        <div class="list-item-info">
+          <div class="list-item-name">${s.note || s.category}</div>
+          <div class="list-item-sub">Auto-detected · ${s.count} months · Avg ${fmtINR(s.amount)}/mo</div>
+        </div>
+        <div class="list-item-amount" style="color:var(--rose);">−${fmtINR(s.amount)}</div>
+      </div>`).join('')
+    : '<div style="padding:16px;text-align:center;color:var(--text-3);font-size:13px;">No recurring patterns detected yet.</div>';
+
+  el.innerHTML = `
+    <div class="tx-card" style="margin-bottom:12px;text-align:center;padding:20px;">
+      <div style="font-size:12px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;">Total Monthly Subscriptions</div>
+      <div style="font-size:32px;font-weight:800;color:var(--rose);margin:6px 0;">${fmtINR(totalMonthly)}</div>
+      <div style="font-size:13px;color:var(--text-3);">≈ ${fmtINR(totalMonthly * 12)} / year</div>
+    </div>
+    <div class="tx-card" style="margin-bottom:12px;">
+      <div class="section-heading"><div class="section-title"><span class="dot" style="background:var(--blue)"></span>Manual Subscriptions</div></div>
+      ${manualHTML}
+    </div>
+    <div class="tx-card">
+      <div class="section-heading"><div class="section-title"><span class="dot" style="background:var(--violet)"></span>Auto-Detected Recurring</div></div>
+      ${detectedHTML}
+    </div>`;
+}
+
+function detectSubscriptions() {
+  const txs = state.transactions.filter(t => t.type === 'expense' || t.type === 'out');
+  const groups = {};
+  txs.forEach(t => {
+    const key = `${(t.note || '').toLowerCase().trim()}|${t.category}`;
+    if (!key.replace(/\|/, '').trim()) return;
+    if (!groups[key]) groups[key] = { note: t.note, category: t.category, months: {}, amounts: [] };
+    const month = (t.date || '').slice(0, 7);
+    if (!groups[key].months[month]) { groups[key].months[month] = 0; }
+    groups[key].months[month] += parseFloat(t.amount || 0);
+    groups[key].amounts.push(parseFloat(t.amount || 0));
+  });
+
+  const recurring = [];
+  for (const [, g] of Object.entries(groups)) {
+    const monthKeys = Object.keys(g.months);
+    if (monthKeys.length < 2) continue;
+    const amounts = Object.values(g.months);
+    const avg = amounts.reduce((a, b) => a + b, 0) / amounts.length;
+    const variance = amounts.every(a => Math.abs(a - avg) / avg < 0.2);
+    if (variance) recurring.push({ note: g.note, category: g.category, amount: Math.round(avg), count: monthKeys.length });
+  }
+  return recurring.sort((a, b) => b.amount - a.amount).slice(0, 15);
+}
+
+function openAddSubscriptionModal(id) {
+  const modal = document.getElementById('addSubscriptionModal');
+  if (!modal) return;
+  document.getElementById('subEditId').value = id || '';
+  if (id) {
+    const s = (state.subscriptions || []).find(x => x.id === id);
+    if (s) {
+      document.getElementById('subName').value = s.name || '';
+      document.getElementById('subAmount').value = s.amount || '';
+      document.getElementById('subCycle').value = s.cycle || 'monthly';
+      document.getElementById('subCategory').value = s.category || '';
+      document.getElementById('subDueDate').value = s.dueDate || '';
+    }
+  } else {
+    ['subName','subAmount','subCategory','subDueDate'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('subCycle').value = 'monthly';
+  }
+  modal.style.display = 'flex';
+}
+function closeAddSubscriptionModal() {
+  const m = document.getElementById('addSubscriptionModal');
+  if (m) m.style.display = 'none';
+}
+function editSubscription(id) { openAddSubscriptionModal(id); }
+async function saveSubscription() {
+  const name = document.getElementById('subName')?.value.trim();
+  if (!name) { showToast('Enter subscription name', 'error'); return; }
+  const editId = document.getElementById('subEditId')?.value;
+  const sub = {
+    id: editId || uid('sub'),
+    name,
+    amount: parseFloat(document.getElementById('subAmount')?.value || 0),
+    cycle: document.getElementById('subCycle')?.value || 'monthly',
+    category: document.getElementById('subCategory')?.value.trim() || '',
+    dueDate: document.getElementById('subDueDate')?.value || '',
+    createdAt: new Date().toISOString()
+  };
+  await put('subscriptions', sub);
+  if (editId) {
+    state.subscriptions = state.subscriptions.map(s => s.id === editId ? sub : s);
+  } else {
+    state.subscriptions = [...(state.subscriptions || []), sub];
+  }
+  closeAddSubscriptionModal();
+  renderSubscriptionPage();
+  showToast('Subscription saved.', 'success');
+}
+async function deleteSubscription(id) {
+  if (!confirm('Delete this subscription?')) return;
+  await del('subscriptions', id);
+  state.subscriptions = (state.subscriptions || []).filter(s => s.id !== id);
+  renderSubscriptionPage();
+  showToast('Deleted.', 'success');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SPLIT TRANSACTIONS
+══════════════════════════════════════════════════════════════ */
+let _splitTxId = null;
+
+function openSplitModal(txId) {
+  const t = state.transactions.find(x => x.id === txId);
+  if (!t) return;
+  _splitTxId = txId;
+
+  const info = document.getElementById('splitTxInfo');
+  if (info) info.innerHTML = `Splitting: <b>${t.note || t.category}</b> — <b style="color:var(--rose)">${fmtINR(t.amount)}</b> on ${t.date}`;
+
+  const rows = document.getElementById('splitRows');
+  if (rows) {
+    rows.innerHTML = '';
+    addSplitRow(t.category, t.amount / 2);
+    addSplitRow('', t.amount / 2);
+  }
+  updateSplitBalance();
+
+  const m = document.getElementById('splitTxModal');
+  if (m) m.style.display = 'flex';
+}
+
+function closeSplitModal() {
+  const m = document.getElementById('splitTxModal');
+  if (m) m.style.display = 'none';
+  _splitTxId = null;
+}
+
+function addSplitRow(cat = '', amt = '') {
+  const rows = document.getElementById('splitRows');
+  if (!rows) return;
+  const i = rows.children.length;
+  const div = document.createElement('div');
+  div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;';
+  div.innerHTML = `
+    <input type="text" class="form-input split-cat" placeholder="Category" value="${cat}" oninput="updateSplitBalance()">
+    <input type="number" class="form-input split-amt" placeholder="Amount" value="${amt ? +amt.toFixed(2) : ''}" step="0.01" oninput="updateSplitBalance()">
+    <button style="background:none;border:none;color:var(--rose);cursor:pointer;font-size:18px;" onclick="this.closest('div').remove();updateSplitBalance()">×</button>`;
+  rows.appendChild(div);
+}
+
+function updateSplitBalance() {
+  const t = _splitTxId ? state.transactions.find(x => x.id === _splitTxId) : null;
+  if (!t) return;
+  const total = parseFloat(t.amount) || 0;
+  const assigned = [...document.querySelectorAll('.split-amt')]
+    .reduce((s, el) => s + (parseFloat(el.value) || 0), 0);
+  const remaining = total - assigned;
+  const info = document.getElementById('splitBalanceInfo');
+  if (info) info.innerHTML = `Assigned: <b>${fmtINR(assigned)}</b> | Remaining: <b style="color:${Math.abs(remaining) < 0.01 ? 'var(--emerald)' : 'var(--rose)'}">${fmtINR(remaining)}</b>`;
+}
+
+async function saveSplitTransaction() {
+  const t = _splitTxId ? state.transactions.find(x => x.id === _splitTxId) : null;
+  if (!t) return;
+
+  const cats = [...document.querySelectorAll('.split-cat')].map(el => el.value.trim());
+  const amts = [...document.querySelectorAll('.split-amt')].map(el => parseFloat(el.value) || 0);
+  const total = amts.reduce((a, b) => a + b, 0);
+
+  if (Math.abs(total - parseFloat(t.amount)) > 0.01) {
+    showToast('Split amounts must equal the original total.', 'error'); return;
+  }
+  if (cats.some(c => !c)) { showToast('Fill all category fields.', 'error'); return; }
+
+  // Delete original
+  await del('transactions', t.id);
+  state.transactions = state.transactions.filter(x => x.id !== t.id);
+
+  // Create split entries
+  for (let i = 0; i < cats.length; i++) {
+    const newTx = { ...t, id: uid('tx'), category: cats[i], amount: amts[i], note: `${t.note || ''} [split]`.trim(), splitFrom: t.id, createdAt: new Date().toISOString() };
+    await put('transactions', newTx);
+    state.transactions.push(newTx);
+  }
+
+  closeSplitModal();
+  renderAll();
+  autoBackup();
+  showToast(`Split into ${cats.length} transactions.`, 'success');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BUDGET ROLLOVER — carry unspent budget to next month
+══════════════════════════════════════════════════════════════ */
+async function checkBudgetRollover() {
+  try {
+    const budgets = state.budgets || [];
+    if (!budgets.length) return;
+    const now = new Date();
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+    const lastRollover = state.settings?.lastBudgetRollover;
+    if (lastRollover === thisMonth) return; // already done this month
+
+    let rolled = 0;
+    for (const b of budgets) {
+      if (!b.rollover) continue; // only rollover-enabled budgets
+      const spent = state.transactions
+        .filter(t => (t.type === 'expense' || t.type === 'out') && t.category === b.category && (t.date || '').startsWith(prevMonth))
+        .reduce((s, t) => s + parseFloat(t.amount || 0), 0);
+      const unspent = Math.max(0, (b.limit || 0) - spent);
+      if (unspent > 0) {
+        const updated = { ...b, limit: (b.limit || 0) + unspent, rolledOverAmount: unspent, rolledOverFrom: prevMonth };
+        await put('budgets', updated);
+        state.budgets = state.budgets.map(x => x.id === b.id ? updated : x);
+        rolled++;
+      }
+    }
+
+    state.settings = { ...(state.settings || {}), lastBudgetRollover: thisMonth };
+    await saveSettingsToStore();
+    if (rolled > 0) showToast(`Budget rollover: ${rolled} categories carried forward.`, 'success');
+  } catch (e) { console.warn('[LM] Budget rollover failed:', e); }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   XIRR — Time-weighted portfolio return (Newton-Raphson)
+══════════════════════════════════════════════════════════════ */
+function calcXIRR(cashflows, dates, guess = 0.1) {
+  if (!cashflows || cashflows.length < 2) return null;
+  const t0 = dates[0];
+  const yrs = dates.map(d => (d - t0) / (365.25 * 86400000));
+
+  function npv(r) {
+    return cashflows.reduce((s, cf, i) => s + cf / Math.pow(1 + r, yrs[i]), 0);
+  }
+  function dnpv(r) {
+    return cashflows.reduce((s, cf, i) => s - yrs[i] * cf / Math.pow(1 + r, yrs[i] + 1), 0);
+  }
+
+  let r = guess;
+  for (let i = 0; i < 200; i++) {
+    const n = npv(r), dn = dnpv(r);
+    if (Math.abs(dn) < 1e-12) break;
+    const nr = r - n / dn;
+    if (Math.abs(nr - r) < 1e-8) return nr;
+    r = nr;
+    if (r < -1) r = -0.99;
+  }
+  return r;
+}
+
+function getPortfolioXIRR() {
+  const investments = state.investments || [];
+  if (!investments.length) return null;
+  const flows = [], dates = [];
+  investments.forEach(inv => {
+    const amt = parseFloat(inv.amount || inv.invested || 0);
+    const date = new Date(inv.date || inv.purchaseDate || inv.startDate || Date.now());
+    if (!amt) return;
+    flows.push(-amt); dates.push(date);
+  });
+  // Current value as final cashflow (today)
+  const currentValue = investments.reduce((s, inv) => {
+    if (typeof getAssetCurrentValue === 'function') return s + getAssetCurrentValue(inv);
+    return s + parseFloat(inv.currentValue || inv.amount || 0);
+  }, 0);
+  if (currentValue > 0) { flows.push(currentValue); dates.push(new Date()); }
+  if (flows.length < 2) return null;
+  try { return calcXIRR(flows, dates); } catch { return null; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   NET WORTH SPARKLINE — mini trend chart on dashboard
+══════════════════════════════════════════════════════════════ */
+let _nwSparkChart = null;
+
+function renderNWSparkline() {
+  const wrap = document.getElementById('nwSparklineWidget');
+  if (!wrap) return;
+  const snaps = (state.net_worth_snapshots || []).sort((a, b) => (a.date || '') > (b.date || '') ? 1 : -1);
+
+  if (snaps.length < 2) {
+    wrap.innerHTML = `<div class="tx-card" style="text-align:center;padding:20px;color:var(--text-3);font-size:13px;">
+      Take your first net worth snapshot in the Wealth module to see trends here.</div>`;
+    return;
+  }
+
+  const labels = snaps.map(s => s.date?.slice(5) || '');
+  const values = snaps.map(s => s.netWorth || 0);
+  const latest = values[values.length - 1];
+  const prev   = values[values.length - 2];
+  const delta  = latest - prev;
+  const pct    = prev !== 0 ? ((delta / Math.abs(prev)) * 100).toFixed(1) : '0.0';
+
+  wrap.innerHTML = `
+    <div class="tx-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div>
+          <div style="font-size:22px;font-weight:800;color:${latest>=0?'var(--teal)':'var(--rose)'}">${fmtINR(latest)}</div>
+          <div style="font-size:12px;color:${delta>=0?'var(--emerald)':'var(--rose)'}">${delta>=0?'▲':'▼'} ${fmtINR(Math.abs(delta))} (${pct}%) vs last snapshot</div>
+        </div>
+        <div style="font-size:11px;color:var(--text-3);">${snaps.length} snapshots</div>
+      </div>
+      <div style="height:80px;"><canvas id="nwSparkCanvas"></canvas></div>
+    </div>`;
+
+  requestAnimationFrame(() => {
+    const ctx = document.getElementById('nwSparkCanvas');
+    if (!ctx) return;
+    if (_nwSparkChart) { _nwSparkChart.destroy(); _nwSparkChart = null; }
+    const colors = getChartColors();
+    _nwSparkChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          borderColor: latest >= 0 ? colors.teal : colors.rose,
+          backgroundColor: latest >= 0 ? 'rgba(0,212,180,0.1)' : 'rgba(251,113,133,0.1)',
+          fill: true, tension: 0.4, pointRadius: 3, borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 600 },
+        plugins: { legend: { display: false }, tooltip: {
+          callbacks: { label: ctx => fmtINR(ctx.parsed.y) }
+        }},
+        scales: {
+          x: { display: false },
+          y: { display: false }
+        }
+      }
+    });
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   WHAT-IF SIMULATOR
+══════════════════════════════════════════════════════════════ */
+function openWhatIfModal() {
+  const m = document.getElementById('whatIfModal');
+  if (!m) return;
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const monthIncome  = state.transactions.filter(t => (t.type === 'income' || t.type === 'in') && (t.date||'').startsWith(thisMonth)).reduce((s,t) => s + parseFloat(t.amount||0), 0);
+  const monthExpense = state.transactions.filter(t => (t.type === 'expense' || t.type === 'out') && (t.date||'').startsWith(thisMonth)).reduce((s,t) => s + parseFloat(t.amount||0), 0);
+  const monthlySavings = Math.max(0, monthIncome - monthExpense);
+
+  const el = document.getElementById('wiCurrentSavings');
+  if (el) el.value = Math.round(monthlySavings);
+  const el2 = document.getElementById('emiIncome');
+  if (el2) el2.value = Math.round(monthIncome);
+  m.style.display = 'flex';
+  calcWhatIf();
+}
+
+function closeWhatIfModal() {
+  const m = document.getElementById('whatIfModal');
+  if (m) m.style.display = 'none';
+}
+
+function calcWhatIf() {
+  const current  = parseFloat(document.getElementById('wiCurrentSavings')?.value || 0);
+  const extra    = parseFloat(document.getElementById('wiExtra')?.value || 0);
+  const years    = parseFloat(document.getElementById('wiYears')?.value || 20);
+  const rate     = parseFloat(document.getElementById('wiReturn')?.value || 12) / 100 / 12;
+  const months   = years * 12;
+
+  const fv = (pmt, r, n) => r === 0 ? pmt * n : pmt * (Math.pow(1 + r, n) - 1) / r;
+  const corpusCurrent = fv(current, rate, months);
+  const corpusExtra   = fv(extra, rate, months);
+  const corpusTotal   = fv(current + extra, rate, months);
+  const gain          = corpusExtra;
+
+  const res = document.getElementById('whatIfResult');
+  if (!res) return;
+  res.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+      <div style="padding:14px;background:var(--bg3);border-radius:12px;text-align:center;">
+        <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;">Current Path</div>
+        <div style="font-size:22px;font-weight:800;color:var(--teal);margin:6px 0;">${fmtINR(corpusCurrent)}</div>
+        <div style="font-size:11px;color:var(--text-3);">in ${years} years</div>
+      </div>
+      <div style="padding:14px;background:var(--bg3);border-radius:12px;text-align:center;border:2px solid var(--emerald);">
+        <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;">With Extra ₹${Number(extra).toLocaleString('en-IN')}/mo</div>
+        <div style="font-size:22px;font-weight:800;color:var(--emerald);margin:6px 0;">${fmtINR(corpusTotal)}</div>
+        <div style="font-size:11px;color:var(--emerald);">+${fmtINR(gain)} extra</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:12px;background:rgba(167,139,250,0.1);border-radius:10px;font-size:13px;color:var(--text-2);">
+      Saving ${fmtINR(extra)} more per month at ${(parseFloat(document.getElementById('wiReturn')?.value||12))}% p.a.
+      adds <b style="color:var(--violet)">${fmtINR(gain)}</b> to your corpus over ${years} years.
+      That's <b>${(gain/(extra||1)/months).toFixed(0)}×</b> your extra investment.
+    </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FINANCIAL YEAR SUMMARY (Apr–Mar) with PDF export
+══════════════════════════════════════════════════════════════ */
+function renderFYSummary() {
+  const el = document.getElementById('fySummaryContent');
+  if (!el) return;
+
+  const now = new Date();
+  const fy  = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  const fyStart = `${fy}-04-01`, fyEnd = `${fy + 1}-03-31`;
+
+  const txs   = state.transactions.filter(t => t.date >= fyStart && t.date <= fyEnd);
+  const income  = txs.filter(t => t.type === 'income' || t.type === 'in').reduce((s, t) => s + parseFloat(t.amount || 0), 0);
+  const expense = txs.filter(t => t.type === 'expense' || t.type === 'out').reduce((s, t) => s + parseFloat(t.amount || 0), 0);
+  const savings = income - expense;
+  const savRate = income > 0 ? (savings / income * 100).toFixed(1) : '0.0';
+
+  // Category breakdown
+  const catMap = {};
+  txs.filter(t => t.type === 'expense' || t.type === 'out').forEach(t => {
+    catMap[t.category || 'Other'] = (catMap[t.category || 'Other'] || 0) + parseFloat(t.amount || 0);
+  });
+  const topCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+  // Monthly breakdown
+  const monthMap = {};
+  for (let m = 0; m < 12; m++) {
+    const d = new Date(fy, 3 + m, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const label = d.toLocaleString('en-IN', { month: 'short', year: '2-digit' });
+    const mInc = txs.filter(t => (t.type==='income'||t.type==='in') && (t.date||'').startsWith(key)).reduce((s,t) => s+parseFloat(t.amount||0), 0);
+    const mExp = txs.filter(t => (t.type==='expense'||t.type==='out') && (t.date||'').startsWith(key)).reduce((s,t) => s+parseFloat(t.amount||0), 0);
+    monthMap[label] = { inc: mInc, exp: mExp };
+  }
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:600;color:var(--text);">FY ${fy}–${fy+1} (Apr ${fy} – Mar ${fy+1})</div>
+      <button class="section-action" onclick="exportFYSummaryPDF()">📄 Export PDF</button>
+    </div>
+    <div class="kpi-grid" style="margin-bottom:16px;" id="fySummaryKPIs">
+      <div class="kpi-card green"><div class="kpi-label">TOTAL INCOME</div><div class="kpi-value" style="color:var(--emerald)">${fmtINR(income)}</div></div>
+      <div class="kpi-card" style="background:rgba(251,113,133,0.08)"><div class="kpi-label">TOTAL EXPENSE</div><div class="kpi-value" style="color:var(--rose)">${fmtINR(expense)}</div></div>
+      <div class="kpi-card blue"><div class="kpi-label">NET SAVINGS</div><div class="kpi-value" style="color:${savings>=0?'var(--teal)':'var(--rose)'}">${fmtINR(savings)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">SAVINGS RATE</div><div class="kpi-value" style="color:var(--violet)">${savRate}%</div></div>
+    </div>
+    <div class="two-col" style="margin-bottom:16px;">
+      <div class="tx-card">
+        <div class="section-heading"><div class="section-title"><span class="dot" style="background:var(--rose)"></span>Top Expense Categories</div></div>
+        ${topCats.map(([cat, amt]) => `
+          <div class="list-item" style="padding:8px 0;">
+            <div class="list-item-info"><div class="list-item-name">${cat}</div></div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:80px;height:6px;border-radius:3px;background:var(--bg3);overflow:hidden;"><div style="height:100%;width:${Math.min(100,(amt/expense*100))}%;background:var(--rose);border-radius:3px;"></div></div>
+              <div class="list-item-amount" style="color:var(--rose)">${fmtINR(amt)}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <div class="tx-card">
+        <div class="section-heading"><div class="section-title"><span class="dot" style="background:var(--blue)"></span>Monthly Overview</div></div>
+        <div style="overflow-x:auto;">
+          ${Object.entries(monthMap).map(([label, d]) => `
+            <div class="list-item" style="padding:6px 0;">
+              <div style="width:50px;font-size:12px;color:var(--text-3);">${label}</div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:2px;">
+                <div style="height:5px;border-radius:3px;background:rgba(52,211,153,0.2);overflow:hidden;"><div style="height:100%;width:${income>0?Math.min(100,d.inc/income*800)+'%':'0'};background:var(--emerald);border-radius:3px;"></div></div>
+                <div style="height:5px;border-radius:3px;background:rgba(251,113,133,0.2);overflow:hidden;"><div style="height:100%;width:${expense>0?Math.min(100,d.exp/expense*800)+'%':'0'};background:var(--rose);border-radius:3px;"></div></div>
+              </div>
+              <div style="text-align:right;font-size:11px;width:70px;color:${d.inc-d.exp>=0?'var(--emerald)':'var(--rose)'};">${fmtINR(d.inc-d.exp)}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="tx-card">
+      <div class="section-heading"><div class="section-title"><span class="dot" style="background:var(--violet)"></span>Transaction Count: ${txs.length} transactions</div></div>
+      <div style="font-size:13px;color:var(--text-2);display:flex;gap:20px;flex-wrap:wrap;padding:8px 0;">
+        <span>Income transactions: <b>${txs.filter(t=>t.type==='income'||t.type==='in').length}</b></span>
+        <span>Expense transactions: <b>${txs.filter(t=>t.type==='expense'||t.type==='out').length}</b></span>
+        <span>Largest expense: <b style="color:var(--rose)">${fmtINR(Math.max(0,...txs.filter(t=>t.type==='expense'||t.type==='out').map(t=>parseFloat(t.amount||0))))}</b></span>
+      </div>
+    </div>`;
+}
+
+function exportFYSummaryPDF() {
+  const el = document.getElementById('fySummaryContent');
+  if (!el) return;
+  const now = new Date();
+  const fy  = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  const w = window.open('', '_blank');
+  w.document.write(`
+    <!DOCTYPE html><html><head>
+    <title>FY ${fy}-${fy+1} Summary — LedgerMate</title>
+    <style>
+      body{font-family:sans-serif;padding:30px;color:#1a1a1a;max-width:800px;margin:auto;}
+      h1{font-size:22px;margin-bottom:4px;} .sub{font-size:13px;color:#666;margin-bottom:20px;}
+      table{width:100%;border-collapse:collapse;margin-bottom:20px;}
+      th,td{border:1px solid #ddd;padding:8px 12px;text-align:left;font-size:13px;}
+      th{background:#f5f5f5;font-weight:600;} .right{text-align:right;}
+      .kpi{display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;}
+      .kpi-box{padding:14px 20px;border:1px solid #eee;border-radius:8px;flex:1;min-width:120px;}
+      .kpi-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;}
+      .kpi-val{font-size:22px;font-weight:700;margin-top:4px;}
+    </style></head><body>
+    <h1>LedgerMate — Financial Year Summary</h1>
+    <div class="sub">FY ${fy}–${fy+1} | Generated ${new Date().toLocaleDateString('en-IN', {day:'numeric',month:'long',year:'numeric'})}</div>
+    ${el.innerHTML}
+    <script>window.onload=function(){window.print();}<\/script>
+    </body></html>`);
+  w.document.close();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   EMI PRE-QUALIFIER
+══════════════════════════════════════════════════════════════ */
+function openEMIModal() {
+  const m = document.getElementById('emiModal');
+  if (!m) return;
+  // Auto-fill monthly income from this month
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const mInc = state.transactions.filter(t => (t.type==='income'||t.type==='in') && (t.date||'').startsWith(thisMonth))
+               .reduce((s,t) => s + parseFloat(t.amount||0), 0);
+  const el = document.getElementById('emiIncome');
+  if (el && !el.value) el.value = Math.round(mInc) || '';
+  m.style.display = 'flex';
+  calcEMIPreview();
+}
+function closeEMIModal() {
+  const m = document.getElementById('emiModal');
+  if (m) m.style.display = 'none';
+}
+function calcEMIPreview() {
+  const P = parseFloat(document.getElementById('emiAmount')?.value || 0);
+  const r = parseFloat(document.getElementById('emiRate')?.value || 0) / 100 / 12;
+  const n = parseInt(document.getElementById('emiTenure')?.value || 0);
+  const income = parseFloat(document.getElementById('emiIncome')?.value || 0);
+  const res = document.getElementById('emiResult');
+  if (!res || !P || !n) { if (res) res.innerHTML = ''; return; }
+
+  const emi = r === 0 ? P / n : P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+  const totalPay = emi * n;
+  const totalInt = totalPay - P;
+  const dti = income > 0 ? (emi / income * 100).toFixed(1) : null;
+  const affordable = !dti || parseFloat(dti) <= 40;
+
+  res.innerHTML = `
+    <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">
+      <div style="padding:12px;background:var(--bg3);border-radius:10px;text-align:center;">
+        <div style="font-size:11px;color:var(--text-3);">Monthly EMI</div>
+        <div style="font-size:20px;font-weight:800;color:var(--teal);">${fmtINR(Math.round(emi))}</div>
+      </div>
+      <div style="padding:12px;background:var(--bg3);border-radius:10px;text-align:center;">
+        <div style="font-size:11px;color:var(--text-3);">Total Interest</div>
+        <div style="font-size:20px;font-weight:800;color:var(--rose);">${fmtINR(Math.round(totalInt))}</div>
+      </div>
+      <div style="padding:12px;background:var(--bg3);border-radius:10px;text-align:center;">
+        <div style="font-size:11px;color:var(--text-3);">Total Payable</div>
+        <div style="font-size:20px;font-weight:800;color:var(--violet);">${fmtINR(Math.round(totalPay))}</div>
+      </div>
+    </div>
+    ${dti ? `
+    <div style="padding:12px;background:${affordable?'rgba(52,211,153,0.1)':'rgba(251,113,133,0.1)'};border-radius:10px;font-size:13px;">
+      <b>Debt-to-Income Ratio: ${dti}%</b> of monthly income
+      <div style="margin-top:4px;color:${affordable?'var(--emerald)':'var(--rose)'};">
+        ${affordable ? '✓ Within healthy range (≤40%). This loan looks manageable.' : '⚠ Exceeds 40% of income. Consider a smaller loan or longer tenure.'}
+      </div>
+    </div>` : ''}`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SPENDING HEATMAP — compact, fully responsive
+══════════════════════════════════════════════════════════════ */
+function renderFullSpendingHeatmap() {
+  const el = document.getElementById('spendingHeatmapContent');
+  if (!el) return;
+
+  const WEEKS = 16; // ~4 months — fits any screen without scroll
+  const BG = ['var(--bg3)','rgba(251,113,133,0.18)','rgba(251,113,133,0.38)','rgba(251,113,133,0.58)','rgba(251,113,133,0.78)','var(--rose)'];
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const DOW = ['M','T','W','T','F','S','S'];
+
+  const txs = state.transactions.filter(t => t.type === 'expense' || t.type === 'out');
+  const dailyMap = {};
+  txs.forEach(t => { dailyMap[t.date] = (dailyMap[t.date] || 0) + parseFloat(t.amount || 0); });
+
+  const today = new Date();
+  const start = new Date(today);
+  start.setDate(start.getDate() - (WEEKS * 7 - 1));
+  while (start.getDay() !== 1) start.setDate(start.getDate() - 1); // align to Mon
+
+  const allVals = Object.values(dailyMap).filter(v => v > 0);
+  const sorted = allVals.slice().sort((a,b) => a - b);
+  const p75 = sorted[Math.floor(sorted.length * 0.75)] || 1;
+  const getLevel = v => {
+    if (!v) return 0;
+    if (v < p75 * 0.2) return 1;
+    if (v < p75 * 0.45) return 2;
+    if (v < p75 * 0.7) return 3;
+    if (v < p75) return 4;
+    return 5;
+  };
+
+  // Build week columns
+  const weeks = [];
+  let cur = new Date(start), week = [];
+  while (cur <= today) {
+    const ds = cur.toISOString().slice(0,10);
+    const val = dailyMap[ds] || 0;
+    week.push({ date: ds, val, level: getLevel(val) });
+    if (cur.getDay() === 0) { weeks.push(week); week = []; }
+    cur.setDate(cur.getDate() + 1);
+  }
+  if (week.length) weeks.push(week);
+
+  // Month change labels
+  const monthLabels = weeks.map((wk, i) => {
+    const m = new Date(wk[0]?.date).getMonth();
+    const prev = i > 0 ? new Date(weeks[i-1][0]?.date).getMonth() : -1;
+    return m !== prev ? MON[m] : '';
+  });
+
+  // Stats
+  const totalSpend = Object.values(dailyMap).reduce((a,b) => a+b, 0);
+  const activeDays = allVals.length;
+  const avgDay = activeDays ? totalSpend / activeDays : 0;
+  const peak = Object.entries(dailyMap).sort((a,b) => b[1]-a[1])[0];
+
+  // Month-wise bar summary (last 4 months)
+  const monthSummary = [];
+  for (let i = 3; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const key = d.toISOString().slice(0,7);
+    const label = MON[d.getMonth()];
+    const total = txs.filter(t => t.date?.startsWith(key)).reduce((s,t) => s + parseFloat(t.amount||0), 0);
+    monthSummary.push({ label, total });
+  }
+  const maxMonth = Math.max(...monthSummary.map(m => m.total), 1);
+
+  el.innerHTML = `
+    <!-- Stats row -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+      <div class="hm-stat"><div class="hm-stat-val" style="color:var(--rose)">${fmtINR(totalSpend)}</div><div class="hm-stat-lbl">4-MONTH SPEND</div></div>
+      <div class="hm-stat"><div class="hm-stat-val" style="color:var(--gold)">${fmtINR(Math.round(avgDay))}</div><div class="hm-stat-lbl">AVG / DAY</div></div>
+      <div class="hm-stat"><div class="hm-stat-val" style="color:var(--violet)">${peak ? fmtINR(peak[1]) : '—'}</div><div class="hm-stat-lbl">PEAK DAY</div></div>
+    </div>
+
+    <!-- Month bar summary -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">
+      ${monthSummary.map(m => {
+        const pct = maxMonth > 0 ? Math.round((m.total/maxMonth)*100) : 0;
+        return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 8px 6px;text-align:center;">
+          <div style="height:36px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:4px;">
+            <div style="width:20px;border-radius:4px 4px 0 0;background:linear-gradient(to top,var(--rose),rgba(251,113,133,0.4));height:${Math.max(pct,4)}%;min-height:3px;transition:height 0.6s;"></div>
+          </div>
+          <div style="font-size:10px;font-weight:700;color:var(--text-3);">${m.label}</div>
+          <div style="font-size:11px;font-weight:600;color:var(--text);font-family:var(--font-m);">${m.total > 0 ? fmtINR(Math.round(m.total)) : '—'}</div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- Heatmap grid -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 10px 10px;">
+      <div style="display:flex;gap:0;align-items:flex-start;">
+        <!-- Day labels -->
+        <div style="display:flex;flex-direction:column;gap:2px;padding-top:18px;margin-right:4px;flex-shrink:0;">
+          ${DOW.map(d=>`<div style="height:var(--hm-cell);line-height:var(--hm-cell);font-size:9px;color:var(--text-3);width:12px;text-align:center;">${d}</div>`).join('')}
+        </div>
+        <!-- Week columns -->
+        <div style="flex:1;min-width:0;">
+          <div style="display:grid;grid-template-columns:repeat(${weeks.length},1fr);gap:2px;margin-bottom:3px;">
+            ${monthLabels.map(l=>`<div style="font-size:9px;color:var(--text-3);text-align:center;overflow:hidden;">${l}</div>`).join('')}
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(${weeks.length},1fr);gap:2px;">
+            ${weeks.map(wk => `
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                ${wk.map(day => `
+                  <div title="${day.date}${day.val ? ': ' + fmtINR(day.val) : ''}"
+                       style="aspect-ratio:1;border-radius:2px;background:${BG[day.level]};cursor:${day.val?'pointer':'default'};"></div>`).join('')}
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+      <!-- Legend -->
+      <div style="display:flex;align-items:center;gap:4px;margin-top:8px;font-size:10px;color:var(--text-3);">
+        <span>Less</span>
+        ${BG.map(bg=>`<div style="width:10px;height:10px;border-radius:2px;background:${bg};"></div>`).join('')}
+        <span>More</span>
+        ${peak ? `<span style="margin-left:auto;color:var(--text-3);">Peak: ${peak[0]}</span>` : ''}
+      </div>
+    </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MERCHANT AUTO-CATEGORIZE — used in CSV import
+══════════════════════════════════════════════════════════════ */
+const MERCHANT_PATTERNS = [
+  { pattern: /swiggy|zomato|dominos|pizza|mcdonald|kfc|starbucks|café|cafe|restaurant|biryani|dhaba|foodpanda/i, category: 'Food' },
+  { pattern: /uber|ola|rapido|redbus|makemytrip|irctc|indigo|spicejet|goibibo|airline|metro|bus|taxi|auto/i, category: 'Transport' },
+  { pattern: /netflix|amazon prime|hotstar|disney|spotify|youtube|apple music|zee5|sonyliv|jiocinema/i, category: 'Entertainment' },
+  { pattern: /amazon|flipkart|myntra|meesho|nykaa|ajio|snapdeal|shop|mall|store|market/i, category: 'Shopping' },
+  { pattern: /electricity|water|gas\s|bescom|tneb|jiofiber|airtel|bsnl|vodafone|vi\s|recharge|broadband|internet|bill\s/i, category: 'Bills' },
+  { pattern: /gym|fitness|cult\.fit|healthifyme|apollo|hospital|clinic|pharmacy|medical|doctor|health/i, category: 'Health' },
+  { pattern: /hotel|oyo|booking\.com|airbnb|resort|vacation|holiday|tour/i, category: 'Travel' },
+  { pattern: /salary|payroll|stipend|wage|bonus|incentive/i, category: 'Salary' },
+  { pattern: /emi|loan|mortgage|insurance|premium|lic|hdfc life|sbi life/i, category: 'Finance' },
+  { pattern: /school|college|university|tuition|course|udemy|coursera|education|book/i, category: 'Education' },
+  { pattern: /rent|pg\s|hostel|housing/i, category: 'Rent' },
+  { pattern: /grocery|supermarket|bigbasket|blinkit|zepto|dmart|reliance fresh|vegetables|fruits/i, category: 'Groceries' },
+];
+
+function merchantToCategory(text) {
+  if (!text) return null;
+  for (const { pattern, category } of MERCHANT_PATTERNS) {
+    if (pattern.test(text)) return category;
+  }
+  return null;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LINKED GOALS TO BUDGET CATEGORIES
+══════════════════════════════════════════════════════════════ */
+function getGoalLinkedProgress(goal) {
+  if (!goal.linkedCategory) return null;
+  const now = new Date();
+  const startDate = goal.createdAt ? goal.createdAt.slice(0, 10) : '2000-01-01';
+  const saved = state.transactions
+    .filter(t => (t.type === 'income' || t.type === 'in') && t.category === goal.linkedCategory && t.date >= startDate)
+    .reduce((s, t) => s + parseFloat(t.amount || 0), 0);
+  return saved;
+}
+
+// Patch openSavingsGoalModal to add linked category field
+const _origOpenSavingsGoalModal = window.openSavingsGoalModal;
+window.openSavingsGoalModal = function(id) {
+  if (typeof _origOpenSavingsGoalModal === 'function') _origOpenSavingsGoalModal(id);
+  // Inject linked category field if not present
+  setTimeout(() => {
+    const modal = document.getElementById('savingsGoalModal');
+    if (!modal || modal.querySelector('#sgLinkedCategory')) return;
+    const btn = modal.querySelector('.btn-submit');
+    if (!btn) return;
+    const div = document.createElement('div');
+    div.className = 'form-group';
+    div.innerHTML = `
+      <label class="form-label">Link to Income Category (optional)</label>
+      <input type="text" id="sgLinkedCategory" class="form-input"
+             placeholder="e.g. Salary — auto-tracks contributions">`;
+    btn.before(div);
+    if (id) {
+      const g = (state.savings_goals || []).find(x => x.id == id);
+      if (g?.linkedCategory) document.getElementById('sgLinkedCategory').value = g.linkedCategory;
+    }
+  }, 50);
+};
+
+// Patch saveSavingsGoal to persist linkedCategory
+const _origSaveSavingsGoal = window.saveSavingsGoal;
+window.saveSavingsGoal = async function() {
+  const linked = document.getElementById('sgLinkedCategory')?.value.trim() || null;
+  if (typeof _origSaveSavingsGoal === 'function') await _origSaveSavingsGoal();
+  // Update last saved goal with linkedCategory
+  if (linked) {
+    const goals = await (window.getAll ? getAll('savings_goals') : Promise.resolve(state.savings_goals || []));
+    const last  = goals[goals.length - 1];
+    if (last) {
+      const updated = { ...last, linkedCategory: linked };
+      await put('savings_goals', updated);
+      state.savings_goals = state.savings_goals.map(g => g.id === updated.id ? updated : g);
+    }
+  }
+};
+
+/* ══════════════════════════════════════════════════════════════
+   PUSH NOTIFICATIONS — bill due date reminders
+══════════════════════════════════════════════════════════════ */
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission !== 'denied') {
+    const p = await Notification.requestPermission();
+    return p === 'granted';
+  }
+  return false;
+}
+
+function schedulePushNotifications() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') {
+    // Request permission silently in background
+    requestNotificationPermission();
+    return;
+  }
+  checkBillNotifications();
+  // Check every 4 hours
+  setInterval(checkBillNotifications, 4 * 60 * 60 * 1000);
+}
+
+function checkBillNotifications() {
+  try {
+    const today = nowISO();
+    const in3days = new Date(); in3days.setDate(in3days.getDate() + 3);
+    const in3 = in3days.toISOString().slice(0, 10);
+
+    // Loan due dates
+    (state.loans || []).forEach(loan => {
+      if (!loan.dueDate || loan.dueDate > in3 || loan.dueDate < today) return;
+      const key = `lm_notif_loan_${loan.id}_${loan.dueDate}`;
+      if (localStorage.getItem(key)) return;
+      new Notification('LedgerMate — Loan Due', {
+        body: `"${loan.description || loan.name}" is due on ${loan.dueDate}. Amount: ${fmtINR(loan.amount)}`,
+        icon: '/favicon.ico'
+      });
+      localStorage.setItem(key, '1');
+    });
+
+    // Reminder due dates
+    (state.reminders || []).forEach(rem => {
+      if (!rem.date || rem.date > in3 || rem.date < today) return;
+      const key = `lm_notif_rem_${rem.id}_${rem.date}`;
+      if (localStorage.getItem(key)) return;
+      new Notification('LedgerMate — Reminder', {
+        body: `${rem.title || rem.description || 'Reminder'} on ${rem.date}`,
+        icon: '/favicon.ico'
+      });
+      localStorage.setItem(key, '1');
+    });
+
+    // Subscription due dates
+    (state.subscriptions || []).forEach(sub => {
+      if (!sub.dueDate || sub.dueDate > in3 || sub.dueDate < today) return;
+      const key = `lm_notif_sub_${sub.id}_${sub.dueDate}`;
+      if (localStorage.getItem(key)) return;
+      new Notification('LedgerMate — Subscription Due', {
+        body: `"${sub.name}" charges ${fmtINR(sub.amount)} on ${sub.dueDate}`,
+        icon: '/favicon.ico'
+      });
+      localStorage.setItem(key, '1');
+    });
+  } catch (e) { console.warn('[LM] Push notification error:', e); }
+}
+
+/* Expose XIRR and other utilities globally */
+window.calcXIRR        = calcXIRR;
+window.getPortfolioXIRR = getPortfolioXIRR;
+window.merchantToCategory = merchantToCategory;
+
+/* ══════════════════════════════════════════════════════════════
+   VIEWS BROWSER — lists all files in /views/ folder
+   ➜ To add a new file: push an entry to VIEWS_FILES below.
+══════════════════════════════════════════════════════════════ */
+const VIEWS_FILES = [
+  {
+    file: 'views/Java-Prep-kit.html',
+    title: 'Java Interview Prep Kit',
+    description: 'Core Java concepts, OOP, Collections, Streams, Multithreading, Spring Boot, and common interview Q&A.',
+    icon: '☕',
+    tags: ['Java', 'Interview', 'Backend'],
+    color: 'var(--gold)'
+  }
+  // Add more entries here as you drop files into /views/
+  // { file: 'views/my-notes.html', title: 'My Notes', description: '...', icon: '📝', tags: ['Notes'], color: 'var(--teal)' }
+];
+
+function renderViewsBrowser() {
+  const el = document.getElementById('viewsBrowserContent');
+  if (!el) return;
+
+  if (!VIEWS_FILES.length) {
+    el.innerHTML = `<div style="text-align:center;padding:48px 24px;">
+      <div style="font-size:48px;margin-bottom:12px;">📂</div>
+      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">No files yet</div>
+      <div style="color:var(--text-3);font-size:13px;">Drop HTML files into the <code>views/</code> folder and add entries to <code>VIEWS_FILES</code> in Common.js</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;">
+      ${VIEWS_FILES.map((f, i) => `
+        <div class="vb-card fade-up fade-up-${Math.min(i+1,5)}" onclick="window.open('${f.file}', '_self')" title="Open ${f.title}">
+          <div class="vb-card-icon" style="background:${f.color}18;color:${f.color};">${f.icon}</div>
+          <div class="vb-card-body">
+            <div class="vb-card-title">${f.title}</div>
+            <div class="vb-card-desc">${f.description}</div>
+            <div class="vb-card-tags">
+              ${f.tags.map(t => `<span class="vb-tag">${t}</span>`).join('')}
+            </div>
+          </div>
+          <div class="vb-card-arrow">↗</div>
+        </div>
+      `).join('')}
+    </div>
+    <div style="margin-top:20px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--text-3);">
+      💡 To add more resources: drop an HTML file into the <code style="background:var(--bg3);padding:1px 5px;border-radius:4px;">views/</code> folder and add an entry to <code style="background:var(--bg3);padding:1px 5px;border-radius:4px;">VIEWS_FILES</code> in <code style="background:var(--bg3);padding:1px 5px;border-radius:4px;">js/Common.js</code>
+    </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CASH FLOW CALENDAR
+══════════════════════════════════════════════════════════════ */
+let _cfcYear  = new Date().getFullYear();
+let _cfcMonth = new Date().getMonth(); // 0-indexed
+
+function renderCashFlowCalendar(year, month) {
+  if (year  !== undefined) _cfcYear  = year;
+  if (month !== undefined) _cfcMonth = month;
+
+  const el = document.getElementById('cashFlowCalendarContent');
+  if (!el) return;
+
+  const MON_NAMES = ['January','February','March','April','May','June',
+                     'July','August','September','October','November','December'];
+  const DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  const y = _cfcYear, m = _cfcMonth;
+  const monthKey = `${y}-${String(m+1).padStart(2,'0')}`;
+
+  // Build daily aggregates
+  const txs = state.transactions.filter(t => t.date && t.date.startsWith(monthKey));
+  const dayMap = {}; // date → { income, expense }
+  txs.forEach(t => {
+    if (!dayMap[t.date]) dayMap[t.date] = { income: 0, expense: 0 };
+    const amt = parseFloat(t.amount) || 0;
+    if (t.type === 'in') dayMap[t.date].income += amt;
+    else dayMap[t.date].expense += amt;
+  });
+
+  // Calendar grid — weeks start Monday
+  const firstDay = new Date(y, m, 1);
+  const lastDay  = new Date(y, m + 1, 0);
+  const startDow = (firstDay.getDay() + 6) % 7; // Mon=0
+  const totalDays = lastDay.getDate();
+
+  // Month summary stats
+  const totIncome  = txs.filter(t => t.type === 'in').reduce((s,t) => s + parseFloat(t.amount||0), 0);
+  const totExpense = txs.filter(t => t.type !== 'in').reduce((s,t) => s + parseFloat(t.amount||0), 0);
+  const netFlow    = totIncome - totExpense;
+  const activeDays = Object.keys(dayMap).length;
+
+  // Top category this month
+  const catMap = {};
+  txs.filter(t => t.type !== 'in').forEach(t => {
+    catMap[t.category || 'Other'] = (catMap[t.category || 'Other'] || 0) + parseFloat(t.amount||0);
+  });
+  const topCat = Object.entries(catMap).sort((a,b) => b[1]-a[1])[0];
+
+  // Build calendar cells
+  let cells = '';
+  // Empty lead cells
+  for (let i = 0; i < startDow; i++) {
+    cells += `<div class="cfc-cell cfc-empty"></div>`;
+  }
+
+  for (let d = 1; d <= totalDays; d++) {
+    const ds   = `${monthKey}-${String(d).padStart(2,'0')}`;
+    const data = dayMap[ds];
+    const isToday = ds === new Date().toISOString().slice(0,10);
+    const net  = data ? data.income - data.expense : 0;
+    const hasData = !!data;
+
+    let cls = 'cfc-cell';
+    if (isToday)       cls += ' cfc-today';
+    if (!hasData)      cls += ' cfc-nodata';
+    else if (net > 0)  cls += ' cfc-income';
+    else if (net < 0)  cls += ' cfc-expense';
+    else               cls += ' cfc-neutral';
+
+    const bar = hasData ? (() => {
+      const maxVal = Math.max(data.income, data.expense, 1);
+      const iPct   = Math.round((data.income  / maxVal) * 100);
+      const ePct   = Math.round((data.expense / maxVal) * 100);
+      return `<div class="cfc-bars">
+        ${data.income  > 0 ? `<div class="cfc-bar-i" style="height:${iPct}%"></div>` : ''}
+        ${data.expense > 0 ? `<div class="cfc-bar-e" style="height:${ePct}%"></div>` : ''}
+      </div>`;
+    })() : '';
+
+    const amtLabel = hasData
+      ? `<div class="cfc-amt">${net >= 0 ? '+' : ''}${Math.abs(net) >= 1000 ? (Math.abs(net)/1000).toFixed(1)+'k' : Math.round(Math.abs(net))}</div>`
+      : '';
+
+    cells += `
+      <div class="${cls}" onclick="cfcDayDrill('${ds}')" title="${ds}${data ? ': +'+fmtINR(data.income)+' / -'+fmtINR(data.expense) : ''}">
+        <div class="cfc-day-num">${d}</div>
+        ${bar}
+        ${amtLabel}
+      </div>`;
+  }
+
+  el.innerHTML = `
+    <!-- Stats strip -->
+    <div class="cfc-stats">
+      <div class="cfc-stat">
+        <div class="cfc-stat-val" style="color:var(--emerald)">${fmtINR(totIncome)}</div>
+        <div class="cfc-stat-lbl">Income</div>
+      </div>
+      <div class="cfc-stat">
+        <div class="cfc-stat-val" style="color:var(--rose)">${fmtINR(totExpense)}</div>
+        <div class="cfc-stat-lbl">Expense</div>
+      </div>
+      <div class="cfc-stat">
+        <div class="cfc-stat-val" style="color:${netFlow>=0?'var(--teal)':'var(--rose)'}">${netFlow>=0?'+':''}${fmtINR(netFlow)}</div>
+        <div class="cfc-stat-lbl">Net Flow</div>
+      </div>
+      <div class="cfc-stat">
+        <div class="cfc-stat-val" style="color:var(--violet)">${activeDays}</div>
+        <div class="cfc-stat-lbl">Active Days</div>
+      </div>
+    </div>
+
+    <!-- Month nav + calendar -->
+    <div class="cfc-card">
+      <div class="cfc-nav">
+        <button class="cfc-nav-btn" onclick="renderCashFlowCalendar(${m===0?y-1:y},${m===0?11:m-1})">‹</button>
+        <span class="cfc-nav-title">${MON_NAMES[m]} ${y}</span>
+        <button class="cfc-nav-btn" onclick="renderCashFlowCalendar(${m===11?y+1:y},${m===11?0:m+1})" ${monthKey >= new Date().toISOString().slice(0,7) ? 'disabled style="opacity:0.3"' : ''}>›</button>
+      </div>
+
+      <!-- Day-of-week headers -->
+      <div class="cfc-dow-row">
+        ${DOW.map(d => `<div class="cfc-dow">${d}</div>`).join('')}
+      </div>
+
+      <!-- Calendar grid -->
+      <div class="cfc-grid">
+        ${cells}
+      </div>
+
+      <!-- Legend -->
+      <div class="cfc-legend">
+        <span class="cfc-legend-dot" style="background:var(--emerald)"></span> Income &nbsp;
+        <span class="cfc-legend-dot" style="background:var(--rose)"></span> Expense &nbsp;
+        <span class="cfc-legend-dot" style="background:var(--bg3);border:1px solid var(--border)"></span> No activity
+        ${topCat ? `&nbsp;· Top: <b>${topCat[0]}</b> ${fmtINR(topCat[1])}` : ''}
+      </div>
+    </div>`;
+}
+
+function cfcDayDrill(dateStr) {
+  const modal = document.getElementById('cfcDayModal');
+  const title = document.getElementById('cfcDayTitle');
+  const body  = document.getElementById('cfcDayBody');
+  if (!modal) return;
+
+  const txs = state.transactions.filter(t => t.date === dateStr)
+    .sort((a,b) => new Date(b.createdAt||b.date) - new Date(a.createdAt||a.date));
+
+  const d = new Date(dateStr);
+  title.textContent = `📅 ${d.toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'})}`;
+
+  if (!txs.length) {
+    body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-3);">No transactions on this day</div>';
+  } else {
+    const totIn  = txs.filter(t=>t.type==='in').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+    const totOut = txs.filter(t=>t.type!=='in').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+    body.innerHTML = `
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <div style="flex:1;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:13px;font-weight:700;color:var(--emerald)">${fmtINR(totIn)}</div>
+          <div style="font-size:10px;color:var(--text-3)">Income</div>
+        </div>
+        <div style="flex:1;background:rgba(251,113,133,0.1);border:1px solid rgba(251,113,133,0.2);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:13px;font-weight:700;color:var(--rose)">${fmtINR(totOut)}</div>
+          <div style="font-size:10px;color:var(--text-3)">Expense</div>
+        </div>
+      </div>
+      ${txs.map(t => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">${t.note || '(No note)'}</div>
+            <div style="font-size:11px;color:var(--text-3)">${t.category || '—'} · ${t.account || '—'}</div>
+          </div>
+          <div style="font-size:13px;font-weight:700;font-family:var(--font-m);color:${t.type==='in'?'var(--emerald)':'var(--rose)'}">
+            ${t.type==='in'?'+':'−'}${fmtINR(t.amount)}
+          </div>
+        </div>`).join('')}`;
+  }
+  modal.style.display = 'flex';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DEBT PAYOFF PLANNER — Snowball & Avalanche
+══════════════════════════════════════════════════════════════ */
+let _debtStrategy = 'avalanche'; // 'avalanche' | 'snowball'
+
+function renderDebtPayoffPlanner() {
+  const el = document.getElementById('debtPayoffContent');
+  if (!el) return;
+
+  const loans = (state.loans || []).filter(l => {
+    const paid = (state.transactions || [])
+      .filter(t => (t.note||'').toLowerCase().includes((l.person||'').toLowerCase()) && t.type !== 'in')
+      .reduce((s,t) => s + parseFloat(t.amount||0), 0);
+    return (parseFloat(l.amount||0) - paid) > 0;
+  });
+
+  if (!loans.length) {
+    el.innerHTML = `<div style="text-align:center;padding:48px 24px;">
+      <div style="font-size:48px;margin-bottom:12px;">🎉</div>
+      <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;">No active loans!</div>
+      <div style="color:var(--text-3);font-size:14px;">Add loans in the Loans module to use the planner.</div>
+    </div>`;
+    return;
+  }
+
+  // Build debt objects with remaining balance
+  const debts = loans.map(l => {
+    const paid = (state.transactions || [])
+      .filter(t => (t.note||'').toLowerCase().includes((l.person||'').toLowerCase()) && t.type !== 'in')
+      .reduce((s,t) => s + parseFloat(t.amount||0), 0);
+    const balance = Math.max(0, parseFloat(l.amount||0) - paid);
+    const rate    = parseFloat(l.interestRate || l.interest || 0) / 100 / 12; // monthly
+    const minPay  = rate > 0
+      ? Math.ceil(balance * rate / (1 - Math.pow(1+rate, -36))) // 3yr default term
+      : Math.ceil(balance / 24);
+    return { name: l.person || `Loan ${l.id}`, balance, rate, minPay: Math.max(minPay, 100), origBalance: parseFloat(l.amount||0) };
+  });
+
+  const totalDebt    = debts.reduce((s,d) => s+d.balance, 0);
+  const totalMinPay  = debts.reduce((s,d) => s+d.minPay, 0);
+
+  // Read extra payment from state or default
+  const extra = parseFloat(el.dataset.extra || 0);
+  const totalPay = totalMinPay + extra;
+
+  el.innerHTML = `
+    <!-- Summary stats -->
+    <div class="dp-stats">
+      <div class="dp-stat"><div class="dp-stat-val" style="color:var(--rose)">${fmtINR(totalDebt)}</div><div class="dp-stat-lbl">Total Debt</div></div>
+      <div class="dp-stat"><div class="dp-stat-val" style="color:var(--gold)">${fmtINR(totalMinPay)}</div><div class="dp-stat-lbl">Min / Month</div></div>
+      <div class="dp-stat"><div class="dp-stat-val" style="color:var(--teal)">${debts.length}</div><div class="dp-stat-lbl">Loans</div></div>
+    </div>
+
+    <!-- Controls -->
+    <div class="dp-controls">
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;">
+        <label class="form-label">Extra Monthly Payment (₹)</label>
+        <input type="number" id="dpExtra" class="form-input" value="${extra}" min="0" step="100"
+               placeholder="0" onchange="document.getElementById('debtPayoffContent').dataset.extra=this.value;renderDebtPayoffPlanner()">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label class="form-label">Strategy</label>
+        <div class="dp-strategy-toggle">
+          <button class="dp-strat-btn ${_debtStrategy==='avalanche'?'active':''}" onclick="_debtStrategy='avalanche';renderDebtPayoffPlanner()">
+            🔥 Avalanche<span class="dp-strat-sub">Highest interest first</span>
+          </button>
+          <button class="dp-strat-btn ${_debtStrategy==='snowball'?'active':''}" onclick="_debtStrategy='snowball';renderDebtPayoffPlanner()">
+            ⛄ Snowball<span class="dp-strat-sub">Smallest balance first</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparison: min-only vs with strategy -->
+    ${_buildDebtComparison(debts, totalMinPay, extra)}
+
+    <!-- Debt list with payoff bars -->
+    <div class="dp-debt-list">
+      ${debts.map(d => _buildDebtCard(d, totalDebt)).join('')}
+    </div>
+
+    <!-- Month-by-month schedule (first 12 months) -->
+    ${_buildPayoffSchedule(debts, totalMinPay, extra)}
+  `;
+}
+
+function _buildDebtComparison(debts, minPay, extra) {
+  const calcPayoff = (dList, totalPay, strategy) => {
+    let ds = dList.map(d => ({...d}));
+    let months = 0, totalInterest = 0;
+    const maxMonths = 600;
+    while (ds.some(d => d.balance > 0) && months < maxMonths) {
+      months++;
+      // Sort by strategy
+      const active = ds.filter(d => d.balance > 0);
+      if (strategy === 'avalanche') active.sort((a,b) => b.rate - a.rate);
+      else active.sort((a,b) => a.balance - b.balance);
+
+      let available = totalPay;
+      // Pay minimums on all
+      ds.forEach(d => {
+        if (d.balance <= 0) return;
+        const interest = d.balance * d.rate;
+        totalInterest += interest;
+        d.balance += interest;
+        const pay = Math.min(d.minPay, d.balance);
+        d.balance -= pay;
+        available -= pay;
+      });
+      // Apply extra to priority debt
+      if (active.length && available > 0) {
+        const target = active[0];
+        const d = ds.find(x => x.name === target.name);
+        if (d) {
+          const pay = Math.min(available, d.balance);
+          d.balance -= pay;
+          if (d.balance < 0.01) d.balance = 0;
+        }
+      }
+    }
+    return { months, totalInterest };
+  };
+
+  const minOnly   = calcPayoff(debts, minPay, _debtStrategy);
+  const withExtra = extra > 0 ? calcPayoff(debts, minPay + extra, _debtStrategy) : null;
+
+  const fmtMonths = m => m >= 12 ? `${Math.floor(m/12)}y ${m%12}m` : `${m}m`;
+
+  return `
+    <div class="dp-comparison">
+      <div class="dp-cmp-card">
+        <div class="dp-cmp-label">Minimum Only</div>
+        <div class="dp-cmp-val" style="color:var(--rose)">${fmtMonths(minOnly.months)}</div>
+        <div class="dp-cmp-sub">Payoff time</div>
+        <div class="dp-cmp-interest">Interest: ${fmtINR(Math.round(minOnly.totalInterest))}</div>
+      </div>
+      ${withExtra ? `
+      <div class="dp-cmp-arrow">→</div>
+      <div class="dp-cmp-card dp-cmp-better">
+        <div class="dp-cmp-label">${_debtStrategy === 'avalanche' ? '🔥 Avalanche' : '⛄ Snowball'} + ${fmtINR(extra)}/mo</div>
+        <div class="dp-cmp-val" style="color:var(--emerald)">${fmtMonths(withExtra.months)}</div>
+        <div class="dp-cmp-sub">Payoff time</div>
+        <div class="dp-cmp-interest">Interest: ${fmtINR(Math.round(withExtra.totalInterest))}</div>
+        <div class="dp-cmp-saved">Save ${fmtINR(Math.round(minOnly.totalInterest - withExtra.totalInterest))} &amp; ${minOnly.months - withExtra.months} months</div>
+      </div>` : `
+      <div class="dp-cmp-hint">👆 Add extra payment to see savings</div>`}
+    </div>`;
+}
+
+function _buildDebtCard(d, totalDebt) {
+  const paidPct = Math.round(((d.origBalance - d.balance) / d.origBalance) * 100);
+  const annualRate = (d.rate * 12 * 100).toFixed(1);
+  return `
+    <div class="dp-debt-card">
+      <div class="dp-debt-header">
+        <div>
+          <div class="dp-debt-name">${d.name}</div>
+          <div class="dp-debt-meta">${annualRate}% p.a. · Min ₹${Math.round(d.minPay).toLocaleString('en-IN')}/mo</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="dp-debt-balance">${fmtINR(d.balance)}</div>
+          <div class="dp-debt-meta">${paidPct}% paid</div>
+        </div>
+      </div>
+      <div class="dp-debt-bar-wrap">
+        <div class="dp-debt-bar-fill" style="width:${paidPct}%"></div>
+      </div>
+    </div>`;
+}
+
+function _buildPayoffSchedule(debts, minPay, extra) {
+  const totalPay = minPay + extra;
+  let ds = debts.map(d => ({...d}));
+  const rows = [];
+  const maxRows = 24;
+
+  for (let m = 1; m <= maxRows && ds.some(d => d.balance > 0); m++) {
+    const active = ds.filter(d => d.balance > 0);
+    if (_debtStrategy === 'avalanche') active.sort((a,b) => b.rate - a.rate);
+    else active.sort((a,b) => a.balance - b.balance);
+
+    let available = totalPay;
+    let interestThisMonth = 0;
+    let paidThisMonth = 0;
+
+    ds.forEach(d => {
+      if (d.balance <= 0) return;
+      const interest = d.balance * d.rate;
+      interestThisMonth += interest;
+      d.balance += interest;
+      const pay = Math.min(d.minPay, d.balance);
+      d.balance = Math.max(0, d.balance - pay);
+      paidThisMonth += pay;
+      available -= pay;
+    });
+
+    if (active.length && available > 0) {
+      const tgt = ds.find(x => x.name === active[0].name && x.balance > 0);
+      if (tgt) {
+        const pay = Math.min(available, tgt.balance);
+        tgt.balance = Math.max(0, tgt.balance - pay);
+        paidThisMonth += pay;
+      }
+    }
+
+    const remaining = ds.reduce((s,d) => s+d.balance, 0);
+    const d = new Date(); d.setMonth(d.getMonth() + m);
+    rows.push({ month: d.toLocaleDateString('en-IN',{month:'short',year:'numeric'}), paid: paidThisMonth, interest: interestThisMonth, remaining });
+  }
+
+  if (!rows.length) return '';
+
+  return `
+    <div style="margin-top:16px;">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">📋 Payoff Schedule (next ${rows.length} months)</div>
+      <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border);">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:var(--bg3);color:var(--text-3);">
+              <th style="padding:8px 10px;text-align:left;font-weight:600;">Month</th>
+              <th style="padding:8px 10px;text-align:right;font-weight:600;">Paid</th>
+              <th style="padding:8px 10px;text-align:right;font-weight:600;">Interest</th>
+              <th style="padding:8px 10px;text-align:right;font-weight:600;">Remaining</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((r,i) => `
+              <tr style="border-top:1px solid var(--border);background:${i%2===0?'transparent':'rgba(255,255,255,0.02)'}">
+                <td style="padding:7px 10px;color:var(--text-2)">${r.month}</td>
+                <td style="padding:7px 10px;text-align:right;color:var(--emerald);font-family:var(--font-m)">${fmtINR(Math.round(r.paid))}</td>
+                <td style="padding:7px 10px;text-align:right;color:var(--rose);font-family:var(--font-m)">${fmtINR(Math.round(r.interest))}</td>
+                <td style="padding:7px 10px;text-align:right;font-family:var(--font-m);font-weight:600;color:${r.remaining<1?'var(--emerald)':'var(--text)'}">${r.remaining < 1 ? '✅ Paid off' : fmtINR(Math.round(r.remaining))}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   HOME SCREEN WIDGET — open standalone widget page
+══════════════════════════════════════════════════════════════ */
+function openWidgetPage() {
+  window.open('widget.html', '_blank');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FD / RD TRACKER
+══════════════════════════════════════════════════════════════ */
+function renderFDRDPage() {
+  const el = document.getElementById('fdrdContent');
+  if (!el) return;
+
+  const items = state.fd_rd || [];
+  const today = new Date();
+
+  const calcMaturity = (item) => {
+    const p = parseFloat(item.amount || 0);
+    const r = parseFloat(item.rate || 0) / 100;
+    const months = parseInt(item.tenureMonths || 12);
+    if (item.type === 'RD') {
+      const monthlyRate = r / 12;
+      return p * months + p * months * (months + 1) / 2 * monthlyRate / 12;
+    }
+    if (item.payout === 'cumulative') return p * Math.pow(1 + r / 4, 4 * months / 12);
+    return p + (p * r * months / 12);
+  };
+
+  const daysLeft = (matDate) => {
+    const diff = new Date(matDate) - today;
+    return Math.ceil(diff / 86400000);
+  };
+
+  const totalInvested = items.reduce((s, i) => s + parseFloat(i.amount || 0), 0);
+  const totalMaturity = items.reduce((s, i) => s + calcMaturity(i), 0);
+  const maturing30    = items.filter(i => { const d = daysLeft(i.maturityDate); return d > 0 && d <= 30; }).length;
+
+  el.innerHTML = `
+    <div class="fdrd-stats">
+      <div class="fdrd-stat"><div class="fdrd-stat-val" style="color:var(--teal)">${fmtINR(totalInvested)}</div><div class="fdrd-stat-lbl">Total Invested</div></div>
+      <div class="fdrd-stat"><div class="fdrd-stat-val" style="color:var(--emerald)">${fmtINR(Math.round(totalMaturity))}</div><div class="fdrd-stat-lbl">At Maturity</div></div>
+      <div class="fdrd-stat"><div class="fdrd-stat-val" style="color:var(--gold)">${fmtINR(Math.round(totalMaturity - totalInvested))}</div><div class="fdrd-stat-lbl">Total Interest</div></div>
+      <div class="fdrd-stat"><div class="fdrd-stat-val" style="color:${maturing30>0?'var(--rose)':'var(--text-3)'}">${maturing30}</div><div class="fdrd-stat-lbl">Maturing in 30d</div></div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+      <button class="btn-submit" style="padding:9px 20px;font-size:13px;" onclick="openFDRDModal()">+ Add FD / RD</button>
+    </div>
+
+    ${!items.length ? `<div style="text-align:center;padding:48px;color:var(--text-3);">
+      <div style="font-size:40px;margin-bottom:12px;">🏦</div>
+      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;">No deposits yet</div>
+      <div style="font-size:13px;">Track your Fixed Deposits and Recurring Deposits here.</div>
+    </div>` : `
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      ${items.map(item => {
+        const mat = calcMaturity(item);
+        const interest = mat - parseFloat(item.amount || 0);
+        const dl = daysLeft(item.maturityDate);
+        const pct = Math.max(0, Math.min(100, Math.round((1 - dl / parseInt(item.tenureMonths || 12) / 30) * 100)));
+        const urgency = dl <= 0 ? 'over' : dl <= 7 ? 'danger' : dl <= 30 ? 'warning' : 'safe';
+        const urgencyColor = { over:'var(--text-3)', danger:'var(--rose)', warning:'var(--gold)', safe:'var(--emerald)' }[urgency];
+        return `<div class="fdrd-card">
+          <div class="fdrd-card-header">
+            <div>
+              <div class="fdrd-card-badge ${item.type==='FD'?'fd':'rd'}">${item.type}</div>
+              <div class="fdrd-card-name">${item.bank || 'Bank'}</div>
+              <div class="fdrd-card-meta">${item.rate}% p.a. · ${item.tenureMonths}m · ${item.payout||'Cumulative'}</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="fdrd-card-amount">${fmtINR(Math.round(mat))}</div>
+              <div style="font-size:11px;color:var(--text-3);">Principal: ${fmtINR(item.amount)}</div>
+              <div style="font-size:11px;color:var(--gold);">+${fmtINR(Math.round(interest))} interest</div>
+            </div>
+          </div>
+          <div class="fdrd-bar-wrap"><div class="fdrd-bar-fill budget-bar-fill ${urgency}" style="width:${pct}%"></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+            <span style="font-size:11px;color:var(--text-3);">Matures: ${item.maturityDate}</span>
+            <span style="font-size:11px;font-weight:700;color:${urgencyColor};">${dl <= 0 ? 'Matured' : dl === 1 ? 'Tomorrow!' : dl + ' days left'}</span>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end;">
+            <button class="btn-cancel" style="padding:4px 12px;font-size:11px;" onclick="editFDRD(${item.id})">Edit</button>
+            <button class="btn-cancel" style="padding:4px 12px;font-size:11px;color:var(--rose);" onclick="deleteFDRD(${item.id})">Delete</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`}`;
+}
+
+function openFDRDModal(existing) {
+  const isEdit = !!existing;
+  showSimpleModal((isEdit ? '✏️ Edit' : '➕ Add') + ' FD / RD', `
+    <div style="display:flex;flex-direction:column;gap:12px;padding:4px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><label class="form-label">Type</label>
+          <select id="fdrdType" class="form-input">
+            <option value="FD" ${existing?.type==='FD'?'selected':''}>FD (Fixed Deposit)</option>
+            <option value="RD" ${existing?.type==='RD'?'selected':''}>RD (Recurring Deposit)</option>
+          </select></div>
+        <div><label class="form-label">Bank / Institution</label>
+          <input id="fdrdBank" class="form-input" placeholder="e.g. SBI, HDFC" value="${existing?.bank||''}"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><label class="form-label">Amount (₹)</label>
+          <input id="fdrdAmount" class="form-input" type="number" placeholder="100000" value="${existing?.amount||''}"></div>
+        <div><label class="form-label">Interest Rate (% p.a.)</label>
+          <input id="fdrdRate" class="form-input" type="number" step="0.1" placeholder="7.5" value="${existing?.rate||''}"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><label class="form-label">Tenure (months)</label>
+          <input id="fdrdTenure" class="form-input" type="number" placeholder="12" value="${existing?.tenureMonths||12}"></div>
+        <div><label class="form-label">Start Date</label>
+          <input id="fdrdStart" class="form-input" type="date" value="${existing?.startDate||nowISO()}"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><label class="form-label">Maturity Date</label>
+          <input id="fdrdMaturity" class="form-input" type="date" value="${existing?.maturityDate||''}"></div>
+        <div><label class="form-label">Payout Type</label>
+          <select id="fdrdPayout" class="form-input">
+            <option value="cumulative" ${existing?.payout==='cumulative'?'selected':''}>Cumulative</option>
+            <option value="monthly"    ${existing?.payout==='monthly'?'selected':''}>Monthly</option>
+            <option value="quarterly"  ${existing?.payout==='quarterly'?'selected':''}>Quarterly</option>
+          </select></div>
+      </div>
+      <div><label class="form-label">Notes</label>
+        <input id="fdrdNotes" class="form-input" placeholder="Account number, nominee, etc." value="${existing?.notes||''}"></div>
+      <button class="btn-submit" onclick="saveFDRD(${existing?.id||'null'})" style="margin-top:4px;">${isEdit?'Update':'Save'} Deposit</button>
+    </div>`);
+
+  // Auto-calculate maturity date from start + tenure
+  setTimeout(() => {
+    const startEl = document.getElementById('fdrdStart');
+    const tenureEl = document.getElementById('fdrdTenure');
+    const matEl = document.getElementById('fdrdMaturity');
+    const calcMat = () => {
+      const s = startEl?.value; const t = parseInt(tenureEl?.value);
+      if (s && t) { const d = new Date(s); d.setMonth(d.getMonth() + t); matEl.value = d.toISOString().slice(0,10); }
+    };
+    startEl?.addEventListener('change', calcMat);
+    tenureEl?.addEventListener('input', calcMat);
+    if (!existing) calcMat();
+  }, 80);
+}
+
+async function saveFDRD(id) {
+  const item = {
+    type:         document.getElementById('fdrdType')?.value,
+    bank:         document.getElementById('fdrdBank')?.value?.trim(),
+    amount:       parseFloat(document.getElementById('fdrdAmount')?.value) || 0,
+    rate:         parseFloat(document.getElementById('fdrdRate')?.value) || 0,
+    tenureMonths: parseInt(document.getElementById('fdrdTenure')?.value) || 12,
+    startDate:    document.getElementById('fdrdStart')?.value,
+    maturityDate: document.getElementById('fdrdMaturity')?.value,
+    payout:       document.getElementById('fdrdPayout')?.value,
+    notes:        document.getElementById('fdrdNotes')?.value?.trim()
+  };
+  if (!item.amount || !item.bank) { showToast('Fill bank and amount', 'error'); return; }
+  if (id && id !== 'null') {
+    item.id = id;
+    await put('fd_rd', item);
+    state.fd_rd = state.fd_rd.map(x => x.id === id ? { ...x, ...item } : x);
+  } else {
+    const saved = await put('fd_rd', item);
+    item.id = saved;
+    state.fd_rd.push(item);
+  }
+  autoBackup();
+  closeSimpleModal();
+  renderFDRDPage();
+  showToast('Deposit saved!', 'success');
+}
+
+function editFDRD(id) { openFDRDModal(state.fd_rd.find(x => x.id === id)); }
+
+async function deleteFDRD(id) {
+  if (!confirm('Delete this deposit?')) return;
+  await del('fd_rd', id);
+  state.fd_rd = state.fd_rd.filter(x => x.id !== id);
+  renderFDRDPage();
+  showToast('Deleted', 'success');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TRANSACTION TEMPLATES
+══════════════════════════════════════════════════════════════ */
+function renderTemplatesPage() {
+  const el = document.getElementById('templatesContent');
+  if (!el) return;
+  const tpls = state.tx_templates || [];
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:13px;color:var(--text-3);">${tpls.length} template${tpls.length!==1?'s':''} · Tap to use</div>
+      <button class="btn-submit" style="padding:9px 20px;font-size:13px;" onclick="openTemplateModal()">+ New Template</button>
+    </div>
+    ${!tpls.length ? `<div style="text-align:center;padding:48px;color:var(--text-3);">
+      <div style="font-size:40px;margin-bottom:12px;">📋</div>
+      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;">No templates yet</div>
+      <div style="font-size:13px;">Save your frequent transactions as templates for one-tap entry.</div>
+    </div>` : `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;">
+      ${tpls.map(t => {
+        const typeCls = t.type === 'in' ? 'income' : 'expense';
+        const sign    = t.type === 'in' ? '+' : '−';
+        return `<div class="tpl-card" onclick="useTemplate(${t.id})">
+          <div class="tpl-card-top">
+            <div class="tpl-icon ${typeCls}">${t.type==='in'?'📈':'💸'}</div>
+            <div style="flex:1;min-width:0;">
+              <div class="tpl-name">${t.name}</div>
+              <div class="tpl-meta">${t.category||'—'} · ${t.account||'—'}</div>
+            </div>
+            <div class="tpl-amount ${typeCls}">${sign}${fmtINR(t.amount)}</div>
+          </div>
+          ${t.note ? `<div class="tpl-note">${t.note}</div>` : ''}
+          <div class="tpl-actions">
+            <button onclick="event.stopPropagation();openTemplateModal(${t.id})" class="tpl-btn">✏️ Edit</button>
+            <button onclick="event.stopPropagation();deleteTemplate(${t.id})" class="tpl-btn" style="color:var(--rose);">🗑️ Delete</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`}`;
+}
+
+function openTemplateModal(id) {
+  const ex = id ? state.tx_templates.find(t => t.id === id) : null;
+  const cats = state.dropdowns?.categories || ['Food','Transport','Bills','Shopping','Other'];
+  const accs = state.dropdowns?.accounts   || ['Cash','Bank'];
+  showSimpleModal((ex ? '✏️ Edit' : '➕ New') + ' Template', `
+    <div style="display:flex;flex-direction:column;gap:12px;padding:4px;">
+      <div><label class="form-label">Template Name</label>
+        <input id="tplName" class="form-input" placeholder="e.g. Monthly Rent" value="${ex?.name||''}"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><label class="form-label">Type</label>
+          <select id="tplType" class="form-input">
+            <option value="out" ${ex?.type==='out'||!ex?'selected':''}>Expense</option>
+            <option value="in"  ${ex?.type==='in'?'selected':''}>Income</option>
+          </select></div>
+        <div><label class="form-label">Amount (₹)</label>
+          <input id="tplAmount" class="form-input" type="number" placeholder="0" value="${ex?.amount||''}"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><label class="form-label">Category</label>
+          <select id="tplCategory" class="form-input">${cats.map(c=>`<option ${ex?.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
+        <div><label class="form-label">Account</label>
+          <select id="tplAccount" class="form-input">${accs.map(a=>`<option ${ex?.account===a?'selected':''}>${a}</option>`).join('')}</select></div>
+      </div>
+      <div><label class="form-label">Default Note</label>
+        <input id="tplNote" class="form-input" placeholder="Optional note" value="${ex?.note||''}"></div>
+      <button class="btn-submit" onclick="saveTemplate(${ex?.id||'null'})" style="margin-top:4px;">${ex?'Update':'Save'} Template</button>
+    </div>`);
+}
+
+async function saveTemplate(id) {
+  const tpl = {
+    name:     document.getElementById('tplName')?.value?.trim(),
+    type:     document.getElementById('tplType')?.value,
+    amount:   parseFloat(document.getElementById('tplAmount')?.value) || 0,
+    category: document.getElementById('tplCategory')?.value,
+    account:  document.getElementById('tplAccount')?.value,
+    note:     document.getElementById('tplNote')?.value?.trim()
+  };
+  if (!tpl.name) { showToast('Enter a template name', 'error'); return; }
+  if (id && id !== 'null') {
+    tpl.id = id;
+    await put('tx_templates', tpl);
+    state.tx_templates = state.tx_templates.map(x => x.id === id ? { ...x, ...tpl } : x);
+  } else {
+    const sid = await put('tx_templates', tpl);
+    tpl.id = sid;
+    state.tx_templates.push(tpl);
+  }
+  autoBackup(); closeSimpleModal(); renderTemplatesPage();
+  showToast('Template saved!', 'success');
+}
+
+function useTemplate(id) {
+  const tpl = state.tx_templates.find(t => t.id === id);
+  if (!tpl) return;
+  openAddTransactionModal({ type: tpl.type, amount: tpl.amount, category: tpl.category, account: tpl.account, note: tpl.note });
+}
+
+function editTemplate(id) { openTemplateModal(id); }
+
+async function deleteTemplate(id) {
+  if (!confirm('Delete this template?')) return;
+  await del('tx_templates', id);
+  state.tx_templates = state.tx_templates.filter(x => x.id !== id);
+  renderTemplatesPage();
+  showToast('Deleted', 'success');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MONTH vs MONTH COMPARISON
+══════════════════════════════════════════════════════════════ */
+let _mvm = { y0: new Date().getFullYear(), m0: new Date().getMonth() };
+
+function renderMonthComparison() {
+  const el = document.getElementById('monthCompContent');
+  if (!el) return;
+
+  const { y0, m0 } = _mvm;
+  const months = [
+    { year: y0, month: m0 },
+    { year: m0 === 0 ? y0-1 : y0, month: m0 === 0 ? 11 : m0-1 },
+    { year: m0 <= 1 ? y0-1 : y0, month: m0 <= 1 ? m0+10 : m0-2 }
+  ];
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const getMonthData = ({year, month}) => {
+    const key = `${year}-${String(month+1).padStart(2,'0')}`;
+    const txs = state.transactions.filter(t => t.date?.startsWith(key));
+    const income  = txs.filter(t=>t.type==='in').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+    const expense = txs.filter(t=>t.type!=='in').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+    const cats = {};
+    txs.filter(t=>t.type!=='in').forEach(t => { cats[t.category||'Other'] = (cats[t.category||'Other']||0)+parseFloat(t.amount||0); });
+    return { key, label: `${MON[month]} ${year}`, income, expense, net: income-expense, cats };
+  };
+
+  const data = months.map(getMonthData);
+  const cur = data[0], prev = data[1], prev2 = data[2];
+
+  // All categories across 3 months
+  const allCats = [...new Set([...Object.keys(cur.cats), ...Object.keys(prev.cats), ...Object.keys(prev2.cats)])].sort();
+
+  const delta = (a, b) => {
+    if (!b) return '';
+    const d = a - b;
+    const pct = b > 0 ? Math.round((d/b)*100) : 0;
+    const color = d > 0 ? 'var(--rose)' : 'var(--emerald)';
+    return `<span style="font-size:10px;color:${color};font-weight:700;">${d>0?'▲':'▼'}${Math.abs(pct)}%</span>`;
+  };
+
+  el.innerHTML = `
+    <!-- Month selector -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+      <button class="cfc-nav-btn" onclick="_mvm.m0=${m0===0?11:m0-1};_mvm.y0=${m0===0?y0-1:y0};renderMonthComparison()">‹</button>
+      <span style="font-size:15px;font-weight:700;color:var(--text);">Comparing from <em>${cur.label}</em></span>
+      <button class="cfc-nav-btn" onclick="_mvm.m0=${m0===11?0:m0+1};_mvm.y0=${m0===11?y0+1:y0};renderMonthComparison()" ${`${y0}-${String(m0+1).padStart(2,'0')}` >= new Date().toISOString().slice(0,7) ? 'disabled style="opacity:0.3"':''}>›</button>
+    </div>
+
+    <!-- Summary cards -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+      ${data.map((d,i) => `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;${i===0?'border-color:var(--teal);':''}">
+        <div style="font-size:11px;font-weight:700;color:${i===0?'var(--teal)':'var(--text-3)'};margin-bottom:6px;">${d.label}${i===0?' (Current)':''}</div>
+        <div style="font-size:11px;color:var(--emerald);font-family:var(--font-m);">+${fmtINR(d.income)}</div>
+        <div style="font-size:11px;color:var(--rose);font-family:var(--font-m);">−${fmtINR(d.expense)}</div>
+        <div style="font-size:13px;font-weight:700;color:${d.net>=0?'var(--teal)':'var(--rose)'};margin-top:4px;font-family:var(--font-m);">${d.net>=0?'+':''}${fmtINR(d.net)}</div>
+      </div>`).join('')}
+    </div>
+
+    <!-- Category table -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:var(--bg3);">
+              <th style="padding:10px 12px;text-align:left;color:var(--text-3);font-weight:700;">Category</th>
+              ${data.map((d,i) => `<th style="padding:10px 12px;text-align:right;color:${i===0?'var(--teal)':'var(--text-3)'};font-weight:700;">${d.label}</th>`).join('')}
+              <th style="padding:10px 12px;text-align:right;color:var(--text-3);font-weight:700;">vs Last</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${allCats.map((cat,i) => `
+              <tr style="border-top:1px solid var(--border);background:${i%2?'rgba(255,255,255,0.01)':'transparent'}">
+                <td style="padding:8px 12px;color:var(--text-2);font-weight:600;">${cat}</td>
+                ${data.map(d => `<td style="padding:8px 12px;text-align:right;font-family:var(--font-m);color:${d.cats[cat]>0?'var(--rose)':'var(--text-3)'};">${d.cats[cat]?fmtINR(d.cats[cat]):'—'}</td>`).join('')}
+                <td style="padding:8px 12px;text-align:right;">${delta(cur.cats[cat]||0, prev.cats[cat]||0)}</td>
+              </tr>`).join('')}
+            <tr style="border-top:2px solid var(--border);background:var(--bg3);font-weight:700;">
+              <td style="padding:10px 12px;color:var(--text);">Total Expense</td>
+              ${data.map(d => `<td style="padding:10px 12px;text-align:right;font-family:var(--font-m);color:var(--rose);">${fmtINR(d.expense)}</td>`).join('')}
+              <td style="padding:10px 12px;text-align:right;">${delta(cur.expense, prev.expense)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   EMERGENCY FUND TRACKER
+══════════════════════════════════════════════════════════════ */
+function renderEmergencyFund() {
+  const el = document.getElementById('emergencyFundContent');
+  if (!el) return;
+
+  const efKey = `lm_u_${window.LM_Auth?.getCurrentUserId?.()||'default'}_ef`;
+  const ef = JSON.parse(localStorage.getItem(efKey) || '{"target_months":6,"saved":0}');
+
+  const last3Months = [0,1,2].map(i => {
+    const d = new Date(); d.setMonth(d.getMonth() - i);
+    const key = d.toISOString().slice(0,7);
+    return state.transactions.filter(t => t.type !== 'in' && t.date?.startsWith(key))
+      .reduce((s,t) => s + parseFloat(t.amount||0), 0);
+  });
+  const avgMonthlyExpense = last3Months.reduce((a,b)=>a+b,0) / 3;
+  const target = avgMonthlyExpense * ef.target_months;
+  const saved  = parseFloat(ef.saved || 0);
+  const pct    = target > 0 ? Math.min(100, Math.round((saved / target) * 100)) : 0;
+  const monthsCovered = avgMonthlyExpense > 0 ? (saved / avgMonthlyExpense).toFixed(1) : '∞';
+
+  const ringSize = 140;
+  const r = 54, cx = 70, cy = 70;
+  const circumference = 2 * Math.PI * r;
+  const dash = (pct / 100) * circumference;
+
+  el.innerHTML = `
+    <!-- SVG progress ring -->
+    <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:20px;">
+      <svg width="${ringSize}" height="${ringSize}" style="transform:rotate(-90deg);">
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--bg3)" stroke-width="12"/>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none"
+          stroke="${pct>=100?'var(--emerald)':pct>=50?'var(--teal)':'var(--gold)'}"
+          stroke-width="12" stroke-linecap="round"
+          stroke-dasharray="${dash} ${circumference}"
+          style="transition:stroke-dasharray 1s cubic-bezier(.4,0,.2,1);"/>
+      </svg>
+      <div style="margin-top:-${ringSize/2+16}px;text-align:center;position:relative;z-index:1;">
+        <div style="font-size:26px;font-weight:800;font-family:var(--font-m);color:var(--text);">${pct}%</div>
+        <div style="font-size:11px;color:var(--text-3);font-weight:700;">FUNDED</div>
+      </div>
+      <div style="height:${ringSize/2+4}px;"></div>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+      <div class="fdrd-stat"><div class="fdrd-stat-val" style="color:var(--teal)">${fmtINR(Math.round(saved))}</div><div class="fdrd-stat-lbl">Saved</div></div>
+      <div class="fdrd-stat"><div class="fdrd-stat-val" style="color:var(--gold)">${fmtINR(Math.round(target))}</div><div class="fdrd-stat-lbl">${ef.target_months}M Target</div></div>
+      <div class="fdrd-stat"><div class="fdrd-stat-val" style="color:var(--emerald)">${monthsCovered}</div><div class="fdrd-stat-lbl">Months Covered</div></div>
+    </div>
+
+    <!-- Settings -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;">Emergency Fund Settings</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div><label class="form-label">Target (months of expenses)</label>
+          <select id="efMonths" class="form-input" onchange="saveEFSettings()">
+            ${[3,6,9,12].map(m=>`<option value="${m}" ${ef.target_months==m?'selected':''}>${m} months</option>`).join('')}
+          </select></div>
+        <div><label class="form-label">Amount Saved (₹)</label>
+          <input id="efSaved" class="form-input" type="number" value="${saved}" onchange="saveEFSettings()" placeholder="0"></div>
+      </div>
+      <div style="font-size:12px;color:var(--text-3);line-height:1.6;">
+        Avg monthly expense (last 3 months): <strong style="color:var(--text)">${fmtINR(Math.round(avgMonthlyExpense))}</strong><br>
+        Remaining to goal: <strong style="color:${target-saved>0?'var(--rose)':'var(--emerald)'}">
+          ${target-saved > 0 ? fmtINR(Math.round(target-saved)) : '🎉 Goal reached!'}
+        </strong>
+      </div>
+    </div>`;
+}
+
+function saveEFSettings() {
+  const efKey = `lm_u_${window.LM_Auth?.getCurrentUserId?.()||'default'}_ef`;
+  const ef = {
+    target_months: parseInt(document.getElementById('efMonths')?.value || 6),
+    saved: parseFloat(document.getElementById('efSaved')?.value || 0)
+  };
+  localStorage.setItem(efKey, JSON.stringify(ef));
+  renderEmergencyFund();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   WEALTH & GOALS EXTRAS — Milestones, Gold, Loan vs Invest, Retirement
+══════════════════════════════════════════════════════════════ */
+const NW_MILESTONES = [
+  { label: '₹1 Lakh',   value: 100000,    icon: '🥉' },
+  { label: '₹5 Lakh',   value: 500000,    icon: '🥈' },
+  { label: '₹10 Lakh',  value: 1000000,   icon: '🥇' },
+  { label: '₹25 Lakh',  value: 2500000,   icon: '💎' },
+  { label: '₹50 Lakh',  value: 5000000,   icon: '🏆' },
+  { label: '₹1 Crore',  value: 10000000,  icon: '🚀' },
+  { label: '₹5 Crore',  value: 50000000,  icon: '⭐' },
+];
+
+function renderWealthGoalsPage() {
+  const el = document.getElementById('wealthGoalsContent');
+  if (!el) return;
+
+  const totalAssets = (state.investments||[]).reduce((s,i) => s + parseFloat(i.currentValue||i.amount||0), 0);
+  const totalLoans  = (state.loans||[]).reduce((s,l) => s + parseFloat(l.amount||0), 0);
+  const netWorth    = totalAssets - totalLoans;
+
+  // Gold tracker
+  const gKey = `lm_u_${window.LM_Auth?.getCurrentUserId?.()||'default'}_gold`;
+  const goldData = JSON.parse(localStorage.getItem(gKey) || '{"grams":0,"price":7200}');
+
+  el.innerHTML = `
+    <!-- Net Worth Milestones -->
+    <div class="wg-section">
+      <div class="wg-section-title">🏆 Net Worth Milestones</div>
+      <div style="font-size:13px;color:var(--text-3);margin-bottom:12px;">Current Net Worth: <strong style="color:var(--text);font-family:var(--font-m);">${fmtINR(Math.round(netWorth))}</strong></div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${NW_MILESTONES.map(m => {
+          const achieved = netWorth >= m.value;
+          const pct = Math.min(100, Math.round((netWorth / m.value) * 100));
+          return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:${achieved?'rgba(52,211,153,0.08)':'var(--surface)'};border:1px solid ${achieved?'rgba(52,211,153,0.3)':'var(--border)'};border-radius:10px;">
+            <span style="font-size:22px;">${m.icon}</span>
+            <div style="flex:1;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-size:13px;font-weight:600;color:${achieved?'var(--emerald)':'var(--text)'};">${m.label}</span>
+                <span style="font-size:11px;color:${achieved?'var(--emerald)':'var(--text-3)'};">${achieved?'✅ Achieved!':pct+'%'}</span>
+              </div>
+              <div style="height:4px;background:var(--bg3);border-radius:99px;"><div style="height:100%;width:${pct}%;background:${achieved?'var(--emerald)':'var(--teal)'};border-radius:99px;transition:width 0.8s;"></div></div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- Gold Tracker -->
+    <div class="wg-section">
+      <div class="wg-section-title">🪙 Gold Tracker</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div><label class="form-label">Gold Held (grams)</label>
+          <input id="goldGrams" class="form-input" type="number" step="0.1" value="${goldData.grams}" placeholder="0" onchange="updateGold()"></div>
+        <div><label class="form-label">Price per gram (₹)</label>
+          <input id="goldPrice" class="form-input" type="number" value="${goldData.price}" placeholder="7200" onchange="updateGold()"></div>
+      </div>
+      <div id="goldResult" style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:22px;font-weight:800;font-family:var(--font-m);color:var(--gold);">${fmtINR(Math.round(goldData.grams * goldData.price))}</div>
+        <div style="font-size:11px;color:var(--text-3);">Current Gold Value (${goldData.grams}g × ₹${goldData.price}/g)</div>
+      </div>
+    </div>
+
+    <!-- Loan vs Invest Calculator -->
+    <div class="wg-section">
+      <div class="wg-section-title">⚖️ Loan vs Invest Calculator</div>
+      <div style="font-size:12px;color:var(--text-3);margin-bottom:12px;">Should you prepay your loan or invest that amount?</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div><label class="form-label">Loan Interest Rate (% p.a.)</label>
+          <input id="lviLoanRate" class="form-input" type="number" step="0.1" placeholder="8.5" oninput="calcLoanVsInvest()"></div>
+        <div><label class="form-label">Expected Investment Return (% p.a.)</label>
+          <input id="lviInvReturn" class="form-input" type="number" step="0.1" placeholder="12" oninput="calcLoanVsInvest()"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div><label class="form-label">Amount to Deploy (₹)</label>
+          <input id="lviAmount" class="form-input" type="number" placeholder="50000" oninput="calcLoanVsInvest()"></div>
+        <div><label class="form-label">Horizon (years)</label>
+          <input id="lviYears" class="form-input" type="number" placeholder="5" oninput="calcLoanVsInvest()"></div>
+      </div>
+      <div id="lviResult"></div>
+    </div>
+
+    <!-- Retirement Calculator -->
+    <div class="wg-section">
+      <div class="wg-section-title">🏖️ Retirement Calculator</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div><label class="form-label">Current Age</label>
+          <input id="retAge" class="form-input" type="number" placeholder="30" oninput="calcRetirement()"></div>
+        <div><label class="form-label">Retirement Age</label>
+          <input id="retRetAge" class="form-input" type="number" placeholder="60" oninput="calcRetirement()"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div><label class="form-label">Monthly Savings (₹)</label>
+          <input id="retSaving" class="form-input" type="number" placeholder="20000" oninput="calcRetirement()"></div>
+        <div><label class="form-label">Expected Return (% p.a.)</label>
+          <input id="retReturn" class="form-input" type="number" step="0.1" placeholder="12" oninput="calcRetirement()"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div><label class="form-label">Monthly Expense in Retirement (₹)</label>
+          <input id="retExpense" class="form-input" type="number" placeholder="50000" oninput="calcRetirement()"></div>
+        <div><label class="form-label">Inflation Rate (% p.a.)</label>
+          <input id="retInflation" class="form-input" type="number" step="0.1" placeholder="6" oninput="calcRetirement()"></div>
+      </div>
+      <div id="retResult"></div>
+    </div>`;
+}
+
+function updateGold() {
+  const grams = parseFloat(document.getElementById('goldGrams')?.value || 0);
+  const price  = parseFloat(document.getElementById('goldPrice')?.value || 7200);
+  const gKey   = `lm_u_${window.LM_Auth?.getCurrentUserId?.()||'default'}_gold`;
+  localStorage.setItem(gKey, JSON.stringify({ grams, price }));
+  const res = document.getElementById('goldResult');
+  if (res) {
+    res.innerHTML = `<div style="font-size:22px;font-weight:800;font-family:var(--font-m);color:var(--gold);">${fmtINR(Math.round(grams*price))}</div>
+      <div style="font-size:11px;color:var(--text-3);">Current Gold Value (${grams}g × ₹${price}/g)</div>`;
+  }
+}
+
+function calcLoanVsInvest() {
+  const lRate  = parseFloat(document.getElementById('lviLoanRate')?.value) / 100;
+  const iRate  = parseFloat(document.getElementById('lviInvReturn')?.value) / 100;
+  const amt    = parseFloat(document.getElementById('lviAmount')?.value);
+  const years  = parseFloat(document.getElementById('lviYears')?.value);
+  const res    = document.getElementById('lviResult');
+  if (!res || !lRate || !iRate || !amt || !years) { if(res) res.innerHTML=''; return; }
+
+  const interestSaved = amt * lRate * years; // simplified linear interest saved
+  const investGain    = amt * (Math.pow(1 + iRate, years) - 1);
+  const winner = investGain > interestSaved ? 'invest' : 'prepay';
+  const advantage = Math.abs(investGain - interestSaved);
+
+  res.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
+    <div style="background:rgba(251,113,133,0.08);border:1px solid rgba(251,113,133,0.2);border-radius:10px;padding:12px;text-align:center;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:4px;">PREPAY LOAN</div>
+      <div style="font-size:18px;font-weight:800;color:var(--rose);font-family:var(--font-m);">${fmtINR(Math.round(interestSaved))}</div>
+      <div style="font-size:10px;color:var(--text-3);">Interest saved</div>
+    </div>
+    <div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:10px;padding:12px;text-align:center;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:4px;">INVEST</div>
+      <div style="font-size:18px;font-weight:800;color:var(--emerald);font-family:var(--font-m);">${fmtINR(Math.round(investGain))}</div>
+      <div style="font-size:10px;color:var(--text-3);">Investment gain</div>
+    </div>
+  </div>
+  <div style="margin-top:10px;padding:10px 14px;background:${winner==='invest'?'rgba(52,211,153,0.08)':'rgba(96,165,250,0.08)'};border-radius:10px;border:1px solid ${winner==='invest'?'rgba(52,211,153,0.2)':'rgba(96,165,250,0.2)'};font-size:13px;font-weight:700;color:${winner==='invest'?'var(--emerald)':'var(--blue)'};">
+    💡 ${winner==='invest'?'Investing wins':'Prepaying wins'} by ${fmtINR(Math.round(advantage))} over ${years} years.
+  </div>`;
+}
+
+function calcRetirement() {
+  const age     = parseInt(document.getElementById('retAge')?.value);
+  const retAge  = parseInt(document.getElementById('retRetAge')?.value);
+  const saving  = parseFloat(document.getElementById('retSaving')?.value);
+  const ret     = parseFloat(document.getElementById('retReturn')?.value) / 100 / 12;
+  const expense = parseFloat(document.getElementById('retExpense')?.value);
+  const infl    = parseFloat(document.getElementById('retInflation')?.value) / 100;
+  const res     = document.getElementById('retResult');
+  if (!res || !age || !retAge || !saving || !ret || !expense) { if(res) res.innerHTML=''; return; }
+
+  const years = retAge - age;
+  const months = years * 12;
+  // Future value of monthly savings
+  const corpus = saving * (Math.pow(1 + ret, months) - 1) / ret;
+  // Corpus needed (25x annual expense adjusted for inflation — 4% SWR)
+  const futureExpense = expense * Math.pow(1 + infl, years);
+  const corpusNeeded  = futureExpense * 12 * 25;
+  const shortfall     = corpusNeeded - corpus;
+  const extraNeeded   = shortfall > 0 && months > 0
+    ? Math.round(shortfall * ret / (Math.pow(1 + ret, months) - 1))
+    : 0;
+
+  res.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;">
+    <div class="fdrd-stat"><div class="fdrd-stat-val" style="color:var(--teal)">${fmtINR(Math.round(corpus))}</div><div class="fdrd-stat-lbl">Projected Corpus</div></div>
+    <div class="fdrd-stat"><div class="fdrd-stat-val" style="color:var(--violet)">${fmtINR(Math.round(corpusNeeded))}</div><div class="fdrd-stat-lbl">Corpus Needed</div></div>
+    <div class="fdrd-stat"><div class="fdrd-stat-val" style="color:var(--gold)">${fmtINR(Math.round(futureExpense))}</div><div class="fdrd-stat-lbl">Monthly Expense at ${retAge}</div></div>
+    <div class="fdrd-stat"><div class="fdrd-stat-val" style="color:${shortfall<=0?'var(--emerald)':'var(--rose)'};">${shortfall<=0?'🎉 On Track!':fmtINR(extraNeeded)+'/mo more'}</div><div class="fdrd-stat-lbl">${shortfall<=0?'':'Extra Needed'}</div></div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CUSTOM DASHBOARD — widget visibility toggle
+══════════════════════════════════════════════════════════════ */
+const DASHBOARD_WIDGETS = [
+  { id: 'kpiCards',         label: 'KPI Cards',           icon: '📊' },
+  { id: 'nwSparklineWidget',label: 'Net Worth Trend',      icon: '📈' },
+  { id: 'budgetOverview',   label: 'Budget Overview',      icon: '🎯' },
+  { id: 'topCategories',    label: 'Top Categories',       icon: '🗂️' },
+  { id: 'heatmap-wrap',     label: 'Expense Heatmap',      icon: '🗓️' },
+  { id: 'recentList',       label: 'Recent Transactions',  icon: '↕️' },
+];
+
+function openDashboardCustomizer() {
+  const cfg = state.dashboard_config?.widgets || {};
+  showSimpleModal('🎛️ Customize Dashboard', `
+    <div style="display:flex;flex-direction:column;gap:6px;padding:4px;">
+      <div style="font-size:12px;color:var(--text-3);margin-bottom:6px;">Toggle widgets on or off. Changes take effect immediately.</div>
+      ${DASHBOARD_WIDGETS.map(w => {
+        const visible = cfg[w.id] !== false;
+        return `<label style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;">
+          <span style="font-size:20px;">${w.icon}</span>
+          <span style="flex:1;font-size:13px;font-weight:600;color:var(--text);">${w.label}</span>
+          <input type="checkbox" id="dw_${w.id}" ${visible?'checked':''} onchange="toggleDashWidget('${w.id}',this.checked)"
+            style="width:18px;height:18px;accent-color:var(--teal);cursor:pointer;">
+        </label>`;
+      }).join('')}
+    </div>`);
+}
+
+async function toggleDashWidget(id, visible) {
+  if (!state.dashboard_config) state.dashboard_config = { id: 'main', widgets: {} };
+  if (!state.dashboard_config.widgets) state.dashboard_config.widgets = {};
+  state.dashboard_config.widgets[id] = visible;
+  await put('dashboard_config', state.dashboard_config);
+  applyDashboardConfig();
+}
+
+function applyDashboardConfig() {
+  const cfg = state.dashboard_config?.widgets || {};
+  DASHBOARD_WIDGETS.forEach(w => {
+    // Handle both direct ID and parent .heatmap-wrap
+    const el = document.getElementById(w.id) || document.querySelector(`.${w.id}`);
+    if (!el) return;
+    const visible = cfg[w.id] !== false;
+    // Walk up to find the section container
+    const section = el.closest('.fade-up') || el.closest('.card') || el.parentElement;
+    const target = (w.id === 'recentList' || w.id === 'kpiCards') ? el.parentElement : section;
+    if (target) target.style.display = visible ? '' : 'none';
+  });
 }

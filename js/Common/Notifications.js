@@ -31,22 +31,21 @@
     if (el) el.textContent = cnt;
   }
 
-  // ========== RENDER NOTIFICATIONS (glass style) ==========
+  // ========== RENDER NOTIFICATIONS ==========
   async function renderNotifications() {
     const listEl = document.getElementById('notifList');
     if (!listEl) return;
 
     const typeFilter = document.getElementById('notifTypeFilter')?.value || 'all';
-    const prFilter = document.getElementById('notifPriorityFilter')?.value || 'all';
-    const search = (document.getElementById('notifSearch')?.value || '').toLowerCase();
+    const prFilter   = document.getElementById('notifPriorityFilter')?.value || 'all';
+    const search     = (document.getElementById('notifSearch')?.value || '').toLowerCase();
 
-    try { state.reminders = await getAll('reminders'); } 
+    try { state.reminders = await getAll('reminders'); }
     catch (e) { console.warn('Failed to load reminders', e); }
 
     const now = new Date();
-    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-    const rows = (state.reminders || [])
+    const filtered = (state.reminders || [])
       .slice()
       .sort((a, b) => {
         if (a.completed !== b.completed) return a.completed ? 1 : -1;
@@ -55,67 +54,82 @@
         return da - db;
       })
       .filter(r => {
-        if (typeFilter !== 'all' && (r.tag || 'reminder').toLowerCase().indexOf(typeFilter) === -1) return false;
-        if (prFilter !== 'all' && (r.priority || 'medium').toLowerCase() !== prFilter) return false;
+        if (typeFilter !== 'all' && !(r.tag || 'reminder').toLowerCase().includes(typeFilter)) return false;
+        if (prFilter  !== 'all' && (r.priority || 'medium').toLowerCase() !== prFilter) return false;
         if (search) {
-          const hay = `${r.title} ${r.note || ''} ${r.tag || ''} ${r.category || ''}`.toLowerCase();
-          return hay.indexOf(search) !== -1;
+          const hay = `${r.title} ${r.note||''} ${r.tag||''} ${r.category||''}`.toLowerCase();
+          return hay.includes(search);
         }
         return true;
-      })
-      .map(r => {
-        const due = r.dueDate || 'N/A';
-        const time = r.time ? ` • ${r.time}` : '';
-        const dueDateObj = parseDateTime(r.dueDate, r.time);
-        const isOverdue = !r.completed && dueDateObj && dueDateObj < now;
-        const isDueToday = !r.completed && dueDateObj && dueDateObj.toDateString() === now.toDateString();
+      });
 
-        let bg = isDark ? 'bg-gray-800/70 border-gray-700' : 'bg-white/90 border-gray-200';
-        if (r.completed) bg += ' opacity-70 line-through';
+    const PRIORITY_COLORS = { high: 'var(--rose)', medium: 'var(--gold)', low: 'var(--emerald)' };
+    const PRIORITY_LABELS = { high: '🔴 High', medium: '🟡 Medium', low: '🟢 Low' };
 
-        let barColor = 'bg-gray-400';
-        if (isOverdue) barColor = 'bg-red-500';
-        else if (isDueToday) barColor = 'bg-amber-400';
-        else if (r.priority === 'high') barColor = 'bg-red-400';
-        else if (r.priority === 'low') barColor = 'bg-green-400';
+    listEl.innerHTML = filtered.length ? filtered.map(r => {
+      const dueDateObj  = parseDateTime(r.dueDate, r.time);
+      const isOverdue   = !r.completed && dueDateObj && dueDateObj < now;
+      const isDueToday  = !r.completed && dueDateObj && dueDateObj?.toDateString() === now.toDateString();
+      const priority    = r.priority || 'medium';
+      const accentColor = isOverdue ? 'var(--rose)' : isDueToday ? 'var(--gold)' : PRIORITY_COLORS[priority];
 
-        const textColor = isDark ? 'text-gray-100' : 'text-gray-900';
-        const subTextColor = isDark ? 'text-gray-400' : 'text-gray-600';
-        const overdueColor = 'text-red-300';
+      const dueLabel = !r.dueDate ? '' : isOverdue
+        ? `<span class="nr-badge overdue">Overdue</span>`
+        : isDueToday
+          ? `<span class="nr-badge today">Today</span>`
+          : '';
 
-        const left = `
-          <div class="flex gap-3">
-            <div class="w-1 rounded h-full ${barColor}"></div>
-            <div class="space-y-1">
-              <div class="font-semibold ${isOverdue ? overdueColor : textColor}">
-                ${r.tag ? `<span class="px-1 py-0.5 rounded bg-gray-700/50 text-xs">${r.tag}</span>` : ''} ${r.title}
+      const dateStr = r.dueDate ? `${r.dueDate}${r.time ? ' ' + r.time : ''}` : '';
+
+      return `
+        <div class="nr-item ${r.completed ? 'nr-done' : ''}" style="--accent:${accentColor}">
+          <div class="nr-accent-bar"></div>
+          <div class="nr-body">
+            <div class="nr-top">
+              <div class="nr-title-wrap">
+                ${r.tag ? `<span class="nr-tag">${r.tag}</span>` : ''}
+                <span class="nr-title">${r.title}</span>
+                ${dueLabel}
               </div>
-              <div class="text-xs ${subTextColor}">
-                ${due}${time}${r.category ? ' • ' + r.category : ''}
-              </div>
-              <div class="text-xs ${subTextColor}">${r.note || ''}</div>
+              <span class="nr-priority" style="color:${accentColor}">${PRIORITY_LABELS[priority]}</span>
+            </div>
+            ${dateStr || r.category ? `<div class="nr-meta">
+              ${dateStr ? `<span>📅 ${dateStr}</span>` : ''}
+              ${r.category ? `<span>🏷️ ${r.category}</span>` : ''}
+            </div>` : ''}
+            ${r.note ? `<div class="nr-note">${r.note}</div>` : ''}
+            <div class="nr-actions">
+              <button class="nr-btn markDone ${r.completed ? 'active' : ''}" data-id="${r.id}" title="${r.completed ? 'Mark pending' : 'Mark done'}">
+                ${r.completed ? '↩ Undo' : '✓ Done'}
+              </button>
+              <button class="nr-btn snoozeBtn" data-id="${r.id}" title="Snooze 1 day">⏱ Snooze</button>
+              <button class="nr-btn editRem" data-id="${r.id}" title="Edit">✏️</button>
+              <button class="nr-btn danger delRem" data-id="${r.id}" title="Delete">🗑️</button>
             </div>
           </div>
-        `;
+        </div>`;
+    }).join('') : `
+      <div class="nr-empty">
+        <div style="font-size:36px;margin-bottom:8px;">🔕</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">All clear!</div>
+        <div style="font-size:12px;">No notifications match your filters.</div>
+      </div>`;
 
-        const buttonBase = `px-2 py-1 rounded text-xs font-medium transition-colors duration-200`;
-        const actions = `
-          <div class="flex gap-1 mt-2">
-            <button class="markDone ${buttonBase} ${r.completed ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'}" data-id="${r.id}">${r.completed ? '✅' : '✓'}</button>
-            <button class="snoozeBtn ${buttonBase} ${isDark ? 'bg-gray-700/60 hover:bg-gray-600' : 'bg-gray-100/60 hover:bg-gray-200'}" data-id="${r.id}">⏱</button>
-            <button class="editRem ${buttonBase} ${isDark ? 'bg-gray-700/60 hover:bg-gray-600' : 'bg-gray-100/60 hover:bg-gray-200'}" data-id="${r.id}">✏️</button>
-            <button class="delRem ${buttonBase} bg-red-500 hover:bg-red-600" data-id="${r.id}">🗑️</button>
-          </div>
-        `;
-
-        return `<div class="p-3 rounded-lg border ${bg} flex justify-between items-start shadow-sm">${left}<div>${actions}</div></div>`;
-      })
-      .join('') || `<div class="text-center ${isDark ? 'text-gray-400' : 'text-gray-600'} text-sm">No notifications</div>`;
-
-    listEl.innerHTML = rows;
     updateNotifCountBadge();
 
-    // Event delegation
+    // Summary
+    const total   = (state.reminders || []).length;
+    const pending = (state.reminders || []).filter(r => !r.completed).length;
+    const overdue = (state.reminders || []).filter(r => {
+      const d = parseDateTime(r.dueDate, r.time);
+      return !r.completed && d && d < now;
+    }).length;
+    const summaryEl = document.getElementById('notifFilterSummary');
+    if (summaryEl) {
+      summaryEl.innerHTML = `<span style="color:var(--rose);font-weight:700;">${overdue} overdue</span> · ${pending} pending · ${total} total`;
+    }
+
+    // Events
     listEl.querySelectorAll('.markDone').forEach(btn => {
       btn.onclick = async () => { await toggleReminderCompleted(btn.dataset.id); renderNotifications(); };
     });
@@ -127,7 +141,7 @@
     });
     listEl.querySelectorAll('.delRem').forEach(btn => {
       btn.onclick = async () => {
-        if (!confirm('Delete reminder?')) return;
+        if (!confirm('Delete this reminder?')) return;
         await del('reminders', btn.dataset.id);
         state.reminders = state.reminders.filter(r => String(r.id) !== String(btn.dataset.id));
         autoBackup();
@@ -135,48 +149,23 @@
         renderNotifications();
       };
     });
-
-    // Summary line
-    const total = (state.reminders || []).length;
-    const pending = (state.reminders || []).filter(r => !r.completed).length;
-    const overdue = (state.reminders || []).filter(r => {
-      const d = parseDateTime(r.dueDate, r.time);
-      return !r.completed && d && d < now;
-    }).length;
-    const summaryEl = document.getElementById('notifFilterSummary');
-    if (summaryEl) summaryEl.textContent = `${pending} pending • ${overdue} overdue • ${total} total`;
   }
-  window.toggleNotifPanel = function (e) {
-  if (e) e.stopPropagation();
-  const panel = document.getElementById('notifPanel');
-  if (!panel) return;
-
-  const isOpen = panel.classList.contains('show');
-  if (!isOpen) {
-    panel.classList.add('show');
-    panel.style.display = 'flex';          // override inline none
-    window.renderNotifications?.();
-  } else {
-    panel.classList.remove('show');
-    panel.style.display = 'none';
+  function closeNotifPanel() {
+    const panel = document.getElementById('notifPanel');
+    if (panel) panel.style.display = 'none';
   }
-};
 
-// Close button
-document.getElementById('notifCloseBtn')?.addEventListener('click', (e) => {
-  e.stopPropagation();
-  const panel = document.getElementById('notifPanel');
-  panel.classList.remove('show');
-  panel.style.display = 'none';
-});
-
-// Close on backdrop click
-document.getElementById('notifPanel')?.addEventListener('click', function(e) {
-  if (e.target === this) {
-    this.classList.remove('show');
-    this.style.display = 'none';
+  function toggleNotifPanel() {
+    const panel = document.getElementById('notifPanel');
+    if (!panel) return;
+    if (panel.style.display === 'none' || !panel.style.display) {
+      panel.style.display = 'block';
+      renderNotifications();
+    } else {
+      panel.style.display = 'none';
+    }
   }
-});
+
 
   // Mark all seen
   async function markAllNotificationsSeen() {
@@ -230,107 +219,130 @@ document.getElementById('notifPanel')?.addEventListener('click', function(e) {
     state.reminders = await getAll('reminders');
 
     const reminders = (state.reminders || []).slice().sort((a, b) => {
+      if (a.completed !== b.completed) return a.completed ? 1 : -1;
       const da = parseDateTime(a.dueDate, a.time) || new Date('2100-01-01');
       const db = parseDateTime(b.dueDate, b.time) || new Date('2100-01-01');
-      if (a.completed !== b.completed) return a.completed ? 1 : -1;
       return da - db;
     });
 
     const now = new Date();
-    const overdueCount = reminders.filter(r => !r.completed && parseDateTime(r.dueDate, r.time) && parseDateTime(r.dueDate, r.time) < now).length;
-    const upcomingCount = reminders.filter(r => !r.completed && parseDateTime(r.dueDate, r.time) && parseDateTime(r.dueDate, r.time) >= now).length;
+    const overdueCount  = reminders.filter(r => !r.completed && parseDateTime(r.dueDate, r.time) < now).length;
+    const upcomingCount = reminders.filter(r => !r.completed && parseDateTime(r.dueDate, r.time) >= now).length;
     const completedCount = reminders.filter(r => r.completed).length;
 
-    const listHtml = reminders.map(r => {
-      const due = r.dueDate || 'N/A';
-      const time = r.time ? ` • ${r.time}` : '';
+    const listHtml = reminders.length ? reminders.map(r => {
       const p = r.priority || 'medium';
-      const priorityColor = p === 'high' ? 'text-rose-400' : p === 'low' ? 'text-emerald-400' : 'text-amber-300';
-      const doneClass = r.completed ? 'opacity-60 line-through' : '';
-      const linked = r.linkedTransactionId ? `<div class="text-xs text-[var(--text-muted)]">Linked TX: ${r.linkedTransactionId}</div>` : '';
-
+      const dueDateObj = parseDateTime(r.dueDate, r.time);
+      const isOverdue  = !r.completed && dueDateObj && dueDateObj < now;
+      const accentColor = isOverdue ? 'var(--rose)' : p === 'high' ? 'var(--rose)' : p === 'low' ? 'var(--emerald)' : 'var(--gold)';
       return `
-        <div class="p-3 rounded-lg border" style="background: var(--glass-bg); border-color: var(--glass-border); ${doneClass}">
-          <div class="flex justify-between items-start">
-            <div>
-              <div class="font-semibold text-[var(--text)]">
-                ${r.title} ${r.tag ? `<span class="text-xs ml-2 rounded px-1 bg-[var(--glass-border)]">${r.tag}</span>` : ''}
-              </div>
-              <div class="text-xs text-[var(--text-muted)]">${due}${time} • ${r.category || 'No category'}</div>
-              <div class="text-xs text-[var(--text-muted)]">${r.note || ''}</div>
-              ${linked}
+        <div class="rm-item ${r.completed ? 'rm-done' : ''}" style="--accent:${accentColor}">
+          <div class="rm-accent"></div>
+          <div class="rm-content">
+            <div class="rm-row">
+              <span class="rm-title">${r.tag ? `<span class="nr-tag">${r.tag}</span> ` : ''}${r.title}</span>
+              <span class="rm-pri" style="color:${accentColor}">${p.charAt(0).toUpperCase()+p.slice(1)}</span>
             </div>
-            <div class="flex flex-col gap-2 items-end">
-              <div class="text-xs ${priorityColor}">${p.charAt(0).toUpperCase() + p.slice(1)}</div>
-              <div class="flex gap-1">
-                <button class="markDone px-2 py-1 rounded ${r.completed ? 'bg-[var(--btn-green)]' : 'bg-[var(--btn-blue)]'} text-[var(--text)]" data-id="${r.id}">${r.completed ? '✅' : '✓'}</button>
-                <button class="snoozeBtn px-2 py-1 rounded" style="background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text);" data-id="${r.id}">⏱</button>
-                <button class="editRem px-2 py-1 rounded" style="background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text);" data-id="${r.id}">✏️</button>
-                <button class="delRem px-2 py-1 rounded" style="background: var(--btn-red); color: var(--text);" data-id="${r.id}">🗑️</button>
-              </div>
+            ${r.dueDate ? `<div class="rm-date">📅 ${r.dueDate}${r.time ? ' · ' + r.time : ''}${r.category ? ' · ' + r.category : ''}${isOverdue ? ' <span style="color:var(--rose);font-weight:700;">· Overdue</span>' : ''}</div>` : ''}
+            ${r.note ? `<div class="rm-note">${r.note}</div>` : ''}
+            <div class="rm-btns">
+              <button class="rm-btn markDone ${r.completed?'active':''}" data-id="${r.id}">${r.completed ? '↩ Undo' : '✓ Done'}</button>
+              <button class="rm-btn snoozeBtn" data-id="${r.id}">⏱ Snooze</button>
+              <button class="rm-btn editRem" data-id="${r.id}">✏️ Edit</button>
+              <button class="rm-btn danger delRem" data-id="${r.id}">🗑️</button>
             </div>
           </div>
-        </div>
-      `;
-    }).join('') || `<div class="text-center text-[var(--text-muted)]">No reminders</div>`;
+        </div>`;
+    }).join('') : `<div class="nr-empty" style="padding:20px 0;"><div style="font-size:30px">🔕</div><div>No reminders yet</div></div>`;
 
     const pre = prefill || {};
+    const formTitle = pre.id ? '✏️ Edit Reminder' : '➕ New Reminder';
     const addForm = `
-      <form id="addReminderForm" class="space-y-2 pt-3">
-        <div class="grid grid-cols-2 gap-2">
-          <input id="remTitle" required placeholder="Title" value="${pre.title || ''}" class="p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border-color: var(--input-border)"/>
-          <select id="remTag" class="p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border-color: var(--input-border)">
-            <option ${(!pre.tag)?'selected':''}>General</option>
-            <option ${pre.tag==='Bills'?'selected':''}>Bills</option>
-            <option ${pre.tag==='Loan'?'selected':''}>Loan</option>
-            <option ${pre.tag==='Personal'?'selected':''}>Personal</option>
-          </select>
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;">${formTitle}</div>
+      <form id="addReminderForm">
+        <div class="rem-form-grid">
+          <div class="rem-field rem-field-2">
+            <label class="form-label">Title *</label>
+            <input id="remTitle" class="form-input" required placeholder="e.g. Pay electricity bill" value="${pre.title || ''}">
+          </div>
+          <div class="rem-field">
+            <label class="form-label">Tag</label>
+            <select id="remTag" class="form-input">
+              <option ${!pre.tag||pre.tag==='General'?'selected':''}>General</option>
+              <option ${pre.tag==='Bills'?'selected':''}>Bills</option>
+              <option ${pre.tag==='Loan'?'selected':''}>Loan</option>
+              <option ${pre.tag==='Personal'?'selected':''}>Personal</option>
+            </select>
+          </div>
+          <div class="rem-field">
+            <label class="form-label">Due Date *</label>
+            <input id="remDate" class="form-input" type="date" required value="${pre.dueDate || ''}">
+          </div>
+          <div class="rem-field">
+            <label class="form-label">Time</label>
+            <input id="remTime" class="form-input" type="time" value="${pre.time || ''}">
+          </div>
+          <div class="rem-field">
+            <label class="form-label">Priority</label>
+            <select id="remPriority" class="form-input">
+              <option value="high" ${pre.priority==='high'?'selected':''}>🔴 High</option>
+              <option value="medium" ${!pre.priority||pre.priority==='medium'?'selected':''}>🟡 Medium</option>
+              <option value="low" ${pre.priority==='low'?'selected':''}>🟢 Low</option>
+            </select>
+          </div>
+          <div class="rem-field">
+            <label class="form-label">Category</label>
+            <input id="remCategory" class="form-input" placeholder="e.g. Bills" value="${pre.category || ''}">
+          </div>
+          <div class="rem-field">
+            <label class="form-label">Repeat</label>
+            <select id="remRecurrence" class="form-input">
+              <option value="none" ${!pre.recurrence||pre.recurrence==='none'?'selected':''}>No repeat</option>
+              <option value="daily"   ${pre.recurrence==='daily'?'selected':''}>Daily</option>
+              <option value="weekly"  ${pre.recurrence==='weekly'?'selected':''}>Weekly</option>
+              <option value="monthly" ${pre.recurrence==='monthly'?'selected':''}>Monthly</option>
+              <option value="yearly"  ${pre.recurrence==='yearly'?'selected':''}>Yearly</option>
+            </select>
+          </div>
+          <div class="rem-field" style="display:flex;align-items:flex-end;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-2);padding-bottom:2px;">
+              <input type="checkbox" id="remAutoRepeat" ${pre.autoRepeat?'checked':''} style="width:16px;height:16px;accent-color:var(--teal);">
+              Auto-repeat
+            </label>
+          </div>
+          <div class="rem-field rem-field-2">
+            <label class="form-label">Note</label>
+            <textarea id="remNote" class="form-input form-textarea" placeholder="Optional note…">${pre.note || ''}</textarea>
+          </div>
         </div>
-        <div class="grid grid-cols-3 gap-2">
-          <input id="remDate" required type="date" value="${pre.dueDate || ''}" class="p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border-color: var(--input-border)"/>
-          <input id="remTime" type="time" value="${pre.time || ''}" class="p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border-color: var(--input-border)"/>
-          <select id="remPriority" class="p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border-color: var(--input-border)">
-            <option value="high" ${pre.priority==='high'?'selected':''}>High</option>
-            <option value="medium" ${(!pre.priority || pre.priority==='medium')?'selected':''}>Medium</option>
-            <option value="low" ${pre.priority==='low'?'selected':''}>Low</option>
-          </select>
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button type="submit" class="btn-submit" style="flex:1;">${pre.id ? 'Update' : 'Save'} Reminder</button>
+          <button id="cancelRemBtn" type="button" class="btn-cancel" style="flex:0 0 auto;padding:0 20px;">Cancel</button>
         </div>
-        <div class="grid grid-cols-2 gap-2">
-          <input id="remCategory" placeholder="Category" value="${pre.category||''}" class="p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border-color: var(--input-border)"/>
-          <input id="remLinkedTx" placeholder="Linked TX ID (optional)" value="${pre.linkedTransactionId||''}" class="p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border-color: var(--input-border)"/>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <select id="remRecurrence" class="p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border-color: var(--input-border)">
-            <option value="none" ${(!pre.recurrence || pre.recurrence==='none')?'selected':''}>No repeat</option>
-            <option value="daily" ${pre.recurrence==='daily'?'selected':''}>Daily</option>
-            <option value="weekly" ${pre.recurrence==='weekly'?'selected':''}>Weekly</option>
-            <option value="monthly" ${pre.recurrence==='monthly'?'selected':''}>Monthly</option>
-            <option value="yearly" ${pre.recurrence==='yearly'?'selected':''}>Yearly</option>
-          </select>
-          <label class="flex items-center gap-2 p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border-color: var(--input-border)">
-            <input type="checkbox" id="remAutoRepeat" ${pre.autoRepeat ? 'checked' : ''}/>
-            <span class="text-sm">Auto-repeat</span>
-          </label>
-        </div>
-        <textarea id="remNote" placeholder="Note" class="w-full p-2 rounded border" style="background: var(--input-bg); color: var(--input-text); border-color: var(--input-border)">${pre.note||''}</textarea>
-        <div class="flex gap-2">
-          <button id="saveRemBtn" class="w-full py-2 rounded" style="background: var(--btn-green); color: var(--text);">Save Reminder</button>
-          <button id="cancelRemBtn" type="button" class="w-full py-2 rounded" style="background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text)">Close</button>
-        </div>
-      </form>
-    `;
+      </form>`;
 
     const modalContent = `
-      <div class="space-y-4">
-        <div class="grid grid-cols-3 gap-2 text-center">
-          <div class="p-3 rounded-lg" style="background: rgba(239, 68, 68, 0.2)"><div class="text-2xl font-bold text-rose-400">${overdueCount}</div><div class="text-xs text-[var(--text-muted)]">Overdue</div></div>
-          <div class="p-3 rounded-lg" style="background: rgba(245, 158, 11, 0.2)"><div class="text-2xl font-bold text-amber-300">${upcomingCount}</div><div class="text-xs text-[var(--text-muted)]">Upcoming</div></div>
-          <div class="p-3 rounded-lg" style="background: rgba(5, 150, 105, 0.2)"><div class="text-2xl font-bold text-emerald-400">${completedCount}</div><div class="text-xs text-[var(--text-muted)]">Completed</div></div>
+      <div>
+        <!-- Stats -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+          <div style="background:rgba(251,113,133,0.1);border:1px solid rgba(251,113,133,0.2);border-radius:12px;padding:12px;text-align:center;">
+            <div style="font-size:24px;font-weight:800;color:var(--rose);font-family:var(--font-m);">${overdueCount}</div>
+            <div style="font-size:10px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Overdue</div>
+          </div>
+          <div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);border-radius:12px;padding:12px;text-align:center;">
+            <div style="font-size:24px;font-weight:800;color:var(--gold);font-family:var(--font-m);">${upcomingCount}</div>
+            <div style="font-size:10px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Upcoming</div>
+          </div>
+          <div style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:12px;padding:12px;text-align:center;">
+            <div style="font-size:24px;font-weight:800;color:var(--emerald);font-family:var(--font-m);">${completedCount}</div>
+            <div style="font-size:10px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Completed</div>
+          </div>
         </div>
-        <div class="space-y-2 max-h-80 overflow-y-auto">${listHtml}</div>
-        <div class="pt-2 border-t border-[var(--glass-border)]">${addForm}</div>
-      </div>
-    `;
+        <!-- List -->
+        <div style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">${listHtml}</div>
+        <!-- Form -->
+        <div style="border-top:1px solid var(--border);padding-top:16px;">${addForm}</div>
+      </div>`;
 
     showSimpleModal('⏰ Reminders', modalContent);
 
@@ -554,59 +566,41 @@ document.getElementById('notifPanel')?.addEventListener('click', function(e) {
     return false;
   }
 
-  // ========== UI wiring ==========
-  function wireNotifUIonce() {
-    const bell = document.getElementById('notifBell');
-    if (bell) bell.onclick = toggleNotifPanel;
-
-    document.getElementById('notifTypeFilter')?.addEventListener('change', renderNotifications);
-    document.getElementById('notifPriorityFilter')?.addEventListener('change', renderNotifications);
-    document.getElementById('notifSearch')?.addEventListener('input', debounce(renderNotifications, 250));
-
-    document.getElementById('markAllRead')?.addEventListener('click', markAllNotificationsSeen);
-    document.getElementById('openRemindersBtn')?.addEventListener('click', () => { 
-      document.getElementById('notifPanel')?.classList.add('hidden'); 
-      showRemindersModal(); 
-    });
-    document.getElementById('openAllReminders')?.addEventListener('click', showRemindersModal);
-    document.getElementById('openAllNotifications')?.addEventListener('click', renderNotifications);
-
-    // Close panel when clicking outside
-    document.addEventListener('click', function(e) {
-      const panel = document.getElementById('notifPanel');
-      const drawer = panel?.children[0];
-      const bell = document.getElementById('notifBell');
-      if (!panel || !drawer || !bell) return;
-      if (panel.style.display === 'flex') {
-        if (!drawer.contains(e.target) && !bell.contains(e.target)) {
-          panel.style.display = 'none';
-        }
-      }
-    });
-  }
-
   function debounce(fn, ms) {
     let t;
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
   }
 
   // ========== INIT ==========
-  // Idempotent initialisation – never auto-starts DB polling here.
-  // checkAllNotifications is called by LM_StartApp after DB is open.
   if (!window.__notifInit) {
-    wireNotifUIonce();
-    window.checkAllNotifications = checkAllNotifications;
-    /* Listen for app:ready event as a secondary trigger (e.g. page refresh while logged in) */
-    document.addEventListener('lm:app:ready', () => {
-      checkAllNotifications();
-    });
     window.__notifInit = true;
-  }
 
-  // Expose for external use
-  window.renderNotifications = renderNotifications;
-  window.showRemindersModal = showRemindersModal;
-  window.snoozeReminder = snoozeReminder;
-  window.toggleReminderCompleted = toggleReminderCompleted;
+    // Expose globals first so inline onclick handlers work
+    window.toggleNotifPanel    = toggleNotifPanel;
+    window.renderNotifications = renderNotifications;
+    window.showRemindersModal  = showRemindersModal;
+    window.snoozeReminder      = snoozeReminder;
+    window.toggleReminderCompleted = toggleReminderCompleted;
+    window.checkAllNotifications   = checkAllNotifications;
+
+    // Wire UI — Notifications.js loads at bottom of body so DOM is ready
+    const bell = document.getElementById('notifBell');
+    if (bell) bell.onclick = (e) => { e.stopPropagation(); toggleNotifPanel(); };
+
+    document.getElementById('notifCloseBtn')?.addEventListener('click', closeNotifPanel);
+    document.getElementById('notifBackdrop')?.addEventListener('click', closeNotifPanel);
+    document.getElementById('markAllRead')?.addEventListener('click', markAllNotificationsSeen);
+    document.getElementById('openRemindersBtn')?.addEventListener('click', () => {
+      closeNotifPanel();
+      showRemindersModal();
+    });
+    document.getElementById('notifTypeFilter')?.addEventListener('change', renderNotifications);
+    document.getElementById('notifPriorityFilter')?.addEventListener('change', renderNotifications);
+    document.getElementById('notifSearch')?.addEventListener('input', debounce(renderNotifications, 200));
+
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeNotifPanel(); });
+
+    document.addEventListener('lm:app:ready', () => checkAllNotifications());
+  }
 
 })();

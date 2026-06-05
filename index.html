@@ -27,6 +27,10 @@
         var s = localStorage.getItem('appSettings');
         if (s) theme = JSON.parse(s).theme || 'dark';
       }
+      /* System theme follow — only if user has no stored preference */
+      if (theme === 'dark' && !userRaw && !s && window.matchMedia) {
+        theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      }
       document.documentElement.setAttribute('data-theme', theme);
       /* body gets set after DOMContentLoaded */
       document.addEventListener('DOMContentLoaded', function() {
@@ -135,10 +139,11 @@
       </div>
     </div>
 
+    <!-- ── OVERVIEW ──────────────────────────────────────── -->
     <div class="sidebar-section">
       <div class="sidebar-section-label">Overview</div>
       <button class="sidebar-nav-item active" onclick="showPage('dashboard')" data-module="dashboard">
-        <span class="nav-icon">📊</span> Dashboard
+        <span class="nav-icon">🏠</span> Dashboard
       </button>
       <button class="sidebar-nav-item" onclick="showPage('transactions')" data-module="transactions">
         <span class="nav-icon">↕️</span> Transactions
@@ -146,67 +151,128 @@
       <button class="sidebar-nav-item" onclick="showPage('analytics')" data-module="analytics">
         <span class="nav-icon">📈</span> Analytics
       </button>
-      <button class="sidebar-nav-item" onclick="showPage('gold')" data-module="gold">
-     <span class="nav-icon">🏅</span> Gold Rates
-      </button>
-      <button onclick="window.open('/Java-Prep-kit.html', '_self')" class="sidebar-nav-item">
-        <span class="nav-icon">📚</span> Java-Prep-kit
-      </button>
     </div>
-     <div class="sidebar-section">
-      <div class="sidebar-section-label">Wealth</div>
-      <button class="sidebar-nav-item" onclick="showPage('wealth')" data-module="wealth">
-        <span class="nav-icon">📊</span> Wealth
+
+    <!-- ── MONEY MANAGEMENT ───────────────────────────────── -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Money</div>
+      <button class="sidebar-nav-item" id="openBudgets" data-module="budgets">
+        <span class="nav-icon">🎯</span> Budgets
       </button>
-      <button class="sidebar-nav-item" onclick="showPage('essentials')" data-module="essentials">
-        <span class="nav-icon">🛡️</span> Essentials
+      <button class="sidebar-nav-item" onclick="showPage('loans')" data-module="loans">
+        <span class="nav-icon">🏦</span> Loans
+      </button>
+      <button class="sidebar-nav-item" id="openInvestments" data-module="investments">
+        <span class="nav-icon">📊</span> Investments
+      </button>
+      <button class="sidebar-nav-item" onclick="showPage('subscriptions')" data-module="subscriptions">
+        <span class="nav-icon">🔄</span> Subscriptions
+      </button>
+      <button class="sidebar-nav-item" onclick="showPage('savings-goals')" data-module="savings-goals">
+        <span class="nav-icon">🏆</span> Savings Goals
+      </button>
+      <button class="sidebar-nav-item" onclick="showPage('emergency-fund')" data-module="emergency-fund">
+        <span class="nav-icon">🛡️</span> Emergency Fund
+      </button>
+      <button class="sidebar-nav-item" onclick="showPage('debt-payoff')" data-module="debt-payoff">
+        <span class="nav-icon">⚡</span> Debt Payoff
       </button>
     </div>
 
+    <!-- ── WEALTH & GOALS ────────────────────────────────── -->
     <div class="sidebar-section">
-      <div class="sidebar-section-label">Manage</div> 
-      <button class="sidebar-nav-item" onclick="showPage('loans')" data-module="loans">
-        <span class="nav-icon">💰</span> Loans
-      </button> 
-      <button class="sidebar-nav-item" id="openInvestments" data-module="investments">
-        <span class="nav-icon">📈</span> Investments
+      <div class="sidebar-section-label">Wealth</div>
+      <button class="sidebar-nav-item" onclick="showPage('wealth')" data-module="wealth">
+        <span class="nav-icon">💎</span> Net Worth
       </button>
-      <button class="sidebar-nav-item" id="openBudgets" data-module="budgets">
-        <span class="nav-icon">🎯</span> Budgets
-      </button> 
+      <button class="sidebar-nav-item" onclick="showPage('wealth-goals')" data-module="wealth-goals">
+        <span class="nav-icon">🎖️</span> Goals &amp; Milestones
+      </button>
+      <button class="sidebar-nav-item" onclick="showPage('essentials')" data-module="essentials">
+        <span class="nav-icon">📦</span> Essentials
+      </button>
+      <button class="sidebar-nav-item" onclick="showPage('gold')" data-module="gold">
+        <span class="nav-icon">🏅</span> Gold Rates
+      </button>
+      <button class="sidebar-nav-item" onclick="showPage('tax-planner')" data-module="tax-planner">
+        <span class="nav-icon">📑</span> Tax Planner
+      </button>
+    </div>
+
+    <!-- ── REPORTS ────────────────────────────────────────── -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Reports</div>
+      <button class="sidebar-nav-item" id="openMonthlySummary">
+        <span class="nav-icon">📅</span> Monthly Summary
+      </button>
+      <button class="sidebar-nav-item" onclick="showPage('fy-summary')" data-module="fy-summary">
+        <span class="nav-icon">📋</span> FY Summary
+      </button>
+      <button class="sidebar-nav-item" onclick="showPage('month-comparison')" data-module="month-comparison">
+        <span class="nav-icon">⚖️</span> Month vs Month
+      </button>
+      <button class="sidebar-nav-item" onclick="showPage('spending-heatmap')" data-module="spending-heatmap">
+        <span class="nav-icon">🗓️</span> Spend Heatmap
+      </button>
+      <button class="sidebar-nav-item" onclick="showPage('cash-flow-calendar')" data-module="cash-flow-calendar">
+        <span class="nav-icon">📆</span> Cash Flow Calendar
+      </button>
+    </div>
+
+    <!-- ── CALCULATORS ───────────────────────────────────── -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Calculators</div>
+      <button class="sidebar-nav-item" onclick="openEMIModal()">
+        <span class="nav-icon">🧮</span> EMI Calculator
+      </button>
+      <button class="sidebar-nav-item" onclick="openWhatIfModal()">
+        <span class="nav-icon">🔮</span> What-If Simulator
+      </button>
+    </div>
+
+    <!-- ── PRODUCTIVITY ───────────────────────────────────── -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Productivity</div>
+      <button class="sidebar-nav-item" onclick="showNotesModal();" id="openNotes1" data-module="notes">
+        <span class="nav-icon">📝</span> Notes
+      </button>
+      <button class="sidebar-nav-item" onclick="showPage('templates')" data-module="templates">
+        <span class="nav-icon">📋</span> Tx Templates
+      </button>
       <button class="sidebar-nav-item" id="openTripPlannerBtn" data-module="trips">
         <span class="nav-icon">✈️</span> Trips
       </button>
-        <button class="sidebar-nav-item" id="openMonthlySummary">
-          <span class="nav-icon">📅</span> Monthly Summary
-        </button>
-        <button class="sidebar-nav-item" onclick="showCredentialsVault()" data-module="credentials">
-          <span class="nav-icon">🔐</span> Credentials Vault
-        </button>
-         <button class="sidebar-nav-item" onclick="showNotesModal();" id="openNotes1" data-module="notes">
-          <span class="nav-icon">📝</span> Notes
-        </button>
-        <button class="sidebar-nav-item" id="openDropdownManagerBtn">
-          <span class="nav-icon">🔽</span> Dropdown Manager
-        </button>
-        <button class="sidebar-nav-item" onclick="showPage('savings-goals')" data-module="savings-goals">
-          <span class="nav-icon">🎯</span> Savings Goals
-        </button>
-
-    </div>
-
-    <!-- ─── ADMIN SECTION (shown only for admin role) ─── -->
-    <div class="sidebar-section" id="adminSidebarSection" style="display:none;">
-      <div class="sidebar-section-label">Administration</div>
-      <button class="sidebar-nav-item" onclick="window.LM_Admin?.show()">
-        <span class="nav-icon">⚙️</span> Admin Panel
+      <button class="sidebar-nav-item" onclick="showCredentialsVault()" data-module="credentials">
+        <span class="nav-icon">🔐</span> Credentials Vault
+      </button>
+      <button class="sidebar-nav-item" onclick="showPage('views-browser')" data-module="views-browser">
+        <span class="nav-icon">📚</span> Study Resources
+      </button>
+      <button class="sidebar-nav-item" onclick="openWidgetPage()" data-module="widget">
+        <span class="nav-icon">📱</span> Home Widget
       </button>
     </div>
-      
 
+    <!-- ── SETTINGS ──────────────────────────────────────── -->
     <div class="sidebar-section">
-      <div class="sidebar-section-label">Tools</div>
-          <button class="sidebar-nav-item" id="btnSetFolder"><div id="folderStatus" class="text-sm ">Fol: <span id="folderLabel">None</span></div></button>
+      <div class="sidebar-section-label">Settings</div>
+      <button class="sidebar-nav-item" onclick="openDashboardCustomizer()" data-module="dashboard-config">
+        <span class="nav-icon">🎛️</span> Customize Dashboard
+      </button>
+      <button class="sidebar-nav-item" id="openDropdownManagerBtn">
+        <span class="nav-icon">🔽</span> Dropdown Manager
+      </button>
+      <button class="sidebar-nav-item" onclick="openPinSetupModal()" data-module="pin-lock">
+        <span class="nav-icon">🔒</span> PIN Lock
+      </button>
+    </div>
+
+    <!-- ── DATA ──────────────────────────────────────────── -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Data</div>
+      <button class="sidebar-nav-item" id="btnSetFolder">
+        <span class="nav-icon">📁</span> <span id="folderLabel">Set Folder</span>
+      </button>
       <button class="sidebar-nav-item" id="btnFullExport">
         <span class="nav-icon">📤</span> Export Data
       </button>
@@ -217,21 +283,25 @@
       <button class="sidebar-nav-item" id="clearData">
         <span class="nav-icon">🗑️</span> Clear All Data
       </button>
+    </div>
+
+    <!-- ── ADMIN (hidden unless admin) ───────────────────── -->
+    <div class="sidebar-section" id="adminSidebarSection" style="display:none;">
+      <div class="sidebar-section-label">Administration</div>
+      <button class="sidebar-nav-item" onclick="window.LM_Admin?.show()">
+        <span class="nav-icon">⚙️</span> Admin Panel
+      </button>
+    </div>
+
+    <!-- ── SIGN OUT ───────────────────────────────────────── -->
+    <div class="sidebar-section">
       <button class="sidebar-nav-item" id="btnLogout"
         onclick="if(confirm('Sign out of LedgerMate?')) window.LM_Auth.logout();"
-        style="margin-top:8px; border-top:1px solid var(--border); color:var(--rose);">
+        style="color:var(--rose);">
         <span class="nav-icon">🚪</span> Sign Out
       </button>
     </div>
-  </br>
-  </br>
-  </br>
-   <!-- <div style="margin-top:auto; padding: 16px;">
-      <div style="background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px; text-align:center;">
-        <div style="font-size:28px; margin-bottom:6px;">💡</div>
-        <div style="font-size:12px; color:var(--text-2); line-height:1.5;">All data stored locally on your device</div>
-      </div>
-    </div>-->
+
   </aside>
 
   <!-- ─── MAIN ─────────────────────────────────────────── -->
@@ -242,26 +312,44 @@
       <button id="menuBtn" onclick="toggleSidebar()">☰</button>
       <div class="topbar-title">Ledger<span>Mate</span></div>
       <div class="topbar-actions">
-        <div style="display:none;">
-        <div style="position:relative; display:none; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:4px 6px;">
-          <span style="font-size:11px; color:var(--text-3); font-family:var(--font-m);">ACC:</span>
-          <select id="accFilter" style="background:none; border:none; font-size:12px; color:var(--text); outline:none; font-family:var(--font-b); cursor:pointer;" onchange="renderAll()">
-            <option value="all">All</option>
-          </select>
-        </div>
-        </div>
-        <!-- User Chip with dropdown -->
+        <!-- hidden account filter -->
+        <select id="accFilter" style="display:none;" onchange="renderAll()"><option value="all">All</option></select>
+
+        <!-- 🔍 Search -->
+        <button class="icon-btn srch-trigger-btn" title="Search (Ctrl+K)" onclick="openSearch()">🔍</button>
+
+        <!-- 🔔 Notifications -->
+        <button id="notifBell" class="icon-btn notif-bell-btn" title="Notifications" onclick="toggleNotifPanel(event)">
+          🔔
+          <span id="notifDot" class="notif-dot" style="display:none"></span>
+          <span id="notifCount" class="notif-count-badge">0</span>
+        </button>
+
+        <!-- ☁️ Drive sync -->
+        <button id="openDriveManagerBtn" class="icon-btn" title="Google Drive Sync" style="background:linear-gradient(135deg,#4285F4 0%,#4285F4 30%,transparent 30%),linear-gradient(225deg,#34A853 0%,#34A853 30%,transparent 30%),linear-gradient(315deg,#FBBC05 0%,#FBBC05 30%,transparent 30%),#EA4335;background-size:cover;box-shadow:0 2px 6px rgba(0,0,0,0.25);">☁️</button>
+
+        <!-- 🌙 Theme toggle -->
+        <button class="icon-btn" onclick="toggleTheme()" id="themeIcon" title="Toggle Theme">🌙</button>
+
+        <!-- 👤 User profile (far right) -->
         <div style="position:relative;">
           <div class="topbar-user-chip" id="topbarUserChipWrap" onclick="document.getElementById('userDropdownMenu').classList.toggle('open')" title="Account">
             <div class="topbar-user-avatar" id="topbarUserChip">A</div>
-            <div class="topbar-user-info">
-              <span id="topbarUserName">User</span>
-              <span id="topbarUserRole">👤 User</span>
-            </div>
           </div>
           <div class="topbar-user-menu" id="userDropdownMenu">
+            <div class="topbar-user-menu-header">
+              <div class="topbar-user-avatar" style="width:36px;height:36px;font-size:15px;" id="topbarUserChipMenu">A</div>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text);" id="topbarUserName">User</div>
+                <div style="font-size:11px;color:var(--text-3);" id="topbarUserRole">👤 User</div>
+              </div>
+            </div>
+            <div class="topbar-user-menu-divider"></div>
             <button class="topbar-user-menu-item" onclick="window.LM_Admin?.show(); document.getElementById('userDropdownMenu').classList.remove('open')">
               ⚙️ Admin Panel
+            </button>
+            <button class="topbar-user-menu-item" onclick="document.getElementById('userDropdownMenu').classList.remove('open'); openPreferencesModal()">
+              🔔 Preferences
             </button>
             <div class="topbar-user-menu-divider"></div>
             <button class="topbar-user-menu-item" onclick="document.getElementById('userDropdownMenu').classList.remove('open'); if(confirm('Sign out?')) window.LM_Auth.logout();" style="color:var(--rose)">
@@ -269,105 +357,6 @@
             </button>
           </div>
         </div>
-         <button id="openDriveManagerBtn"
-  class="icon-btn"
-  style="
-    background:
-      linear-gradient(135deg, #4285F4 0%, #4285F4 30%, transparent 30%),
-      linear-gradient(225deg, #34A853 0%, #34A853 30%, transparent 30%),
-      linear-gradient(315deg, #FBBC05 0%, #FBBC05 30%, transparent 30%),
-      #EA4335;
-    background-size: cover;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.25);
-   ">
-  ☁️
-</button>
-        <!--<button class="icon-btn" id="notifBtn" onclick="toggleNotifDrawer()" title="Notifications">
-          🔔<span class="notif-dot" id="notifDot" style="display:none"></span>
-        </button>-->
-       <div class="flex items-center gap-3">
-  <div class="relative">
-
-    <!-- 🔔 Notification Button (NEW UI STYLE) -->
-    <button id="notifBell"
-      class="icon-btn relative"
-      title="Notifications" onclick="toggleNotifPanel(event);">
-
-      🔔
-
-      <!-- Dot -->
-      <span id="notifDot"
-        class="notif-dot absolute top-1 right-1"
-        style="display:none"></span>
-
-      <!-- Count -->
-      <span id="notifCount"
-        class="absolute -top-1 -right-1 text-xs bg-amber-400 text-black px-1 rounded">
-        0
-      </span>
-    </button>
-
-    <!-- 🔥 Notification Panel (NEW UI STYLE) -->
-  <!-- Notification Overlay -->
-<div id="notifPanel"
-     style="display:none;"
-     class="fixed inset-0 z-50 items-center justify-center bg-black/50 backdrop-blur-sm">
-
-  <!-- Popup Card -->
-  <div class="glass w-full max-w-lg max-h-[80vh] mx-4 overflow-hidden rounded-2xl shadow-2xl flex flex-col"
-       style="border: 1px solid var(--border);">
-
-    <!-- Header -->
-    <div class="flex justify-between items-center p-4 border-b border-[var(--border)]">
-      <h2 class="text-lg font-semibold">🔔 Notifications</h2>
-      <button id="notifCloseBtn" class="text-2xl leading-none hover:text-rose-400 transition">✕</button>
-    </div>
-
-    <!-- Meta + Actions -->
-    <div class="px-4 pt-3 pb-2 space-y-3">
-      <div id="notifFilterSummary" class="text-xs text-muted">—</div>
-
-      <div class="flex gap-2">
-        <button id="markAllRead" class="text-xs px-3 py-1.5 rounded-lg bg-[var(--glass-bg)] border border-[var(--border)] hover:border-teal-400 transition">
-          Mark all read
-        </button>
-        <button id="openRemindersBtn" class="text-xs px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400 transition">
-          ⏰ Reminders
-        </button>
-      </div>
-
-      <!-- Filters -->
-      <div class="grid grid-cols-3 gap-2">
-        <select id="notifTypeFilter"
-                class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs w-full">
-          <option value="all">All</option>
-          <option value="reminder">Reminders</option>
-          <option value="loan">Loans</option>
-          <option value="budget">Budgets</option>
-        </select>
-        <select id="notifPriorityFilter"
-                class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs w-full">
-          <option value="all">All</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
-        <input id="notifSearch"
-               class="p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs w-full"
-               placeholder="Search..." />
-      </div>
-    </div>
-
-    <!-- Scrollable List -->
-    <div id="notifList" class="flex-1 px-4 pb-4 space-y-3 overflow-y-auto"></div>
-  </div>
-</div>
-
-  </div>
-
-
-</div>  
-        <button class="icon-btn" onclick="toggleTheme()" id="themeIcon" title="Toggle Theme">🌙</button>
       </div>
     </header>
 
@@ -593,6 +582,15 @@
           <div id="dashWealthWidget"></div>
         </div>
 
+        <!-- NET WORTH SPARKLINE -->
+        <div class="fade-up fade-up-5" style="margin-top:8px;">
+          <div class="section-heading">
+            <div class="section-title"><span class="dot" style="background:var(--teal)"></span>Net Worth Trend</div>
+            <button class="section-action" onclick="showPage('wealth')">Details →</button>
+          </div>
+          <div id="nwSparklineWidget"></div>
+        </div>
+
         <!-- MONTH-OVER-MONTH ANALYTICS -->
         <div class="fade-up fade-up-5" style="margin-top:8px;">
           <div class="section-heading">
@@ -624,6 +622,109 @@
           <button class="section-action" onclick="openSavingsGoalModal()">+ Add Goal</button>
         </div>
         <div id="savingsGoalsList" class="fade-up fade-up-3"></div>
+      </div>
+
+      <!-- ─── TAX PLANNER PAGE ─────────────────────────── -->
+      <div id="page-tax-planner" style="display:none;">
+        <div class="fade-up fade-up-1">
+          <div class="page-greeting">India FY 2024-25</div>
+          <h1 class="page-title">Tax <em>Planner</em></h1>
+        </div>
+        <div id="taxPlannerContent" class="fade-up fade-up-2"></div>
+      </div>
+
+      <!-- ─── SUBSCRIPTIONS PAGE ────────────────────────── -->
+      <div id="page-subscriptions" style="display:none;">
+        <div class="fade-up fade-up-1">
+          <div class="page-greeting">Recurring Charges</div>
+          <h1 class="page-title">Subscription <em>Tracker</em></h1>
+        </div>
+        <div class="section-heading fade-up fade-up-2" style="margin-top:16px;">
+          <div class="section-title"><span class="dot" style="background:var(--blue)"></span>Active Subscriptions</div>
+          <button class="section-action" onclick="openAddSubscriptionModal()">+ Add Manual</button>
+        </div>
+        <div id="subscriptionsContent" class="fade-up fade-up-3"></div>
+      </div>
+
+      <!-- ─── FINANCIAL YEAR SUMMARY PAGE ──────────────── -->
+      <div id="page-fy-summary" style="display:none;">
+        <div class="fade-up fade-up-1">
+          <div class="page-greeting">April – March Report</div>
+          <h1 class="page-title">Financial Year <em>Summary</em></h1>
+        </div>
+        <div id="fySummaryContent" class="fade-up fade-up-2"></div>
+      </div>
+
+      <!-- ─── SPENDING HEATMAP PAGE ─────────────────────── -->
+      <div id="page-spending-heatmap" style="display:none;">
+        <div class="fade-up fade-up-1">
+          <div class="page-greeting">365-Day View</div>
+          <h1 class="page-title">Spending <em>Heatmap</em></h1>
+        </div>
+        <div id="spendingHeatmapContent" class="fade-up fade-up-2"></div>
+      </div>
+
+      <!-- ─── VIEWS BROWSER PAGE ───────────────────────── -->
+      <div id="page-views-browser" style="display:none;">
+        <div class="fade-up fade-up-1">
+          <div class="page-greeting">Learning Resources</div>
+          <h1 class="page-title">Study <em>Materials</em></h1>
+        </div>
+        <div id="viewsBrowserContent" class="fade-up fade-up-2"></div>
+      </div>
+
+      <!-- ─── CASH FLOW CALENDAR PAGE ───────────────────── -->
+      <div id="page-cash-flow-calendar" style="display:none;">
+        <div class="fade-up fade-up-1">
+          <div class="page-greeting">Daily Money View</div>
+          <h1 class="page-title">Cash Flow <em>Calendar</em></h1>
+        </div>
+        <div id="cashFlowCalendarContent" class="fade-up fade-up-2"></div>
+      </div>
+
+      <!-- ─── DEBT PAYOFF PLANNER PAGE ──────────────────── -->
+      <div id="page-debt-payoff" style="display:none;">
+        <div class="fade-up fade-up-1">
+          <div class="page-greeting">Get Out of Debt Faster</div>
+          <h1 class="page-title">Debt Payoff <em>Planner</em></h1>
+        </div>
+        <div id="debtPayoffContent" class="fade-up fade-up-2"></div>
+      </div>
+
+<!-- ─── TRANSACTION TEMPLATES PAGE ─────────────────── -->
+      <div id="page-templates" style="display:none;">
+        <div class="fade-up fade-up-1">
+          <div class="page-greeting">One-Tap Entry</div>
+          <h1 class="page-title">Transaction <em>Templates</em></h1>
+        </div>
+        <div id="templatesContent" class="fade-up fade-up-2"></div>
+      </div>
+
+      <!-- ─── MONTH vs MONTH PAGE ──────────────────────────── -->
+      <div id="page-month-comparison" style="display:none;">
+        <div class="fade-up fade-up-1">
+          <div class="page-greeting">3-Month Side-by-Side</div>
+          <h1 class="page-title">Month vs Month <em>Comparison</em></h1>
+        </div>
+        <div id="monthCompContent" class="fade-up fade-up-2"></div>
+      </div>
+
+      <!-- ─── EMERGENCY FUND PAGE ──────────────────────────── -->
+      <div id="page-emergency-fund" style="display:none;">
+        <div class="fade-up fade-up-1">
+          <div class="page-greeting">Financial Safety Net</div>
+          <h1 class="page-title">Emergency <em>Fund</em></h1>
+        </div>
+        <div id="emergencyFundContent" class="fade-up fade-up-2" style="max-width:520px;margin:0 auto;"></div>
+      </div>
+
+      <!-- ─── WEALTH & GOALS PAGE ──────────────────────────── -->
+      <div id="page-wealth-goals" style="display:none;">
+        <div class="fade-up fade-up-1">
+          <div class="page-greeting">Milestones &amp; Calculators</div>
+          <h1 class="page-title">Wealth <em>&amp; Goals</em></h1>
+        </div>
+        <div id="wealthGoalsContent" class="fade-up fade-up-2"></div>
       </div>
 
       <!-- ─── TRANSACTIONS PAGE ───────────────────────── -->
@@ -806,6 +907,61 @@
 
 <!-- ─── TOAST CONTAINER ──────────────────────────────── -->
 <div id="toastContainer"></div>
+
+<!-- ─── NOTIFICATION PANEL (body-level, before scripts so INIT block can wire events) ── -->
+<div id="notifPanel" style="display:none;" aria-modal="true" role="dialog" aria-label="Notifications">
+  <div class="notif-backdrop" id="notifBackdrop"></div>
+  <div class="notif-card">
+    <div class="notif-header">
+      <div class="notif-header-left">
+        <span class="notif-header-icon">🔔</span>
+        <div>
+          <div class="notif-header-title">Notifications</div>
+          <div id="notifFilterSummary" class="notif-header-sub">—</div>
+        </div>
+      </div>
+      <button id="notifCloseBtn" class="notif-close-btn" aria-label="Close">✕</button>
+    </div>
+    <div class="notif-actions">
+      <button id="markAllRead" class="notif-action-btn">✅ Mark all read</button>
+      <button id="openRemindersBtn" class="notif-action-btn primary">⏰ Add Reminder</button>
+    </div>
+    <div class="notif-filters">
+      <select id="notifTypeFilter" class="notif-select">
+        <option value="all">All types</option>
+        <option value="reminder">Reminders</option>
+        <option value="loan">Loans</option>
+        <option value="budget">Budgets</option>
+      </select>
+      <select id="notifPriorityFilter" class="notif-select">
+        <option value="all">All priority</option>
+        <option value="high">🔴 High</option>
+        <option value="medium">🟡 Medium</option>
+        <option value="low">🟢 Low</option>
+      </select>
+      <input id="notifSearch" class="notif-search" placeholder="🔍 Search…"/>
+    </div>
+    <div id="notifList" class="notif-list"></div>
+  </div>
+</div>
+
+<!-- ─── GLOBAL SEARCH OVERLAY (before scripts so INIT can wire events) ── -->
+<div id="searchOverlay" style="display:none;" aria-modal="true" role="dialog" aria-label="Global Search">
+  <div class="srch-backdrop" id="srchBackdrop"></div>
+  <div class="srch-modal">
+    <div class="srch-input-wrap">
+      <span class="srch-icon">🔍</span>
+      <input id="srchInput" class="srch-input" placeholder="Search transactions, goals, loans, notes…" autocomplete="off" spellcheck="false"/>
+      <kbd class="srch-esc-hint">Esc</kbd>
+    </div>
+    <div id="srchResults" class="srch-results"></div>
+    <div class="srch-footer">
+      <span><kbd>↑↓</kbd> navigate</span>
+      <span><kbd>↵</kbd> open</span>
+      <span><kbd>Ctrl K</kbd> or <kbd>/</kbd> open search</span>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════════════════════
      MODALS
@@ -1069,6 +1225,39 @@ function showPage(page) {
     if (page === 'savings-goals') {
       try { renderSavingsGoals(); } catch (e) { console.warn('[LM] Savings goals error:', e); }
     }
+    if (page === 'tax-planner') {
+      try { showTaxPage(); } catch (e) { console.warn('[LM] Tax planner error:', e); }
+    }
+    if (page === 'subscriptions') {
+      try { renderSubscriptionPage(); } catch (e) { console.warn('[LM] Subscriptions error:', e); }
+    }
+    if (page === 'fy-summary') {
+      try { renderFYSummary(); } catch (e) { console.warn('[LM] FY Summary error:', e); }
+    }
+    if (page === 'spending-heatmap') {
+      try { renderFullSpendingHeatmap(); } catch (e) { console.warn('[LM] Heatmap error:', e); }
+    }
+    if (page === 'views-browser') {
+      try { renderViewsBrowser(); } catch (e) { console.warn('[LM] Views browser error:', e); }
+    }
+    if (page === 'cash-flow-calendar') {
+      try { renderCashFlowCalendar(); } catch (e) { console.warn('[LM] Calendar error:', e); }
+    }
+    if (page === 'debt-payoff') {
+      try { renderDebtPayoffPlanner(); } catch (e) { console.warn('[LM] Debt payoff error:', e); }
+    }
+if (page === 'templates') {
+      try { renderTemplatesPage(); } catch (e) { console.warn('[LM] Templates error:', e); }
+    }
+    if (page === 'month-comparison') {
+      try { renderMonthComparison(); } catch (e) { console.warn('[LM] Month comp error:', e); }
+    }
+    if (page === 'emergency-fund') {
+      try { renderEmergencyFund(); } catch (e) { console.warn('[LM] Emergency fund error:', e); }
+    }
+    if (page === 'wealth-goals') {
+      try { renderWealthGoalsPage(); } catch (e) { console.warn('[LM] Wealth goals error:', e); }
+    }
   } catch (e) {
     // ignore – main navigation must always complete
   }
@@ -1193,6 +1382,7 @@ function setGreeting() {
   <script src="./js/Common/Notes.js"></script>
   <!-- Admin Panel -->
   <script src="./js/Admin/AdminPanel.js"></script>
+  <script src="./js/Common/Search.js"></script>
 
 <!-- Modals / Hidden UI -->
       <div id="modals"></div>
@@ -1299,6 +1489,46 @@ function setGreeting() {
   </div>
 </div>
 
+<!-- ─── PREFERENCES MODAL ─────────────────────────────── -->
+<div id="preferencesModal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">🔔 Preferences &amp; Alerts</div>
+      <button class="modal-close" onclick="closePreferencesModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:16px;">
+      <div>
+        <label class="form-label">Low Balance Alert Threshold (₹)</label>
+        <input type="number" id="prefLowBalanceThreshold" class="form-input" min="0" step="100"
+               placeholder="e.g. 5000 — leave 0 to disable" style="width:100%;">
+        <div style="font-size:12px;color:var(--text-3);margin-top:4px;">
+          You'll be notified when any account balance drops below this amount.
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Spending Anomaly Alerts</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="prefAnomalyAlerts" style="width:16px;height:16px;">
+          <span style="font-size:13px;">Warn when a category spends 80%+ above average</span>
+        </label>
+      </div>
+      <div>
+        <label class="form-label">Session Timeout</label>
+        <select id="prefSessionTimeout" class="form-input" style="width:100%;">
+          <option value="30">30 minutes (default)</option>
+          <option value="60">1 hour</option>
+          <option value="120">2 hours</option>
+          <option value="0">Never (not recommended)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:10px;justify-content:flex-end;padding:16px;">
+      <button class="btn-cancel" onclick="closePreferencesModal()">Cancel</button>
+      <button class="btn-submit" style="width:auto;padding:9px 20px;" onclick="savePreferences()">Save Preferences</button>
+    </div>
+  </div>
+</div>
+
 <!-- ─── CSV SMART IMPORT MODAL ───────────────────────── -->
 <div id="csvImportModal" class="modal-overlay" style="display:none;">
   <div class="modal" style="max-width:500px;">
@@ -1312,6 +1542,147 @@ function setGreeting() {
       <div id="csvPreview" style="margin-top:12px;font-size:12px;color:var(--text-3);"></div>
       <button class="btn-submit" onclick="confirmCsvImport()" style="margin-top:12px;">Import Transactions</button>
     </div>
+  </div>
+</div>
+
+<!-- ─── EMI PRE-QUALIFIER MODAL ──────────────────────── -->
+<div id="emiModal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">🧮 EMI Pre-Qualifier</div>
+      <button class="modal-close" onclick="closeEMIModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label class="form-label">Loan Amount (₹)</label>
+          <input type="number" id="emiAmount" class="form-input" placeholder="e.g. 500000" oninput="calcEMIPreview()">
+        </div>
+        <div>
+          <label class="form-label">Annual Interest Rate (%)</label>
+          <input type="number" id="emiRate" class="form-input" placeholder="e.g. 8.5" step="0.1" oninput="calcEMIPreview()">
+        </div>
+        <div>
+          <label class="form-label">Tenure (months)</label>
+          <input type="number" id="emiTenure" class="form-input" placeholder="e.g. 60" oninput="calcEMIPreview()">
+        </div>
+        <div>
+          <label class="form-label">Monthly Income (₹)</label>
+          <input type="number" id="emiIncome" class="form-input" placeholder="Auto-filled" oninput="calcEMIPreview()">
+        </div>
+      </div>
+      <div id="emiResult"></div>
+    </div>
+    <div class="modal-footer" style="padding:16px;text-align:right;">
+      <button class="btn-cancel" onclick="closeEMIModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── WHAT-IF SIMULATOR MODAL ───────────────────────── -->
+<div id="whatIfModal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-title">🔮 What-If Simulator</div>
+      <button class="modal-close" onclick="closeWhatIfModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label class="form-label">Current Monthly Savings (₹)</label>
+          <input type="number" id="wiCurrentSavings" class="form-input" oninput="calcWhatIf()">
+        </div>
+        <div>
+          <label class="form-label">Additional Monthly Savings (₹)</label>
+          <input type="number" id="wiExtra" class="form-input" placeholder="e.g. 5000" oninput="calcWhatIf()">
+        </div>
+        <div>
+          <label class="form-label">Years to Invest</label>
+          <input type="number" id="wiYears" class="form-input" value="20" oninput="calcWhatIf()">
+        </div>
+        <div>
+          <label class="form-label">Expected Annual Return (%)</label>
+          <input type="number" id="wiReturn" class="form-input" value="12" step="0.5" oninput="calcWhatIf()">
+        </div>
+      </div>
+      <div id="whatIfResult"></div>
+    </div>
+    <div class="modal-footer" style="padding:16px;text-align:right;">
+      <button class="btn-cancel" onclick="closeWhatIfModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── ADD SUBSCRIPTION MODAL ────────────────────────── -->
+<div id="addSubscriptionModal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">🔄 Add Subscription</div>
+      <button class="modal-close" onclick="closeAddSubscriptionModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label class="form-label">Name</label>
+        <input type="text" id="subName" class="form-input" placeholder="e.g. Netflix, Gym, iCloud">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label class="form-label">Amount (₹)</label>
+          <input type="number" id="subAmount" class="form-input" placeholder="Monthly cost">
+        </div>
+        <div>
+          <label class="form-label">Billing Cycle</label>
+          <select id="subCycle" class="form-input">
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="yearly">Yearly</option>
+            <option value="weekly">Weekly</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label class="form-label">Category</label>
+          <input type="text" id="subCategory" class="form-input" placeholder="Entertainment, Health…">
+        </div>
+        <div>
+          <label class="form-label">Next Due Date</label>
+          <input type="date" id="subDueDate" class="form-input">
+        </div>
+      </div>
+      <input type="hidden" id="subEditId">
+      <button class="btn-submit" onclick="saveSubscription()">Save Subscription</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SPLIT TRANSACTION MODAL ───────────────────────── -->
+<div id="splitTxModal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-title">✂️ Split Transaction</div>
+      <button class="modal-close" onclick="closeSplitModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="splitTxInfo" style="font-size:13px;color:var(--text-2);margin-bottom:12px;"></div>
+      <div id="splitRows" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <button class="section-action" style="margin-top:10px;" onclick="addSplitRow()">+ Add Split</button>
+      <div id="splitBalanceInfo" style="margin-top:10px;font-size:13px;"></div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:10px;justify-content:flex-end;padding:16px;">
+      <button class="btn-cancel" onclick="closeSplitModal()">Cancel</button>
+      <button class="btn-submit" style="width:auto;padding:9px 20px;" onclick="saveSplitTransaction()">Save Splits</button>
+    </div>
+  </div>
+</div>
+
+<div id="cfcDayModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <h3 class="modal-title" id="cfcDayTitle">📅 Day Transactions</h3>
+      <button class="modal-close" onclick="document.getElementById('cfcDayModal').style.display='none'">×</button>
+    </div>
+    <div class="modal-body" id="cfcDayBody" style="max-height:60vh;overflow-y:auto;padding:12px;"></div>
   </div>
 </div>
 

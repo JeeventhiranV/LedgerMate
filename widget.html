@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07091a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>LedgerMate Widget</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    :root {
+      --bg:      #07091a;
+      --bg2:     #0d1024;
+      --surface: #131629;
+      --border:  rgba(255,255,255,0.08);
+      --text:    #f0f2ff;
+      --text-2:  #9ba3c4;
+      --text-3:  #5c6484;
+      --teal:    #00d4b4;
+      --emerald: #34d399;
+      --rose:    #fb7185;
+      --gold:    #fbbf24;
+      --violet:  #a78bfa;
+      --font-m:  'JetBrains Mono', 'Fira Mono', monospace;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html, body {
+      height:100%; background:var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color:var(--text); overflow-x:hidden;
+    }
+    body {
+      display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+      padding: env(safe-area-inset-top, 16px) 16px 16px;
+      min-height:100dvh;
+      background: radial-gradient(ellipse at top, #0d1535 0%, #07091a 60%);
+    }
+
+    /* ── Top bar ── */
+    .w-topbar {
+      width:100%; max-width:420px;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 0 16px;
+    }
+    .w-brand { display:flex; align-items:center; gap:8px; }
+    .w-brand-dot { width:8px; height:8px; border-radius:50%; background:var(--teal); animation:pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.3)} }
+    .w-brand-name { font-size:14px; font-weight:700; letter-spacing:0.5px; color:var(--text-2); }
+    .w-open-btn {
+      padding:6px 14px; border-radius:20px; border:1px solid var(--border);
+      background:var(--surface); color:var(--text-2); font-size:12px; font-weight:600;
+      cursor:pointer; text-decoration:none;
+    }
+    .w-open-btn:hover { background:rgba(0,212,180,0.1); color:var(--teal); border-color:var(--teal); }
+
+    /* ── Balance card (hero) ── */
+    .w-balance-card {
+      width:100%; max-width:420px;
+      background: linear-gradient(135deg, #131d3e 0%, #0d1629 100%);
+      border:1px solid rgba(0,212,180,0.15);
+      border-radius:20px; padding:20px;
+      margin-bottom:12px;
+      position:relative; overflow:hidden;
+    }
+    .w-balance-card::before {
+      content:''; position:absolute; top:-40px; right:-40px;
+      width:140px; height:140px; border-radius:50%;
+      background:rgba(0,212,180,0.06);
+    }
+    .w-bal-label { font-size:11px; font-weight:700; letter-spacing:1px; color:var(--text-3); margin-bottom:6px; }
+    .w-bal-amount {
+      font-family:var(--font-m); font-size:32px; font-weight:700;
+      color:var(--text); letter-spacing:-1px; margin-bottom:4px;
+    }
+    .w-bal-sub { font-size:12px; color:var(--text-3); }
+
+    /* ── Today strip ── */
+    .w-today-strip {
+      width:100%; max-width:420px;
+      display:grid; grid-template-columns:1fr 1fr; gap:10px;
+      margin-bottom:12px;
+    }
+    .w-today-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:14px; padding:14px 16px;
+    }
+    .w-today-card.income  { border-color:rgba(52,211,153,0.2); }
+    .w-today-card.expense { border-color:rgba(251,113,133,0.2); }
+    .w-tc-label { font-size:10px; font-weight:700; letter-spacing:0.8px; color:var(--text-3); margin-bottom:4px; }
+    .w-tc-val   { font-family:var(--font-m); font-size:18px; font-weight:700; }
+    .w-tc-val.income  { color:var(--emerald); }
+    .w-tc-val.expense { color:var(--rose); }
+    .w-tc-sub   { font-size:10px; color:var(--text-3); margin-top:2px; }
+
+    /* ── Month summary ── */
+    .w-month-card {
+      width:100%; max-width:420px;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:14px; padding:14px 16px; margin-bottom:12px;
+    }
+    .w-month-title { font-size:11px; font-weight:700; letter-spacing:0.8px; color:var(--text-3); margin-bottom:10px; }
+    .w-month-row   { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+    .w-month-key   { font-size:12px; color:var(--text-2); }
+    .w-month-val   { font-family:var(--font-m); font-size:13px; font-weight:600; }
+
+    /* ── Savings bar ── */
+    .w-savings-bar-wrap { height:5px; background:var(--bg); border-radius:99px; margin-top:8px; }
+    .w-savings-bar-fill { height:100%; border-radius:99px; background:linear-gradient(90deg,var(--teal),var(--emerald)); transition:width 1s; }
+
+    /* ── Recent transactions ── */
+    .w-recent {
+      width:100%; max-width:420px;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:14px; overflow:hidden; margin-bottom:12px;
+    }
+    .w-recent-hdr {
+      padding:10px 16px; font-size:11px; font-weight:700;
+      letter-spacing:0.8px; color:var(--text-3);
+      border-bottom:1px solid var(--border);
+    }
+    .w-tx-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:9px 16px; border-bottom:1px solid var(--border);
+    }
+    .w-tx-row:last-child { border-bottom:none; }
+    .w-tx-left { flex:1; min-width:0; }
+    .w-tx-note { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .w-tx-sub  { font-size:10px; color:var(--text-3); margin-top:1px; }
+    .w-tx-amt  { font-family:var(--font-m); font-size:13px; font-weight:700; flex-shrink:0; }
+    .w-tx-amt.i { color:var(--emerald); }
+    .w-tx-amt.e { color:var(--rose); }
+
+    /* ── Refresh time ── */
+    .w-refresh { font-size:10px; color:var(--text-3); text-align:center; padding:8px; }
+
+    /* ── Loading / error ── */
+    .w-loading { text-align:center; padding:60px 20px; color:var(--text-3); }
+    .w-loading-spinner { width:32px; height:32px; border:3px solid var(--border); border-top-color:var(--teal); border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 12px; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+  </style>
+</head>
+<body>
+  <div class="w-topbar">
+    <div class="w-brand">
+      <div class="w-brand-dot"></div>
+      <span class="w-brand-name">LEDGERMATE</span>
+    </div>
+    <a href="index.html" class="w-open-btn">Open App →</a>
+  </div>
+
+  <div id="widgetRoot">
+    <div class="w-loading">
+      <div class="w-loading-spinner"></div>
+      <div>Loading your data…</div>
+    </div>
+  </div>
+
+  <script>
+  const DB_NAME    = 'ledgermate_db';
+  const fmtINR = n => new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:0 }).format(n || 0);
+  const fmtINRShort = n => {
+    const abs = Math.abs(n);
+    if (abs >= 1e7) return (n/1e7).toFixed(1) + 'Cr';
+    if (abs >= 1e5) return (n/1e5).toFixed(1) + 'L';
+    if (abs >= 1e3) return (n/1e3).toFixed(1) + 'k';
+    return fmtINR(n);
+  };
+
+  async function openDB() {
+    return new Promise((res, rej) => {
+      const req = indexedDB.open(DB_NAME);
+      req.onsuccess = () => res(req.result);
+      req.onerror   = () => rej(req.error);
+    });
+  }
+
+  async function getAll(db, store) {
+    return new Promise((res, rej) => {
+      if (!db.objectStoreNames.contains(store)) { res([]); return; }
+      const tx = db.transaction(store, 'readonly');
+      const req = tx.objectStore(store).getAll();
+      req.onsuccess = () => res(req.result || []);
+      req.onerror   = () => rej(req.error);
+    });
+  }
+
+  async function renderWidget() {
+    const root = document.getElementById('widgetRoot');
+    try {
+      const db = await openDB();
+
+      // Get current user profile
+      let profile = null;
+      try {
+        const profiles = await getAll(db, 'profiles');
+        const lastUser = localStorage.getItem('lm_last_user');
+        profile = profiles.find(p => p.id == lastUser) || profiles[0];
+      } catch(e) {}
+
+      const txAll  = await getAll(db, 'transactions');
+      const txs    = profile ? txAll.filter(t => !t.profile || t.profile == profile.id) : txAll;
+
+      const today     = new Date().toISOString().slice(0,10);
+      const monthKey  = today.slice(0,7);
+      const todayTxs  = txs.filter(t => t.date === today);
+      const monthTxs  = txs.filter(t => t.date && t.date.startsWith(monthKey));
+
+      const todayIn   = todayTxs.filter(t => t.type==='in').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+      const todayOut  = todayTxs.filter(t => t.type!=='in').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+      const monthIn   = monthTxs.filter(t => t.type==='in').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+      const monthOut  = monthTxs.filter(t => t.type!=='in').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+      const netBalance= txs.filter(t=>t.type==='in').reduce((s,t)=>s+parseFloat(t.amount||0),0)
+                      - txs.filter(t=>t.type!=='in').reduce((s,t)=>s+parseFloat(t.amount||0),0);
+      const savings   = monthIn > 0 ? Math.max(0, Math.round(((monthIn-monthOut)/monthIn)*100)) : 0;
+
+      const recentTxs = txs.slice().sort((a,b) => new Date(b.createdAt||b.date)-new Date(a.createdAt||a.date)).slice(0,5);
+
+      const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+      const todayLabel = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+
+      root.innerHTML = `
+        <div class="w-balance-card">
+          <div class="w-bal-label">NET BALANCE</div>
+          <div class="w-bal-amount">${fmtINRShort(netBalance)}</div>
+          <div class="w-bal-sub">${todayLabel}</div>
+        </div>
+
+        <div class="w-today-strip">
+          <div class="w-today-card income">
+            <div class="w-tc-label">TODAY IN</div>
+            <div class="w-tc-val income">${todayIn > 0 ? fmtINRShort(todayIn) : '—'}</div>
+            <div class="w-tc-sub">${todayTxs.filter(t=>t.type==='in').length} txn</div>
+          </div>
+          <div class="w-today-card expense">
+            <div class="w-tc-label">TODAY OUT</div>
+            <div class="w-tc-val expense">${todayOut > 0 ? fmtINRShort(todayOut) : '—'}</div>
+            <div class="w-tc-sub">${todayTxs.filter(t=>t.type!=='in').length} txn</div>
+          </div>
+        </div>
+
+        <div class="w-month-card">
+          <div class="w-month-title">THIS MONTH</div>
+          <div class="w-month-row">
+            <span class="w-month-key">Income</span>
+            <span class="w-month-val" style="color:var(--emerald)">${fmtINR(monthIn)}</span>
+          </div>
+          <div class="w-month-row">
+            <span class="w-month-key">Expense</span>
+            <span class="w-month-val" style="color:var(--rose)">${fmtINR(monthOut)}</span>
+          </div>
+          <div class="w-month-row">
+            <span class="w-month-key">Savings Rate</span>
+            <span class="w-month-val" style="color:var(--teal)">${savings}%</span>
+          </div>
+          <div class="w-savings-bar-wrap">
+            <div class="w-savings-bar-fill" style="width:${savings}%"></div>
+          </div>
+        </div>
+
+        ${recentTxs.length ? `
+        <div class="w-recent">
+          <div class="w-recent-hdr">RECENT TRANSACTIONS</div>
+          ${recentTxs.map(t => `
+            <div class="w-tx-row">
+              <div class="w-tx-left">
+                <div class="w-tx-note">${t.note || '(No note)'}</div>
+                <div class="w-tx-sub">${t.category || '—'} · ${t.date}</div>
+              </div>
+              <div class="w-tx-amt ${t.type==='in'?'i':'e'}">${t.type==='in'?'+':'−'}${fmtINRShort(parseFloat(t.amount||0))}</div>
+            </div>`).join('')}
+        </div>` : ''}
+
+        <div class="w-refresh">Updated at ${now} · <a href="javascript:renderWidget()" style="color:var(--teal);text-decoration:none;">Refresh</a></div>
+      `;
+    } catch(err) {
+      root.innerHTML = `<div class="w-loading">
+        <div style="font-size:32px;margin-bottom:12px;">⚠️</div>
+        <div style="font-size:14px;margin-bottom:4px;">Could not load data</div>
+        <div style="font-size:12px;color:var(--text-3)">${err.message}</div>
+        <div style="margin-top:16px;"><a href="index.html" style="color:var(--teal)">Open LedgerMate →</a></div>
+      </div>`;
+    }
+  }
+
+  renderWidget();
+  // Auto-refresh every 60 seconds
+  setInterval(renderWidget, 60000);
+  </script>
+</body>
+</html>
