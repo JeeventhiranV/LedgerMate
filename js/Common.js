@@ -38,7 +38,7 @@ let db = null;
 async function openDB() {
     return new Promise((resolve, reject) => {
         const DB_NAME    = "ledgermate_db";
-        const DB_VERSION = 13;
+        const DB_VERSION = 14;
 
         const req = indexedDB.open(DB_NAME, DB_VERSION);
 
@@ -104,7 +104,8 @@ async function openDB() {
             ensureStore("net_worth_snapshots", { keyPath: "id", autoIncrement: true }, ["date"]);
             ensureStore("allocation_targets", { keyPath: "id" });
             ensureStore("sip_plan", { keyPath: "id", autoIncrement: true });
-            ensureStore("essentials_settings", { keyPath: "key" });
+            ensureStore("essentials_settings", { keyPath: "id", autoIncrement: true }, ["key", "profile"]);
+            ensureStore("savings_goals",       { keyPath: "id", autoIncrement: true }, ["profile", "targetDate"]);
             console.log("✅ DB schema upgrade complete");
         };
     });
@@ -182,7 +183,8 @@ let state = {
   net_worth_snapshots: [],
   allocation_targets: [],
   sip_plan: [],
-  essentials_settings: {}
+  essentials_settings: {},
+  savings_goals: []
 };
 
 // Charts
@@ -201,16 +203,17 @@ async function seedDefaults(){
     };
     await put('dropdowns', defaultDropdowns);
   }
-  // settings defaults
-  const s = await tx('settings').get('meta');
-  s.onsuccess || 1;
-  // put default settings if missing
+  // settings defaults — seeded per user so each user gets independent defaults
+  const seedUserId = window.LM_Auth?.getCurrentUserId?.() || 'default';
+  const seedKey    = `${seedUserId}_appSettings`;
   const settingsAll = await getAll('settings');
-  const hasMeta = settingsAll.find(x=>x.key==='meta');
-  if (!hasMeta) {
-    const defaultSettings = { theme: 'dark', kpiRange: 90 };
-    await put('settings',{ key:'meta',        value: defaultSettings });
-    await put('settings',{ key:'appSettings', value: defaultSettings });
+  const hasUserSettings = settingsAll.find(x => x.key === seedKey);
+  if (!hasUserSettings) {
+    /* Inherit from legacy shared key if present, else start fresh */
+    const legacyRec = settingsAll.find(x => x.key === 'appSettings') ||
+                      settingsAll.find(x => x.key === 'meta');
+    const defaultSettings = legacyRec?.value || { theme: 'dark', kpiRange: 90, currency: 'INR' };
+    await put('settings', { key: seedKey, value: defaultSettings });
   }
 }
 
@@ -227,10 +230,33 @@ if (dd.length) {
 }
  // state.dropdowns = dd.length?dd[0]:{id:'main',accounts:[],categories:[],persons:[],reminderTypes:[],recurrences:[]};
   const settingsAll = await getAll('settings');
-  const metaRec = settingsAll.find(x=>x.key==='meta');
-  const appRec  = settingsAll.find(x=>x.key==='appSettings');
-  /* Prefer appSettings (updated by toggleTheme) over meta */
-  const loadedSettings = appRec?.value || metaRec?.value || {};
+  const userId = window.LM_Auth?.getCurrentUserId?.() || 'default';
+  const userSettingsKey = `${userId}_appSettings`;
+
+  /* 1. Look for user-scoped IDB record (written by new saveSettingsToStore) */
+  const userRec = settingsAll.find(x => x.key === userSettingsKey);
+  /* 2. Fall back to legacy shared keys for existing installations */
+  const legacyAppRec = settingsAll.find(x => x.key === 'appSettings');
+  const legacyMetaRec = settingsAll.find(x => x.key === 'meta');
+
+  /* 3. Check user-scoped localStorage (fastest, set on last save) */
+  let lsSettings = null;
+  try {
+    const raw = localStorage.getItem(`lm_u_${userId}_appSettings`);
+    if (raw) lsSettings = JSON.parse(raw);
+  } catch {}
+
+  /* Preference order: user-scoped IDB → user-scoped LS → legacy IDB → defaults */
+  const loadedSettings = userRec?.value || lsSettings || legacyAppRec?.value || legacyMetaRec?.value || {};
+
+  /* If we loaded from legacy shared record, migrate it immediately to user-scoped */
+  if (!userRec && (legacyAppRec || legacyMetaRec)) {
+    try {
+      const t = db.transaction(['settings'], 'readwrite').objectStore('settings');
+      t.put({ key: userSettingsKey, value: loadedSettings });
+    } catch {}
+  }
+
   state.settings = loadedSettings;
   /* Sync module-level settings variable */
   settings = { ...loadedSettings };
@@ -255,10 +281,19 @@ if (dd.length) {
   state.net_worth_snapshots = await getAll('net_worth_snapshots');
   state.allocation_targets = await getAll('allocation_targets');
   state.sip_plan = await getAll('sip_plan');
+  /* essentials_settings: now profile-scoped (records have {key, value, profile, id}) */
   const esAll = await getAll('essentials_settings');
-  state.essentials_settings = esAll.reduce((acc,x) => ({...acc,[x.key]:x.value}),{});
+  state.essentials_settings = esAll.reduce((acc, x) => ({ ...acc, [x.key]: x.value }), {});
+
+  /* savings_goals: per-user goals store */
+  if (db && db.objectStoreNames.contains('savings_goals')) {
+    state.savings_goals = await getAll('savings_goals');
+  } else {
+    state.savings_goals = [];
+  }
+
   // restore folder handle if present
-  const fh = settingsAll.find(x=>x.key==='dataFolderHandle');
+  const fh = settingsAll.find(x => x.key === `${userId}_dataFolderHandle` || x.key === 'dataFolderHandle');
   if (fh) state.dataFolderHandle = fh.value;
 }
 function autoSortDropdowns(data) {
@@ -327,7 +362,7 @@ function bindUI(){
   //document.getElementById('openNotes').onclick = showNotesModal;
   // file import input
   const fi = document.createElement('input'); fi.type='file'; fi.accept='.csv,.json'; fi.id='fileImport'; fi.style.display='none';
-  fi.onchange = async(e)=>{ const f = e.target.files[0]; if (!f) return; const txt = await f.text(); if (f.name.endsWith('.csv')) await importCSVText(txt); else await fullImportJSONText(txt); }
+  fi.onchange = async(e)=>{ const f = e.target.files[0]; if (!f) return; const txt = await f.text(); if (f.name.endsWith('.csv')) await smartImportCSV(txt); else await fullImportJSONText(txt); }
   document.body.appendChild(fi);
 }
  
@@ -2473,7 +2508,8 @@ function packSnapshot(metaExtra = {}) {
     net_worth_snapshots: state.net_worth_snapshots || [],
     allocation_targets: state.allocation_targets || [],
     sip_plan: state.sip_plan || [],
-    essentials_settings: state.essentials_settings || {}
+    essentials_settings: state.essentials_settings || {},
+    savings_goals: state.savings_goals || []
   };
 }
 
@@ -2732,7 +2768,7 @@ async function tryAutoLoadFolder(){
     // pick newest by name (fallback)
     const candidate = files[files.length-1];
     const f = await candidate.getFile(); const txt = await f.text();
-    if (candidate.name.endsWith('.csv')) await importCSVText(txt); else await fullImportJSONText(txt);
+    if (candidate.name.endsWith('.csv')) await smartImportCSV(txt); else await fullImportJSONText(txt);
     document.getElementById('folderLabel').innerText = ` ${candidate.name}`;
   }catch(err){ console.warn('auto load folder failed', err); }
 }
@@ -2831,23 +2867,22 @@ function onKpiRangeChange(e) {
 function saveSettingsToStore() {
   const merged = { ...(state.settings || {}), ...settings, theme: settings.theme || state.settings?.theme || 'dark' };
 
-  /* Write to IDB: both keys so all read paths get the correct value */
+  /* Determine current user — fall back to 'default' for single-user mode */
+  const userId = window.LM_Auth?.getCurrentUserId?.() || 'default';
+  const idbKey = `${userId}_appSettings`;
+
+  /* Write to IDB under user-scoped key so each user has independent settings */
   if (db) {
     try {
       const t = db.transaction(['settings'], 'readwrite').objectStore('settings');
-      t.put({ key: 'appSettings', value: merged });
-      t.put({ key: 'meta',        value: merged });
+      t.put({ key: idbKey, value: merged });
     } catch (e) {
       console.warn('[LM] saveSettingsToStore IDB write failed:', e);
     }
   }
 
-  /* Always write to localStorage — primary theme source on startup */
-  localStorage.setItem('appSettings', JSON.stringify(merged));
-
-  /* Per-user scoped key */
-  const uid = window.LM_Auth?.getCurrentUserId?.();
-  if (uid) localStorage.setItem(`lm_u_${uid}_appSettings`, JSON.stringify(merged));
+  /* Write ONLY to per-user localStorage key — never to the global bare key */
+  localStorage.setItem(`lm_u_${userId}_appSettings`, JSON.stringify(merged));
 
   /* Keep state.settings current */
   if (window.state) state.settings = merged;
@@ -3714,7 +3749,12 @@ topCatEl.innerHTML = k.topCategories
   document.getElementById("avgDailyIncome").innerText = fmtINR(k.avgDailyIncome);
   document.getElementById("avgDailyExpense").innerText = fmtINR(k.avgDailyExpense);
   document.getElementById("savingsRate").innerText = k.savingsRate + "%";
-   renderAccountSummaries();
+  renderAccountSummaries();
+
+  /* New dashboard widgets */
+  try { renderHealthScore(); } catch (e) { console.warn('[LM] renderHealthScore:', e); }
+  try { renderMoMWidget(); } catch (e) { console.warn('[LM] renderMoMWidget:', e); }
+  try { renderDashboardWealthWidget(); } catch (e) {}
 }
 
 /* =========================
@@ -3961,4 +4001,410 @@ function renderDashboardWealthWidget() {
         <button class="section-action" onclick="showPage('essentials')">🛡️ Health Check →</button>
       </div>
     </div>`;
+}
+
+/* ════════════════════════════════════════════════════════════
+   PHASE 2A – FINANCIAL HEALTH SCORE
+════════════════════════════════════════════════════════════ */
+function calculateFinancialHealth() {
+  const k = calculateKPIs();
+  const month = new Date().toISOString().slice(0, 7);
+
+  // 1. Savings Rate (0–30 pts)
+  const savingsRate = parseFloat(k.savingsRate) || 0;
+  const savingsPts = savingsRate >= 20 ? 30 : savingsRate >= 10 ? 20 : savingsRate > 0 ? 10 : 0;
+
+  // 2. Debt-to-Income (0–25 pts): annual outstanding vs annual income
+  const totalDebt = (state.emi_loans || []).reduce((s, l) => s + (parseFloat(l.outstanding) || 0), 0);
+  const annualIncome = k.avgDailyIncome * 365;
+  let debtPts = 25;
+  if (annualIncome > 0) {
+    const dti = totalDebt / annualIncome;
+    debtPts = dti < 0.2 ? 25 : dti < 0.4 ? 18 : dti < 0.6 ? 10 : 3;
+  }
+
+  // 3. Emergency Fund – months of expenses covered by savings balance (0–25 pts)
+  const totalSavings = (state.savings || []).reduce((s, x) => s + (parseFloat(x.amount || x.balance || 0) || 0), 0);
+  const monthlyExpense = k.avgDailyExpense * 30;
+  let emergencyPts = 0;
+  if (monthlyExpense > 0) {
+    const months = totalSavings / monthlyExpense;
+    emergencyPts = months >= 6 ? 25 : months >= 3 ? 18 : months >= 1 ? 10 : 3;
+  } else if (totalSavings > 0) {
+    emergencyPts = 15; // has savings but no expense data yet
+  }
+
+  // 4. Budget Adherence (0–20 pts)
+  const monthBudgets = (state.budgets || []).filter(b => b.month === month);
+  let budgetPts = 10;
+  if (monthBudgets.length > 0) {
+    const onTrack = monthBudgets.filter(b => {
+      const actual = (state.transactions || [])
+        .filter(t => t.type === 'out' && t.category === b.category && (t.date || '').startsWith(month))
+        .reduce((s, t) => s + (+t.amount || 0), 0);
+      return actual <= b.limit;
+    }).length;
+    budgetPts = Math.round((onTrack / monthBudgets.length) * 20);
+  }
+
+  const score = Math.min(100, Math.max(0, Math.round(savingsPts + debtPts + emergencyPts + budgetPts)));
+  const grade = score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : score >= 40 ? 'Fair' : 'Needs Work';
+  const color = score >= 80 ? 'var(--emerald)' : score >= 60 ? 'var(--teal)' : score >= 40 ? 'var(--gold)' : 'var(--rose)';
+
+  return { score, grade, color, savingsPts, debtPts, emergencyPts, budgetPts, savingsRate, totalDebt, totalSavings, monthlyExpense };
+}
+
+function renderHealthScore() {
+  const wrap = document.getElementById('healthScoreWidget');
+  if (!wrap) return;
+  const h = calculateFinancialHealth();
+  const R = 52;
+  const C = 2 * Math.PI * R;
+  const offset = C - (h.score / 100) * C;
+
+  wrap.innerHTML = `
+    <div class="chart-card" style="padding:20px;">
+      <div class="chart-card-title" style="margin-bottom:16px;">
+        <span style="color:var(--teal)">●</span> Financial Health Score
+        <span style="font-size:11px;color:var(--text-3);margin-left:auto;">savings · debt · emergency · budgets</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+
+        <div style="position:relative;width:130px;height:130px;flex-shrink:0;">
+          <svg width="130" height="130" style="transform:rotate(-90deg);">
+            <circle cx="65" cy="65" r="${R}" fill="none" stroke="var(--bg3)" stroke-width="10"/>
+            <circle cx="65" cy="65" r="${R}" fill="none" stroke="${h.color}" stroke-width="10"
+              stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}"
+              stroke-linecap="round" style="transition:stroke-dashoffset 1s ease;"/>
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <div style="font-family:var(--font-m);font-size:30px;font-weight:700;color:${h.color};">${h.score}</div>
+            <div style="font-size:11px;color:var(--text-3);">${h.grade}</div>
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:180px;">
+          ${_healthBar('Savings Rate', h.savingsPts, 30, h.savingsRate + '%')}
+          ${_healthBar('Debt-to-Income', h.debtPts, 25, h.totalDebt > 0 ? fmtINR(h.totalDebt) + ' debt' : 'Debt-free')}
+          ${_healthBar('Emergency Fund', h.emergencyPts, 25, h.totalSavings > 0 ? fmtINR(h.totalSavings) + ' saved' : 'No savings')}
+          ${_healthBar('Budget Adherence', h.budgetPts, 20, h.budgetPts >= 16 ? 'On Track' : h.budgetPts >= 10 ? 'Moderate' : 'Over Budget')}
+        </div>
+
+      </div>
+    </div>`;
+}
+
+function _healthBar(label, pts, max, detail) {
+  const pct = max > 0 ? Math.round((pts / max) * 100) : 0;
+  const color = pct >= 80 ? 'var(--emerald)' : pct >= 55 ? 'var(--teal)' : pct >= 35 ? 'var(--gold)' : 'var(--rose)';
+  return `
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+        <span style="color:var(--text-2);">${label}</span>
+        <span style="color:${color};font-family:var(--font-m);font-weight:600;">${pts}/${max} · ${detail}</span>
+      </div>
+      <div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;transition:width 0.8s ease;"></div>
+      </div>
+    </div>`;
+}
+
+/* ════════════════════════════════════════════════════════════
+   PHASE 2E – MONTH-OVER-MONTH ANALYTICS
+════════════════════════════════════════════════════════════ */
+function renderMoMWidget() {
+  const wrap = document.getElementById('momWidget');
+  if (!wrap) return;
+
+  const now = new Date();
+  const curMonth = now.toISOString().slice(0, 7);
+  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonth = prevDate.toISOString().slice(0, 7);
+
+  const curTx  = (state.transactions || []).filter(t => (t.date || '').startsWith(curMonth));
+  const prevTx = (state.transactions || []).filter(t => (t.date || '').startsWith(prevMonth));
+
+  const curIncome  = curTx.filter(t => t.type === 'in').reduce((s, t) => s + (+t.amount || 0), 0);
+  const curExpense = curTx.filter(t => t.type === 'out').reduce((s, t) => s + (+t.amount || 0), 0);
+  const prevIncome  = prevTx.filter(t => t.type === 'in').reduce((s, t) => s + (+t.amount || 0), 0);
+  const prevExpense = prevTx.filter(t => t.type === 'out').reduce((s, t) => s + (+t.amount || 0), 0);
+
+  function momPct(cur, prev) {
+    if (!prev) return cur > 0 ? '+100%' : '—';
+    const d = ((cur - prev) / prev * 100);
+    return (d >= 0 ? '+' : '') + d.toFixed(1) + '%';
+  }
+  function momColor(cur, prev, lowerIsBetter) {
+    if (!prev) return 'var(--text-3)';
+    return lowerIsBetter
+      ? (cur <= prev ? 'var(--emerald)' : 'var(--rose)')
+      : (cur >= prev ? 'var(--emerald)' : 'var(--rose)');
+  }
+
+  // Per-category comparison (top 5 expense cats)
+  const curCats  = {};
+  const prevCats = {};
+  curTx.filter(t => t.type === 'out').forEach(t => { curCats[t.category] = (curCats[t.category] || 0) + (+t.amount || 0); });
+  prevTx.filter(t => t.type === 'out').forEach(t => { prevCats[t.category] = (prevCats[t.category] || 0) + (+t.amount || 0); });
+  const allCats = [...new Set([...Object.keys(curCats), ...Object.keys(prevCats)])];
+  const topCats = allCats.sort((a, b) => (curCats[b] || 0) - (curCats[a] || 0)).slice(0, 5);
+
+  if (!curTx.length && !prevTx.length) {
+    wrap.innerHTML = `<div class="chart-card" style="text-align:center;padding:20px;color:var(--text-3);font-size:13px;">No transactions yet to compare.</div>`;
+    return;
+  }
+
+  const prevLabel = prevDate.toLocaleString('default', { month: 'short' });
+  const curLabel  = now.toLocaleString('default', { month: 'short' });
+
+  wrap.innerHTML = `
+    <div class="chart-card" style="padding:16px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div style="background:var(--bg3);border-radius:10px;padding:12px;">
+          <div style="font-size:11px;color:var(--text-3);margin-bottom:4px;">Income ${curLabel} vs ${prevLabel}</div>
+          <div style="font-family:var(--font-m);font-size:18px;font-weight:700;color:var(--emerald);">${fmtINR(curIncome)}</div>
+          <div style="font-size:12px;color:${momColor(curIncome, prevIncome, false)};">${momPct(curIncome, prevIncome)} <span style="color:var(--text-3);">prev ${fmtINR(prevIncome)}</span></div>
+        </div>
+        <div style="background:var(--bg3);border-radius:10px;padding:12px;">
+          <div style="font-size:11px;color:var(--text-3);margin-bottom:4px;">Expense ${curLabel} vs ${prevLabel}</div>
+          <div style="font-family:var(--font-m);font-size:18px;font-weight:700;color:var(--rose);">${fmtINR(curExpense)}</div>
+          <div style="font-size:12px;color:${momColor(curExpense, prevExpense, true)};">${momPct(curExpense, prevExpense)} <span style="color:var(--text-3);">prev ${fmtINR(prevExpense)}</span></div>
+        </div>
+      </div>
+      ${topCats.length ? `
+      <div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:8px;letter-spacing:.5px;">TOP CATEGORIES</div>
+      ${topCats.map(cat => {
+        const cur = curCats[cat] || 0;
+        const prev = prevCats[cat] || 0;
+        const pct = momPct(cur, prev);
+        const col = momColor(cur, prev, true);
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--bg3);">
+          <span style="font-size:13px;color:var(--text-2);">${cat}</span>
+          <div style="text-align:right;">
+            <span style="font-family:var(--font-m);font-size:13px;color:var(--text);">${fmtINR(cur)}</span>
+            <span style="font-size:11px;color:${col};margin-left:6px;">${pct}</span>
+          </div>
+        </div>`;
+      }).join('')}` : ''}
+    </div>`;
+}
+
+/* ════════════════════════════════════════════════════════════
+   PHASE 2C – SAVINGS GOALS TRACKER
+════════════════════════════════════════════════════════════ */
+let _sgRows = []; // cached for CSV import flow
+
+async function renderSavingsGoals() {
+  const wrap = document.getElementById('savingsGoalsList');
+  if (!wrap) return;
+  _sgRows = await getAll('savings_goals');
+  if (!_sgRows.length) {
+    wrap.innerHTML = `
+      <div class="chart-card" style="text-align:center;padding:32px;">
+        <div style="font-size:36px;margin-bottom:8px;">🎯</div>
+        <div style="font-size:14px;color:var(--text-3);margin-bottom:16px;">No savings goals yet.</div>
+        <button class="btn-submit" style="width:auto;padding:8px 24px;margin:0;" onclick="openSavingsGoalModal()">Create First Goal</button>
+      </div>`;
+    return;
+  }
+  wrap.innerHTML = _sgRows.map(g => _sgGoalCard(g)).join('');
+}
+
+function _sgGoalCard(g) {
+  const target  = parseFloat(g.target) || 0;
+  const current = parseFloat(g.current) || 0;
+  const pct     = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
+  const color   = pct >= 100 ? 'var(--emerald)' : pct >= 60 ? 'var(--teal)' : pct >= 30 ? 'var(--gold)' : 'var(--rose)';
+  const remaining = Math.max(0, target - current);
+
+  let projectedLabel = '';
+  if (g.monthly > 0 && remaining > 0) {
+    const monthsLeft = Math.ceil(remaining / g.monthly);
+    const projDate = new Date();
+    projDate.setMonth(projDate.getMonth() + monthsLeft);
+    projectedLabel = `Projected: ${projDate.toLocaleDateString('default', { month: 'short', year: 'numeric' })}`;
+  }
+
+  let deadlineWarning = '';
+  if (g.deadline) {
+    const daysLeft = Math.ceil((new Date(g.deadline) - new Date()) / 86400000);
+    if (daysLeft < 0) deadlineWarning = `<span style="color:var(--rose);font-size:11px;">⚠ Overdue by ${Math.abs(daysLeft)}d</span>`;
+    else if (daysLeft <= 30) deadlineWarning = `<span style="color:var(--gold);font-size:11px;">⏳ ${daysLeft}d left</span>`;
+  }
+
+  return `
+    <div class="chart-card" style="padding:16px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div>
+          <div style="font-weight:600;font-size:15px;color:var(--text);">${g.name || 'Goal'}</div>
+          ${g.category ? `<div style="font-size:11px;color:var(--text-3);">${g.category}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          ${deadlineWarning}
+          <button class="section-action" onclick="openSavingsGoalModal(${g.id})">Edit</button>
+          <button class="section-action" style="color:var(--rose);" onclick="deleteSavingsGoal(${g.id})">Del</button>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-2);margin-bottom:6px;">
+        <span>${fmtINR(current)} saved</span>
+        <span style="color:${color};font-weight:600;">${pct}% · ${fmtINR(target)} target</span>
+      </div>
+      <div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-bottom:8px;">
+        <div style="height:100%;width:${pct}%;background:${color};border-radius:4px;transition:width 0.8s;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);">
+        <span>${remaining > 0 ? fmtINR(remaining) + ' remaining' : '🎉 Goal reached!'}</span>
+        <span>${projectedLabel}${g.monthly > 0 ? ' · ' + fmtINR(g.monthly) + '/mo' : ''}</span>
+      </div>
+    </div>`;
+}
+
+function openSavingsGoalModal(id) {
+  const modal = document.getElementById('savingsGoalModal');
+  if (!modal) return;
+  document.getElementById('sgEditId').value = '';
+  document.getElementById('sgName').value = '';
+  document.getElementById('sgTarget').value = '';
+  document.getElementById('sgCurrent').value = '';
+  document.getElementById('sgDeadline').value = '';
+  document.getElementById('sgMonthly').value = '';
+  document.getElementById('sgCategory').value = '';
+
+  if (id) {
+    const g = _sgRows.find(r => r.id === id);
+    if (g) {
+      document.getElementById('sgEditId').value = g.id;
+      document.getElementById('sgName').value = g.name || '';
+      document.getElementById('sgTarget').value = g.target || '';
+      document.getElementById('sgCurrent').value = g.current || '';
+      document.getElementById('sgDeadline').value = g.deadline || '';
+      document.getElementById('sgMonthly').value = g.monthly || '';
+      document.getElementById('sgCategory').value = g.category || '';
+    }
+  }
+  modal.style.display = 'flex';
+}
+
+function closeSavingsGoalModal() {
+  const modal = document.getElementById('savingsGoalModal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function saveSavingsGoal() {
+  const name    = document.getElementById('sgName').value.trim();
+  const target  = parseFloat(document.getElementById('sgTarget').value) || 0;
+  const current = parseFloat(document.getElementById('sgCurrent').value) || 0;
+  const deadline = document.getElementById('sgDeadline').value;
+  const monthly  = parseFloat(document.getElementById('sgMonthly').value) || 0;
+  const category = document.getElementById('sgCategory').value.trim();
+  const editId   = document.getElementById('sgEditId').value;
+
+  if (!name || !target) { showToast('Name and target amount are required.', 'warning'); return; }
+
+  const record = { name, target, current, deadline, monthly, category, createdAt: new Date().toISOString() };
+  if (editId) record.id = parseInt(editId, 10);
+
+  await put('savings_goals', record);
+  closeSavingsGoalModal();
+  showToast(editId ? 'Goal updated!' : 'Goal created!', 'success');
+  renderSavingsGoals();
+}
+
+async function deleteSavingsGoal(id) {
+  if (!confirm('Delete this savings goal?')) return;
+  await del('savings_goals', id);
+  showToast('Goal deleted.', 'info');
+  renderSavingsGoals();
+}
+
+/* ════════════════════════════════════════════════════════════
+   PHASE 2G – CSV SMART IMPORT (column mapper)
+════════════════════════════════════════════════════════════ */
+let _csvImportRows = [];
+let _csvImportHeaders = [];
+
+function openCsvImportModal(csvText) {
+  const rows = parseCSV(csvText);
+  if (!rows.length) { showToast('Empty or invalid CSV.', 'warning'); return; }
+  _csvImportHeaders = rows[0].map(h => h.trim());
+  _csvImportRows = rows.slice(1).filter(r => r.some(c => c.trim()));
+
+  const LM_FIELDS = ['date', 'type', 'amount', 'category', 'account', 'note'];
+  const guesses = {};
+  LM_FIELDS.forEach(f => {
+    const hit = _csvImportHeaders.findIndex(h => h.toLowerCase().includes(f));
+    guesses[f] = hit >= 0 ? _csvImportHeaders[hit] : '';
+  });
+
+  const mapper = document.getElementById('csvColumnMapper');
+  if (!mapper) return;
+  mapper.innerHTML = LM_FIELDS.map(f => `
+    <div class="form-group" style="margin-bottom:8px;">
+      <label class="form-label" style="font-size:12px;">${f.toUpperCase()}</label>
+      <select id="csv_map_${f}" class="form-input" style="font-size:12px;">
+        <option value="">(skip)</option>
+        ${_csvImportHeaders.map(h => `<option value="${h}" ${guesses[f] === h ? 'selected' : ''}>${h}</option>`).join('')}
+      </select>
+    </div>`).join('');
+
+  const preview = document.getElementById('csvPreview');
+  if (preview) preview.textContent = `${_csvImportRows.length} rows found · first row: ${_csvImportRows[0]?.join(', ') || ''}`;
+
+  document.getElementById('csvImportModal').style.display = 'flex';
+}
+
+function closeCsvImportModal() {
+  const modal = document.getElementById('csvImportModal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function confirmCsvImport() {
+  const LM_FIELDS = ['date', 'type', 'amount', 'category', 'account', 'note'];
+  const colMap = {};
+  LM_FIELDS.forEach(f => {
+    const sel = document.getElementById(`csv_map_${f}`);
+    if (sel && sel.value) colMap[f] = _csvImportHeaders.indexOf(sel.value);
+    else colMap[f] = -1;
+  });
+
+  const imported = [];
+  for (const row of _csvImportRows) {
+    const get = (f) => colMap[f] >= 0 ? (row[colMap[f]] || '').trim() : '';
+    const rawType = get('type').toLowerCase();
+    const type = rawType.includes('in') || rawType.includes('credit') ? 'in' : 'out';
+    const amount = parseFloat(get('amount').replace(/[^0-9.]/g, '')) || 0;
+    if (!amount) continue;
+    const t = {
+      id: uid('tx'),
+      date: get('date') || nowISO(),
+      type,
+      amount,
+      category: get('category') || 'Other',
+      account: get('account') || (state.dropdowns?.accounts?.[0] || 'Cash'),
+      note: get('note') || '',
+      createdAt: new Date().toISOString()
+    };
+    await put('transactions', t);
+    state.transactions.push(t);
+    imported.push(t);
+  }
+  closeCsvImportModal();
+  renderAll();
+  autoBackup();
+  showToast(`Imported ${imported.length} transactions.`, 'success');
+}
+
+/* ════════════════════════════════════════════════════════════
+   SMART CSV IMPORT – route non-standard CSVs to column mapper
+════════════════════════════════════════════════════════════ */
+async function smartImportCSV(txt) {
+  const rows = parseCSV(txt);
+  if (!rows.length) return;
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const LM_STANDARD = ['date', 'type', 'amount', 'category', 'account', 'note'];
+  const isStandard = LM_STANDARD.every(f => headers.some(h => h === f || h.includes(f)));
+  if (isStandard) {
+    return importCSVText(txt);
+  }
+  openCsvImportModal(txt);
 }

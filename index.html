@@ -189,7 +189,10 @@
         <button class="sidebar-nav-item" id="openDropdownManagerBtn">
           <span class="nav-icon">🔽</span> Dropdown Manager
         </button>
-        
+        <button class="sidebar-nav-item" onclick="showPage('savings-goals')" data-module="savings-goals">
+          <span class="nav-icon">🎯</span> Savings Goals
+        </button>
+
     </div>
 
     <!-- ─── ADMIN SECTION (shown only for admin role) ─── -->
@@ -399,6 +402,9 @@
           <!-- JS will render cards here -->
         </div>
 
+        <!-- FINANCIAL HEALTH SCORE -->
+        <div id="healthScoreWidget" class="fade-up fade-up-4" style="margin-top:16px;"></div>
+
         <!-- STATS ROW -->
         <!--<div class="stats-row fade-up fade-up-3" id="statsRow">
           <div class="stat-mini">
@@ -579,6 +585,23 @@
           </div>
         </div>
 
+        <!-- WEALTH SUMMARY WIDGET -->
+        <div class="fade-up fade-up-5" style="margin-top:8px;">
+          <div class="section-heading">
+            <div class="section-title"><span class="dot" style="background:var(--blue)"></span>Wealth Summary</div>
+          </div>
+          <div id="dashWealthWidget"></div>
+        </div>
+
+        <!-- MONTH-OVER-MONTH ANALYTICS -->
+        <div class="fade-up fade-up-5" style="margin-top:8px;">
+          <div class="section-heading">
+            <div class="section-title"><span class="dot" style="background:var(--violet)"></span>Month-over-Month</div>
+            <span style="font-size:11px;color:var(--text-3);">vs last month</span>
+          </div>
+          <div id="momWidget"></div>
+        </div>
+
         <!-- BUDGETS OVERVIEW -->
         <div class="fade-up fade-up-5">
           <div class="section-heading" style="margin-top:24px;">
@@ -589,6 +612,19 @@
         </div>
 
       </div><!-- /dashboard -->
+
+      <!-- ─── SAVINGS GOALS PAGE ─────────────────────── -->
+      <div id="page-savings-goals" style="display:none;">
+        <div class="fade-up fade-up-1">
+          <div class="page-greeting">Plan Your Future</div>
+          <h1 class="page-title">Savings <em>Goals</em></h1>
+        </div>
+        <div class="section-heading fade-up fade-up-2" style="margin-top:16px;">
+          <div class="section-title"><span class="dot" style="background:var(--emerald)"></span>Active Goals</div>
+          <button class="section-action" onclick="openSavingsGoalModal()">+ Add Goal</button>
+        </div>
+        <div id="savingsGoalsList" class="fade-up fade-up-3"></div>
+      </div>
 
       <!-- ─── TRANSACTIONS PAGE ───────────────────────── -->
         <div id="page-transactions">
@@ -1030,6 +1066,9 @@ function showPage(page) {
     if (page === 'essentials') {
       try { showEssentialsPage(); } catch (e) { console.error('Essentials page error:', e); }
     }
+    if (page === 'savings-goals') {
+      try { renderSavingsGoals(); } catch (e) { console.warn('[LM] Savings goals error:', e); }
+    }
   } catch (e) {
     // ignore – main navigation must always complete
   }
@@ -1221,5 +1260,60 @@ function setGreeting() {
   });
 })();
 </script>
+
+<!-- ─── SAVINGS GOAL MODAL ────────────────────────────── -->
+<div id="savingsGoalModal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">🎯 Savings Goal</div>
+      <button class="modal-close" onclick="closeSavingsGoalModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="sgEditId">
+      <div class="form-group">
+        <label class="form-label">Goal Name</label>
+        <input type="text" id="sgName" class="form-input" placeholder="e.g. Emergency Fund, New Laptop">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Target Amount (₹)</label>
+        <input type="number" id="sgTarget" class="form-input" placeholder="100000" min="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Current Savings (₹)</label>
+        <input type="number" id="sgCurrent" class="form-input" placeholder="0" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Target Date</label>
+        <input type="date" id="sgDeadline" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Monthly Contribution (₹)</label>
+        <input type="number" id="sgMonthly" class="form-input" placeholder="Auto-calculated if left blank" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category / Purpose</label>
+        <input type="text" id="sgCategory" class="form-input" placeholder="Emergency, Travel, Education…">
+      </div>
+      <button class="btn-submit" onclick="saveSavingsGoal()" style="margin-top:8px;">Save Goal</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── CSV SMART IMPORT MODAL ───────────────────────── -->
+<div id="csvImportModal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <div class="modal-title">📂 Smart CSV Import</div>
+      <button class="modal-close" onclick="closeCsvImportModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-3);margin-bottom:12px;">Map your CSV columns to LedgerMate fields.</p>
+      <div id="csvColumnMapper"></div>
+      <div id="csvPreview" style="margin-top:12px;font-size:12px;color:var(--text-3);"></div>
+      <button class="btn-submit" onclick="confirmCsvImport()" style="margin-top:12px;">Import Transactions</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

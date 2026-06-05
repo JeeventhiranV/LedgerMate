@@ -146,10 +146,11 @@
       ['transactions','budgets','loans','reminders','savings','investments',
        'credentials','notes','note_folders','note_attachments','note_versions',
        'trips','routes','emi_loans','net_worth_snapshots','allocation_targets',
-       'sip_plan','audit_logs'].forEach(k => {
+       'sip_plan','audit_logs','savings_goals'].forEach(k => {
         if (Array.isArray(window.state[k])) window.state[k] = [];
       });
       window.state.essentials_settings = {};
+      window.state.settings = {};
     }
 
     /* Reset DB – use the exposed reset function from Common.js which also resets the module-level `let db` */

@@ -25,7 +25,8 @@
     'audit_logs', 'auditLog',
     'trips', 'trip_routes', 'credentials',
     'notes', 'note_versions', 'note_attachments', 'note_folders',
-    'emi_loans', 'net_worth_snapshots', 'allocation_targets', 'sip_plan'
+    'emi_loans', 'net_worth_snapshots', 'allocation_targets', 'sip_plan',
+    'essentials_settings', 'savings_goals'   /* user-specific config & goals */
   ]);
 
   /* Stores shared between all users (categories, etc.) */
