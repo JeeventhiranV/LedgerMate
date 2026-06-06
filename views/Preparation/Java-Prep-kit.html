@@ -6,556 +6,7 @@
 <title>Java Interview Prep Kit 2026 — Senior Backend Developer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-<style>
-:root[data-theme="dark"] {
-  --bg: #0a0c10;
-  --bg2: #111318;
-  --bg3: #181c24;
-  --bg4: #1e2330;
-  --border: #252b3a;
-  --border2: #2e3650;
-  --text: #e8eaf2;
-  --text2: #9aa3bf;
-  --text3: #6b7494;
-  --accent: #4f8ef7;
-  --accent2: #7b61ff;
-  --accent3: #00d4aa;
-  --accent4: #ff6b6b;
-  --accent5: #ffc94d;
-  --card: #13171f;
-  --card2: #191e2a;
-  --glow: rgba(79,142,247,0.12);
-  --glow2: rgba(123,97,255,0.1);
-  --tag-bg: rgba(79,142,247,0.12);
-  --tag-text: #7ab3ff;
-  --shadow: 0 4px 24px rgba(0,0,0,0.5);
-  --sidebar-w: 280px;
-}
-:root[data-theme="light"] {
-  --bg: #f0f2f8;
-  --bg2: #ffffff;
-  --bg3: #f7f8fc;
-  --bg4: #eef0f8;
-  --border: #dde1f0;
-  --border2: #c8ceea;
-  --text: #1a1e2e;
-  --text2: #4a5278;
-  --text3: #8891b8;
-  --accent: #2563eb;
-  --accent2: #6d28d9;
-  --accent3: #059669;
-  --accent4: #dc2626;
-  --accent5: #d97706;
-  --card: #ffffff;
-  --card2: #f7f8fc;
-  --glow: rgba(37,99,235,0.08);
-  --glow2: rgba(109,40,217,0.07);
-  --tag-bg: rgba(37,99,235,0.1);
-  --tag-text: #2563eb;
-  --shadow: 0 4px 24px rgba(0,0,0,0.1);
-  --sidebar-w: 280px;
-}
-
-*{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{
-  font-family:'Inter',sans-serif;
-  background:var(--bg);
-  color:var(--text);
-  min-height:100vh;
-  overflow-x:hidden;
-  transition:background 0.3s,color 0.3s;
-}
-
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:var(--bg2)}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
-
-/* ── LAYOUT ── */
-.layout{display:flex;min-height:100vh}
-.sidebar{
-  width:var(--sidebar-w);
-  background:var(--bg2);
-  border-right:1px solid var(--border);
-  position:fixed;top:0;left:0;height:100vh;
-  overflow-y:auto;z-index:100;
-  transition:transform 0.3s cubic-bezier(.4,0,.2,1),background 0.3s;
-  display:flex;flex-direction:column;
-}
-.sidebar-inner{flex:1;overflow-y:auto;padding-bottom:20px}
-.main{margin-left:var(--sidebar-w);flex:1;min-height:100vh;transition:margin 0.3s}
-
-/* ── SIDEBAR LOGO ── */
-.sidebar-logo{
-  padding:22px 20px 18px;
-  border-bottom:1px solid var(--border);
-  position:sticky;top:0;background:var(--bg2);z-index:10;
-}
-.logo-badge{
-  display:inline-flex;align-items:center;gap:8px;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  padding:6px 12px;border-radius:8px;
-  font-family:'Syne',sans-serif;font-weight:800;font-size:13px;
-  color:#fff;letter-spacing:.5px;
-}
-.logo-sub{font-size:11px;color:var(--text3);margin-top:6px;font-weight:500;letter-spacing:.3px}
-
-/* ── SEARCH ── */
-.search-wrap{padding:14px 16px;border-bottom:1px solid var(--border)}
-.search-input{
-  width:100%;background:var(--bg3);border:1px solid var(--border);
-  border-radius:8px;padding:8px 12px 8px 36px;color:var(--text);
-  font-size:13px;outline:none;font-family:'Inter',sans-serif;
-  transition:border 0.2s,box-shadow 0.2s;position:relative;
-}
-.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--glow)}
-.search-wrap{position:relative}
-.search-icon{
-  position:absolute;left:28px;top:50%;transform:translateY(-50%);
-  color:var(--text3);font-size:14px;pointer-events:none;
-}
-
-/* ── SIDEBAR NAV ── */
-.nav-section{padding:10px 12px 4px}
-.nav-section-label{
-  font-size:10px;font-weight:700;letter-spacing:1.2px;
-  color:var(--text3);text-transform:uppercase;padding:0 8px 6px;
-}
-.nav-item{
-  display:flex;align-items:center;gap:10px;padding:8px 10px;
-  border-radius:8px;cursor:pointer;color:var(--text2);
-  font-size:13px;font-weight:500;transition:all 0.18s;
-  text-decoration:none;border:none;background:none;width:100%;text-align:left;
-}
-.nav-item:hover{background:var(--bg3);color:var(--text)}
-.nav-item.active{background:var(--tag-bg);color:var(--accent);font-weight:600}
-.nav-item .nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
-.nav-item .nav-count{
-  margin-left:auto;background:var(--bg4);border-radius:20px;
-  padding:1px 7px;font-size:10px;font-weight:600;color:var(--text3);
-}
-.nav-item.active .nav-count{background:var(--accent);color:#fff}
-
-/* ── TOPBAR ── */
-.topbar{
-  background:var(--bg2);border-bottom:1px solid var(--border);
-  padding:0 24px;height:60px;display:flex;align-items:center;
-  gap:16px;position:sticky;top:0;z-index:50;
-  transition:background 0.3s;
-}
-.menu-btn{
-  display:none;background:none;border:1px solid var(--border);
-  border-radius:8px;padding:7px 10px;cursor:pointer;color:var(--text2);
-  font-size:16px;transition:all 0.2s;
-}
-.menu-btn:hover{background:var(--bg3);color:var(--text)}
-.topbar-title{
-  font-family:'Syne',sans-serif;font-weight:700;font-size:16px;
-  background:linear-gradient(90deg,var(--accent),var(--accent2));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  background-clip:text;
-}
-.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
-.progress-chip{
-  display:flex;align-items:center;gap:8px;background:var(--bg3);
-  border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;
-}
-.progress-chip span{color:var(--text3)}
-.progress-chip strong{color:var(--accent);font-family:'JetBrains Mono',monospace}
-.theme-btn{
-  background:none;border:1px solid var(--border);border-radius:8px;
-  padding:7px 10px;cursor:pointer;color:var(--text2);font-size:16px;
-  transition:all 0.2s;
-}
-.theme-btn:hover{background:var(--bg3);color:var(--text);border-color:var(--accent)}
-
-/* ── HERO SECTION ── */
-.hero{
-  background:var(--bg2);border-bottom:1px solid var(--border);
-  padding:48px 40px;position:relative;overflow:hidden;
-}
-.hero::before{
-  content:'';position:absolute;top:-80px;right:-80px;
-  width:400px;height:400px;
-  background:radial-gradient(circle,var(--glow2) 0%,transparent 70%);
-  pointer-events:none;
-}
-.hero::after{
-  content:'';position:absolute;bottom:-60px;left:20%;
-  width:300px;height:300px;
-  background:radial-gradient(circle,var(--glow) 0%,transparent 70%);
-  pointer-events:none;
-}
-.hero-eyebrow{
-  font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
-  color:var(--accent);margin-bottom:12px;font-family:'JetBrains Mono',monospace;
-}
-.hero h1{
-  font-family:'Syne',sans-serif;font-size:clamp(28px,4vw,48px);
-  font-weight:800;line-height:1.1;margin-bottom:16px;
-  background:linear-gradient(135deg,var(--text) 0%,var(--accent) 60%,var(--accent2) 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.hero-desc{font-size:15px;color:var(--text2);max-width:600px;line-height:1.7;margin-bottom:28px}
-.hero-stats{display:flex;gap:24px;flex-wrap:wrap}
-.stat-chip{
-  display:flex;align-items:center;gap:8px;background:var(--bg3);
-  border:1px solid var(--border);border-radius:10px;padding:10px 16px;
-}
-.stat-chip .stat-num{
-  font-family:'Syne',sans-serif;font-size:22px;font-weight:800;
-  color:var(--accent);line-height:1;
-}
-.stat-chip .stat-label{font-size:11px;color:var(--text3);font-weight:500}
-
-/* ── SECTION WRAPPER ── */
-.section{padding:40px;max-width:1100px}
-.section-header{
-  display:flex;align-items:center;gap:16px;margin-bottom:28px;
-  padding-bottom:20px;border-bottom:1px solid var(--border);
-}
-.section-icon{
-  width:44px;height:44px;border-radius:12px;display:flex;
-  align-items:center;justify-content:center;font-size:22px;flex-shrink:0;
-}
-.section-meta{flex:1}
-.section-meta h2{
-  font-family:'Syne',sans-serif;font-size:22px;font-weight:800;
-  color:var(--text);
-}
-.section-meta p{font-size:13px;color:var(--text3);margin-top:2px}
-.section-badge{
-  margin-left:auto;background:var(--tag-bg);color:var(--tag-text);
-  border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;
-  letter-spacing:.5px;white-space:nowrap;
-}
-
-/* ── QUESTION CARDS ── */
-.q-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
-.q-card{
-  background:var(--card);border:1px solid var(--border);border-radius:12px;
-  padding:16px 18px;transition:all 0.2s;cursor:pointer;position:relative;
-  display:flex;flex-direction:column;gap:10px;
-}
-.q-card:hover{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--shadow);transform:translateY(-1px)}
-.q-card.answered{border-color:var(--accent3);background:var(--card2)}
-.q-card.answered::before{
-  content:'✓';position:absolute;top:10px;right:12px;
-  color:var(--accent3);font-size:14px;font-weight:700;
-}
-.q-card-top{display:flex;align-items:flex-start;gap:10px}
-.q-num{
-  font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;
-  color:var(--text3);background:var(--bg3);border:1px solid var(--border);
-  border-radius:5px;padding:2px 7px;white-space:nowrap;flex-shrink:0;margin-top:1px;
-}
-.q-text{font-size:14px;color:var(--text);font-weight:500;line-height:1.5;flex:1}
-.q-tags{display:flex;gap:6px;flex-wrap:wrap}
-.q-tag{
-  font-size:10px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;
-  padding:2px 8px;border-radius:20px;
-}
-.tag-hard{background:rgba(255,107,107,0.12);color:#ff8a8a}
-.tag-med{background:rgba(255,201,77,0.12);color:#ffc94d}
-.tag-easy{background:rgba(0,212,170,0.12);color:#00d4aa}
-.tag-hot{background:rgba(255,107,107,0.15);color:#ff6b6b}
-.tag-new{background:rgba(79,142,247,0.15);color:#7ab3ff}
-.tag-prod{background:rgba(123,97,255,0.15);color:#a78bfa}
-
-.q-answer{
-  font-size:13px;color:var(--text2);line-height:1.65;
-  background:var(--bg3);border-radius:8px;padding:12px 14px;
-  border:1px solid var(--border);display:none;margin-top:4px;
-}
-.q-answer.show{display:block}
-.q-answer code{
-  font-family:'JetBrains Mono',monospace;font-size:12px;
-  background:var(--bg4);color:var(--accent3);padding:1px 5px;border-radius:3px;
-}
-.q-answer pre{
-  background:var(--bg);border:1px solid var(--border2);border-radius:8px;
-  padding:12px;overflow-x:auto;margin:8px 0;
-  font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text2);
-  line-height:1.6;
-}
-.q-answer strong{color:var(--text);font-weight:600}
-.q-answer ul{padding-left:18px}
-.q-answer li{margin-bottom:4px}
-.q-actions{display:flex;gap:8px;margin-top:6px}
-.btn-toggle{
-  font-size:12px;color:var(--accent);background:none;border:1px solid var(--accent);
-  border-radius:6px;padding:4px 12px;cursor:pointer;transition:all 0.2s;
-  font-weight:600;font-family:'Inter',sans-serif;
-}
-.btn-toggle:hover{background:var(--accent);color:#fff}
-.btn-mark{
-  font-size:12px;color:var(--text3);background:none;border:1px solid var(--border);
-  border-radius:6px;padding:4px 12px;cursor:pointer;transition:all 0.2s;
-  font-weight:500;font-family:'Inter',sans-serif;
-}
-.btn-mark:hover{border-color:var(--accent3);color:var(--accent3)}
-.q-card.answered .btn-mark{color:var(--accent3);border-color:var(--accent3)}
-
-/* ── DIFFICULTY ── */
-.diff-bar{
-  width:40px;height:4px;border-radius:2px;margin-top:6px;
-}
-.diff-hard{background:var(--accent4)}
-.diff-med{background:var(--accent5)}
-.diff-easy{background:var(--accent3)}
-
-/* ── CODE BLOCK SECTION ── */
-.code-section{
-  background:var(--card);border:1px solid var(--border);border-radius:12px;
-  overflow:hidden;margin-bottom:14px;
-}
-.code-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border);
-}
-.code-title{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text2);font-weight:600}
-.code-lang{
-  font-size:10px;color:var(--accent3);background:rgba(0,212,170,0.1);
-  padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;
-}
-.code-body{
-  padding:16px;font-family:'JetBrains Mono',monospace;font-size:12.5px;
-  line-height:1.7;color:var(--text2);overflow-x:auto;
-}
-.kw{color:#7ab3ff}
-.cls{color:#ffc94d}
-.fn{color:#00d4aa}
-.str{color:#ffa07a}
-.cmt{color:var(--text3)}
-.num{color:#a78bfa}
-.ann{color:#ff8a8a}
-
-/* ── TIP BOX ── */
-.tip-box{
-  background:var(--bg3);border-left:3px solid var(--accent);
-  border-radius:0 8px 8px 0;padding:12px 16px;margin:12px 0;
-  font-size:13px;color:var(--text2);line-height:1.6;
-}
-.tip-box.warn{border-color:var(--accent5)}
-.tip-box.danger{border-color:var(--accent4)}
-.tip-box.success{border-color:var(--accent3)}
-.tip-label{
-  font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
-  margin-bottom:4px;color:var(--accent);
-}
-.tip-box.warn .tip-label{color:var(--accent5)}
-.tip-box.danger .tip-label{color:var(--accent4)}
-.tip-box.success .tip-label{color:var(--accent3)}
-
-/* ── SINGLE COL LIST ── */
-.q-list{display:flex;flex-direction:column;gap:10px}
-.q-list-item{
-  background:var(--card);border:1px solid var(--border);border-radius:10px;
-  padding:14px 16px;transition:all 0.2s;cursor:pointer;
-}
-.q-list-item:hover{border-color:var(--accent);box-shadow:var(--shadow)}
-.q-list-item.answered{border-left:3px solid var(--accent3)}
-.q-list-top{display:flex;align-items:flex-start;gap:12px}
-.q-list-num{
-  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);
-  background:var(--bg3);border:1px solid var(--border);border-radius:4px;
-  padding:1px 7px;white-space:nowrap;flex-shrink:0;
-}
-.q-list-text{font-size:13.5px;color:var(--text);font-weight:500;line-height:1.5;flex:1}
-
-/* ── PROGRESS BAR ── */
-.progress-section{
-  background:var(--bg2);border-bottom:1px solid var(--border);
-  padding:16px 40px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;
-}
-.progress-label{font-size:12px;color:var(--text3);font-weight:500}
-.progress-bar-wrap{flex:1;min-width:200px;max-width:400px}
-.progress-bar-track{background:var(--bg3);border-radius:20px;height:6px;overflow:hidden}
-.progress-bar-fill{
-  height:100%;border-radius:20px;
-  background:linear-gradient(90deg,var(--accent),var(--accent2));
-  transition:width 0.5s cubic-bezier(.4,0,.2,1);
-}
-.progress-pct{
-  font-family:'JetBrains Mono',monospace;font-size:13px;
-  color:var(--accent);font-weight:600;
-}
-
-/* ── COMPANY TAGS ── */
-.company-list{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
-.company-tag{
-  background:var(--bg3);border:1px solid var(--border);border-radius:6px;
-  padding:4px 12px;font-size:12px;color:var(--text2);font-weight:600;
-  transition:all 0.2s;cursor:default;
-}
-.company-tag:hover{border-color:var(--accent);color:var(--accent)}
-
-/* ── DSA GRID ── */
-.dsa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-.dsa-card{
-  background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;
-  transition:all 0.2s;
-}
-.dsa-card:hover{border-color:var(--accent2);box-shadow:var(--shadow)}
-.dsa-cat{
-  font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
-  color:var(--accent2);margin-bottom:10px;font-family:'JetBrains Mono',monospace;
-}
-.dsa-items{list-style:none}
-.dsa-items li{
-  font-size:13px;color:var(--text2);padding:5px 0;
-  border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;
-}
-.dsa-items li:last-child{border:none}
-.dsa-items li::before{content:'▸';color:var(--accent2);font-size:10px}
-
-/* ── CHECKLIST SECTION ── */
-.checklist{list-style:none;display:flex;flex-direction:column;gap:8px}
-.checklist li{
-  display:flex;align-items:center;gap:12px;background:var(--card);
-  border:1px solid var(--border);border-radius:8px;padding:10px 14px;
-  font-size:13.5px;color:var(--text2);cursor:pointer;transition:all 0.2s;
-}
-.checklist li:hover{border-color:var(--border2);color:var(--text)}
-.checklist li.checked{text-decoration:line-through;color:var(--text3);border-color:var(--accent3)}
-.checklist li.checked::before{content:'✓';color:var(--accent3);font-weight:700}
-.checklist li:not(.checked)::before{
-  content:'○';color:var(--text3);font-size:12px;
-}
-
-/* ── COMPARISONS TABLE ── */
-.compare-table{width:100%;border-collapse:collapse;margin:12px 0}
-.compare-table th{
-  background:var(--bg3);padding:10px 14px;text-align:left;
-  font-size:12px;font-weight:700;color:var(--text3);letter-spacing:.5px;
-  border-bottom:2px solid var(--border2);
-}
-.compare-table td{
-  padding:10px 14px;font-size:13px;color:var(--text2);
-  border-bottom:1px solid var(--border);vertical-align:top;
-}
-.compare-table tr:hover td{background:var(--bg3)}
-
-/* ── OVERLAY ── */
-.overlay{
-  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99;
-  backdrop-filter:blur(4px);
-}
-.overlay.show{display:block}
-
-/* ── SCROLL PROGRESS ── */
-#scroll-progress{
-  position:fixed;top:0;left:0;height:2px;width:0%;z-index:200;
-  background:linear-gradient(90deg,var(--accent),var(--accent2));
-  transition:width 0.1s;
-}
-
-/* ── ANCHOR SECTIONS ── */
-.anchor-section{
-  scroll-margin-top:80px;
-}
-
-/* ── BACK TO TOP ── */
-#back-top{
-  position:fixed;bottom:24px;right:24px;
-  width:44px;height:44px;border-radius:12px;
-  background:var(--accent);color:#fff;font-size:18px;
-  border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 4px 20px rgba(79,142,247,0.4);opacity:0;
-  transition:opacity 0.3s,transform 0.2s;transform:translateY(10px);
-  z-index:200;
-}
-#back-top.show{opacity:1;transform:translateY(0)}
-#back-top:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(79,142,247,0.5)}
-
-/* ── DIVIDER ── */
-.divider{height:1px;background:var(--border);margin:32px 0}
-
-/* ── BADGE ROW ── */
-.badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
-.badge{
-  display:inline-flex;align-items:center;gap:5px;
-  border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;
-}
-.badge-blue{background:rgba(79,142,247,0.12);color:#7ab3ff;border:1px solid rgba(79,142,247,0.25)}
-.badge-purple{background:rgba(123,97,255,0.12);color:#a78bfa;border:1px solid rgba(123,97,255,0.25)}
-.badge-green{background:rgba(0,212,170,0.12);color:#00d4aa;border:1px solid rgba(0,212,170,0.25)}
-.badge-orange{background:rgba(255,201,77,0.12);color:#ffc94d;border:1px solid rgba(255,201,77,0.25)}
-.badge-red{background:rgba(255,107,107,0.12);color:#ff8a8a;border:1px solid rgba(255,107,107,0.25)}
-
-/* ── MOBILE ── */
-@media(max-width:768px){
-  .sidebar{transform:translateX(-100%)}
-  .sidebar.open{transform:translateX(0)}
-  .main{margin-left:0}
-  .menu-btn{display:flex;align-items:center}
-  .hero{padding:28px 20px}
-  .section{padding:24px 16px}
-  .q-grid{grid-template-columns:1fr}
-  .dsa-grid{grid-template-columns:1fr}
-  .hero-stats{gap:12px}
-  .progress-section{padding:12px 16px}
-  .compare-table{display:block;overflow-x:auto}
-}
-@media(max-width:480px){
-  .hero h1{font-size:24px}
-  .topbar-title{font-size:14px}
-  .section-meta h2{font-size:18px}
-}
-
-/* ── SECTION COLORS ── */
-.icon-core{background:rgba(79,142,247,0.12)}
-.icon-spring{background:rgba(0,212,170,0.12)}
-.icon-micro{background:rgba(123,97,255,0.12)}
-.icon-kafka{background:rgba(255,107,107,0.12)}
-.icon-sql{background:rgba(255,201,77,0.12)}
-.icon-aws{background:rgba(255,153,0,0.12)}
-.icon-dsa{background:rgba(0,212,170,0.12)}
-.icon-docker{background:rgba(0,162,220,0.12)}
-.icon-security{background:rgba(255,77,77,0.12)}
-.icon-java8{background:rgba(171,71,188,0.12)}
-.icon-jpa{background:rgba(0,200,181,0.12)}
-.icon-system{background:rgba(255,165,0,0.12)}
-.icon-java21{background:rgba(99,179,237,0.12)}
-.icon-git{background:rgba(240,80,50,0.12)}
-.icon-prod{background:rgba(255,80,80,0.12)}
-.icon-code{background:rgba(80,200,120,0.12)}
-.icon-memory{background:rgba(0,212,170,0.12)}
-.icon-jms{background:rgba(255,165,0,0.12)}
-.icon-adv-micro{background:rgba(123,97,255,0.12)}
-.icon-adv-coding{background:rgba(80,200,120,0.12)}
-
-/* ── COPY BUTTON ── */
-.pre-wrap{position:relative;display:block}
-.copy-btn{
-  position:absolute;top:8px;right:8px;
-  background:var(--bg4);color:var(--text3);
-  border:1px solid var(--border2);border-radius:5px;
-  padding:3px 10px;font-size:11px;cursor:pointer;
-  font-family:'JetBrains Mono',monospace;
-  transition:all 0.2s;z-index:10;opacity:0;
-  line-height:1.5;
-}
-.pre-wrap:hover .copy-btn{opacity:1}
-.copy-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
-.copy-btn.copied{background:var(--accent3);color:#fff;border-color:var(--accent3);opacity:1}
-
-/* ── EXPAND ALL ── */
-.section-controls{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.expand-all-btn{
-  background:var(--bg3);color:var(--text2);border:1px solid var(--border);
-  border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;
-  font-family:'Inter',sans-serif;transition:all 0.2s;
-}
-.expand-all-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
-
-.no-results{
-  text-align:center;padding:48px;color:var(--text3);
-  font-size:14px;display:none;
-}
-.hidden{display:none!important}
-</style>
+<link rel="stylesheet" href="../../css/Preparation.css">
 </head>
 <body>
 
@@ -625,7 +76,7 @@ body{
   <!-- TOPBAR -->
   <div class="topbar">
     <button class="menu-btn" id="menuBtn">☰</button>
-    <button onclick="window.history.back()" class="back-button " style="background: none; border: none; color: inherit; cursor: pointer; font: inherit; padding: 0;">Back</button>
+    <a href="../Study-Resources.html" class="back-btn">← Study Resources</a>
     <div class="topbar-title">Java Interview Prep 2026</div>
   
     
@@ -634,6 +85,7 @@ body{
         <span>Progress</span>
         <strong id="answeredCount">0</strong>/<strong id="totalCount">0</strong>
       </div>
+      <button class="clear-progress-btn" id="clearProgressBtn" title="Clear all marked done" onclick="clearAllProgress()">Clear</button>
       <button class="theme-btn" id="themeBtn" title="Toggle theme">🌙</button>
     </div>
   </div>
@@ -696,6 +148,42 @@ body{
             <li>Java 8 replaced segments with node-level locking entirely</li>
           </ul>
           <div class="tip-box"><span class="tip-label">🎯 Interview Tip</span>Contrast with Hashtable which locks the entire object on every operation — even reads.</div>
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="kw">import</span> java.util.concurrent.*;
+
+<span class="kw">public class</span> <span class="cls">ConcurrentHashMapDemo</span> {
+  <span class="kw">public static void</span> <span class="fn">main</span>(<span class="cls">String</span>[] args) <span class="kw">throws</span> <span class="cls">InterruptedException</span> {
+    <span class="cls">ConcurrentHashMap</span>&lt;<span class="cls">String</span>, <span class="cls">Integer</span>&gt; map = <span class="kw">new</span> <span class="cls">ConcurrentHashMap</span>&lt;&gt;();
+
+    <span class="cm">// ✅ putIfAbsent — atomic check-then-act, no race condition</span>
+    map.<span class="fn">putIfAbsent</span>(<span class="str">"counter"</span>, <span class="num">0</span>);
+
+    <span class="cm">// ✅ compute — atomically update a value</span>
+    map.<span class="fn">compute</span>(<span class="str">"counter"</span>, (k, v) -&gt; v == <span class="kw">null</span> ? <span class="num">1</span> : v + <span class="num">1</span>);
+
+    <span class="cm">// Demonstrate concurrent writes from 10 threads</span>
+    <span class="cls">ExecutorService</span> pool = <span class="cls">Executors</span>.<span class="fn">newFixedThreadPool</span>(<span class="num">10</span>);
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; <span class="num">10</span>; i++) {
+      pool.<span class="fn">submit</span>(() -&gt; {
+        <span class="cm">// compute is bucket-level synchronized — safe for concurrent update</span>
+        map.<span class="fn">compute</span>(<span class="str">"counter"</span>, (k, v) -&gt; v + <span class="num">1</span>);
+      });
+    }
+    pool.<span class="fn">shutdown</span>();
+    pool.<span class="fn">awaitTermination</span>(<span class="num">5</span>, <span class="cls">TimeUnit</span>.SECONDS);
+    <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Counter: "</span> + map.<span class="fn">get</span>(<span class="str">"counter"</span>)); <span class="cm">// Always 11 — no race</span>
+
+    <span class="cm">// ❌ NOT safe — get+put is not atomic:</span>
+    <span class="cm">// map.put("x", map.getOrDefault("x", 0) + 1);  // race condition!</span>
+
+    <span class="cm">// ✅ SAFE — merge atomically adds value:</span>
+    map.<span class="fn">merge</span>(<span class="str">"x"</span>, <span class="num">1</span>, <span class="cls">Integer</span>::sum); <span class="cm">// if absent: set 1; else: add 1</span>
+
+    <span class="cm">// ConcurrentHashMap vs Hashtable vs synchronizedMap</span>
+    <span class="cm">// Hashtable: synchronized on 'this' for every op — no concurrency</span>
+    <span class="cm">// Collections.synchronizedMap: wraps map, same lock for all ops</span>
+    <span class="cm">// ConcurrentHashMap: bucket-level lock + CAS — true concurrency</span>
+  }
+}</pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -713,6 +201,40 @@ body{
           </ul>
           <strong>put() flow:</strong> compute hash → find bucket index → check equals() → insert or replace → resize if threshold exceeded<br/><br/>
           <strong>What is Rehashing?</strong> When size exceeds threshold, a new array of 2× capacity is created and all entries are re-inserted using updated hash % newCapacity.
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="kw">import</span> java.util.*;
+
+<span class="kw">public class</span> <span class="cls">HashMapInternalsDemo</span> {
+  <span class="kw">public static void</span> <span class="fn">main</span>(<span class="cls">String</span>[] args) {
+    <span class="cm">// Default capacity=16, loadFactor=0.75 → resize at 12 entries</span>
+    <span class="cls">Map</span>&lt;<span class="cls">String</span>, <span class="cls">Integer</span>&gt; map = <span class="kw">new</span> <span class="cls">HashMap</span>&lt;&gt;();
+
+    <span class="cm">// put() flow: hash(key) → index = hash & (n-1) → insert Node</span>
+    map.<span class="fn">put</span>(<span class="str">"alice"</span>, <span class="num">1</span>); <span class="cm">// bucket index = "alice".hashCode() & 15</span>
+    map.<span class="fn">put</span>(<span class="str">"bob"</span>, <span class="num">2</span>);
+    map.<span class="fn">put</span>(<span class="str">"carol"</span>, <span class="num">3</span>);
+
+    <span class="cm">// Collision demo — keys with same hash go to same bucket</span>
+    <span class="cm">// "FB" and "Ea" have same hashCode in Java (collision):</span>
+    <span class="cls">Map</span>&lt;<span class="cls">String</span>, <span class="cls">Integer</span>&gt; collision = <span class="kw">new</span> <span class="cls">HashMap</span>&lt;&gt;();
+    collision.<span class="fn">put</span>(<span class="str">"FB"</span>, <span class="num">1</span>); <span class="cm">// "FB".hashCode() == "Ea".hashCode() == 2236</span>
+    collision.<span class="fn">put</span>(<span class="str">"Ea"</span>, <span class="num">2</span>); <span class="cm">// stored in same bucket as linked list</span>
+
+    <span class="cm">// Java 8+: bucket converts to Red-Black Tree when ≥ 8 entries in bucket</span>
+    <span class="cm">// (treeification threshold = 8, untreeify threshold = 6)</span>
+    <span class="cm">// This changes worst-case bucket lookup from O(n) → O(log n)</span>
+
+    <span class="cm">// Specify initial capacity to avoid rehashing for known sizes:</span>
+    <span class="kw">int</span> expectedEntries = <span class="num">1000</span>;
+    <span class="cls">Map</span>&lt;<span class="cls">String</span>, <span class="cls">String</span>&gt; optimized = <span class="kw">new</span> <span class="cls">HashMap</span>&lt;&gt;(
+      (<span class="kw">int</span>) (expectedEntries / <span class="num">0.75</span>) + <span class="num">1</span> <span class="cm">// initialCapacity to hold 1000 without resize</span>
+    );
+
+    <span class="cm">// ❌ Never use mutable objects as keys — hashCode changes after mutation</span>
+    <span class="cm">// ✅ Keys should be immutable (String, Integer, UUID are ideal)</span>
+    <span class="cls">System</span>.out.<span class="fn">println</span>(map.<span class="fn">get</span>(<span class="str">"alice"</span>)); <span class="cm">// 1</span>
+    <span class="cls">System</span>.out.<span class="fn">println</span>(collision.<span class="fn">get</span>(<span class="str">"Ea"</span>)); <span class="cm">// 2 — equals() resolves collision</span>
+  }
+}</pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -734,6 +256,48 @@ body{
             <li><code>synchronized</code> unlock happens-before subsequent lock by another thread</li>
             <li>Write to <code>volatile</code> happens-before subsequent read of same field</li>
           </ul>
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="cm">// ❌ VISIBILITY BUG — without volatile, thread may never see updated flag</span>
+<span class="kw">public class</span> <span class="cls">VisibilityBugDemo</span> {
+  <span class="kw">private static boolean</span> running = <span class="kw">true</span>; <span class="cm">// ❌ not volatile — CPU may cache it</span>
+
+  <span class="kw">public static void</span> <span class="fn">main</span>(<span class="cls">String</span>[] args) <span class="kw">throws</span> <span class="cls">InterruptedException</span> {
+    <span class="cls">Thread</span> worker = <span class="kw">new</span> <span class="cls">Thread</span>(() -&gt; {
+      <span class="kw">while</span> (running) { <span class="cm">// may loop forever — reads stale cached value!</span>
+        <span class="cm">// do work...</span>
+      }
+      <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Stopped"</span>);
+    });
+    worker.<span class="fn">start</span>();
+    <span class="cls">Thread</span>.<span class="fn">sleep</span>(<span class="num">100</span>);
+    running = <span class="kw">false</span>; <span class="cm">// main thread writes — worker may not see it!</span>
+  }
+}
+
+<span class="cm">// ✅ FIX — volatile guarantees write is flushed to main memory immediately</span>
+<span class="kw">public class</span> <span class="cls">VolatileFixDemo</span> {
+  <span class="kw">private static volatile boolean</span> running = <span class="kw">true</span>; <span class="cm">// ✅ volatile</span>
+
+  <span class="kw">public static void</span> <span class="fn">main</span>(<span class="cls">String</span>[] args) <span class="kw">throws</span> <span class="cls">InterruptedException</span> {
+    <span class="cls">Thread</span> worker = <span class="kw">new</span> <span class="cls">Thread</span>(() -&gt; {
+      <span class="kw">while</span> (running) { <span class="cm">// always reads from main memory — sees update</span>
+        <span class="cm">// do work...</span>
+      }
+      <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Stopped cleanly"</span>); <span class="cm">// ✅ always prints</span>
+    });
+    worker.<span class="fn">start</span>();
+    <span class="cls">Thread</span>.<span class="fn">sleep</span>(<span class="num">100</span>);
+    running = <span class="kw">false</span>; <span class="cm">// guaranteed visible to worker thread</span>
+    worker.<span class="fn">join</span>();
+  }
+}
+
+<span class="cm">// ❌ volatile does NOT help for compound operations like i++:</span>
+<span class="kw">volatile int</span> counter = <span class="num">0</span>;
+counter++; <span class="cm">// still 3 steps (read → increment → write) — not atomic!</span>
+
+<span class="cm">// ✅ Use AtomicInteger for atomic compound ops:</span>
+<span class="cls">AtomicInteger</span> atomicCounter = <span class="kw">new</span> <span class="cls">AtomicInteger</span>(<span class="num">0</span>);
+atomicCounter.<span class="fn">incrementAndGet</span>(); <span class="cm">// atomic, thread-safe</span></pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -797,6 +361,53 @@ body{
             <li><code>-Xmx -verbose:gc</code> flags for GC monitoring</li>
             <li>Heap dump on OOM: <code>-XX:+HeapDumpOnOutOfMemoryError</code></li>
           </ul>
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="cm">// ❌ LEAK 1: ThreadLocal not removed in thread pool (threads are reused)</span>
+<span class="kw">static</span> <span class="cls">ThreadLocal</span>&lt;<span class="cls">UserContext</span>&gt; userCtx = <span class="kw">new</span> <span class="cls">ThreadLocal</span>&lt;&gt;();
+
+<span class="cm">// In a servlet/request handler:</span>
+<span class="kw">public void</span> <span class="fn">handleRequest</span>(<span class="cls">HttpRequest</span> req) {
+  userCtx.<span class="fn">set</span>(<span class="kw">new</span> <span class="cls">UserContext</span>(req.<span class="fn">getUserId</span>())); <span class="cm">// ❌ set but never removed</span>
+  <span class="fn">processRequest</span>();
+  <span class="cm">// Thread returns to pool with UserContext still set → LEAK</span>
+}
+
+<span class="cm">// ✅ FIX — always remove ThreadLocal in finally:</span>
+<span class="kw">public void</span> <span class="fn">handleRequestFixed</span>(<span class="cls">HttpRequest</span> req) {
+  <span class="kw">try</span> {
+    userCtx.<span class="fn">set</span>(<span class="kw">new</span> <span class="cls">UserContext</span>(req.<span class="fn">getUserId</span>()));
+    <span class="fn">processRequest</span>();
+  } <span class="kw">finally</span> {
+    userCtx.<span class="fn">remove</span>(); <span class="cm">// ✅ always clean up, even on exception</span>
+  }
+}
+
+<span class="cm">// ❌ LEAK 2: Static collection that grows unboundedly</span>
+<span class="kw">public class</span> <span class="cls">EventBus</span> {
+  <span class="kw">private static final</span> <span class="cls">List</span>&lt;<span class="cls">EventListener</span>&gt; listeners = <span class="kw">new</span> <span class="cls">ArrayList</span>&lt;&gt;();
+
+  <span class="kw">public static void</span> <span class="fn">register</span>(<span class="cls">EventListener</span> l) { listeners.<span class="fn">add</span>(l); }
+  <span class="cm">// ❌ No deregister method — listeners accumulate forever in Old Gen</span>
+}
+
+<span class="cm">// ✅ FIX — use WeakReference so GC can reclaim listeners</span>
+<span class="kw">private static final</span> <span class="cls">List</span>&lt;<span class="cls">WeakReference</span>&lt;<span class="cls">EventListener</span>&gt;&gt; weakListeners
+    = <span class="kw">new</span> <span class="cls">CopyOnWriteArrayList</span>&lt;&gt;();
+
+<span class="cm">// ❌ LEAK 3: Unclosed resource (connection pool leak)</span>
+<span class="kw">public</span> <span class="cls">ResultSet</span> <span class="fn">getData</span>() <span class="kw">throws</span> <span class="cls">SQLException</span> {
+  <span class="cls">Connection</span> conn = dataSource.<span class="fn">getConnection</span>(); <span class="cm">// ❌ never closed</span>
+  <span class="kw">return</span> conn.<span class="fn">createStatement</span>().<span class="fn">executeQuery</span>(<span class="str">"SELECT * FROM orders"</span>);
+} <span class="cm">// connection stays open → pool exhaustion</span>
+
+<span class="cm">// ✅ FIX — try-with-resources auto-closes Connection, Statement, ResultSet</span>
+<span class="kw">public</span> <span class="cls">List</span>&lt;<span class="cls">Order</span>&gt; <span class="fn">getDataFixed</span>() <span class="kw">throws</span> <span class="cls">SQLException</span> {
+  <span class="kw">try</span> (<span class="cls">Connection</span> conn = dataSource.<span class="fn">getConnection</span>();
+       <span class="cls">PreparedStatement</span> ps = conn.<span class="fn">prepareStatement</span>(<span class="str">"SELECT * FROM orders"</span>);
+       <span class="cls">ResultSet</span> rs = ps.<span class="fn">executeQuery</span>()) {
+    <span class="cm">// process rs...</span>
+    <span class="kw">return</span> <span class="fn">mapResults</span>(rs);
+  } <span class="cm">// ✅ all auto-closed — returned to pool</span>
+}</pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -825,6 +436,49 @@ body{
           <strong>Fail-Fast:</strong> Throws <code>ConcurrentModificationException</code> if collection is modified during iteration. Works on internal <code>modCount</code>. Examples: ArrayList, HashMap iterators.<br/><br/>
           <strong>Fail-Safe:</strong> Iterates over a copy of the collection — no exception if modified. Examples: <code>CopyOnWriteArrayList</code>, <code>ConcurrentHashMap</code> iterators.<br/><br/>
           <div class="tip-box warn"><span class="tip-label">Pitfall</span>Fail-safe iterators may not reflect latest changes since they work on a snapshot. Higher memory usage.</div>
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="kw">import</span> java.util.*;
+<span class="kw">import</span> java.util.concurrent.*;
+
+<span class="kw">public class</span> <span class="cls">IteratorDemo</span> {
+  <span class="kw">public static void</span> <span class="fn">main</span>(<span class="cls">String</span>[] args) {
+
+    <span class="cm">// ❌ FAIL-FAST — ConcurrentModificationException</span>
+    <span class="cls">List</span>&lt;<span class="cls">String</span>&gt; list = <span class="kw">new</span> <span class="cls">ArrayList</span>&lt;&gt;(<span class="cls">List</span>.<span class="fn">of</span>(<span class="str">"a"</span>, <span class="str">"b"</span>, <span class="str">"c"</span>));
+    <span class="kw">try</span> {
+      <span class="kw">for</span> (<span class="cls">String</span> s : list) {
+        <span class="kw">if</span> (s.<span class="fn">equals</span>(<span class="str">"b"</span>)) {
+          list.<span class="fn">remove</span>(s); <span class="cm">// ❌ modCount changed → ConcurrentModificationException</span>
+        }
+      }
+    } <span class="kw">catch</span> (<span class="cls">ConcurrentModificationException</span> e) {
+      <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Fail-fast triggered: "</span> + e.<span class="fn">getClass</span>().<span class="fn">getSimpleName</span>());
+    }
+
+    <span class="cm">// ✅ FIX 1 — use Iterator.remove() to safely remove during iteration</span>
+    <span class="cls">Iterator</span>&lt;<span class="cls">String</span>&gt; it = list.<span class="fn">iterator</span>();
+    <span class="kw">while</span> (it.<span class="fn">hasNext</span>()) {
+      <span class="kw">if</span> (it.<span class="fn">next</span>().<span class="fn">equals</span>(<span class="str">"a"</span>)) {
+        it.<span class="fn">remove</span>(); <span class="cm">// ✅ safe — updates modCount correctly</span>
+      }
+    }
+
+    <span class="cm">// ✅ FIX 2 — CopyOnWriteArrayList (fail-safe, iterates snapshot)</span>
+    <span class="cls">CopyOnWriteArrayList</span>&lt;<span class="cls">String</span>&gt; safeList =
+        <span class="kw">new</span> <span class="cls">CopyOnWriteArrayList</span>&lt;&gt;(<span class="cls">List</span>.<span class="fn">of</span>(<span class="str">"x"</span>, <span class="str">"y"</span>, <span class="str">"z"</span>));
+    <span class="kw">for</span> (<span class="cls">String</span> s : safeList) {
+      safeList.<span class="fn">add</span>(<span class="str">"new"</span>); <span class="cm">// ✅ no exception — writes a fresh copy of array</span>
+      <span class="cls">System</span>.out.<span class="fn">println</span>(s); <span class="cm">// prints x, y, z — snapshot, not modified view</span>
+    }
+    <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Size after: "</span> + safeList.<span class="fn">size</span>()); <span class="cm">// 6 (3 added)</span>
+
+    <span class="cm">// ConcurrentHashMap iterator is also fail-safe (weakly consistent)</span>
+    <span class="cls">ConcurrentHashMap</span>&lt;<span class="cls">String</span>, <span class="cls">Integer</span>&gt; chm = <span class="kw">new</span> <span class="cls">ConcurrentHashMap</span>&lt;&gt;();
+    chm.<span class="fn">put</span>(<span class="str">"a"</span>, <span class="num">1</span>); chm.<span class="fn">put</span>(<span class="str">"b"</span>, <span class="num">2</span>);
+    <span class="kw">for</span> (<span class="cls">String</span> key : chm.<span class="fn">keySet</span>()) {
+      chm.<span class="fn">put</span>(<span class="str">"c"</span>, <span class="num">3</span>); <span class="cm">// ✅ no exception — may or may not see "c" in iteration</span>
+    }
+  }
+}</pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -847,6 +501,66 @@ body{
             <li>Use <code>tryLock(timeout)</code> from <code>ReentrantLock</code></li>
             <li>Use higher-level concurrency utilities (<code>Executors</code>, <code>BlockingQueue</code>)</li>
           </ul>
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="kw">import</span> java.util.concurrent.locks.*;
+
+<span class="cm">// ❌ DEADLOCK — Thread A holds lock1, waits for lock2</span>
+<span class="cm">//              Thread B holds lock2, waits for lock1 → circular wait</span>
+<span class="kw">public class</span> <span class="cls">DeadlockDemo</span> {
+  <span class="kw">private static final</span> <span class="cls">Object</span> lock1 = <span class="kw">new</span> <span class="cls">Object</span>();
+  <span class="kw">private static final</span> <span class="cls">Object</span> lock2 = <span class="kw">new</span> <span class="cls">Object</span>();
+
+  <span class="kw">public static void</span> <span class="fn">main</span>(<span class="cls">String</span>[] args) {
+    <span class="cls">Thread</span> t1 = <span class="kw">new</span> <span class="cls">Thread</span>(() -&gt; {
+      <span class="kw">synchronized</span> (lock1) {
+        <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"T1 acquired lock1, waiting for lock2..."</span>);
+        <span class="kw">try</span> { <span class="cls">Thread</span>.<span class="fn">sleep</span>(<span class="num">50</span>); } <span class="kw">catch</span> (<span class="cls">InterruptedException</span> e) {}
+        <span class="kw">synchronized</span> (lock2) { <span class="cm">// ❌ waits for T2 to release lock2</span>
+          <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"T1 acquired lock2"</span>);
+        }
+      }
+    }, <span class="str">"Thread-A"</span>);
+
+    <span class="cls">Thread</span> t2 = <span class="kw">new</span> <span class="cls">Thread</span>(() -&gt; {
+      <span class="kw">synchronized</span> (lock2) {
+        <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"T2 acquired lock2, waiting for lock1..."</span>);
+        <span class="kw">try</span> { <span class="cls">Thread</span>.<span class="fn">sleep</span>(<span class="num">50</span>); } <span class="kw">catch</span> (<span class="cls">InterruptedException</span> e) {}
+        <span class="kw">synchronized</span> (lock1) { <span class="cm">// ❌ waits for T1 to release lock1 — DEADLOCK</span>
+          <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"T2 acquired lock1"</span>);
+        }
+      }
+    }, <span class="str">"Thread-B"</span>);
+
+    t1.<span class="fn">start</span>(); t2.<span class="fn">start</span>(); <span class="cm">// Both threads block forever</span>
+  }
+}
+
+<span class="cm">// ✅ FIX 1 — always acquire locks in consistent order (lock1 before lock2)</span>
+<span class="kw">synchronized</span> (lock1) { <span class="kw">synchronized</span> (lock2) { <span class="cm">/* work */</span> } } <span class="cm">// both threads same order</span>
+
+<span class="cm">// ✅ FIX 2 — tryLock with timeout (ReentrantLock) — breaks deadlock automatically</span>
+<span class="cls">ReentrantLock</span> rl1 = <span class="kw">new</span> <span class="cls">ReentrantLock</span>();
+<span class="cls">ReentrantLock</span> rl2 = <span class="kw">new</span> <span class="cls">ReentrantLock</span>();
+
+<span class="kw">public void</span> <span class="fn">transferSafe</span>() <span class="kw">throws</span> <span class="cls">InterruptedException</span> {
+  <span class="kw">while</span> (<span class="kw">true</span>) {
+    <span class="kw">if</span> (rl1.<span class="fn">tryLock</span>(<span class="num">100</span>, java.util.concurrent.<span class="cls">TimeUnit</span>.MILLISECONDS)) {
+      <span class="kw">try</span> {
+        <span class="kw">if</span> (rl2.<span class="fn">tryLock</span>(<span class="num">100</span>, java.util.concurrent.<span class="cls">TimeUnit</span>.MILLISECONDS)) {
+          <span class="kw">try</span> {
+            <span class="fn">doTransfer</span>(); <span class="cm">// ✅ both locks acquired — safe to proceed</span>
+            <span class="kw">return</span>;
+          } <span class="kw">finally</span> { rl2.<span class="fn">unlock</span>(); }
+        }
+      } <span class="kw">finally</span> { rl1.<span class="fn">unlock</span>(); }
+    }
+    <span class="cm">// Failed to acquire both — back off and retry (avoids deadlock)</span>
+    <span class="cls">Thread</span>.<span class="fn">sleep</span>(<span class="num">10</span>);
+  }
+}
+
+<span class="cm">// Debug deadlock in production: jstack &lt;pid&gt; | grep -A 20 "deadlock"</span>
+<span class="cm">// Or: ThreadMXBean tmx = ManagementFactory.getThreadMXBean();</span>
+<span class="cm">//     long[] deadlocked = tmx.findDeadlockedThreads(); // returns null if none</span></pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -862,6 +576,81 @@ body{
             <li><strong>I</strong>nterface Segregation: Don't force clients to implement unused methods. Split fat interfaces.</li>
             <li><strong>D</strong>ependency Inversion: Depend on abstractions, not concretions. Inject <code>PaymentGateway</code> interface, not <code>StripePayment</code> directly.</li>
           </ul>
+
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="cm">// ── S: Single Responsibility Principle ─────────────────────────────────────
+// ❌ Bad — one class handles orders AND email AND PDF</span>
+<span class="kw">class</span> <span class="cls">OrderService</span> {
+  <span class="kw">void</span> <span class="fn">placeOrder</span>(<span class="cls">Order</span> o) { <span class="cm">/* save */</span> }
+  <span class="kw">void</span> <span class="fn">sendConfirmationEmail</span>(<span class="cls">Order</span> o) { <span class="cm">/* SMTP */</span> }
+  <span class="kw">void</span> <span class="fn">generateInvoicePdf</span>(<span class="cls">Order</span> o) { <span class="cm">/* PDF */</span> }
+}
+<span class="cm">// ✅ Good — each class has one reason to change</span>
+<span class="kw">class</span> <span class="cls">OrderService</span>   { <span class="kw">void</span> <span class="fn">placeOrder</span>(<span class="cls">Order</span> o)  { <span class="cm">/* only order logic */</span> } }
+<span class="kw">class</span> <span class="cls">EmailService</span>   { <span class="kw">void</span> <span class="fn">sendEmail</span>(<span class="cls">Order</span> o)   { <span class="cm">/* only email logic */</span> } }
+<span class="kw">class</span> <span class="cls">InvoiceService</span> { <span class="kw">void</span> <span class="fn">generatePdf</span>(<span class="cls">Order</span> o) { <span class="cm">/* only PDF logic  */</span> } }
+
+<span class="cm">// ── O: Open/Closed Principle ────────────────────────────────────────────────
+// ❌ Bad — must edit existing class to add new payment type</span>
+<span class="kw">class</span> <span class="cls">PaymentProcessor</span> {
+  <span class="kw">void</span> <span class="fn">process</span>(<span class="cls">String</span> type) {
+    <span class="kw">if</span> (type.<span class="fn">equals</span>(<span class="str">"stripe"</span>))  { <span class="cm">/* ... */</span> }
+    <span class="kw">else if</span> (type.<span class="fn">equals</span>(<span class="str">"paypal"</span>)) { <span class="cm">/* ... */</span> } <span class="cm">// keep modifying ❌</span>
+  }
+}
+<span class="cm">// ✅ Good — extend via new class, never touch existing code</span>
+<span class="kw">interface</span> <span class="cls">PaymentGateway</span> { <span class="kw">void</span> <span class="fn">process</span>(<span class="cls">Order</span> order); }
+<span class="kw">class</span> <span class="cls">StripeGateway</span>  <span class="kw">implements</span> <span class="cls">PaymentGateway</span> { <span class="kw">public void</span> <span class="fn">process</span>(<span class="cls">Order</span> o) { <span class="cm">/* Stripe API */</span> } }
+<span class="kw">class</span> <span class="cls">PayPalGateway</span>  <span class="kw">implements</span> <span class="cls">PaymentGateway</span> { <span class="kw">public void</span> <span class="fn">process</span>(<span class="cls">Order</span> o) { <span class="cm">/* PayPal API */</span> } }
+<span class="kw">class</span> <span class="cls">RazorpayGateway</span> <span class="kw">implements</span> <span class="cls">PaymentGateway</span> { <span class="kw">public void</span> <span class="fn">process</span>(<span class="cls">Order</span> o) { <span class="cm">/* new — no edits above */</span> } }
+
+<span class="cm">// ── L: Liskov Substitution Principle ───────────────────────────────────────
+// ❌ Bad — Square breaks Rectangle contract (setWidth changes height too)</span>
+<span class="kw">class</span> <span class="cls">Rectangle</span> {
+  <span class="kw">int</span> w, h;
+  <span class="kw">void</span> <span class="fn">setWidth</span>(<span class="kw">int</span> w)  { <span class="kw">this</span>.w = w; }
+  <span class="kw">void</span> <span class="fn">setHeight</span>(<span class="kw">int</span> h) { <span class="kw">this</span>.h = h; }
+  <span class="kw">int</span>  <span class="fn">area</span>()            { <span class="kw">return</span> w * h; }
+}
+<span class="kw">class</span> <span class="cls">Square</span> <span class="kw">extends</span> <span class="cls">Rectangle</span> {
+  <span class="kw">void</span> <span class="fn">setWidth</span>(<span class="kw">int</span> w)  { <span class="kw">this</span>.w = <span class="kw">this</span>.h = w; } <span class="cm">// ❌ violates LSP</span>
+}
+<span class="cm">// ✅ Good — separate abstractions; use interface/composition</span>
+<span class="kw">interface</span> <span class="cls">Shape</span> { <span class="kw">int</span> <span class="fn">area</span>(); }
+<span class="kw">record</span> <span class="cls">Rectangle</span>(<span class="kw">int</span> w, <span class="kw">int</span> h) <span class="kw">implements</span> <span class="cls">Shape</span> { <span class="kw">public int</span> <span class="fn">area</span>() { <span class="kw">return</span> w * h; } }
+<span class="kw">record</span> <span class="cls">Square</span>(<span class="kw">int</span> side)       <span class="kw">implements</span> <span class="cls">Shape</span> { <span class="kw">public int</span> <span class="fn">area</span>() { <span class="kw">return</span> side * side; } }
+
+<span class="cm">// ── I: Interface Segregation Principle ─────────────────────────────────────
+// ❌ Bad — fat interface forces implementors to stub unused methods</span>
+<span class="kw">interface</span> <span class="cls">Worker</span> {
+  <span class="kw">void</span> <span class="fn">work</span>();
+  <span class="kw">void</span> <span class="fn">eat</span>();   <span class="cm">// ❌ robots don't eat — forced to throw UnsupportedOperationException</span>
+  <span class="kw">void</span> <span class="fn">sleep</span>(); <span class="cm">// ❌ same problem</span>
+}
+<span class="cm">// ✅ Good — segregated, clients only depend on what they use</span>
+<span class="kw">interface</span> <span class="cls">Workable</span>  { <span class="kw">void</span> <span class="fn">work</span>(); }
+<span class="kw">interface</span> <span class="cls">Feedable</span>  { <span class="kw">void</span> <span class="fn">eat</span>();  }
+<span class="kw">interface</span> <span class="cls">Restable</span>  { <span class="kw">void</span> <span class="fn">sleep</span>(); }
+<span class="kw">class</span> <span class="cls">HumanWorker</span> <span class="kw">implements</span> <span class="cls">Workable</span>, <span class="cls">Feedable</span>, <span class="cls">Restable</span> { <span class="cm">/* all three */</span> }
+<span class="kw">class</span> <span class="cls">RobotWorker</span>  <span class="kw">implements</span> <span class="cls">Workable</span>                       { <span class="cm">/* only work  */</span> }
+
+<span class="cm">// ── D: Dependency Inversion Principle ──────────────────────────────────────
+// ❌ Bad — high-level module depends on low-level concrete class</span>
+<span class="kw">class</span> <span class="cls">OrderService</span> {
+  <span class="kw">private final</span> <span class="cls">StripePayment</span> stripe = <span class="kw">new</span> <span class="cls">StripePayment</span>(); <span class="cm">// tightly coupled ❌</span>
+  <span class="kw">void</span> <span class="fn">checkout</span>(<span class="cls">Order</span> o) { stripe.<span class="fn">charge</span>(o); }
+}
+<span class="cm">// ✅ Good — depend on abstraction; inject via constructor (Spring @Service)</span>
+<span class="kw">interface</span> <span class="cls">PaymentGateway</span> { <span class="kw">void</span> <span class="fn">charge</span>(<span class="cls">Order</span> order); }
+
+<span class="ann">@Service</span>
+<span class="kw">class</span> <span class="cls">OrderService</span> {
+  <span class="kw">private final</span> <span class="cls">PaymentGateway</span> gateway; <span class="cm">// ← abstraction</span>
+  <span class="kw">public</span> <span class="cls">OrderService</span>(<span class="cls">PaymentGateway</span> gateway) { <span class="kw">this</span>.gateway = gateway; }
+  <span class="kw">void</span> <span class="fn">checkout</span>(<span class="cls">Order</span> o) { gateway.<span class="fn">charge</span>(o); }
+}
+<span class="ann">@Service</span> <span class="kw">class</span> <span class="cls">StripeGateway</span>   <span class="kw">implements</span> <span class="cls">PaymentGateway</span> { <span class="kw">public void</span> <span class="fn">charge</span>(<span class="cls">Order</span> o) { <span class="cm">/* Stripe */</span> } }
+<span class="ann">@Service</span> <span class="kw">class</span> <span class="cls">RazorpayGateway</span> <span class="kw">implements</span> <span class="cls">PaymentGateway</span> { <span class="kw">public void</span> <span class="fn">charge</span>(<span class="cls">Order</span> o) { <span class="cm">/* Razorpay */</span> } }
+<span class="cm">// Spring injects correct impl — swap without touching OrderService</span></pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -928,6 +717,82 @@ body{
           <strong>Comparator</strong> (<code>java.util</code>): External comparator — defined outside. Multiple sort sequences.<br/><code>compare(T o1, T o2)</code> — doesn't modify the class.<br/><br/>
           <strong>Java 8 Comparator chains:</strong><br/>
           <code>Comparator.comparing(Employee::getSalary).thenComparing(Employee::getName)</code>
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="cm">// ── Full Employee class showing Comparable + multiple Comparators ──────────</span>
+<span class="kw">public class</span> <span class="cls">Employee</span> <span class="kw">implements</span> <span class="cls">Comparable</span>&lt;<span class="cls">Employee</span>&gt; {
+  <span class="kw">private final</span> <span class="cls">String</span> name;
+  <span class="kw">private final</span> <span class="cls">String</span> department;
+  <span class="kw">private final</span> <span class="kw">double</span> salary;
+  <span class="kw">private final</span> <span class="kw">int</span>    age;
+
+  <span class="kw">public</span> <span class="cls">Employee</span>(<span class="cls">String</span> name, <span class="cls">String</span> dept, <span class="kw">double</span> salary, <span class="kw">int</span> age) {
+    <span class="kw">this</span>.name = name; <span class="kw">this</span>.department = dept;
+    <span class="kw">this</span>.salary = salary; <span class="kw">this</span>.age = age;
+  }
+  <span class="cm">// Natural ordering — defined INSIDE class (used by Collections.sort / TreeSet)</span>
+  <span class="ann">@Override</span>
+  <span class="kw">public int</span> <span class="fn">compareTo</span>(<span class="cls">Employee</span> other) {
+    <span class="kw">return this</span>.name.<span class="fn">compareTo</span>(other.name); <span class="cm">// natural order = alphabetical by name</span>
+  }
+  <span class="kw">public</span> <span class="cls">String</span> <span class="fn">getName</span>()       { <span class="kw">return</span> name; }
+  <span class="kw">public</span> <span class="cls">String</span> <span class="fn">getDepartment</span>() { <span class="kw">return</span> department; }
+  <span class="kw">public double</span> <span class="fn">getSalary</span>()     { <span class="kw">return</span> salary; }
+  <span class="kw">public int</span>    <span class="fn">getAge</span>()        { <span class="kw">return</span> age; }
+  <span class="ann">@Override</span> <span class="kw">public</span> <span class="cls">String</span> <span class="fn">toString</span>() { <span class="kw">return</span> name + <span class="str">"("</span> + salary + <span class="str">")"</span>; }
+}
+
+<span class="kw">public class</span> <span class="cls">ComparatorDemo</span> {
+  <span class="kw">public static void</span> <span class="fn">main</span>(<span class="cls">String</span>[] args) {
+    <span class="cls">List</span>&lt;<span class="cls">Employee</span>&gt; employees = <span class="cls">Arrays</span>.<span class="fn">asList</span>(
+      <span class="kw">new</span> <span class="cls">Employee</span>(<span class="str">"Zara"</span>, <span class="str">"HR"</span>,      <span class="num">60000</span>, <span class="num">28</span>),
+      <span class="kw">new</span> <span class="cls">Employee</span>(<span class="str">"Alice"</span>, <span class="str">"IT"</span>,     <span class="num">95000</span>, <span class="num">32</span>),
+      <span class="kw">new</span> <span class="cls">Employee</span>(<span class="str">"Bob"</span>, <span class="str">"IT"</span>,       <span class="num">95000</span>, <span class="num">29</span>),
+      <span class="kw">new</span> <span class="cls">Employee</span>(<span class="str">"Charlie"</span>, <span class="str">"Finance"</span>, <span class="num">72000</span>, <span class="num">35</span>)
+    );
+
+    <span class="cm">// 1. Natural ordering via Comparable (alphabetical by name)</span>
+    <span class="cls">Collections</span>.<span class="fn">sort</span>(employees);
+    <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Natural: "</span> + employees);
+
+    <span class="cm">// 2. Comparator — sort by salary descending (external, doesn't touch class)</span>
+    <span class="cls">Comparator</span>&lt;<span class="cls">Employee</span>&gt; bySalaryDesc =
+      <span class="cls">Comparator</span>.<span class="fn">comparingDouble</span>(<span class="cls">Employee</span>::<span class="fn">getSalary</span>).<span class="fn">reversed</span>();
+    employees.<span class="fn">sort</span>(bySalaryDesc);
+    <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"By salary DESC: "</span> + employees);
+
+    <span class="cm">// 3. Multi-level sort — salary desc, then name asc (tiebreaker)</span>
+    <span class="cls">Comparator</span>&lt;<span class="cls">Employee</span>&gt; multiSort =
+      <span class="cls">Comparator</span>.<span class="fn">comparingDouble</span>(<span class="cls">Employee</span>::<span class="fn">getSalary</span>)
+                 .<span class="fn">reversed</span>()
+                 .<span class="fn">thenComparing</span>(<span class="cls">Employee</span>::<span class="fn">getName</span>);
+    employees.<span class="fn">sort</span>(multiSort);
+    <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Multi-sort (salary DESC, name ASC): "</span> + employees);
+
+    <span class="cm">// 4. Comparator.comparing with null-safety</span>
+    <span class="cls">Comparator</span>&lt;<span class="cls">Employee</span>&gt; nullSafe =
+      <span class="cls">Comparator</span>.<span class="fn">comparing</span>(<span class="cls">Employee</span>::<span class="fn">getDepartment</span>,
+                            <span class="cls">Comparator</span>.<span class="fn">nullsLast</span>(<span class="cls">Comparator</span>.<span class="fn">naturalOrder</span>()));
+
+    <span class="cm">// 5. Group by department, then sort by salary within each dept</span>
+    <span class="cls">Map</span>&lt;<span class="cls">String</span>, <span class="cls">List</span>&lt;<span class="cls">Employee</span>&gt;&gt; byDept = employees.<span class="fn">stream</span>()
+      .<span class="fn">sorted</span>(<span class="cls">Comparator</span>.<span class="fn">comparing</span>(<span class="cls">Employee</span>::<span class="fn">getDepartment</span>)
+                        .<span class="fn">thenComparingDouble</span>(<span class="cls">Employee</span>::<span class="fn">getSalary</span>).<span class="fn">reversed</span>())
+      .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">groupingBy</span>(<span class="cls">Employee</span>::<span class="fn">getDepartment</span>));
+
+    <span class="cm">// 6. TreeMap with custom Comparator (keeps employees sorted)</span>
+    <span class="cls">TreeSet</span>&lt;<span class="cls">Employee</span>&gt; treeSet = <span class="kw">new</span> <span class="cls">TreeSet</span>&lt;&gt;(
+      <span class="cls">Comparator</span>.<span class="fn">comparingDouble</span>(<span class="cls">Employee</span>::<span class="fn">getSalary</span>).<span class="fn">thenComparing</span>(<span class="cls">Employee</span>::<span class="fn">getName</span>));
+    treeSet.<span class="fn">addAll</span>(employees);
+    <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"TreeSet (salary asc): "</span> + treeSet);
+  }
+}
+
+<span class="cm">/*
+ Key difference summary:
+   Comparable  → natural order, ONE definition, inside the class
+   Comparator  → custom order, MULTIPLE definitions, outside the class
+   Use Comparable when class has a clear natural sort (Integer, String, Date)
+   Use Comparator when you need different orderings or can't modify the class
+*/</span></pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -1269,6 +1134,54 @@ nested.<span class="fn">stream</span>().<span class="fn">flatMap</span>(<span cl
             <li><code>map(fn)</code>, <code>filter(pred)</code>, <code>ifPresent(consumer)</code></li>
           </ul>
           <div class="tip-box warn"><span class="tip-label">Don't</span>Use Optional as method parameters or in fields. Only as return type.</div>
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="kw">import</span> java.util.*;
+
+<span class="kw">public class</span> <span class="cls">OptionalDemo</span> {
+
+  <span class="cm">// ❌ Old way — manual null checks everywhere</span>
+  <span class="kw">public</span> <span class="cls">String</span> <span class="fn">getUserCityOld</span>(<span class="cls">Long</span> userId) {
+    <span class="cls">User</span> user = userRepo.<span class="fn">findById</span>(userId);
+    <span class="kw">if</span> (user != <span class="kw">null</span> && user.<span class="fn">getAddress</span>() != <span class="kw">null</span>) {
+      <span class="kw">return</span> user.<span class="fn">getAddress</span>().<span class="fn">getCity</span>();
+    }
+    <span class="kw">return</span> <span class="str">"Unknown"</span>;
+  }
+
+  <span class="cm">// ✅ Optional — explicit, readable, no NPE risk</span>
+  <span class="kw">public</span> <span class="cls">String</span> <span class="fn">getUserCity</span>(<span class="cls">Long</span> userId) {
+    <span class="kw">return</span> userRepo.<span class="fn">findById</span>(userId)         <span class="cm">// returns Optional&lt;User&gt;</span>
+        .<span class="fn">map</span>(<span class="cls">User</span>::getAddress)                <span class="cm">// Optional&lt;Address&gt; or empty</span>
+        .<span class="fn">map</span>(<span class="cls">Address</span>::getCity)               <span class="cm">// Optional&lt;String&gt; or empty</span>
+        .<span class="fn">orElse</span>(<span class="str">"Unknown"</span>);                  <span class="cm">// default if any step is empty</span>
+  }
+
+  <span class="kw">public static void</span> <span class="fn">main</span>(<span class="cls">String</span>[] args) {
+    <span class="cm">// Creating Optional:</span>
+    <span class="cls">Optional</span>&lt;<span class="cls">String</span>&gt; full = <span class="cls">Optional</span>.<span class="fn">of</span>(<span class="str">"Alice"</span>);       <span class="cm">// ❌ NPE if null</span>
+    <span class="cls">Optional</span>&lt;<span class="cls">String</span>&gt; safe = <span class="cls">Optional</span>.<span class="fn">ofNullable</span>(<span class="kw">null</span>); <span class="cm">// ✅ empty if null</span>
+    <span class="cls">Optional</span>&lt;<span class="cls">String</span>&gt; empty = <span class="cls">Optional</span>.<span class="fn">empty</span>();
+
+    <span class="cm">// Consuming Optional safely:</span>
+    safe.<span class="fn">ifPresent</span>(s -&gt; <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Found: "</span> + s)); <span class="cm">// no-op if empty</span>
+    <span class="cls">String</span> val = safe.<span class="fn">orElse</span>(<span class="str">"default"</span>);               <span class="cm">// "default"</span>
+    <span class="cls">String</span> val2 = safe.<span class="fn">orElseGet</span>(() -&gt; <span class="fn">computeDefault</span>()); <span class="cm">// lazy supplier</span>
+    <span class="cls">String</span> val3 = safe.<span class="fn">orElseThrow</span>(() -&gt; <span class="kw">new</span> <span class="cls">NoSuchElementException</span>(<span class="str">"Not found"</span>));
+
+    <span class="cm">// filter + map on Optional:</span>
+    <span class="cls">Optional</span>&lt;<span class="cls">String</span>&gt; upper = full
+        .<span class="fn">filter</span>(s -&gt; s.<span class="fn">length</span>() &gt; <span class="num">3</span>)   <span class="cm">// keep if condition true</span>
+        .<span class="fn">map</span>(<span class="cls">String</span>::toUpperCase);       <span class="cm">// Optional("ALICE")</span>
+    upper.<span class="fn">ifPresent</span>(<span class="cls">System</span>.out::println); <span class="cm">// ALICE</span>
+
+    <span class="cm">// ❌ Anti-patterns:</span>
+    <span class="cm">// opt.get() without isPresent() → NoSuchElementException</span>
+    <span class="cm">// Optional as method parameter → use overloads instead</span>
+    <span class="cm">// Optional in fields → use null directly (serialization issues)</span>
+    <span class="cm">// Optional.isPresent() + get() → use map/orElse/ifPresent instead</span>
+  }
+
+  <span class="kw">private</span> <span class="cls">String</span> <span class="fn">computeDefault</span>() { <span class="kw">return</span> <span class="str">"computed"</span>; }
+}</pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -1285,6 +1198,49 @@ nested.<span class="fn">stream</span>().<span class="fn">flatMap</span>(<span cl
             <tr><td>Consumer&lt;T&gt;</td><td>accept(T)</td><td>Consume input, return void</td></tr>
             <tr><td>Supplier&lt;T&gt;</td><td>get()</td><td>Produce value without input</td></tr>
           </table>
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="kw">import</span> java.util.function.*;
+
+<span class="kw">public class</span> <span class="cls">FunctionalInterfaceDemo</span> {
+  <span class="kw">public static void</span> <span class="fn">main</span>(<span class="cls">String</span>[] args) {
+
+    <span class="cm">// Predicate&lt;T&gt; — test(T): boolean result, used in filter()</span>
+    <span class="cls">Predicate</span>&lt;<span class="cls">String</span>&gt; isLong = s -&gt; s.<span class="fn">length</span>() &gt; <span class="num">5</span>;
+    <span class="cls">Predicate</span>&lt;<span class="cls">String</span>&gt; startsWithA = s -&gt; s.<span class="fn">startsWith</span>(<span class="str">"A"</span>);
+    <span class="cls">Predicate</span>&lt;<span class="cls">String</span>&gt; combined = isLong.<span class="fn">and</span>(startsWithA); <span class="cm">// compose predicates</span>
+    <span class="cls">System</span>.out.<span class="fn">println</span>(combined.<span class="fn">test</span>(<span class="str">"Alice"</span>));   <span class="cm">// false (length 5, not > 5)</span>
+    <span class="cls">System</span>.out.<span class="fn">println</span>(combined.<span class="fn">test</span>(<span class="str">"Alicia"</span>));  <span class="cm">// true</span>
+
+    <span class="cm">// Function&lt;T,R&gt; — apply(T): transforms T → R, used in map()</span>
+    <span class="cls">Function</span>&lt;<span class="cls">String</span>, <span class="cls">Integer</span>&gt; strLen = <span class="cls">String</span>::length;
+    <span class="cls">Function</span>&lt;<span class="cls">Integer</span>, <span class="cls">String</span>&gt; intToStr = i -&gt; <span class="str">"Value: "</span> + i;
+    <span class="cls">Function</span>&lt;<span class="cls">String</span>, <span class="cls">String</span>&gt; composed = strLen.<span class="fn">andThen</span>(intToStr); <span class="cm">// chain functions</span>
+    <span class="cls">System</span>.out.<span class="fn">println</span>(composed.<span class="fn">apply</span>(<span class="str">"Hello"</span>)); <span class="cm">// "Value: 5"</span>
+
+    <span class="cm">// BiFunction&lt;T,U,R&gt; — apply(T,U): two inputs, one output</span>
+    <span class="cls">BiFunction</span>&lt;<span class="cls">String</span>, <span class="cls">Integer</span>, <span class="cls">String</span>&gt; repeat = (s, n) -&gt; s.<span class="fn">repeat</span>(n);
+    <span class="cls">System</span>.out.<span class="fn">println</span>(repeat.<span class="fn">apply</span>(<span class="str">"ab"</span>, <span class="num">3</span>)); <span class="cm">// "ababab"</span>
+
+    <span class="cm">// Consumer&lt;T&gt; — accept(T): side effect, no return, used in forEach()</span>
+    <span class="cls">Consumer</span>&lt;<span class="cls">String</span>&gt; print = <span class="cls">System</span>.out::println;
+    <span class="cls">Consumer</span>&lt;<span class="cls">String</span>&gt; printUpper = s -&gt; <span class="cls">System</span>.out.<span class="fn">println</span>(s.<span class="fn">toUpperCase</span>());
+    print.<span class="fn">andThen</span>(printUpper).<span class="fn">accept</span>(<span class="str">"hello"</span>); <span class="cm">// prints "hello" then "HELLO"</span>
+
+    <span class="cm">// Supplier&lt;T&gt; — get(): produces value without input (lazy init, factory)</span>
+    <span class="cls">Supplier</span>&lt;<span class="cls">String</span>&gt; greeting = () -&gt; <span class="str">"Hello, World!"</span>;
+    <span class="cls">System</span>.out.<span class="fn">println</span>(greeting.<span class="fn">get</span>()); <span class="cm">// "Hello, World!"</span>
+
+    <span class="cm">// Custom @FunctionalInterface</span>
+    <span class="cm">// @FunctionalInterface</span>
+    <span class="cm">// interface Validator&lt;T&gt; { boolean validate(T value); }  // one abstract method</span>
+    <span class="cm">// Validator&lt;Integer&gt; positive = n -&gt; n &gt; 0; // lambda as Validator</span>
+
+    <span class="cm">// UnaryOperator, BinaryOperator are specialized Function types:</span>
+    <span class="cls">UnaryOperator</span>&lt;<span class="cls">Integer</span>&gt; doubler = n -&gt; n * <span class="num">2</span>;  <span class="cm">// Function&lt;Integer,Integer&gt;</span>
+    <span class="cls">BinaryOperator</span>&lt;<span class="cls">Integer</span>&gt; add = <span class="cls">Integer</span>::sum;   <span class="cm">// BiFunction&lt;Integer,Integer,Integer&gt;</span>
+    <span class="cls">System</span>.out.<span class="fn">println</span>(doubler.<span class="fn">apply</span>(<span class="num">5</span>));       <span class="cm">// 10</span>
+    <span class="cls">System</span>.out.<span class="fn">println</span>(add.<span class="fn">apply</span>(<span class="num">3</span>, <span class="num">4</span>));        <span class="cm">// 7</span>
+  }
+}</pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -1964,6 +1920,55 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
             <li>Mixed: <code>threads = cores × (1 + wait/compute ratio)</code></li>
           </ul>
           <div class="tip-box"><span class="tip-label">Production</span>Monitor queue depth + rejection rate via metrics. If queue grows, increase corePoolSize or optimize tasks.</div>
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="kw">import</span> java.util.concurrent.*;
+
+<span class="kw">public class</span> <span class="cls">ThreadPoolDemo</span> {
+  <span class="kw">public static void</span> <span class="fn">main</span>(<span class="cls">String</span>[] args) <span class="kw">throws</span> <span class="cls">InterruptedException</span>, <span class="cls">ExecutionException</span> {
+
+    <span class="cm">// Production-grade ThreadPoolExecutor — explicit config</span>
+    <span class="kw">int</span> cpuCores = <span class="cls">Runtime</span>.<span class="fn">getRuntime</span>().<span class="fn">availableProcessors</span>();
+    <span class="cls">ThreadPoolExecutor</span> executor = <span class="kw">new</span> <span class="cls">ThreadPoolExecutor</span>(
+      cpuCores,                          <span class="cm">// corePoolSize: always alive</span>
+      cpuCores * <span class="num">2</span>,                    <span class="cm">// maxPoolSize: max threads when queue full</span>
+      <span class="num">60</span>, <span class="cls">TimeUnit</span>.SECONDS,            <span class="cm">// keepAliveTime: extra threads die after idle</span>
+      <span class="kw">new</span> <span class="cls">LinkedBlockingQueue</span>&lt;&gt;(<span class="num">500</span>),  <span class="cm">// bounded queue (avoid OOM from unbounded)</span>
+      <span class="kw">new</span> <span class="cls">ThreadFactory</span>() {           <span class="cm">// named threads for easy debugging</span>
+        <span class="kw">private int</span> count = <span class="num">0</span>;
+        <span class="kw">public</span> <span class="cls">Thread</span> <span class="fn">newThread</span>(<span class="cls">Runnable</span> r) {
+          <span class="kw">return new</span> <span class="cls">Thread</span>(r, <span class="str">"worker-"</span> + count++);
+        }
+      },
+      <span class="kw">new</span> <span class="cls">ThreadPoolExecutor</span>.<span class="cls">CallerRunsPolicy</span>() <span class="cm">// rejection: caller runs task itself</span>
+      <span class="cm">// Other policies: AbortPolicy (throws), DiscardPolicy (silently drops),</span>
+      <span class="cm">//                 DiscardOldestPolicy (drops oldest pending task)</span>
+    );
+
+    <span class="cm">// Submit tasks and get Future results</span>
+    <span class="cls">Future</span>&lt;<span class="cls">String</span>&gt; future = executor.<span class="fn">submit</span>(() -&gt; {
+      <span class="cls">Thread</span>.<span class="fn">sleep</span>(<span class="num">200</span>);
+      <span class="kw">return</span> <span class="str">"Result from "</span> + <span class="cls">Thread</span>.<span class="fn">currentThread</span>().<span class="fn">getName</span>();
+    });
+
+    <span class="kw">try</span> {
+      <span class="cls">String</span> result = future.<span class="fn">get</span>(<span class="num">1</span>, <span class="cls">TimeUnit</span>.SECONDS); <span class="cm">// timeout prevents hung futures</span>
+      <span class="cls">System</span>.out.<span class="fn">println</span>(result);
+    } <span class="kw">catch</span> (<span class="cls">TimeoutException</span> e) {
+      future.<span class="fn">cancel</span>(<span class="kw">true</span>); <span class="cm">// interrupt running task</span>
+    }
+
+    <span class="cm">// Monitor pool health (wire to metrics in prod)</span>
+    <span class="cls">System</span>.out.<span class="fn">printf</span>(<span class="str">"Active=%d Queue=%d Completed=%d%n"</span>,
+      executor.<span class="fn">getActiveCount</span>(),
+      executor.<span class="fn">getQueue</span>().<span class="fn">size</span>(),
+      executor.<span class="fn">getCompletedTaskCount</span>());
+
+    <span class="cm">// Graceful shutdown — wait up to 30s for tasks to finish</span>
+    executor.<span class="fn">shutdown</span>();
+    <span class="kw">if</span> (!executor.<span class="fn">awaitTermination</span>(<span class="num">30</span>, <span class="cls">TimeUnit</span>.SECONDS)) {
+      executor.<span class="fn">shutdownNow</span>(); <span class="cm">// force interrupt remaining tasks</span>
+    }
+  }
+}</pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -1983,6 +1988,94 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
 <span class="cls">CompletableFuture</span>.<span class="fn">allOf</span>(f1, f2, f3).<span class="fn">join</span>();
 <span class="cls">CompletableFuture</span>.<span class="fn">anyOf</span>(f1, f2).<span class="fn">join</span>(); <span class="cmt">// fastest wins</span></pre>
           <strong>Difference from Future:</strong> <code>Future.get()</code> blocks; CompletableFuture is non-blocking and composable.
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="cm">// ── Full CompletableFuture chain — production patterns ─────────────────────</span>
+<span class="kw">import</span> java.util.concurrent.*;
+
+<span class="kw">public class</span> <span class="cls">CompletableFutureDemo</span> {
+
+  <span class="kw">static</span> <span class="cls">ExecutorService</span> ioPool = <span class="cls">Executors</span>.<span class="fn">newFixedThreadPool</span>(<span class="num">10</span>);
+
+  <span class="cm">// ── thenApply: transform result (like Stream.map) ──────────────────────────</span>
+  <span class="kw">static</span> <span class="cls">CompletableFuture</span>&lt;<span class="cls">String</span>&gt; <span class="fn">pipeline</span>() {
+    <span class="kw">return</span> <span class="cls">CompletableFuture</span>
+      .<span class="fn">supplyAsync</span>(() -&gt; <span class="fn">fetchUserFromDb</span>(<span class="num">42</span>), ioPool)   <span class="cm">// runs on ioPool</span>
+      .<span class="fn">thenApply</span>(user -&gt; user.<span class="fn">toUpperCase</span>())           <span class="cm">// thenApply: same thread pool</span>
+      .<span class="fn">thenApply</span>(name -&gt; <span class="str">"Hello, "</span> + name);             <span class="cm">// chain multiple transforms</span>
+  }
+
+  <span class="cm">// ── thenCompose: flat-map (avoids CompletableFuture&lt;CompletableFuture&lt;T&gt;&gt;) ─</span>
+  <span class="kw">static</span> <span class="cls">CompletableFuture</span>&lt;<span class="cls">String</span>&gt; <span class="fn">composePipeline</span>(<span class="kw">int</span> userId) {
+    <span class="kw">return</span> <span class="cls">CompletableFuture</span>
+      .<span class="fn">supplyAsync</span>(() -&gt; <span class="fn">fetchUserFromDb</span>(userId), ioPool)
+      .<span class="fn">thenCompose</span>(user -&gt; <span class="fn">fetchOrdersAsync</span>(user))  <span class="cm">// returns CF — thenCompose unwraps it</span>
+      .<span class="fn">thenCompose</span>(orders -&gt; <span class="fn">enrichWithPricingAsync</span>(orders));
+  }
+
+  <span class="cm">// ── exceptionally: recover from error ──────────────────────────────────────</span>
+  <span class="kw">static</span> <span class="cls">CompletableFuture</span>&lt;<span class="cls">String</span>&gt; <span class="fn">withFallback</span>(<span class="kw">int</span> userId) {
+    <span class="kw">return</span> <span class="cls">CompletableFuture</span>
+      .<span class="fn">supplyAsync</span>(() -&gt; <span class="fn">riskyCall</span>(userId), ioPool)
+      .<span class="fn">thenApply</span>(<span class="cls">String</span>::<span class="fn">toUpperCase</span>)
+      .<span class="fn">exceptionally</span>(ex -&gt; {                        <span class="cm">// catches any upstream error</span>
+        <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Error: "</span> + ex.<span class="fn">getMessage</span>());
+        <span class="kw">return</span> <span class="str">"FALLBACK_VALUE"</span>;                    <span class="cm">// same type as T</span>
+      });
+  }
+
+  <span class="cm">// ── handle: like exceptionally but always runs (success or failure) ─────────</span>
+  <span class="kw">static</span> <span class="cls">CompletableFuture</span>&lt;<span class="cls">String</span>&gt; <span class="fn">withHandle</span>(<span class="kw">int</span> userId) {
+    <span class="kw">return</span> <span class="cls">CompletableFuture</span>
+      .<span class="fn">supplyAsync</span>(() -&gt; <span class="fn">riskyCall</span>(userId), ioPool)
+      .<span class="fn">handle</span>((result, ex) -&gt; {
+        <span class="kw">if</span> (ex != <span class="kw">null</span>) <span class="kw">return</span> <span class="str">"Error handled: "</span> + ex.<span class="fn">getMessage</span>();
+        <span class="kw">return</span> result.<span class="fn">toUpperCase</span>();
+      });
+  }
+
+  <span class="cm">// ── allOf: wait for ALL futures to complete ────────────────────────────────</span>
+  <span class="kw">static void</span> <span class="fn">parallelFetch</span>() <span class="kw">throws</span> <span class="cls">ExecutionException</span>, <span class="cls">InterruptedException</span> {
+    <span class="cls">CompletableFuture</span>&lt;<span class="cls">String</span>&gt; userFuture  = <span class="cls">CompletableFuture</span>.<span class="fn">supplyAsync</span>(() -&gt; <span class="fn">fetchUser</span>());
+    <span class="cls">CompletableFuture</span>&lt;<span class="cls">String</span>&gt; orderFuture = <span class="cls">CompletableFuture</span>.<span class="fn">supplyAsync</span>(() -&gt; <span class="fn">fetchOrders</span>());
+    <span class="cls">CompletableFuture</span>&lt;<span class="cls">String</span>&gt; priceFuture = <span class="cls">CompletableFuture</span>.<span class="fn">supplyAsync</span>(() -&gt; <span class="fn">fetchPrices</span>());
+
+    <span class="cls">CompletableFuture</span>.<span class="fn">allOf</span>(userFuture, orderFuture, priceFuture).<span class="fn">join</span>(); <span class="cm">// waits all</span>
+
+    <span class="cls">String</span> user   = userFuture.<span class="fn">get</span>();   <span class="cm">// safe — already done</span>
+    <span class="cls">String</span> orders = orderFuture.<span class="fn">get</span>();
+    <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"User: "</span> + user + <span class="str">", Orders: "</span> + orders);
+  }
+
+  <span class="cm">// ── anyOf: take the fastest result ────────────────────────────────────────</span>
+  <span class="kw">static void</span> <span class="fn">raceCondition</span>() {
+    <span class="cls">CompletableFuture</span>&lt;<span class="cls">Object</span>&gt; fastest = <span class="cls">CompletableFuture</span>.<span class="fn">anyOf</span>(
+      <span class="cls">CompletableFuture</span>.<span class="fn">supplyAsync</span>(() -&gt; <span class="fn">callServiceA</span>()),
+      <span class="cls">CompletableFuture</span>.<span class="fn">supplyAsync</span>(() -&gt; <span class="fn">callServiceB</span>()),
+      <span class="cls">CompletableFuture</span>.<span class="fn">supplyAsync</span>(() -&gt; <span class="fn">callServiceC</span>())
+    );
+    <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Fastest result: "</span> + fastest.<span class="fn">join</span>());
+  }
+
+  <span class="cm">// ── thenCombine: merge two independent futures ─────────────────────────────</span>
+  <span class="kw">static void</span> <span class="fn">combineResults</span>() {
+    <span class="cls">CompletableFuture</span>&lt;<span class="cls">Integer</span>&gt; price = <span class="cls">CompletableFuture</span>.<span class="fn">supplyAsync</span>(() -&gt; <span class="num">100</span>);
+    <span class="cls">CompletableFuture</span>&lt;<span class="cls">Integer</span>&gt; qty   = <span class="cls">CompletableFuture</span>.<span class="fn">supplyAsync</span>(() -&gt; <span class="num">5</span>);
+
+    price.<span class="fn">thenCombine</span>(qty, (p, q) -&gt; p * q)  <span class="cm">// runs when BOTH done</span>
+         .<span class="fn">thenAccept</span>(total -&gt; <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Total: "</span> + total)); <span class="cm">// 500</span>
+  }
+
+  <span class="cm">// Stubs</span>
+  <span class="kw">static</span> <span class="cls">String</span> <span class="fn">fetchUserFromDb</span>(<span class="kw">int</span> id)  { <span class="kw">return</span> <span class="str">"alice"</span>; }
+  <span class="kw">static</span> <span class="cls">CompletableFuture</span>&lt;<span class="cls">String</span>&gt; <span class="fn">fetchOrdersAsync</span>(<span class="cls">String</span> u)   { <span class="kw">return</span> <span class="cls">CompletableFuture</span>.<span class="fn">completedFuture</span>(<span class="str">"orders"</span>); }
+  <span class="kw">static</span> <span class="cls">CompletableFuture</span>&lt;<span class="cls">String</span>&gt; <span class="fn">enrichWithPricingAsync</span>(<span class="cls">String</span> o) { <span class="kw">return</span> <span class="cls">CompletableFuture</span>.<span class="fn">completedFuture</span>(<span class="str">"priced"</span>); }
+  <span class="kw">static</span> <span class="cls">String</span> <span class="fn">riskyCall</span>(<span class="kw">int</span> id) { <span class="kw">throw new</span> <span class="cls">RuntimeException</span>(<span class="str">"service down"</span>); }
+  <span class="kw">static</span> <span class="cls">String</span> <span class="fn">fetchUser</span>()   { <span class="kw">return</span> <span class="str">"user"</span>; }
+  <span class="kw">static</span> <span class="cls">String</span> <span class="fn">fetchOrders</span>() { <span class="kw">return</span> <span class="str">"orders"</span>; }
+  <span class="kw">static</span> <span class="cls">String</span> <span class="fn">fetchPrices</span>() { <span class="kw">return</span> <span class="str">"prices"</span>; }
+  <span class="kw">static</span> <span class="cls">String</span> <span class="fn">callServiceA</span>() { <span class="kw">return</span> <span class="str">"A"</span>; }
+  <span class="kw">static</span> <span class="cls">String</span> <span class="fn">callServiceB</span>() { <span class="kw">return</span> <span class="str">"B"</span>; }
+  <span class="kw">static</span> <span class="cls">String</span> <span class="fn">callServiceC</span>() { <span class="kw">return</span> <span class="str">"C"</span>; }
+}</pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -2000,6 +2093,68 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
             <tr><td>Explicit unlock</td><td>Auto</td><td>Must call unlock() in finally</td></tr>
           </table>
           <div class="tip-box warn"><span class="tip-label">Always</span>Wrap ReentrantLock.lock() in try-finally to ensure unlock() is called even on exception.</div>
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="kw">import</span> java.util.concurrent.*;
+<span class="kw">import</span> java.util.concurrent.locks.*;
+
+<span class="kw">public class</span> <span class="cls">ReentrantLockDemo</span> {
+  <span class="kw">private final</span> <span class="cls">ReentrantLock</span> lock = <span class="kw">new</span> <span class="cls">ReentrantLock</span>(<span class="kw">true</span>); <span class="cm">// fair=true</span>
+  <span class="kw">private int</span> balance = <span class="num">1000</span>;
+
+  <span class="cm">// ✅ Standard ReentrantLock usage — always unlock in finally</span>
+  <span class="kw">public void</span> <span class="fn">debit</span>(<span class="kw">int</span> amount) {
+    lock.<span class="fn">lock</span>(); <span class="cm">// blocks until lock acquired</span>
+    <span class="kw">try</span> {
+      <span class="kw">if</span> (balance &gt;= amount) {
+        balance -= amount;
+        <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Debited "</span> + amount + <span class="str">", balance="</span> + balance);
+      }
+    } <span class="kw">finally</span> {
+      lock.<span class="fn">unlock</span>(); <span class="cm">// ALWAYS in finally — exception safe</span>
+    }
+  }
+
+  <span class="cm">// ✅ tryLock — non-blocking, avoids deadlock</span>
+  <span class="kw">public boolean</span> <span class="fn">tryDebit</span>(<span class="kw">int</span> amount) <span class="kw">throws</span> <span class="cls">InterruptedException</span> {
+    <span class="kw">if</span> (lock.<span class="fn">tryLock</span>(<span class="num">100</span>, <span class="cls">TimeUnit</span>.MILLISECONDS)) { <span class="cm">// wait up to 100ms</span>
+      <span class="kw">try</span> {
+        balance -= amount;
+        <span class="kw">return true</span>;
+      } <span class="kw">finally</span> { lock.<span class="fn">unlock</span>(); }
+    }
+    <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Could not acquire lock — skipping"</span>);
+    <span class="kw">return false</span>; <span class="cm">// did not wait — no deadlock risk</span>
+  }
+
+  <span class="cm">// ✅ ReentrantLock with Condition — finer-grained than wait/notify</span>
+  <span class="kw">private final</span> <span class="cls">Condition</span> sufficientFunds = lock.<span class="fn">newCondition</span>();
+
+  <span class="kw">public void</span> <span class="fn">withdraw</span>(<span class="kw">int</span> amount) <span class="kw">throws</span> <span class="cls">InterruptedException</span> {
+    lock.<span class="fn">lock</span>();
+    <span class="kw">try</span> {
+      <span class="kw">while</span> (balance &lt; amount) {
+        <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Insufficient funds, waiting..."</span>);
+        sufficientFunds.<span class="fn">await</span>(); <span class="cm">// release lock and wait for signal</span>
+      }
+      balance -= amount;
+    } <span class="kw">finally</span> { lock.<span class="fn">unlock</span>(); }
+  }
+
+  <span class="kw">public void</span> <span class="fn">deposit</span>(<span class="kw">int</span> amount) {
+    lock.<span class="fn">lock</span>();
+    <span class="kw">try</span> {
+      balance += amount;
+      sufficientFunds.<span class="fn">signalAll</span>(); <span class="cm">// wake up threads waiting for funds</span>
+    } <span class="kw">finally</span> { lock.<span class="fn">unlock</span>(); }
+  }
+
+  <span class="cm">// When to use ReentrantLock over synchronized:</span>
+  <span class="cm">// ✅ Need tryLock() to avoid deadlock</span>
+  <span class="cm">// ✅ Need lockInterruptibly() — cancellable waiting</span>
+  <span class="cm">// ✅ Need multiple Condition objects (different wait sets)</span>
+  <span class="cm">// ✅ Need fairness (FIFO ordering)</span>
+  <span class="cm">// ✅ Virtual threads with blocking I/O (synchronized pins carrier thread)</span>
+  <span class="cm">// ❌ synchronized is fine for simple mutual exclusion — less error-prone</span>
+}</pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -2170,6 +2325,99 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
     p.<span class="fn">join</span>();  c.<span class="fn">join</span>();
   }
 }</pre>
+        </div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+      </div>
+
+      <div class="q-card" onclick="toggleAnswer(this)">
+        <div class="q-card-top"><span class="q-num">MT-10</span><div class="q-text">CountDownLatch vs CyclicBarrier — when to use which?</div></div>
+        <div class="q-tags"><span class="q-tag tag-hard">Hard</span><span class="q-tag tag-hot">🔥 Hot</span></div>
+        <div class="q-answer">
+          <strong>CountDownLatch:</strong> One-shot gate — main thread waits for N workers to finish. Cannot be reset.<br/>
+          <strong>CyclicBarrier:</strong> Reusable meeting point — N threads wait for each other, then all proceed together.
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="cm">// ── CountDownLatch — main waits for all workers to finish ──────────────────</span>
+<span class="kw">public class</span> <span class="cls">CountDownLatchDemo</span> {
+  <span class="kw">public static void</span> <span class="fn">main</span>(<span class="cls">String</span>[] args) <span class="kw">throws</span> <span class="cls">InterruptedException</span> {
+    <span class="kw">int</span> workerCount = <span class="num">5</span>;
+    <span class="cls">CountDownLatch</span> latch = <span class="kw">new</span> <span class="cls">CountDownLatch</span>(workerCount); <span class="cm">// count = 5</span>
+    <span class="cls">ExecutorService</span> pool = <span class="cls">Executors</span>.<span class="fn">newFixedThreadPool</span>(workerCount);
+
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">1</span>; i &lt;= workerCount; i++) {
+      <span class="kw">final int</span> id = i;
+      pool.<span class="fn">submit</span>(() -&gt; {
+        <span class="kw">try</span> {
+          <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Worker-"</span> + id + <span class="str">" started"</span>);
+          <span class="cls">Thread</span>.<span class="fn">sleep</span>(<span class="num">500</span> * id); <span class="cm">// simulate work</span>
+          <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Worker-"</span> + id + <span class="str">" done"</span>);
+        } <span class="kw">catch</span> (<span class="cls">InterruptedException</span> e) {
+          <span class="cls">Thread</span>.<span class="fn">currentThread</span>().<span class="fn">interrupt</span>();
+        } <span class="kw">finally</span> {
+          latch.<span class="fn">countDown</span>(); <span class="cm">// decrement count — ALWAYS in finally</span>
+        }
+      });
+    }
+
+    <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Main thread waiting for all workers..."</span>);
+    latch.<span class="fn">await</span>(<span class="num">30</span>, <span class="cls">TimeUnit</span>.SECONDS); <span class="cm">// waits until count == 0 (or timeout)</span>
+    <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"All workers finished — aggregating results"</span>);
+    pool.<span class="fn">shutdown</span>();
+  }
+}
+
+<span class="cm">// Real use-case: app startup gate — wait for DB, cache, config to be ready
+// before accepting HTTP traffic</span>
+<span class="kw">class</span> <span class="cls">ApplicationStartupGate</span> {
+  <span class="kw">private final</span> <span class="cls">CountDownLatch</span> ready = <span class="kw">new</span> <span class="cls">CountDownLatch</span>(<span class="num">3</span>);
+
+  <span class="kw">void</span> <span class="fn">initDatabase</span>()  { <span class="cm">/* ... */</span> ready.<span class="fn">countDown</span>(); }
+  <span class="kw">void</span> <span class="fn">initRedis</span>()     { <span class="cm">/* ... */</span> ready.<span class="fn">countDown</span>(); }
+  <span class="kw">void</span> <span class="fn">initKafka</span>()     { <span class="cm">/* ... */</span> ready.<span class="fn">countDown</span>(); }
+  <span class="kw">void</span> <span class="fn">awaitReady</span>() <span class="kw">throws</span> <span class="cls">InterruptedException</span> { ready.<span class="fn">await</span>(); }
+}
+
+<span class="cm">// ── CyclicBarrier — N threads synchronize at a checkpoint, then all proceed ─</span>
+<span class="kw">public class</span> <span class="cls">CyclicBarrierDemo</span> {
+  <span class="kw">public static void</span> <span class="fn">main</span>(<span class="cls">String</span>[] args) <span class="kw">throws</span> <span class="cls">InterruptedException</span> {
+    <span class="kw">int</span> parties = <span class="num">3</span>;
+    <span class="cm">// Optional barrier action — runs once when all parties arrive</span>
+    <span class="cls">CyclicBarrier</span> barrier = <span class="kw">new</span> <span class="cls">CyclicBarrier</span>(parties,
+        () -&gt; <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"=== All threads reached checkpoint — proceeding ==="</span>));
+
+    <span class="cls">ExecutorService</span> pool = <span class="cls">Executors</span>.<span class="fn">newFixedThreadPool</span>(parties);
+
+    <span class="kw">for</span> (<span class="kw">int</span> phase = <span class="num">1</span>; phase &lt;= <span class="num">2</span>; phase++) {  <span class="cm">// 2 rounds (barrier is reusable!)</span>
+      <span class="kw">final int</span> p = phase;
+      <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">1</span>; i &lt;= parties; i++) {
+        <span class="kw">final int</span> id = i;
+        pool.<span class="fn">submit</span>(() -&gt; {
+          <span class="kw">try</span> {
+            <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Thread-"</span> + id + <span class="str">" phase-"</span> + p + <span class="str">": working"</span>);
+            <span class="cls">Thread</span>.<span class="fn">sleep</span>(<span class="num">200</span> * id);
+            <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Thread-"</span> + id + <span class="str">" reached barrier"</span>);
+            barrier.<span class="fn">await</span>(); <span class="cm">// wait here until all 3 threads arrive</span>
+            <span class="cm">// all 3 threads continue only after all arrive</span>
+            <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Thread-"</span> + id + <span class="str">" phase-"</span> + p + <span class="str">": continuing"</span>);
+          } <span class="kw">catch</span> (<span class="cls">Exception</span> e) { <span class="cls">Thread</span>.<span class="fn">currentThread</span>().<span class="fn">interrupt</span>(); }
+        });
+      }
+      <span class="cls">Thread</span>.<span class="fn">sleep</span>(<span class="num">2000</span>); <span class="cm">// let phase complete before starting next</span>
+    }
+    pool.<span class="fn">shutdown</span>();
+  }
+}
+
+<span class="cm">/*
+ Comparison:
+ ┌────────────────────┬──────────────────────────────┬──────────────────────────────┐
+ │                    │ CountDownLatch               │ CyclicBarrier                │
+ ├────────────────────┼──────────────────────────────┼──────────────────────────────┤
+ │ Reusable           │ No (one-shot)                │ Yes (reset automatically)    │
+ │ Who waits          │ One thread waits for N       │ N threads wait for each other│
+ │ Barrier action     │ No                           │ Yes (runs after all arrive)  │
+ │ Use case           │ app startup, test fixtures   │ parallel computation phases  │
+ │ BrokenBarrier exc  │ No                           │ Yes (if a thread fails)      │
+ └────────────────────┴──────────────────────────────┴──────────────────────────────┘
+*/</span></pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -2750,6 +2998,51 @@ orders.forEach(o -> o.getCustomer().getName()); <span class="cmt">// N queries!<
             <li>Batch loading: <code>@BatchSize(size = 20)</code></li>
             <li>DTO projections: fetch only needed columns</li>
           </ul>
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="cm">// ❌ N+1 PROBLEM — Entity with LAZY fetch</span>
+<span class="ann">@Entity</span>
+<span class="kw">public class</span> <span class="cls">Order</span> {
+  <span class="ann">@Id</span> <span class="kw">private</span> <span class="cls">Long</span> id;
+  <span class="ann">@ManyToOne</span>(fetch = <span class="cls">FetchType</span>.LAZY) <span class="cm">// ← lazy by default for @ManyToOne</span>
+  <span class="kw">private</span> <span class="cls">Customer</span> customer;
+  <span class="ann">@OneToMany</span>(mappedBy = <span class="str">"order"</span>, fetch = <span class="cls">FetchType</span>.LAZY)
+  <span class="kw">private</span> <span class="cls">List</span>&lt;<span class="cls">OrderItem</span>&gt; items;
+}
+
+<span class="cm">// ❌ This triggers N+1: 1 query for orders + N queries for each customer</span>
+<span class="cls">List</span>&lt;<span class="cls">Order</span>&gt; orders = orderRepo.<span class="fn">findAll</span>();      <span class="cm">// Query 1: SELECT * FROM orders</span>
+orders.<span class="fn">forEach</span>(o -&gt; o.<span class="fn">getCustomer</span>().<span class="fn">getName</span>()); <span class="cm">// Query 2,3...N for each customer</span>
+
+<span class="cm">// ✅ FIX 1: JPQL JOIN FETCH — single query with JOIN</span>
+<span class="kw">public interface</span> <span class="cls">OrderRepository</span> <span class="kw">extends</span> <span class="cls">JpaRepository</span>&lt;<span class="cls">Order</span>, <span class="cls">Long</span>&gt; {
+
+  <span class="ann">@Query</span>(<span class="str">"SELECT o FROM Order o JOIN FETCH o.customer"</span>)
+  <span class="cls">List</span>&lt;<span class="cls">Order</span>&gt; <span class="fn">findAllWithCustomer</span>(); <span class="cm">// 1 query with JOIN — no N+1</span>
+
+  <span class="cm">// Join fetch with items too:</span>
+  <span class="ann">@Query</span>(<span class="str">"SELECT DISTINCT o FROM Order o JOIN FETCH o.customer JOIN FETCH o.items"</span>)
+  <span class="cls">List</span>&lt;<span class="cls">Order</span>&gt; <span class="fn">findAllWithDetails</span>(); <span class="cm">// DISTINCT prevents duplicate rows</span>
+}
+
+<span class="cm">// ✅ FIX 2: @EntityGraph — declarative, no JPQL needed</span>
+<span class="ann">@EntityGraph</span>(attributePaths = {<span class="str">"customer"</span>, <span class="str">"items"</span>})
+<span class="ann">@Query</span>(<span class="str">"SELECT o FROM Order o"</span>)
+<span class="cls">List</span>&lt;<span class="cls">Order</span>&gt; <span class="fn">findAllEager</span>(); <span class="cm">// Hibernate generates LEFT JOIN OUTER automatically</span>
+
+<span class="cm">// ✅ FIX 3: @BatchSize — Hibernate fetches related entities in batches</span>
+<span class="ann">@Entity</span>
+<span class="kw">public class</span> <span class="cls">Order</span> {
+  <span class="ann">@OneToMany</span>(mappedBy = <span class="str">"order"</span>)
+  <span class="ann">@BatchSize</span>(size = <span class="num">20</span>) <span class="cm">// loads items for 20 orders at once instead of 1-by-1</span>
+  <span class="kw">private</span> <span class="cls">List</span>&lt;<span class="cls">OrderItem</span>&gt; items;
+}
+
+<span class="cm">// ✅ FIX 4: DTO Projection — fetch only needed fields, no entity overhead</span>
+<span class="kw">public interface</span> <span class="cls">OrderSummary</span> {
+  <span class="cls">Long</span> <span class="fn">getId</span>();
+  <span class="cls">String</span> <span class="fn">getCustomerName</span>();  <span class="cm">// Spring Data resolves customer.name automatically</span>
+  <span class="cls">BigDecimal</span> <span class="fn">getTotal</span>();
+}
+<span class="cls">List</span>&lt;<span class="cls">OrderSummary</span>&gt; <span class="fn">findAllProjectedBy</span>(); <span class="cm">// Spring auto-builds efficient SELECT</span></pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -2853,6 +3146,99 @@ orders.forEach(o -> o.getCustomer().getName()); <span class="cmt">// N queries!<
             <li><strong>Removed:</strong> Marked for deletion — DELETE on flush/commit</li>
           </ul>
           <strong>What is dirty checking?</strong> Hibernate compares entity state at flush time with snapshot taken when it was loaded. Any difference → UPDATE generated automatically.
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="cm">// ── Full @Entity with @OneToMany — production-ready JPA model ─────────────</span>
+<span class="ann">@Entity</span>
+<span class="ann">@Table</span>(name = <span class="str">"customers"</span>)
+<span class="ann">@EntityListeners</span>(<span class="cls">AuditingEntityListener</span>.<span class="kw">class</span>)
+<span class="kw">public class</span> <span class="cls">Customer</span> {
+
+  <span class="ann">@Id</span>
+  <span class="ann">@GeneratedValue</span>(strategy = <span class="cls">GenerationType</span>.IDENTITY)
+  <span class="kw">private</span> <span class="cls">Long</span> id;
+
+  <span class="ann">@Column</span>(nullable = <span class="kw">false</span>, length = <span class="num">100</span>)
+  <span class="kw">private</span> <span class="cls">String</span> name;
+
+  <span class="ann">@Column</span>(unique = <span class="kw">true</span>, nullable = <span class="kw">false</span>)
+  <span class="kw">private</span> <span class="cls">String</span> email;
+
+  <span class="ann">@OneToMany</span>(
+    mappedBy    = <span class="str">"customer"</span>,          <span class="cm">// field name in Order entity</span>
+    cascade     = <span class="cls">CascadeType</span>.ALL,      <span class="cm">// persist/merge/remove cascades to orders</span>
+    fetch       = <span class="cls">FetchType</span>.LAZY,       <span class="cm">// load orders only when accessed (default)</span>
+    orphanRemoval = <span class="kw">true</span>               <span class="cm">// remove Order if removed from list</span>
+  )
+  <span class="kw">private</span> <span class="cls">List</span>&lt;<span class="cls">Order</span>&gt; orders = <span class="kw">new</span> <span class="cls">ArrayList</span>&lt;&gt;();
+
+  <span class="cm">// Helper methods — always use these to maintain bidirectional sync</span>
+  <span class="kw">public void</span> <span class="fn">addOrder</span>(<span class="cls">Order</span> order) {
+    orders.<span class="fn">add</span>(order);
+    order.<span class="fn">setCustomer</span>(<span class="kw">this</span>); <span class="cm">// bidirectional: both sides must be set</span>
+  }
+  <span class="kw">public void</span> <span class="fn">removeOrder</span>(<span class="cls">Order</span> order) {
+    orders.<span class="fn">remove</span>(order);
+    order.<span class="fn">setCustomer</span>(<span class="kw">null</span>);
+  }
+
+  <span class="ann">@CreatedDate</span>  <span class="kw">private</span> <span class="cls">LocalDateTime</span> createdAt;
+  <span class="ann">@LastModifiedDate</span> <span class="kw">private</span> <span class="cls">LocalDateTime</span> updatedAt;
+  <span class="cm">// getters/setters omitted for brevity</span>
+}
+
+<span class="ann">@Entity</span>
+<span class="ann">@Table</span>(name = <span class="str">"orders"</span>)
+<span class="kw">public class</span> <span class="cls">Order</span> {
+
+  <span class="ann">@Id</span> <span class="ann">@GeneratedValue</span>(strategy = <span class="cls">GenerationType</span>.IDENTITY)
+  <span class="kw">private</span> <span class="cls">Long</span> id;
+
+  <span class="ann">@ManyToOne</span>(fetch = <span class="cls">FetchType</span>.LAZY, optional = <span class="kw">false</span>)
+  <span class="ann">@JoinColumn</span>(name = <span class="str">"customer_id"</span>, nullable = <span class="kw">false</span>) <span class="cm">// FK column</span>
+  <span class="kw">private</span> <span class="cls">Customer</span> customer;
+
+  <span class="ann">@OneToMany</span>(mappedBy = <span class="str">"order"</span>, cascade = <span class="cls">CascadeType</span>.ALL, orphanRemoval = <span class="kw">true</span>)
+  <span class="kw">private</span> <span class="cls">List</span>&lt;<span class="cls">OrderItem</span>&gt; items = <span class="kw">new</span> <span class="cls">ArrayList</span>&lt;&gt;();
+
+  <span class="ann">@Enumerated</span>(<span class="cls">EnumType</span>.STRING)
+  <span class="kw">private</span> <span class="cls">OrderStatus</span> status = <span class="cls">OrderStatus</span>.PENDING;
+
+  <span class="ann">@Column</span>(precision = <span class="num">10</span>, scale = <span class="num">2</span>)
+  <span class="kw">private</span> <span class="cls">BigDecimal</span> total;
+
+  <span class="ann">@Version</span> <span class="kw">private</span> <span class="cls">Integer</span> version; <span class="cm">// optimistic locking — prevents lost updates</span>
+}
+
+<span class="cm">// ── Entity lifecycle callbacks ─────────────────────────────────────────────</span>
+<span class="ann">@Entity</span>
+<span class="kw">public class</span> <span class="cls">Product</span> {
+  <span class="ann">@Id</span> <span class="ann">@GeneratedValue</span>(strategy = <span class="cls">GenerationType</span>.IDENTITY)
+  <span class="kw">private</span> <span class="cls">Long</span> id;
+  <span class="kw">private</span> <span class="cls">String</span> name;
+  <span class="kw">private</span> <span class="cls">String</span> slug;
+
+  <span class="ann">@PrePersist</span>   <span class="cm">// called before INSERT</span>
+  <span class="kw">public void</span> <span class="fn">onPrePersist</span>()  { slug = name.<span class="fn">toLowerCase</span>().<span class="fn">replace</span>(<span class="str">" "</span>, <span class="str">"-"</span>); }
+
+  <span class="ann">@PreUpdate</span>    <span class="cm">// called before UPDATE</span>
+  <span class="kw">public void</span> <span class="fn">onPreUpdate</span>()   { slug = name.<span class="fn">toLowerCase</span>().<span class="fn">replace</span>(<span class="str">" "</span>, <span class="str">"-"</span>); }
+
+  <span class="ann">@PostLoad</span>     <span class="cm">// called after SELECT</span>
+  <span class="kw">public void</span> <span class="fn">onPostLoad</span>()    { <span class="cm">/* e.g. decrypt sensitive fields */</span> }
+
+  <span class="ann">@PreRemove</span>    <span class="cm">// called before DELETE</span>
+  <span class="kw">public void</span> <span class="fn">onPreRemove</span>()   { <span class="cm">/* e.g. archive before delete */</span> }
+}
+
+<span class="cm">// ── Entity lifecycle state transitions ─────────────────────────────────────
+//  new Customer()         → TRANSIENT  (no id, no persistence context)
+//  em.persist(customer)   → MANAGED    (tracked, INSERT on commit)
+//  em.detach(customer)    → DETACHED   (changes not tracked)
+//  em.merge(customer)     → MANAGED    (re-attach detached entity)
+//  em.remove(customer)    → REMOVED    (DELETE on commit)
+//
+//  Spring Data:
+//  repo.save(entity)  → persist if new (id null), merge if detached (id set)
+//  @Transactional ends → flush (auto dirty-check) + commit</span></pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -2887,6 +3273,83 @@ orders.forEach(o -> o.getCustomer().getName()); <span class="cmt">// N queries!<
   failureRateThreshold: 50  <span class="cmt"># 50% failure rate → OPEN</span>
   waitDurationInOpenState: 60s
   permittedNumberOfCallsInHalfOpenState: 3</pre>
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="cm">// ── Maven/Gradle dependency ────────────────────────────────────────────────</span>
+<span class="cm">// io.github.resilience4j:resilience4j-spring-boot3:2.1.0</span>
+
+<span class="cm">// ── application.yml — full Resilience4j config ─────────────────────────────</span>
+resilience4j:
+  circuitbreaker:
+    instances:
+      paymentService:
+        sliding-window-size: <span class="num">10</span>
+        failure-rate-threshold: <span class="num">50</span>          <span class="cm"># % of failures to OPEN</span>
+        slow-call-rate-threshold: <span class="num">80</span>         <span class="cm"># % slow calls to OPEN</span>
+        slow-call-duration-threshold: <span class="num">2</span>s
+        wait-duration-in-open-state: <span class="num">60</span>s
+        permitted-number-of-calls-in-half-open-state: <span class="num">3</span>
+        register-health-indicator: <span class="kw">true</span>
+  retry:
+    instances:
+      paymentService:
+        max-attempts: <span class="num">3</span>
+        wait-duration: <span class="num">500</span>ms
+        enable-exponential-backoff: <span class="kw">true</span>
+        exponential-backoff-multiplier: <span class="num">2</span>
+        retry-exceptions:
+          - java.net.ConnectException
+          - java.util.concurrent.TimeoutException
+
+<span class="cm">// ── Service using @CircuitBreaker annotation ──────────────────────────────</span>
+<span class="ann">@Service</span>
+<span class="ann">@Slf4j</span>
+<span class="kw">public class</span> <span class="cls">PaymentServiceClient</span> {
+
+  <span class="kw">private final</span> <span class="cls">RestClient</span> restClient;
+
+  <span class="kw">public</span> <span class="cls">PaymentServiceClient</span>(<span class="cls">RestClient</span>.Builder builder) {
+    <span class="kw">this</span>.restClient = builder.<span class="fn">baseUrl</span>(<span class="str">"http://payment-service"</span>).<span class="fn">build</span>();
+  }
+
+  <span class="cm">// @CircuitBreaker: name must match yml instance name</span>
+  <span class="cm">// fallbackMethod must match same signature + Throwable/Exception as last param</span>
+  <span class="ann">@CircuitBreaker</span>(name = <span class="str">"paymentService"</span>, fallbackMethod = <span class="str">"paymentFallback"</span>)
+  <span class="ann">@Retry</span>(name = <span class="str">"paymentService"</span>)             <span class="cm">// retry before circuit breaker opens</span>
+  <span class="ann">@Bulkhead</span>(name = <span class="str">"paymentService"</span>)           <span class="cm">// limit concurrent calls</span>
+  <span class="kw">public</span> <span class="cls">PaymentResponse</span> <span class="fn">processPayment</span>(<span class="cls">PaymentRequest</span> request) {
+    <span class="kw">return</span> restClient.<span class="fn">post</span>()
+      .<span class="fn">uri</span>(<span class="str">"/api/payments"</span>)
+      .<span class="fn">body</span>(request)
+      .<span class="fn">retrieve</span>()
+      .<span class="fn">body</span>(<span class="cls">PaymentResponse</span>.<span class="kw">class</span>);
+  }
+
+  <span class="cm">// Fallback — same return type, extra Throwable parameter</span>
+  <span class="kw">public</span> <span class="cls">PaymentResponse</span> <span class="fn">paymentFallback</span>(<span class="cls">PaymentRequest</span> request, <span class="cls">Throwable</span> ex) {
+    log.<span class="fn">warn</span>(<span class="str">"Payment service unavailable, using fallback. Error: {}"</span>, ex.<span class="fn">getMessage</span>());
+    <span class="kw">return</span> <span class="cls">PaymentResponse</span>.<span class="fn">builder</span>()
+      .<span class="fn">status</span>(<span class="str">"PENDING"</span>)
+      .<span class="fn">message</span>(<span class="str">"Payment queued — will be processed shortly"</span>)
+      .<span class="fn">transactionId</span>(<span class="str">"FALLBACK-"</span> + <span class="cls">UUID</span>.<span class="fn">randomUUID</span>())
+      .<span class="fn">build</span>();
+  }
+}
+
+<span class="cm">// ── Monitor circuit breaker state via Spring Boot Actuator ─────────────────</span>
+<span class="cm">// GET /actuator/circuitbreakers                     → all instances + state</span>
+<span class="cm">// GET /actuator/health                               → DOWN if circuit OPEN</span>
+<span class="cm">// GET /actuator/metrics/resilience4j.circuitbreaker.calls → call counts</span>
+
+<span class="cm">// ── Register event listener for state transitions ──────────────────────────</span>
+<span class="ann">@Component</span>
+<span class="kw">public class</span> <span class="cls">CircuitBreakerEventListener</span> {
+  <span class="ann">@EventListener</span>
+  <span class="kw">public void</span> <span class="fn">onStateChange</span>(<span class="cls">CircuitBreakerOnStateTransitionEvent</span> event) {
+    log.<span class="fn">warn</span>(<span class="str">"CircuitBreaker [{}] state: {} → {}"</span>,
+      event.<span class="fn">getCircuitBreakerName</span>(),
+      event.<span class="fn">getStateTransition</span>().<span class="fn">getFromState</span>(),
+      event.<span class="fn">getStateTransition</span>().<span class="fn">getToState</span>());
+  }
+}</pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -3355,6 +3818,123 @@ management.zipkin.tracing.endpoint: http://zipkin:9411/api/v2/spans
             <tr><td>Use case</td><td>Event streaming, audit log</td><td>Task queues, request-reply</td></tr>
           </table>
           <div class="tip-box"><span class="tip-label">Rule</span>Use Kafka for event streaming/analytics. Use RabbitMQ for complex routing, request-reply, priority queues.</div>
+        </div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+      </div>
+
+      <div class="q-card" onclick="toggleAnswer(this)">
+        <div class="q-card-top"><span class="q-num">KF-0</span><div class="q-text">Spring Kafka: @KafkaTemplate producer and @KafkaListener consumer — full example</div></div>
+        <div class="q-tags"><span class="q-tag tag-hot">🔥 Hot</span><span class="q-tag tag-prod">🏭 Prod</span></div>
+        <div class="q-answer">
+          <strong>Producer</strong> uses <code>KafkaTemplate</code>. <strong>Consumer</strong> uses <code>@KafkaListener</code> with optional error handling and manual offset commit.
+          <div class="pre-wrap"><button class="copy-btn" onclick="copyCode(this)">copy</button><pre><span class="cm">// ── application.yml ────────────────────────────────────────────────────────</span>
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: <span class="kw">true</span>
+    consumer:
+      group-id: order-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: <span class="str">"com.example.dto"</span>
+      enable-auto-commit: <span class="kw">false</span>   <span class="cm"># manual commit for at-least-once safety</span>
+    listener:
+      ack-mode: MANUAL_IMMEDIATE
+
+<span class="cm">// ── Event DTO ──────────────────────────────────────────────────────────────</span>
+<span class="kw">public record</span> <span class="cls">OrderEvent</span>(<span class="cls">String</span> orderId, <span class="cls">String</span> customerId, <span class="cls">BigDecimal</span> amount, <span class="cls">String</span> status) {}
+
+<span class="cm">// ── Producer Service ───────────────────────────────────────────────────────</span>
+<span class="ann">@Service</span>
+<span class="ann">@Slf4j</span>
+<span class="kw">public class</span> <span class="cls">OrderEventProducer</span> {
+
+  <span class="kw">private static final</span> <span class="cls">String</span> TOPIC = <span class="str">"order-events"</span>;
+  <span class="kw">private final</span> <span class="cls">KafkaTemplate</span>&lt;<span class="cls">String</span>, <span class="cls">OrderEvent</span>&gt; kafkaTemplate;
+
+  <span class="kw">public</span> <span class="cls">OrderEventProducer</span>(<span class="cls">KafkaTemplate</span>&lt;<span class="cls">String</span>, <span class="cls">OrderEvent</span>&gt; kafkaTemplate) {
+    <span class="kw">this</span>.kafkaTemplate = kafkaTemplate;
+  }
+
+  <span class="kw">public void</span> <span class="fn">publish</span>(<span class="cls">OrderEvent</span> event) {
+    <span class="cm">// Key = orderId → ensures all events for same order go to same partition</span>
+    <span class="cls">CompletableFuture</span>&lt;<span class="cls">SendResult</span>&lt;<span class="cls">String</span>, <span class="cls">OrderEvent</span>&gt;&gt; future =
+      kafkaTemplate.<span class="fn">send</span>(TOPIC, event.<span class="fn">orderId</span>(), event);
+
+    future.<span class="fn">whenComplete</span>((result, ex) -&gt; {
+      <span class="kw">if</span> (ex != <span class="kw">null</span>) {
+        log.<span class="fn">error</span>(<span class="str">"Failed to send event for orderId={}: {}"</span>, event.<span class="fn">orderId</span>(), ex.<span class="fn">getMessage</span>());
+      } <span class="kw">else</span> {
+        <span class="cls">RecordMetadata</span> meta = result.<span class="fn">getRecordMetadata</span>();
+        log.<span class="fn">info</span>(<span class="str">"Sent to topic={} partition={} offset={}"</span>,
+          meta.<span class="fn">topic</span>(), meta.<span class="fn">partition</span>(), meta.<span class="fn">offset</span>());
+      }
+    });
+  }
+}
+
+<span class="cm">// ── Consumer Service ───────────────────────────────────────────────────────</span>
+<span class="ann">@Service</span>
+<span class="ann">@Slf4j</span>
+<span class="kw">public class</span> <span class="cls">OrderEventConsumer</span> {
+
+  <span class="kw">private final</span> <span class="cls">OrderService</span> orderService;
+
+  <span class="kw">public</span> <span class="cls">OrderEventConsumer</span>(<span class="cls">OrderService</span> orderService) {
+    <span class="kw">this</span>.orderService = orderService;
+  }
+
+  <span class="ann">@KafkaListener</span>(
+    topics      = <span class="str">"order-events"</span>,
+    groupId     = <span class="str">"order-service-group"</span>,
+    concurrency = <span class="str">"3"</span>              <span class="cm">// 3 consumer threads — should match partition count</span>
+  )
+  <span class="kw">public void</span> <span class="fn">onOrderEvent</span>(
+      <span class="cls">ConsumerRecord</span>&lt;<span class="cls">String</span>, <span class="cls">OrderEvent</span>&gt; record,
+      <span class="cls">Acknowledgment</span> ack) {
+
+    <span class="kw">try</span> {
+      <span class="cls">OrderEvent</span> event = record.<span class="fn">value</span>();
+      log.<span class="fn">info</span>(<span class="str">"Received orderId={} partition={} offset={}"</span>,
+        event.<span class="fn">orderId</span>(), record.<span class="fn">partition</span>(), record.<span class="fn">offset</span>());
+
+      orderService.<span class="fn">processOrder</span>(event);  <span class="cm">// idempotent — safe to retry</span>
+
+      ack.<span class="fn">acknowledge</span>(); <span class="cm">// manual commit — only after successful processing</span>
+    } <span class="kw">catch</span> (<span class="cls">Exception</span> e) {
+      log.<span class="fn">error</span>(<span class="str">"Failed to process orderId={}: {}"</span>,
+        record.<span class="fn">value</span>().<span class="fn">orderId</span>(), e.<span class="fn">getMessage</span>());
+      <span class="cm">// do NOT ack — message will be redelivered (at-least-once)</span>
+      <span class="cm">// configure DefaultErrorHandler + DLQ for max retries</span>
+    }
+  }
+
+  <span class="cm">// Listen to multiple topics, filter by header</span>
+  <span class="ann">@KafkaListener</span>(topics = {<span class="str">"payments"</span>, <span class="str">"refunds"</span>}, groupId = <span class="str">"finance-group"</span>)
+  <span class="kw">public void</span> <span class="fn">onFinanceEvent</span>(
+      <span class="ann">@Payload</span> <span class="cls">OrderEvent</span> event,
+      <span class="ann">@Header</span>(<span class="cls">KafkaHeaders</span>.RECEIVED_TOPIC) <span class="cls">String</span> topic) {
+    log.<span class="fn">info</span>(<span class="str">"Finance event from topic={}"</span>, topic);
+  }
+}
+
+<span class="cm">// ── DLQ Error Handler Bean ─────────────────────────────────────────────────</span>
+<span class="ann">@Bean</span>
+<span class="kw">public</span> <span class="cls">DefaultErrorHandler</span> <span class="fn">kafkaErrorHandler</span>(<span class="cls">KafkaTemplate</span>&lt;<span class="cls">String</span>, <span class="cls">Object</span>&gt; template) {
+  <span class="cm">// After 3 retries (1s apart), push to order-events.DLT topic</span>
+  <span class="kw">var</span> dlq = <span class="kw">new</span> <span class="cls">DeadLetterPublishingRecoverer</span>(template);
+  <span class="kw">var</span> backOff = <span class="kw">new</span> <span class="cls">ExponentialBackOffWithMaxRetries</span>(<span class="num">3</span>);
+  backOff.<span class="fn">setInitialInterval</span>(<span class="num">1000</span>); backOff.<span class="fn">setMultiplier</span>(<span class="num">2</span>);
+  <span class="kw">return new</span> <span class="cls">DefaultErrorHandler</span>(dlq, backOff);
+}</pre></div>
         </div>
         <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
       </div>
@@ -5406,8 +5986,24 @@ function toggleListAnswer(item) {
 }
 
 // ── MARK ANSWERED ──
+const JAVA_PREP_KEY = 'java_prep_done_v1';
+
+function _allCards() {
+  return Array.from(document.querySelectorAll('.q-card, .q-list-item'));
+}
+
 function markAnswered(card) {
-  card.classList.toggle('answered');
+  const all = _allCards();
+  const idx = all.indexOf(card);
+  const done = new Set(JSON.parse(localStorage.getItem(JAVA_PREP_KEY) || '[]'));
+  if (card.classList.contains('answered')) {
+    card.classList.remove('answered');
+    done.delete(idx);
+  } else {
+    card.classList.add('answered');
+    done.add(idx);
+  }
+  localStorage.setItem(JAVA_PREP_KEY, JSON.stringify([...done]));
   updateProgress();
 }
 
@@ -5423,7 +6019,24 @@ function updateProgress() {
   document.getElementById('progressFill').style.width = pct + '%';
   document.getElementById('progressPct').textContent = pct + '%';
 }
-updateProgress();
+
+// ── RESTORE SAVED PROGRESS ON LOAD ──
+(function restoreDoneState() {
+  const saved = JSON.parse(localStorage.getItem(JAVA_PREP_KEY) || '[]');
+  if (saved.length) {
+    const all = _allCards();
+    saved.forEach(idx => { if (all[idx]) all[idx].classList.add('answered'); });
+  }
+  updateProgress();
+})();
+
+// ── CLEAR ALL PROGRESS ──
+function clearAllProgress() {
+  if (!confirm('Clear all marked-done questions? This cannot be undone.')) return;
+  localStorage.removeItem(JAVA_PREP_KEY);
+  _allCards().forEach(c => c.classList.remove('answered'));
+  updateProgress();
+}
 
 // ── SEARCH ──
 const searchInput = document.getElementById('searchInput');

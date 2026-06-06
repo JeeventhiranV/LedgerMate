@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Study Resources Hub — LedgerMate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ══════════════════════════════════════════════
+   DESIGN SYSTEM
+══════════════════════════════════════════════ */
+:root[data-theme="dark"]{
+  --bg:#07090f;--bg2:#0e1117;--bg3:#141820;--bg4:#1a1f2e;
+  --border:#1e2436;--border2:#2a3148;
+  --text:#e2e8f8;--text2:#8a95b8;--text3:#535d7e;
+  --blue:#4f8ef7;--purple:#8b5cf6;--teal:#06d6a0;--rose:#f43f5e;
+  --gold:#f59e0b;--orange:#fb923c;--pink:#ec4899;--cyan:#22d3ee;
+  --card:#0f1319;--card-border:#1e2436;
+  --glow-blue:rgba(79,142,247,.15);--glow-purple:rgba(139,92,246,.12);
+  --shadow:0 8px 32px rgba(0,0,0,.6);
+  --glass:rgba(14,17,23,.85);
+}
+:root[data-theme="light"]{
+  --bg:#f0f4ff;--bg2:#ffffff;--bg3:#f5f7ff;--bg4:#edf0fb;
+  --border:#dde3f5;--border2:#c5cee8;
+  --text:#1a1e35;--text2:#475089;--text3:#8891be;
+  --blue:#2563eb;--purple:#7c3aed;--teal:#059669;--rose:#e11d48;
+  --gold:#d97706;--orange:#ea580c;--pink:#db2777;--cyan:#0891b2;
+  --card:#ffffff;--card-border:#dde3f5;
+  --glow-blue:rgba(37,99,235,.08);--glow-purple:rgba(124,58,237,.07);
+  --shadow:0 4px 20px rgba(0,0,0,.1);
+  --glass:rgba(255,255,255,.9);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;z-index:100;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;gap:16px}
+.topbar-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.topbar-logo-icon{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--purple));display:grid;place-items:center;font-size:16px;flex-shrink:0}
+.topbar-logo-text{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.topbar-divider{width:1px;height:20px;background:var(--border2)}
+.topbar-title{font-size:13px;font-weight:600;color:var(--text2)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.btn-back{display:flex;align-items:center;gap:6px;background:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;text-decoration:none;transition:all .2s}
+.btn-back:hover{border-color:var(--blue);color:var(--blue);background:var(--glow-blue)}
+.btn-theme{background:none;border:1px solid var(--border);border-radius:8px;width:34px;height:34px;display:grid;place-items:center;cursor:pointer;font-size:15px;transition:all .2s;color:var(--text2)}
+.btn-theme:hover{border-color:var(--blue);background:var(--glow-blue)}
+
+/* ── HERO ── */
+.hero{position:relative;padding:64px 24px 48px;overflow:hidden;background:radial-gradient(ellipse 80% 60% at 50% 0%,var(--glow-purple),transparent)}
+.hero-glow-1{position:absolute;top:-120px;right:-80px;width:500px;height:500px;background:radial-gradient(circle,var(--glow-purple),transparent 65%);pointer-events:none}
+.hero-glow-2{position:absolute;bottom:-80px;left:-80px;width:400px;height:400px;background:radial-gradient(circle,var(--glow-blue),transparent 65%);pointer-events:none}
+.hero-content{position:relative;max-width:760px;margin:0 auto;text-align:center}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:5px 14px;font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--blue);text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:20px}
+.hero-eyebrow span{width:6px;height:6px;border-radius:50%;background:var(--blue);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(32px,5vw,54px);font-weight:800;line-height:1.1;margin-bottom:16px;background:linear-gradient(135deg,var(--text) 0%,var(--blue) 60%,var(--purple) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:15px;color:var(--text2);line-height:1.7;margin-bottom:32px;max-width:580px;margin-left:auto;margin-right:auto}
+.hero-stats{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin-bottom:32px}
+.stat-pill{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:10px 20px;text-align:center}
+.stat-num{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-lbl{font-size:11px;color:var(--text3);margin-top:1px}
+
+/* ── SEARCH ── */
+.search-wrap{max-width:520px;margin:0 auto;position:relative}
+.search-wrap input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:13px 16px 13px 44px;font-size:14px;color:var(--text);outline:none;font-family:'Inter',sans-serif;transition:all .25s}
+.search-wrap input:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--glow-blue)}
+.search-wrap input::placeholder{color:var(--text3)}
+.search-icon{position:absolute;left:15px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--text3);pointer-events:none}
+.search-kbd{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:var(--bg4);border:1px solid var(--border);border-radius:6px;padding:2px 7px;font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+
+/* ── FILTER BAR ── */
+.filter-bar{padding:24px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:1200px;margin:0 auto}
+.filter-label{font-size:12px;color:var(--text3);font-weight:600;flex-shrink:0}
+.filter-chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .2s;white-space:nowrap}
+.chip:hover{border-color:var(--blue);color:var(--blue)}
+.chip.active{background:var(--glow-blue);border-color:var(--blue);color:var(--blue);font-weight:600}
+.chip.purple{background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.4);color:var(--purple)}
+.chip.teal{background:rgba(6,214,160,.1);border-color:rgba(6,214,160,.4);color:var(--teal)}
+.chip.gold{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.4);color:var(--gold)}
+.chip.rose{background:rgba(244,63,94,.1);border-color:rgba(244,63,94,.4);color:var(--rose)}
+
+/* ── SECTION ── */
+.section{max-width:1200px;margin:0 auto;padding:0 24px 48px}
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.section-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:var(--text)}
+.section-count{font-size:12px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:2px 10px;font-family:'JetBrains Mono',monospace}
+.section-line{flex:1;height:1px;background:var(--border)}
+
+/* ── RESOURCE GRID ── */
+.resource-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}
+
+/* ── RESOURCE CARD ── */
+.res-card{background:var(--card);border:1px solid var(--card-border);border-radius:16px;padding:24px;cursor:pointer;transition:all .22s;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:16px;text-decoration:none;color:inherit}
+.res-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--c-accent,var(--blue));opacity:.7;transition:opacity .2s}
+.res-card:hover{border-color:var(--border2);transform:translateY(-3px);box-shadow:var(--shadow)}
+.res-card:hover::before{opacity:1}
+.res-card.hidden{display:none}
+
+.res-card-top{display:flex;align-items:flex-start;gap:14px}
+.res-icon{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-size:26px;flex-shrink:0;background:var(--c-bg,rgba(79,142,247,.1))}
+.res-info{flex:1;min-width:0}
+.res-category{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--c-accent,var(--blue));font-family:'JetBrains Mono',monospace;margin-bottom:5px}
+.res-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text);line-height:1.3}
+.res-badge{flex-shrink:0;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;font-family:'JetBrains Mono',monospace}
+.res-badge.new{background:rgba(6,214,160,.15);color:var(--teal);border:1px solid rgba(6,214,160,.3)}
+.res-badge.hot{background:rgba(251,146,60,.15);color:var(--orange);border:1px solid rgba(251,146,60,.3)}
+.res-badge.soon{background:var(--bg4);color:var(--text3);border:1px solid var(--border)}
+
+.res-desc{font-size:13px;color:var(--text2);line-height:1.65;flex:1}
+.res-tags{display:flex;flex-wrap:wrap;gap:5px}
+.res-tag{font-size:10px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:2px 8px;color:var(--text3)}
+
+.res-footer{display:flex;align-items:center;gap:10px;padding-top:14px;border-top:1px solid var(--border)}
+.res-progress-wrap{flex:1}
+.res-progress-label{display:flex;justify-content:space-between;margin-bottom:5px}
+.res-progress-text{font-size:11px;color:var(--text3)}
+.res-progress-pct{font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace}
+.res-progress-bar{height:4px;background:var(--bg4);border-radius:4px;overflow:hidden}
+.res-progress-fill{height:100%;border-radius:4px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+
+.res-open-btn{flex-shrink:0;background:var(--c-accent,var(--blue));color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .2s;font-family:'Inter',sans-serif}
+.res-open-btn:hover{opacity:.88;transform:scale(1.03)}
+.res-open-btn.disabled{background:var(--bg4);color:var(--text3);cursor:not-allowed}
+.res-open-btn.disabled:hover{transform:none;opacity:1}
+
+/* ── COMING SOON CARD ── */
+.cs-card{background:var(--bg2);border:1px dashed var(--border);border-radius:16px;padding:24px;display:flex;align-items:center;gap:16px;opacity:.7;transition:opacity .2s}
+.cs-card:hover{opacity:.9}
+.cs-icon{width:48px;height:48px;border-radius:12px;background:var(--bg3);border:1px dashed var(--border2);display:grid;place-items:center;font-size:22px;flex-shrink:0;filter:grayscale(.5)}
+.cs-info{flex:1}
+.cs-title{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:4px}
+.cs-desc{font-size:12px;color:var(--text3);line-height:1.5}
+.cs-soon{font-size:10px;background:var(--bg4);border:1px solid var(--border);border-radius:20px;padding:3px 10px;color:var(--text3);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+
+/* ── NO RESULTS ── */
+.no-results{text-align:center;padding:64px 24px;display:none}
+.no-results-icon{font-size:48px;margin-bottom:12px;filter:grayscale(.3)}
+.no-results-text{color:var(--text3);font-size:14px}
+
+/* ── FOOTER ── */
+.footer{text-align:center;padding:32px 24px;font-size:12px;color:var(--text3);border-top:1px solid var(--border)}
+.footer a{color:var(--blue);text-decoration:none}
+.footer a:hover{text-decoration:underline}
+
+/* ── MOBILE ── */
+@media(max-width:640px){
+  .hero{padding:40px 16px 32px}
+  .hero h1{font-size:28px}
+  .hero-stats{gap:8px}
+  .stat-pill{padding:8px 14px}
+  .search-kbd{display:none}
+  .section{padding:0 16px 36px}
+  .filter-bar{padding:16px}
+  .resource-grid{grid-template-columns:1fr}
+  .topbar{padding:0 14px}
+}
+
+/* ── ANIMATIONS ── */
+.fade-up{opacity:0;transform:translateY(20px);animation:fuAnim .4s forwards}
+@keyframes fuAnim{to{opacity:1;transform:none}}
+.delay-1{animation-delay:.05s}
+.delay-2{animation-delay:.1s}
+.delay-3{animation-delay:.15s}
+.delay-4{animation-delay:.2s}
+.delay-5{animation-delay:.25s}
+.delay-6{animation-delay:.3s}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <a href="../index.html" class="topbar-logo">
+    <div class="topbar-logo-icon">💰</div>
+    <div class="topbar-logo-text">LedgerMate</div>
+  </a>
+  <div class="topbar-divider"></div>
+  <div class="topbar-title">Study Resources Hub</div>
+  <div class="topbar-right">
+    <a href="../index.html" class="btn-back">← Back to App</a>
+    <button class="btn-theme" id="themeBtn" title="Toggle theme">🌙</button>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-glow-1"></div>
+  <div class="hero-glow-2"></div>
+  <div class="hero-content fade-up">
+    <div class="hero-eyebrow"><span></span> Interview Preparation Library</div>
+    <h1>Study Resources Hub</h1>
+    <p class="hero-sub">Your complete interview preparation toolkit — DSA, Java, System Design, and more. Built for engineers targeting Product Companies, FAANG, MNCs, and Startups.</p>
+    <div class="hero-stats">
+      <div class="stat-pill"><div class="stat-num" id="statTotal">2</div><div class="stat-lbl">Resources</div></div>
+      <div class="stat-pill"><div class="stat-num" id="statQ">700+</div><div class="stat-lbl">Questions</div></div>
+      <div class="stat-pill"><div class="stat-num" id="statCats">15+</div><div class="stat-lbl">Topic Areas</div></div>
+      <div class="stat-pill"><div class="stat-num" id="statDone">0</div><div class="stat-lbl">Completed</div></div>
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search resources, topics, tags…" autocomplete="off"/>
+      <kbd class="search-kbd">Ctrl+K</kbd>
+    </div>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <span class="filter-label">Filter:</span>
+  <div class="filter-chips" id="filterChips">
+    <button class="chip active" data-filter="all">All</button>
+    <button class="chip" data-filter="dsa">DSA & Algorithms</button>
+    <button class="chip" data-filter="java">Java</button>
+    <button class="chip" data-filter="system">System Design</button>
+    <button class="chip" data-filter="frontend">Frontend</button>
+    <button class="chip" data-filter="done">Has Progress</button>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="section">
+
+  <!-- AVAILABLE RESOURCES -->
+  <div class="section-header">
+    <div class="section-title">Available Resources</div>
+    <span class="section-count" id="availCount">2</span>
+    <div class="section-line"></div>
+  </div>
+
+  <div id="noResults" class="no-results">
+    <div class="no-results-icon">🔍</div>
+    <div class="no-results-text">No resources match your search or filter.</div>
+  </div>
+
+  <div class="resource-grid" id="resourceGrid">
+    <!-- Injected by JS -->
+  </div>
+
+  <!-- COMING SOON -->
+  <div class="section-header" style="margin-top:48px">
+    <div class="section-title" style="color:var(--text3)">Coming Soon</div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="resource-grid" id="comingSoonGrid">
+    <!-- Injected by JS -->
+  </div>
+
+</div>
+
+<div class="footer">
+  Part of <a href="../index.html">LedgerMate</a> — Your personal finance + career growth platform.
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   RESOURCE DATA
+══════════════════════════════════════════════════════ */
+const RESOURCES = [
+  {
+    id: 'dsa-hub',
+    title: 'DSA Master Preparation Hub',
+    category: 'DSA & Algorithms',
+    categoryKey: 'dsa',
+    icon: '🧠',
+    desc: '200+ curated DSA questions across 15 categories — Arrays, Graphs, DP, Trees, Tries, and more. Each question ships with a full Java solution, complexity analysis, and persistent progress tracking.',
+    tags: ['Arrays','Linked Lists','Trees','Graphs','DP','Backtracking','Heaps','Tries','Binary Search','FAANG','MNC'],
+    color: '#06d6a0',
+    file: 'Preparation/DSA-Prep-Hub.html',
+    progressKey: 'dsa_prep_done_v1',
+    totalQ: 214,
+    badge: 'new'
+  },
+  {
+    id: 'java-kit',
+    title: 'Java Interview Prep Kit',
+    category: 'Java & Spring',
+    categoryKey: 'java',
+    icon: '☕',
+    desc: 'Senior-level Java prep covering Core Java, OOP, Collections, Streams, Multithreading, JVM internals, Spring Boot, Microservices, Kafka, JPA, Resilience4j, and real SOLID code examples.',
+    tags: ['Core Java','Spring Boot','Kafka','JPA','Microservices','Multithreading','SOLID','Design Patterns'],
+    color: '#f59e0b',
+    file: 'Preparation/Java-Prep-kit.html',
+    progressKey: 'java_prep_done_v1',
+    totalQ: 120,
+    badge: 'hot'
+  }
+];
+
+const COMING_SOON = [
+  { icon:'⚙️', title:'System Design Masterclass', desc:'Scalable architecture patterns: Load Balancers, Caching, Databases, Microservices, Event-driven systems.', tag:'System Design' },
+  { icon:'🐍', title:'Python DSA Prep Kit', desc:'Data Structures & Algorithms in Python — LeetCode patterns with clean Pythonic solutions.', tag:'Python' },
+  { icon:'🌐', title:'Frontend Interview Hub', desc:'React, JavaScript fundamentals, HTML/CSS, Web performance, and browser internals.', tag:'Frontend' },
+  { icon:'☁️', title:'AWS / Cloud Architect Prep', desc:'Cloud computing concepts, AWS services, architecture patterns, certifications prep.', tag:'Cloud' },
+  { icon:'🗄️', title:'SQL & Database Deep Dive', desc:'Complex queries, indexing, normalization, transactions, NoSQL vs SQL decision guide.', tag:'Databases' },
+  { icon:'🧩', title:'Behavioural & HR Interview Kit', desc:'STAR method answers, common behavioural questions, leadership principles, Amazon LP.', tag:'Soft Skills' },
+];
+
+/* ══════════════════════════════════════════════════════
+   PROGRESS READER
+══════════════════════════════════════════════════════ */
+function getProgress(key, total) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(key) || '[]');
+    const done = saved.length;
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    return { done, total, pct };
+  } catch { return { done: 0, total, pct: 0 }; }
+}
+
+function totalDone() {
+  return RESOURCES.reduce((sum, r) => {
+    const p = getProgress(r.progressKey, r.totalQ);
+    return sum + p.done;
+  }, 0);
+}
+
+/* ══════════════════════════════════════════════════════
+   RENDER
+══════════════════════════════════════════════════════ */
+function buildCard(r, idx) {
+  const p = getProgress(r.progressKey, r.totalQ);
+  const fillColor = r.color;
+  const bgColor = r.color + '18';
+  const badgeHtml = r.badge === 'new'
+    ? '<span class="res-badge new">✦ New</span>'
+    : r.badge === 'hot'
+    ? '<span class="res-badge hot">🔥 Hot</span>'
+    : '';
+
+  return `
+    <a class="res-card fade-up delay-${Math.min(idx+1,6)}" href="${r.file}" style="--c-accent:${r.color};--c-bg:${bgColor}" data-tags="${r.tags.join(' ').toLowerCase()}" data-cat="${r.categoryKey}" data-has-progress="${p.done > 0}">
+      <div class="res-card-top">
+        <div class="res-icon" style="background:${bgColor}">${r.icon}</div>
+        <div class="res-info">
+          <div class="res-category">${r.category}</div>
+          <div class="res-title">${r.title}</div>
+        </div>
+        ${badgeHtml}
+      </div>
+      <div class="res-desc">${r.desc}</div>
+      <div class="res-tags">
+        ${r.tags.map(t => `<span class="res-tag">${t}</span>`).join('')}
+      </div>
+      <div class="res-footer">
+        <div class="res-progress-wrap">
+          <div class="res-progress-label">
+            <span class="res-progress-text">${p.done}/${r.totalQ} completed</span>
+            <span class="res-progress-pct" style="color:${r.color}">${p.pct}%</span>
+          </div>
+          <div class="res-progress-bar">
+            <div class="res-progress-fill" style="width:${p.pct}%;background:${fillColor}"></div>
+          </div>
+        </div>
+        <div class="res-open-btn" style="background:${r.color}">Open ↗</div>
+      </div>
+    </a>
+  `;
+}
+
+function buildComingSoon(cs, idx) {
+  return `
+    <div class="cs-card fade-up delay-${Math.min(idx+1,6)}">
+      <div class="cs-icon">${cs.icon}</div>
+      <div class="cs-info">
+        <div class="cs-title">${cs.title}</div>
+        <div class="cs-desc">${cs.desc}</div>
+      </div>
+      <span class="cs-soon">${cs.tag}</span>
+    </div>
+  `;
+}
+
+function render() {
+  const grid = document.getElementById('resourceGrid');
+  const csGrid = document.getElementById('comingSoonGrid');
+  grid.innerHTML = RESOURCES.map((r,i) => buildCard(r,i)).join('');
+  csGrid.innerHTML = COMING_SOON.map((cs,i) => buildComingSoon(cs,i)).join('');
+
+  // Stats
+  document.getElementById('statDone').textContent = totalDone();
+  document.getElementById('statTotal').textContent = RESOURCES.length;
+}
+
+/* ══════════════════════════════════════════════════════
+   FILTER & SEARCH
+══════════════════════════════════════════════════════ */
+let activeFilter = 'all';
+let activeSearch = '';
+
+function applyFilters() {
+  const cards = document.querySelectorAll('.res-card');
+  let visible = 0;
+  const q = activeSearch.toLowerCase().trim();
+
+  cards.forEach(card => {
+    const cat = card.dataset.cat || '';
+    const tags = card.dataset.tags || '';
+    const title = card.querySelector('.res-title')?.textContent.toLowerCase() || '';
+    const desc = card.querySelector('.res-desc')?.textContent.toLowerCase() || '';
+    const hasProg = card.dataset.hasProgress === 'true';
+
+    let show = true;
+    if (activeFilter === 'done' && !hasProg) show = false;
+    else if (activeFilter !== 'all' && activeFilter !== 'done' && cat !== activeFilter) show = false;
+
+    if (q && !(title.includes(q) || desc.includes(q) || tags.includes(q))) show = false;
+
+    card.classList.toggle('hidden', !show);
+    if (show) visible++;
+  });
+
+  document.getElementById('availCount').textContent = visible;
+  document.getElementById('noResults').style.display = visible === 0 ? 'block' : 'none';
+}
+
+/* ══════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  render();
+
+  // Filter chips
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', function () {
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      this.classList.add('active');
+      activeFilter = this.dataset.filter;
+      applyFilters();
+    });
+  });
+
+  // Search
+  let searchTimer;
+  document.getElementById('searchInput').addEventListener('input', function () {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => { activeSearch = this.value; applyFilters(); }, 180);
+  });
+
+  // Keyboard shortcut
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      document.getElementById('searchInput').focus();
+    }
+    if (e.key === 'Escape') document.getElementById('searchInput').blur();
+  });
+
+  // Theme
+  const saved = localStorage.getItem('sr_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('themeBtn').textContent = saved === 'dark' ? '🌙' : '☀️';
+
+  document.getElementById('themeBtn').addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('sr_theme', next);
+    document.getElementById('themeBtn').textContent = next === 'dark' ? '🌙' : '☀️';
+  });
+});
+</script>
+</body>
+</html>

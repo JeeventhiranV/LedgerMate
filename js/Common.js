@@ -2122,6 +2122,18 @@ function openAddTransactionModal(prefill = {}) {
         <div class="modal-body" style="padding:16px 20px 20px;">
           <form id="txForm" autocomplete="off">
 
+            <!-- TEMPLATE QUICK-PICK -->
+            ${(state.tx_templates || []).length ? `
+            <div class="atx-tpl-bar">
+              <span class="atx-tpl-bar-label">📋 Templates</span>
+              <div class="atx-tpl-chips">
+                ${(state.tx_templates || []).map(t => `
+                  <button type="button" class="atx-tpl-chip" onclick="applyTplToForm(${t.id})">
+                    ${t.type==='in'?'📈':'💸'} ${t.name}
+                  </button>`).join('')}
+              </div>
+            </div>` : ''}
+
             <!-- TYPE TOGGLE -->
             <div class="atx-type-toggle" id="atxTypeToggle">
               <button type="button" class="atx-type-btn expense ${(!prefill.type || prefill.type==='out') ? 'active' : ''}" data-val="out">
@@ -5804,7 +5816,15 @@ window.merchantToCategory = merchantToCategory;
 ══════════════════════════════════════════════════════════════ */
 const VIEWS_FILES = [
   {
-    file: 'views/Java-Prep-kit.html',
+    file: 'views/Preparation/DSA-Prep-Hub.html',
+    title: 'DSA Master Preparation Hub',
+    description: '200+ DSA questions across 15 categories with approach guides, complexity analysis, and persistent progress tracking for FAANG & MNC interviews.',
+    icon: '🧠',
+    tags: ['DSA', 'Algorithms', 'FAANG', 'Interview'],
+    color: 'var(--teal)'
+  },
+  {
+    file: 'views/Preparation/Java-Prep-kit.html',
     title: 'Java Interview Prep Kit',
     description: 'Core Java concepts, OOP, Collections, Streams, Multithreading, Spring Boot, and common interview Q&A.',
     icon: '☕',
@@ -5812,7 +5832,6 @@ const VIEWS_FILES = [
     color: 'var(--gold)'
   }
   // Add more entries here as you drop files into /views/
-  // { file: 'views/my-notes.html', title: 'My Notes', description: '...', icon: '📝', tags: ['Notes'], color: 'var(--teal)' }
 ];
 
 function renderViewsBrowser() {
@@ -6551,6 +6570,33 @@ function useTemplate(id) {
   const tpl = state.tx_templates.find(t => t.id === id);
   if (!tpl) return;
   openAddTransactionModal({ type: tpl.type, amount: tpl.amount, category: tpl.category, account: tpl.account, note: tpl.note });
+}
+
+function applyTplToForm(id) {
+  const tpl = (state.tx_templates || []).find(t => t.id === id);
+  if (!tpl) return;
+  // type
+  document.querySelectorAll('#atxTypeToggle .atx-type-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.val === tpl.type);
+  });
+  const txTypeEl = document.getElementById('tx_type');
+  if (txTypeEl) txTypeEl.value = tpl.type;
+  // amount
+  const amtEl = document.getElementById('tx_amount');
+  if (amtEl) { amtEl.value = tpl.amount; amtEl.dispatchEvent(new Event('input')); }
+  // account
+  const accEl = document.getElementById('tx_account');
+  if (accEl) accEl.value = tpl.account;
+  // category
+  document.querySelectorAll('#atxCatGrid .atx-cat-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.cat === tpl.category);
+  });
+  const catEl = document.getElementById('tx_category');
+  if (catEl) catEl.value = tpl.category;
+  // note
+  const noteEl = document.getElementById('tx_note');
+  if (noteEl) noteEl.value = tpl.note || '';
+  showToast(`"${tpl.name}" applied`, 'success');
 }
 
 function editTemplate(id) { openTemplateModal(id); }

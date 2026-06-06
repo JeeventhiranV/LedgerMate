@@ -45,6 +45,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="./css/common.css">
 <link rel="stylesheet" href="./css/auth.css">
+
 <script src="./libs/chart.umd.min.js"></script> 
   <link rel="stylesheet" href="./css/style.css">
   <link rel="stylesheet" href="./css/Notes.css"> 
@@ -245,7 +246,7 @@
       <button class="sidebar-nav-item" onclick="showCredentialsVault()" data-module="credentials">
         <span class="nav-icon">🔐</span> Credentials Vault
       </button>
-      <button class="sidebar-nav-item" onclick="showPage('views-browser')" data-module="views-browser">
+      <button onclick="window.open('views/Study-Resources.html','_self')" class="sidebar-nav-item"  data-module="views-browser">
         <span class="nav-icon">📚</span> Study Resources
       </button>
       <button class="sidebar-nav-item" onclick="openWidgetPage()" data-module="widget">
@@ -1685,6 +1686,67 @@ function setGreeting() {
     <div class="modal-body" id="cfcDayBody" style="max-height:60vh;overflow-y:auto;padding:12px;"></div>
   </div>
 </div>
+
+<script>
+/* ── Collapsible Sidebar Sections ───────────────────────── */
+(function initCollapsibleSidebar() {
+  const STORE_KEY = 'lm_sidebar_collapsed_v1';
+
+  function getCollapsed() {
+    try { return new Set(JSON.parse(localStorage.getItem(STORE_KEY) || '[]')); }
+    catch { return new Set(); }
+  }
+  function saveCollapsed(set) {
+    localStorage.setItem(STORE_KEY, JSON.stringify([...set]));
+  }
+
+  function setup() {
+    const collapsed = getCollapsed();
+    document.querySelectorAll('.sidebar-section').forEach(sec => {
+      const label = sec.querySelector('.sidebar-section-label');
+      if (!label) return;
+
+      const key = label.textContent.trim();
+
+      // Chevron indicator
+      const chevron = document.createElement('span');
+      chevron.className = 'sidebar-section-chevron';
+      chevron.setAttribute('aria-hidden', 'true');
+      chevron.textContent = '▾';
+      label.appendChild(chevron);
+
+      // Wrap all sibling nav items in a container for smooth animation
+      const wrapper = document.createElement('div');
+      wrapper.className = 'sidebar-section-items';
+      let next = label.nextElementSibling;
+      while (next) {
+        const after = next.nextElementSibling;
+        wrapper.appendChild(next);
+        next = after;
+      }
+      sec.appendChild(wrapper);
+
+      // Restore saved collapsed state (never collapse Overview by default)
+      if (collapsed.has(key) && key !== 'Overview') {
+        sec.classList.add('collapsed');
+      }
+
+      label.addEventListener('click', () => {
+        const isNowCollapsed = sec.classList.toggle('collapsed');
+        const set = getCollapsed();
+        if (isNowCollapsed) set.add(key); else set.delete(key);
+        saveCollapsed(set);
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setup);
+  } else {
+    setup();
+  }
+})();
+</script>
 
 </body>
 </html>

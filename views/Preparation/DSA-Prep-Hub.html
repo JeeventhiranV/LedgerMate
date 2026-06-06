@@ -1,0 +1,3086 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DSA Master Preparation Hub 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ════════════════════════════════════════════════
+   DSA MASTER PREP HUB — DESIGN SYSTEM
+════════════════════════════════════════════════ */
+:root[data-theme="dark"]{
+  --bg:#07090f;--bg2:#0e1117;--bg3:#141820;--bg4:#1a1f2e;
+  --border:#1e2436;--border2:#2a3148;
+  --text:#e2e8f8;--text2:#8a95b8;--text3:#535d7e;
+  --blue:#4f8ef7;--purple:#8b5cf6;--teal:#06d6a0;--rose:#f43f5e;
+  --gold:#f59e0b;--orange:#fb923c;--pink:#ec4899;--cyan:#22d3ee;
+  --card:#0f1319;--card2:#13192300;
+  --glow-blue:rgba(79,142,247,0.15);--glow-purple:rgba(139,92,246,0.12);
+  --shadow:0 8px 32px rgba(0,0,0,0.6);
+  --glass:rgba(14,17,23,0.8);
+  --sidebar-w:272px;
+}
+:root[data-theme="light"]{
+  --bg:#f1f5fe;--bg2:#ffffff;--bg3:#f7f9ff;--bg4:#eef1fb;
+  --border:#dde3f5;--border2:#c5cee8;
+  --text:#1a1e35;--text2:#475089;--text3:#8891be;
+  --blue:#2563eb;--purple:#7c3aed;--teal:#059669;--rose:#e11d48;
+  --gold:#d97706;--orange:#ea580c;--pink:#db2777;--cyan:#0891b2;
+  --card:#ffffff;--card2:#f7f9ff;
+  --glow-blue:rgba(37,99,235,0.08);--glow-purple:rgba(124,58,237,0.07);
+  --shadow:0 4px 20px rgba(0,0,0,0.1);
+  --glass:rgba(255,255,255,0.9);
+  --sidebar-w:272px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* ── SCROLL PROGRESS ── */
+#scroll-progress{position:fixed;top:0;left:0;height:2px;width:0%;background:linear-gradient(90deg,var(--blue),var(--purple),var(--teal));z-index:9999;transition:width .1s}
+
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:100vh}
+.sidebar{width:var(--sidebar-w);background:var(--bg2);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:200;transition:transform .3s cubic-bezier(.4,0,.2,1)}
+.sidebar-inner{padding:16px 0 32px}
+.main{margin-left:var(--sidebar-w);flex:1;min-height:100vh}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:190;backdrop-filter:blur(2px)}
+.overlay.show{display:block}
+
+/* ── SIDEBAR LOGO ── */
+.sidebar-logo{display:flex;align-items:center;gap:10px;padding:18px 20px 16px;border-bottom:1px solid var(--border);margin-bottom:8px}
+.sidebar-logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--purple));display:grid;place-items:center;font-size:18px;flex-shrink:0}
+.sidebar-logo-text{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);line-height:1.3}
+.sidebar-logo-text small{display:block;font-size:10px;font-weight:400;color:var(--text3);font-family:'Inter',sans-serif}
+
+/* ── SIDEBAR SEARCH ── */
+.sidebar-search{padding:0 12px 12px;position:relative}
+.sidebar-search input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px 8px 34px;font-size:13px;color:var(--text);outline:none;font-family:'Inter',sans-serif;transition:border .2s}
+.sidebar-search input:focus{border-color:var(--blue)}
+.sidebar-search .srch-icon{position:absolute;left:22px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
+
+/* ── SIDEBAR NAV ── */
+.sidebar-section-label{padding:10px 20px 4px;font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--text3);text-transform:uppercase}
+.cat-btn{display:flex;align-items:center;gap:10px;width:100%;padding:8px 20px;background:none;border:none;color:var(--text2);font-size:13px;font-weight:500;cursor:pointer;text-align:left;transition:all .15s;border-left:2px solid transparent;position:relative}
+.cat-btn:hover{background:var(--bg3);color:var(--text);border-left-color:var(--border2)}
+.cat-btn.active{background:var(--glow-blue);color:var(--blue);border-left-color:var(--blue);font-weight:600}
+.cat-btn .cat-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.cat-btn .cat-count{margin-left:auto;font-size:10px;background:var(--bg4);border-radius:20px;padding:1px 7px;color:var(--text3)}
+.cat-btn.active .cat-count{background:var(--glow-blue);color:var(--blue)}
+.cat-btn .cat-done{margin-left:4px;font-size:10px;color:var(--teal);display:none}
+.cat-btn.has-done .cat-done{display:inline}
+
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;z-index:100;background:var(--glass);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.menu-btn{display:none;background:none;border:1px solid var(--border);border-radius:8px;padding:6px 9px;cursor:pointer;color:var(--text2);font-size:16px}
+.topbar-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;flex-shrink:0}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.progress-chip{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text2)}
+.progress-chip strong{color:var(--blue);font-family:'JetBrains Mono',monospace}
+.clear-btn{background:none;border:1px solid var(--rose);border-radius:8px;padding:5px 11px;cursor:pointer;color:var(--rose);font-size:12px;font-weight:600;transition:all .2s}
+.clear-btn:hover{background:rgba(244,63,94,.12)}
+.theme-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;color:var(--text2);font-size:15px;transition:all .2s}
+.theme-btn:hover{background:var(--bg3);border-color:var(--blue)}
+.back-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 11px;cursor:pointer;color:var(--text2);font-size:12px;font-weight:500;transition:all .2s;text-decoration:none;display:flex;align-items:center;gap:5px}
+.back-btn:hover{background:var(--bg3);color:var(--text);border-color:var(--blue)}
+
+/* ── PROGRESS BAR ── */
+.progress-section{padding:8px 24px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.progress-label{font-size:12px;color:var(--text3);white-space:nowrap}
+.progress-bar-wrap{flex:1;min-width:120px}
+.progress-bar-track{height:4px;background:var(--bg4);border-radius:4px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:4px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.progress-pct{font-size:12px;font-weight:600;color:var(--blue);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.diff-chips{display:flex;gap:6px;margin-left:auto}
+.diff-chip{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;font-family:'JetBrains Mono',monospace}
+.diff-chip.easy{background:rgba(6,214,160,.12);color:var(--teal)}
+.diff-chip.medium{background:rgba(245,158,11,.12);color:var(--gold)}
+.diff-chip.hard{background:rgba(244,63,94,.12);color:var(--rose)}
+
+/* ── HERO ── */
+.hero{padding:48px 24px 36px;background:linear-gradient(160deg,var(--bg) 0%,var(--bg3) 50%,var(--bg) 100%);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-80px;right:-80px;width:400px;height:400px;background:radial-gradient(circle,var(--glow-purple) 0%,transparent 70%);pointer-events:none}
+.hero::after{content:'';position:absolute;bottom:-60px;left:-60px;width:300px;height:300px;background:radial-gradient(circle,var(--glow-blue) 0%,transparent 70%);pointer-events:none}
+.hero-eyebrow{font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--blue);text-transform:uppercase;margin-bottom:14px;font-family:'JetBrains Mono',monospace}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(26px,4vw,44px);font-weight:800;line-height:1.15;margin-bottom:14px;background:linear-gradient(135deg,var(--text) 30%,var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-desc{font-size:14px;color:var(--text2);max-width:720px;line-height:1.7;margin-bottom:28px}
+.hero-stats{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:28px}
+.stat-chip{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px 20px;display:flex;flex-direction:column;align-items:center;min-width:100px}
+.stat-num{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-label{font-size:11px;color:var(--text3);margin-top:2px}
+.hero-search{position:relative;max-width:560px}
+.hero-search input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:13px 16px 13px 44px;font-size:14px;color:var(--text);outline:none;font-family:'Inter',sans-serif;transition:all .2s}
+.hero-search input:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--glow-blue)}
+.hero-search input::placeholder{color:var(--text3)}
+.hero-search .hs-icon{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:16px;pointer-events:none}
+.hero-search kbd{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:var(--bg4);border:1px solid var(--border);border-radius:6px;padding:2px 7px;font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+
+/* ── FILTER BAR ── */
+.filter-bar{padding:16px 24px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+.filter-label{font-size:12px;color:var(--text3);flex-shrink:0}
+.filter-btns{display:flex;gap:6px;flex-wrap:wrap}
+.filter-btn{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .2s}
+.filter-btn:hover{border-color:var(--blue);color:var(--blue)}
+.filter-btn.active{background:var(--glow-blue);border-color:var(--blue);color:var(--blue);font-weight:600}
+
+/* ── CONTENT ── */
+.content{padding:24px}
+.no-results{text-align:center;padding:64px 24px;display:none}
+.no-results-icon{font-size:48px;margin-bottom:12px}
+.no-results-text{color:var(--text3);font-size:14px}
+
+/* ── CATEGORY SECTION ── */
+.cat-section{margin-bottom:40px;animation:fadeUp .4s both}
+.cat-section.hidden{display:none}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.cat-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.cat-icon{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;font-size:20px;flex-shrink:0}
+.cat-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--text)}
+.cat-subtitle{font-size:12px;color:var(--text3);margin-top:2px}
+.cat-badge{margin-left:auto;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:3px 10px;color:var(--text3);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+
+/* ── DSA CARD GRID ── */
+.dsa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+
+/* ── DSA QUESTION CARD ── */
+.dsa-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.dsa-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--card-accent,var(--blue));opacity:0;transition:opacity .2s}
+.dsa-card:hover{border-color:var(--border2);box-shadow:var(--shadow);transform:translateY(-1px)}
+.dsa-card:hover::before{opacity:1}
+.dsa-card.answered{border-color:rgba(6,214,160,.3);background:rgba(6,214,160,.03)}
+.dsa-card.answered::before{opacity:1;background:var(--teal)}
+.dsa-card.hidden{display:none}
+
+.card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.card-num{font-size:10px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--text3);background:var(--bg3);border-radius:6px;padding:2px 7px;flex-shrink:0;margin-top:2px}
+.card-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.4;flex:1}
+.card-done-badge{width:20px;height:20px;border-radius:50%;background:var(--teal);display:none;place-items:center;font-size:11px;flex-shrink:0;margin-top:1px}
+.dsa-card.answered .card-done-badge{display:grid}
+
+.card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.diff-tag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;font-family:'JetBrains Mono',monospace}
+.diff-tag.easy{background:rgba(6,214,160,.12);color:var(--teal)}
+.diff-tag.medium{background:rgba(245,158,11,.12);color:var(--gold)}
+.diff-tag.hard{background:rgba(244,63,94,.12);color:var(--rose)}
+.topic-tag{font-size:10px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:2px 8px;color:var(--text3)}
+
+.card-hint{font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px;display:none}
+.card-hint.show{display:block}
+
+.card-approach{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;display:none}
+.card-approach.show{display:block}
+.card-approach-label{font-size:10px;font-weight:600;color:var(--blue);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.card-approach p{font-size:12px;color:var(--text2);line-height:1.65}
+.card-approach code{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg4);padding:1px 5px;border-radius:4px;color:var(--cyan)}
+
+.card-complexity{display:flex;gap:8px;margin-bottom:12px;display:none}
+.card-complexity.show{display:flex}
+.complexity-item{background:var(--bg3);border-radius:6px;padding:4px 10px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text2);border:1px solid var(--border)}
+.complexity-item span{color:var(--purple);font-weight:600}
+
+.card-actions{display:flex;gap:8px;align-items:center}
+.btn-hint{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:12px;color:var(--text2);cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif}
+.btn-hint:hover{border-color:var(--blue);color:var(--blue)}
+.btn-mark{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:12px;color:var(--text2);cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;margin-left:auto}
+.btn-mark:hover{border-color:var(--teal);color:var(--teal)}
+.dsa-card.answered .btn-mark{border-color:rgba(6,214,160,.4);color:var(--teal);background:rgba(6,214,160,.07)}
+
+/* ── ROADMAP BANNER ── */
+.roadmap-banner{margin:0 24px 28px;background:linear-gradient(135deg,var(--bg3),var(--bg4));border:1px solid var(--border2);border-radius:16px;padding:20px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.roadmap-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text)}
+.roadmap-desc{font-size:12px;color:var(--text3);margin-top:3px}
+.roadmap-steps{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.roadmap-step{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:6px}
+.roadmap-step .step-num{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;font-size:9px;display:grid;place-items:center;flex-shrink:0}
+
+/* ── MOBILE ── */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .menu-btn{display:block}
+  .dsa-grid{grid-template-columns:1fr}
+  .hero h1{font-size:24px}
+  .hero-stats{gap:8px}
+  .stat-chip{min-width:80px;padding:10px 14px}
+  .filter-bar{padding:12px 16px}
+  .content{padding:16px}
+  .topbar{padding:10px 14px}
+  .progress-section{padding:6px 16px}
+  .diff-chips{display:none}
+  .roadmap-banner{margin:0 16px 20px;padding:16px}
+}
+@media(max-width:480px){
+  .hero{padding:28px 16px 24px}
+  .hero-search kbd{display:none}
+  .topbar-title{font-size:13px}
+}
+
+/* ── CODE BLOCK ── */
+.card-code{display:none;margin-bottom:12px;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+.card-code.show{display:block}
+.code-hdr{display:flex;align-items:center;justify-content:space-between;background:#0d1117;padding:7px 14px;border-bottom:1px solid #21262d}
+.code-lang{font-size:10px;font-weight:700;color:#f0883e;font-family:'JetBrains Mono',monospace;letter-spacing:.06em}
+.code-copy{background:none;border:1px solid #30363d;border-radius:5px;padding:2px 9px;font-size:10px;color:#8b949e;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .2s}
+.code-copy:hover{border-color:var(--blue);color:var(--blue)}
+.code-copy.copied{border-color:var(--teal);color:var(--teal)}
+pre.code-block{background:#0d1117;margin:0;padding:14px 16px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.75;color:#c9d1d9;tab-size:4}
+/* Syntax colours (GitHub-dark inspired) */
+.kw{color:#ff7b72;font-weight:600}
+.cls{color:#79c0ff}
+.str{color:#a5d6ff}
+.cm{color:#8b949e;font-style:italic}
+.ann{color:#d2a8ff}
+.num{color:#f0883e}
+.btn-code{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:12px;color:var(--cyan);cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif}
+.btn-code:hover{border-color:var(--cyan);background:rgba(34,211,238,.07)}
+.dsa-card.code-open .btn-code{border-color:var(--cyan);background:rgba(34,211,238,.07)}
+</style>
+</head>
+<body>
+
+<div id="scroll-progress"></div>
+<div class="overlay" id="sidebarOverlay"></div>
+
+<div class="layout">
+  <!-- ══════════════ SIDEBAR ══════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-inner">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">🧠</div>
+        <div class="sidebar-logo-text">DSA Master Hub<small>2026 Prep Edition</small></div>
+      </div>
+
+      <div style="padding:0 12px 10px">
+        <div class="sidebar-search" style="padding:0;margin-bottom:8px">
+          <span class="srch-icon">🔍</span>
+          <input type="text" id="sideSearch" placeholder="Filter categories…"/>
+        </div>
+      </div>
+
+      <div class="sidebar-section-label">Categories</div>
+      <div id="catNavList"><!-- JS injected --></div>
+
+      <div style="margin-top:16px;padding:0 20px">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Quick Links</div>
+        <a href="../Study-Resources.html" style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);text-decoration:none;padding:6px 0;transition:color .2s" onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='var(--text2)'">← Study Resources</a>
+        <a href="Java-Prep-kit.html" style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);text-decoration:none;padding:6px 0;transition:color .2s" onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='var(--text2)'">☕ Java Prep Kit</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══════════════ MAIN ══════════════ -->
+  <main class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <button class="menu-btn" id="menuBtn">☰</button>
+      <div class="topbar-title">DSA Master Preparation Hub</div>
+      <div class="topbar-right">
+        <div class="progress-chip">
+          <span>Progress</span>
+          <strong id="answeredCount">0</strong>/<strong id="totalCount">0</strong>
+        </div>
+        <button class="clear-btn" onclick="clearAllProgress()">Clear All</button>
+        <a href="../Study-Resources.html" class="back-btn">← Study Resources</a>
+        <button class="theme-btn" id="themeBtn">🌙</button>
+      </div>
+    </div>
+
+    <!-- PROGRESS BAR -->
+    <div class="progress-section">
+      <span class="progress-label">Overall completion</span>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+        </div>
+      </div>
+      <span class="progress-pct" id="progressPct">0%</span>
+      <div class="diff-chips">
+        <span class="diff-chip easy" id="easyCount">0 Easy</span>
+        <span class="diff-chip medium" id="medCount">0 Med</span>
+        <span class="diff-chip hard" id="hardCount">0 Hard</span>
+      </div>
+    </div>
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-eyebrow">// DSA Interview Preparation • 2026 Edition</div>
+      <h1>Data Structures &amp; Algorithms<br/>Master Preparation Hub</h1>
+      <p class="hero-desc">Master DSA for Product Companies, MNCs, FAANG, TCS, Infosys, Accenture, Cognizant, Capgemini, HCL, Wipro, and Startup Interviews. Curated from real interviews with complete approach guides.</p>
+      <div class="hero-stats">
+        <div class="stat-chip"><div class="stat-num" id="heroTotal">200+</div><div class="stat-label">Questions</div></div>
+        <div class="stat-chip"><div class="stat-num" id="heroEasy" style="background:linear-gradient(135deg,var(--teal),#00b37e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Easy</div><div class="stat-label" id="heroEasyC">—</div></div>
+        <div class="stat-chip"><div class="stat-num" id="heroMed" style="background:linear-gradient(135deg,var(--gold),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Med</div><div class="stat-label" id="heroMedC">—</div></div>
+        <div class="stat-chip"><div class="stat-num" id="heroHard" style="background:linear-gradient(135deg,var(--rose),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Hard</div><div class="stat-label" id="heroHardC">—</div></div>
+        <div class="stat-chip"><div class="stat-num">15</div><div class="stat-label">Categories</div></div>
+      </div>
+      <div class="hero-search">
+        <span class="hs-icon">🔍</span>
+        <input type="text" id="heroSearch" placeholder="Search questions, topics, algorithms…" autocomplete="off"/>
+        <kbd>Ctrl+K</kbd>
+      </div>
+    </div>
+
+    <!-- ROADMAP BANNER -->
+    <div class="roadmap-banner">
+      <div style="flex:1">
+        <div class="roadmap-title">🗺️ Recommended Learning Roadmap</div>
+        <div class="roadmap-desc">Follow this order for maximum retention and interview readiness.</div>
+        <div class="roadmap-steps">
+          <div class="roadmap-step"><div class="step-num">1</div>Arrays &amp; Strings</div>
+          <div class="roadmap-step"><div class="step-num">2</div>Hashing</div>
+          <div class="roadmap-step"><div class="step-num">3</div>Sliding Window</div>
+          <div class="roadmap-step"><div class="step-num">4</div>Linked Lists</div>
+          <div class="roadmap-step"><div class="step-num">5</div>Stacks &amp; Queues</div>
+          <div class="roadmap-step"><div class="step-num">6</div>Trees &amp; BST</div>
+          <div class="roadmap-step"><div class="step-num">7</div>Heaps</div>
+          <div class="roadmap-step"><div class="step-num">8</div>Graphs</div>
+          <div class="roadmap-step"><div class="step-num">9</div>Recursion &amp; Backtracking</div>
+          <div class="roadmap-step"><div class="step-num">10</div>DP</div>
+          <div class="roadmap-step"><div class="step-num">11</div>Greedy</div>
+          <div class="roadmap-step"><div class="step-num">12</div>Bit Manipulation</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FILTER BAR -->
+    <div class="filter-bar">
+      <span class="filter-label">Difficulty:</span>
+      <div class="filter-btns">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="easy">Easy</button>
+        <button class="filter-btn" data-filter="medium">Medium</button>
+        <button class="filter-btn" data-filter="hard">Hard</button>
+        <button class="filter-btn" data-filter="done">Done ✓</button>
+        <button class="filter-btn" data-filter="todo">Todo</button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content" id="mainContent">
+      <div class="no-results" id="noResults">
+        <div class="no-results-icon">🔍</div>
+        <div class="no-results-text">No questions match your search.</div>
+      </div>
+      <!-- Category sections injected by JS -->
+    </div>
+  </main>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   DSA MASTER PREP HUB — DATA
+══════════════════════════════════════════════════════ */
+const CATEGORIES = [
+  {
+    id:'arrays', label:'Arrays & Strings', icon:'📐', color:'#4f8ef7',
+    desc:'Foundation of every interview — master before anything else',
+    questions:[
+      {id:'a1',title:'Two Sum',diff:'easy',tags:['Hash Map','Array'],hint:'Use a hash map to store complement → index while iterating.',approach:'Iterate array. For each element x, check if (target-x) exists in map. If yes, return indices. Else store x→i in map.',tc:'O(n)',sc:'O(n)',code:`
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        Map<Integer, Integer> map = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            int complement = target - nums[i];
+            if (map.containsKey(complement))
+                return new int[]{map.get(complement), i};
+            map.put(nums[i], i);
+        }
+        return new int[0];
+    }
+}`},
+      {id:'a2',title:'Best Time to Buy and Sell Stock',diff:'easy',tags:['Greedy','Array'],hint:'Track the minimum price seen so far and the maximum profit.',approach:'One pass: maintain minPrice and maxProfit. For each price: maxProfit = max(maxProfit, price-minPrice); minPrice = min(minPrice, price).',tc:'O(n)',sc:'O(1)'},
+      {id:'a3',title:'Contains Duplicate',diff:'easy',tags:['Hash Set'],hint:'A HashSet detects duplicates in O(1) per insert.',approach:'Add each number to a Set. If add() returns false (already present), return true.',tc:'O(n)',sc:'O(n)'},
+      {id:'a4',title:'Product of Array Except Self',diff:'medium',tags:['Prefix Product'],hint:'Two passes — prefix products left-to-right, then suffix right-to-left.',approach:'Build prefix array where prefix[i] = product of all elements left of i. Then traverse right-to-left maintaining a running suffix product, multiply into result.',tc:'O(n)',sc:'O(1) extra'},
+      {id:'a5',title:'Maximum Subarray (Kadane\'s)',diff:'medium',tags:['DP','Kadane'],hint:'Current subarray sum either extends or restarts at current element.',approach:'maxSum = nums[0]; curSum = nums[0]. For i=1..n: curSum = max(nums[i], curSum+nums[i]); maxSum = max(maxSum, curSum).',tc:'O(n)',sc:'O(1)'},
+      {id:'a6',title:'Find Minimum in Rotated Sorted Array',diff:'medium',tags:['Binary Search'],hint:'The minimum is in the unsorted half. Compare mid with right.',approach:'Binary search: if nums[mid] > nums[right], min is in right half (lo=mid+1). Else min is in left half including mid (hi=mid).',tc:'O(log n)',sc:'O(1)'},
+      {id:'a7',title:'Search in Rotated Sorted Array',diff:'medium',tags:['Binary Search'],hint:'One half is always sorted. Determine which half and binary search it.',approach:'At each step find sorted half. If target in sorted half, binary search there. Else search other half.',tc:'O(log n)',sc:'O(1)'},
+      {id:'a8',title:'3Sum',diff:'medium',tags:['Two Pointer','Sorting'],hint:'Sort, fix one element, use two pointers for the remaining pair.',approach:'Sort array. For each i: skip duplicates. Set lo=i+1, hi=n-1. Move pointers: if sum<0 move lo right; if sum>0 move hi left; if sum==0 record and skip dupes.',tc:'O(n²)',sc:'O(1)'},
+      {id:'a9',title:'Trapping Rain Water',diff:'hard',tags:['Two Pointer','Prefix'],hint:'Water at each bar = min(maxLeft, maxRight) - height[i].',approach:'Two pointers left,right. Maintain leftMax, rightMax. Process side with smaller max: water = max-height[side].',tc:'O(n)',sc:'O(1)'},
+      {id:'a10',title:'Longest Consecutive Sequence',diff:'medium',tags:['Hash Set'],hint:'Only start a sequence from a number with no left neighbor in the set.',approach:'Put all numbers in a Set. For each n where n-1 not in set, count consecutive streak. Track max streak.',tc:'O(n)',sc:'O(n)'},
+      {id:'a11',title:'Rotate Array by K',diff:'medium',tags:['Reverse','Array'],hint:'Reverse whole array, then reverse first k and last n-k elements.',approach:'Normalize k = k%n. Reverse all. Reverse [0..k-1]. Reverse [k..n-1].',tc:'O(n)',sc:'O(1)'},
+      {id:'a12',title:'Merge Intervals',diff:'medium',tags:['Sorting','Intervals'],hint:'Sort by start, merge if current start ≤ last merged end.',approach:'Sort intervals by start. Init result with first. For each next: if overlap, extend end to max. Else push new.',tc:'O(n log n)',sc:'O(n)'},
+      {id:'a13',title:'Meeting Rooms II',diff:'medium',tags:['Heap','Greedy'],hint:'Use a min-heap of end times to track room releases.',approach:'Sort by start. Min-heap of end times. For each meeting: if heap.top ≤ start, pop (reuse room). Always push end time.',tc:'O(n log n)',sc:'O(n)'},
+      {id:'a14',title:'First Missing Positive',diff:'hard',tags:['Index Hashing'],hint:'Place each number at index number-1 using cyclic sort. First index where arr[i]≠i+1 is answer.',approach:'Cyclic sort: while nums[i] in [1,n] and nums[i]≠nums[nums[i]-1], swap. Then scan for first mismatch.',tc:'O(n)',sc:'O(1)'},
+    ]
+  },
+  {
+    id:'sliding',label:'Sliding Window & Two Pointers',icon:'🪟',color:'#22d3ee',
+    desc:'Master variable and fixed window patterns for substring/subarray problems',
+    questions:[
+      {id:'sw1',title:'Longest Substring Without Repeating',diff:'medium',tags:['Sliding Window','Hash Map'],hint:'Expand right; when duplicate found, shrink from left past duplicate.',approach:'HashMap char→lastIndex. lo=0. For each char at hi: if in map and map[c]>=lo, set lo=map[c]+1. Update map. maxLen = max(maxLen, hi-lo+1).',tc:'O(n)',sc:'O(min(m,n))'},
+      {id:'sw2',title:'Minimum Window Substring',diff:'hard',tags:['Sliding Window','Frequency Map'],hint:'Expand right to satisfy; contract left while satisfied.',approach:'Frequency map of t. formed count tracks satisfied chars. Expand hi; decrement freq; if freq==0 increment formed. While formed==required, try shrink lo, update result.',tc:'O(|s|+|t|)',sc:'O(|s|+|t|)'},
+      {id:'sw3',title:'Permutation in String',diff:'medium',tags:['Sliding Window','Frequency'],hint:'Fixed window of size len(p). Compare character frequency arrays.',approach:'Count freq of p. Slide window of size p.length over s. Maintain running freq. If freq arrays match, return true.',tc:'O(n)',sc:'O(1)'},
+      {id:'sw4',title:'Longest Repeating Character Replacement',diff:'medium',tags:['Sliding Window'],hint:'Window size - maxFrequency ≤ k defines valid window.',approach:'Freq map in window. Track maxFreq. If (window_size - maxFreq) > k, shrink left (but don\'t decrement maxFreq — it only grows).',tc:'O(n)',sc:'O(26)'},
+      {id:'sw5',title:'Maximum Sum Subarray of Size K',diff:'easy',tags:['Fixed Window'],hint:'Slide a window of size k, add new element, remove old.',approach:'Sum first k elements. Slide: add nums[i], subtract nums[i-k]. Track max sum.',tc:'O(n)',sc:'O(1)'},
+      {id:'sw6',title:'Container With Most Water',diff:'medium',tags:['Two Pointer'],hint:'Move the pointer with the shorter line inward.',approach:'lo=0, hi=n-1. area=min(h[lo],h[hi])*(hi-lo). Move shorter pointer. Track max.',tc:'O(n)',sc:'O(1)'},
+      {id:'sw7',title:'Pair with Target Sum (Sorted)',diff:'easy',tags:['Two Pointer'],hint:'Two pointers from both ends of sorted array.',approach:'lo=0,hi=n-1. If sum==target return [lo,hi]. If sum<target lo++. Else hi--.',tc:'O(n)',sc:'O(1)'},
+      {id:'sw8',title:'Subarray Product Less Than K',diff:'medium',tags:['Sliding Window'],hint:'Shrink window from left whenever product ≥ k.',approach:'product=1, lo=0, count=0. For each hi: product*=nums[hi]. While product>=k, product/=nums[lo++]. count += hi-lo+1.',tc:'O(n)',sc:'O(1)'},
+    ]
+  },
+  {
+    id:'linkedlist',label:'Linked Lists',icon:'🔗',color:'#8b5cf6',
+    desc:'Pointer manipulation patterns — reversal, merging, cycle detection',
+    questions:[
+      {id:'ll1',title:'Reverse Linked List',diff:'easy',tags:['Iterative','Recursive'],hint:'Three pointers: prev, curr, next. Redirect curr.next to prev.',approach:'prev=null, curr=head. While curr: next=curr.next; curr.next=prev; prev=curr; curr=next. Return prev.',tc:'O(n)',sc:'O(1)'},
+      {id:'ll2',title:'Merge Two Sorted Lists',diff:'easy',tags:['Two Pointer'],hint:'Dummy head makes edge cases clean. Compare and link smaller.',approach:'Dummy node. While both non-null: link smaller to result. Attach remaining list.',tc:'O(n+m)',sc:'O(1)'},
+      {id:'ll3',title:'Linked List Cycle Detection',diff:'easy',tags:['Floyd\'s Algorithm'],hint:'Fast pointer moves 2x. If there\'s a cycle they meet.',approach:'slow=fast=head. While fast and fast.next: slow=slow.next; fast=fast.next.next. If slow==fast → cycle.',tc:'O(n)',sc:'O(1)'},
+      {id:'ll4',title:'Find Cycle Start Node',diff:'medium',tags:['Floyd\'s Algorithm'],hint:'After meeting point, reset one pointer to head. Both move 1x until they meet at cycle start.',approach:'Phase 1: find meeting point. Phase 2: slow=head. Move both by 1 until equal. That node is cycle start.',tc:'O(n)',sc:'O(1)'},
+      {id:'ll5',title:'Reorder List (L0→Ln→L1→Ln-1…)',diff:'medium',tags:['Reversal','Two Pointer'],hint:'Find middle, reverse second half, merge two halves.',approach:'Find mid (slow/fast). Reverse second half. Interleave first and reversed second half.',tc:'O(n)',sc:'O(1)'},
+      {id:'ll6',title:'Remove Nth Node From End',diff:'medium',tags:['Two Pointer'],hint:'Advance fast pointer n steps first, then move both until fast.next is null.',approach:'Dummy → head. fast=dummy, slow=dummy. Move fast n+1 steps. Move both until fast==null. slow.next = slow.next.next.',tc:'O(n)',sc:'O(1)'},
+      {id:'ll7',title:'Copy List with Random Pointer',diff:'medium',tags:['Hash Map'],hint:'HashMap oldNode→newNode for O(n) space, or interleave nodes for O(1).',approach:'Two passes: 1) Create copies interleaved. 2) Set random pointers. 3) Separate lists.',tc:'O(n)',sc:'O(1)'},
+      {id:'ll8',title:'LRU Cache',diff:'medium',tags:['HashMap','Doubly Linked List'],hint:'HashMap for O(1) get; doubly linked list for O(1) remove/insert.',approach:'HashMap key→node. DLL: head=MRU, tail=LRU. get: move to head. put: add to head; if over capacity, remove tail.',tc:'O(1)',sc:'O(capacity)'},
+      {id:'ll9',title:'Merge K Sorted Lists',diff:'hard',tags:['Min Heap','Divide & Conquer'],hint:'Use min-heap of (value, node) tuples. Always extract minimum.',approach:'Add head of each list to min-heap. Pop min, add to result, push next node of that list. Repeat.',tc:'O(n log k)',sc:'O(k)'},
+    ]
+  },
+  {
+    id:'stacks',label:'Stacks & Queues',icon:'📚',color:'#fb923c',
+    desc:'Monotonic stacks, deques, and classic stack-based patterns',
+    questions:[
+      {id:'sq1',title:'Valid Parentheses',diff:'easy',tags:['Stack'],hint:'Push open brackets; on close bracket, pop and check match.',approach:'Stack. For open bracket push. For close bracket: if stack empty or top doesn\'t match, return false. Return stack.isEmpty().',tc:'O(n)',sc:'O(n)'},
+      {id:'sq2',title:'Min Stack',diff:'medium',tags:['Stack'],hint:'Maintain a parallel min stack. Push current min alongside each element.',approach:'Two stacks: main and minStack. On push: push to main; push min(val, minStack.top) to minStack. Pop both on pop.',tc:'O(1)',sc:'O(n)'},
+      {id:'sq3',title:'Daily Temperatures',diff:'medium',tags:['Monotonic Stack'],hint:'Monotonic decreasing stack of indices. Pop when warmer temp found.',approach:'Stack of indices (decreasing temp order). For each i: while stack not empty and temps[i]>temps[stack.top], pop idx, result[idx]=i-idx.',tc:'O(n)',sc:'O(n)'},
+      {id:'sq4',title:'Largest Rectangle in Histogram',diff:'hard',tags:['Monotonic Stack'],hint:'Stack stores indices of bars with increasing height. Calculate area on pop.',approach:'Monotonic increasing stack. For each bar: while stack top taller than current, pop and calc area = h[top]*(i - stack.top - 1). Push 0-height sentinel at start and end.',tc:'O(n)',sc:'O(n)'},
+      {id:'sq5',title:'Sliding Window Maximum',diff:'hard',tags:['Monotonic Deque'],hint:'Deque stores indices; remove smaller elements from back; remove out-of-window from front.',approach:'Deque of indices (decreasing values). For each i: remove from back while deque.back\'s value ≤ nums[i]. Remove from front if out of window. Front is max.',tc:'O(n)',sc:'O(k)'},
+      {id:'sq6',title:'Evaluate Reverse Polish Notation',diff:'medium',tags:['Stack'],hint:'Push numbers; on operator, pop two, compute, push result.',approach:'Stack. If token is number push. If operator: pop b then a; push a op b.',tc:'O(n)',sc:'O(n)'},
+      {id:'sq7',title:'Next Greater Element',diff:'easy',tags:['Monotonic Stack'],hint:'Monotonic decreasing stack; for circular array traverse 2n elements.',approach:'Stack of indices. For i in 0..2n: while stack not empty and nums[i%n] > nums[stack.top], result[stack.pop()] = nums[i%n].',tc:'O(n)',sc:'O(n)'},
+      {id:'sq8',title:'Implement Queue Using Stacks',diff:'easy',tags:['Stack','Amortized'],hint:'Use two stacks. Lazy transfer: move stack1 to stack2 only when stack2 is empty.',approach:'Push to stack1. For pop/peek: if stack2 empty, move all from stack1 to stack2. Operate on stack2.',tc:'O(1) amortized',sc:'O(n)'},
+    ]
+  },
+  {
+    id:'trees',label:'Trees & BST',icon:'🌳',color:'#06d6a0',
+    desc:'DFS, BFS, BST properties, LCA, and tree construction problems',
+    questions:[
+      {id:'t1',title:'Invert Binary Tree',diff:'easy',tags:['DFS','Recursion'],hint:'Swap left and right children recursively.',approach:'if node null return null. Swap left,right. Recurse on left, right. Return node.',tc:'O(n)',sc:'O(h)'},
+      {id:'t2',title:'Maximum Depth of Binary Tree',diff:'easy',tags:['DFS','BFS'],hint:'1 + max(leftDepth, rightDepth)',approach:'Recursive: if null return 0. Return 1 + max(maxDepth(left), maxDepth(right)).',tc:'O(n)',sc:'O(h)'},
+      {id:'t3',title:'Balanced Binary Tree',diff:'easy',tags:['DFS','Post-order'],hint:'Return -1 from subtrees that are unbalanced; propagate up.',approach:'height(node): if null return 0. h_l = height(left); h_r = height(right). If either is -1 or |h_l-h_r|>1, return -1. Return 1+max.',tc:'O(n)',sc:'O(h)'},
+      {id:'t4',title:'Level Order Traversal (BFS)',diff:'medium',tags:['BFS','Queue'],hint:'Use a queue. At each level drain all nodes currently in queue.',approach:'Queue with root. While queue not empty: size=queue.size(); process size nodes, add their children.',tc:'O(n)',sc:'O(w)'},
+      {id:'t5',title:'Binary Tree Right Side View',diff:'medium',tags:['BFS'],hint:'BFS level-order; the last node of each level is the right side.',approach:'Level-order BFS. At each level, add the last node in the level to result.',tc:'O(n)',sc:'O(w)'},
+      {id:'t6',title:'Validate BST',diff:'medium',tags:['DFS','In-order'],hint:'Pass down valid [min,max] range. Each node must be strictly inside range.',approach:'helper(node, min, max): if null return true. If node.val≤min or node.val≥max return false. Recurse left with max=node.val, right with min=node.val.',tc:'O(n)',sc:'O(h)'},
+      {id:'t7',title:'Lowest Common Ancestor (BST)',diff:'medium',tags:['BST'],hint:'If both p,q < node, go left. Both > node, go right. Else current is LCA.',approach:'While node: if p.val and q.val both < node.val: node=node.left. Both > node.val: node=node.right. Else return node.',tc:'O(h)',sc:'O(1)'},
+      {id:'t8',title:'LCA of Binary Tree',diff:'medium',tags:['DFS'],hint:'Post-order: if either subtree returns non-null, propagate up.',approach:'If node==null or node==p or node==q return node. left=lca(left); right=lca(right). If both non-null return node. Else return non-null one.',tc:'O(n)',sc:'O(h)'},
+      {id:'t9',title:'Binary Tree Maximum Path Sum',diff:'hard',tags:['DFS','Post-order'],hint:'At each node, max gain = node.val + max(0, left_gain, right_gain). Update global max with left+node+right.',approach:'DFS returns max single-path gain from node downward. At each node update global max = left_gain + node.val + right_gain.',tc:'O(n)',sc:'O(h)'},
+      {id:'t10',title:'Serialize and Deserialize Binary Tree',diff:'hard',tags:['BFS','String'],hint:'BFS with null markers. Deserialize by reading back node by node.',approach:'Serialize: BFS, append values with null for nulls. Deserialize: queue-based reconstruction matching parent to children.',tc:'O(n)',sc:'O(n)'},
+      {id:'t11',title:'Kth Smallest in BST',diff:'medium',tags:['In-order'],hint:'In-order traversal visits BST nodes in sorted order.',approach:'Iterative in-order with stack. Decrement k each visit. When k==0 return current value.',tc:'O(h+k)',sc:'O(h)'},
+      {id:'t12',title:'Construct BST from Preorder',diff:'medium',tags:['Recursion','BST'],hint:'First element is root. Elements < root go left; ≥ go right.',approach:'Build with upper bound trick: helper(bound): if preorder[i]>=bound return null. node=preorder[i++]; node.left=helper(node.val); node.right=helper(bound); return node.',tc:'O(n)',sc:'O(n)'},
+      {id:'t13',title:'Diameter of Binary Tree',diff:'easy',tags:['DFS'],hint:'Diameter through a node = left_depth + right_depth. Update global max.',approach:'DFS returns depth. At each node: diameter = leftDepth + rightDepth; update maxDiameter. Return 1+max(left,right).',tc:'O(n)',sc:'O(h)'},
+    ]
+  },
+  {
+    id:'graphs',label:'Graphs',icon:'🕸️',color:'#ec4899',
+    desc:'BFS, DFS, Union-Find, topological sort, shortest paths',
+    questions:[
+      {id:'g1',title:'Number of Islands',diff:'medium',tags:['DFS','BFS','Union-Find'],hint:'DFS from each unvisited land cell, mark visited cells.',approach:'For each cell (i,j) with value 1: DFS to mark all connected 1s as visited (set to 0). Increment count.',tc:'O(m×n)',sc:'O(m×n)'},
+      {id:'g2',title:'Max Area of Island',diff:'medium',tags:['DFS'],hint:'DFS returns the size of the island. Track global maximum.',approach:'DFS returns 1 + area of 4 neighbors (if in bounds and unvisited land). Track max.',tc:'O(m×n)',sc:'O(m×n)'},
+      {id:'g3',title:'Clone Graph',diff:'medium',tags:['BFS','HashMap'],hint:'HashMap old→new node. BFS/DFS to clone all neighbors.',approach:'HashMap visited. DFS: create clone of node, add to map. For each neighbor: if not in map recurse; add to clone\'s neighbors.',tc:'O(V+E)',sc:'O(V)'},
+      {id:'g4',title:'Pacific Atlantic Water Flow',diff:'medium',tags:['BFS','Multi-source'],hint:'Multi-source BFS from Pacific edges and Atlantic edges separately. Answer is intersection.',approach:'Two visited sets. BFS from all pacific borders (top+left) and atlantic borders (bottom+right). Answer = cells in both.',tc:'O(m×n)',sc:'O(m×n)'},
+      {id:'g5',title:'Course Schedule (Cycle Detection)',diff:'medium',tags:['Topological Sort','DFS'],hint:'Build adjacency list. DFS with 3 states: unvisited, visiting, visited. Cycle if visiting node is revisited.',approach:'DFS with color: WHITE=0,GRAY=1,BLACK=2. If GRAY encountered during DFS → cycle. If all BLACK → no cycle.',tc:'O(V+E)',sc:'O(V+E)'},
+      {id:'g6',title:'Course Schedule II (Topo Sort)',diff:'medium',tags:['Topological Sort','Kahn\'s BFS'],hint:'Kahn\'s algorithm: start with in-degree 0 nodes.',approach:'Build in-degree map. Queue all 0 in-degree nodes. Process: decrement neighbors\' in-degree; add to queue if 0. If processed==numCourses return order.',tc:'O(V+E)',sc:'O(V+E)'},
+      {id:'g7',title:'Number of Connected Components',diff:'medium',tags:['Union-Find','DFS'],hint:'Union-Find: union edges; count distinct roots.',approach:'UnionFind with rank/path compression. For each edge union two nodes. Count distinct roots (nodes where find(i)==i).',tc:'O(n·α(n))',sc:'O(n)'},
+      {id:'g8',title:'Redundant Connection',diff:'medium',tags:['Union-Find'],hint:'Add edges one by one. The first edge where both endpoints already connected is redundant.',approach:'Union-Find. For each edge [u,v]: if find(u)==find(v) return edge. Else union(u,v).',tc:'O(n·α(n))',sc:'O(n)'},
+      {id:'g9',title:'Word Ladder',diff:'hard',tags:['BFS','Bidirectional BFS'],hint:'BFS from start word. Each step change one character to any valid word.',approach:'BFS queue. For each word at front, try all one-char replacements. If in wordSet, add to queue and remove from set. Return level when target reached.',tc:'O(n·m²)',sc:'O(n·m)'},
+      {id:'g10',title:'Walls and Gates (Multi-source BFS)',diff:'medium',tags:['BFS'],hint:'Start BFS from all gates simultaneously.',approach:'Add all gate cells (value=0) to queue. BFS: for each neighbor with value INF, set value = current+1 and enqueue.',tc:'O(m×n)',sc:'O(m×n)'},
+      {id:'g11',title:'Rotting Oranges',diff:'medium',tags:['BFS'],hint:'Multi-source BFS from all rotten oranges. Count minutes.',approach:'Add all rotten to queue with time=0. BFS spreading rot to fresh neighbors. Track fresh count. If fresh>0 after BFS, return -1.',tc:'O(m×n)',sc:'O(m×n)'},
+      {id:'g12',title:'Network Delay Time (Dijkstra)',diff:'medium',tags:['Dijkstra','Min Heap'],hint:'Dijkstra from source. Answer is max distance to any node.',approach:'Min-heap of (dist, node). Relax edges. When popped with known shortest, skip. Return max of all distances (or -1 if unreachable).',tc:'O((V+E) log V)',sc:'O(V+E)'},
+    ]
+  },
+  {
+    id:'dp',label:'Dynamic Programming',icon:'🧩',color:'#f59e0b',
+    desc:'1D/2D DP, knapsack, LCS, LIS, coin change patterns',
+    questions:[
+      {id:'dp1',title:'Climbing Stairs',diff:'easy',tags:['1D DP','Fibonacci'],hint:'dp[i] = dp[i-1] + dp[i-2]. Same as Fibonacci.',approach:'dp[1]=1, dp[2]=2. For i 3..n: dp[i]=dp[i-1]+dp[i-2].',tc:'O(n)',sc:'O(1)'},
+      {id:'dp2',title:'House Robber',diff:'medium',tags:['1D DP'],hint:'For each house: max(rob current + 2_ago, skip current)',approach:'prev2=0, prev1=0. For each num: curr=max(prev1, prev2+num); prev2=prev1; prev1=curr.',tc:'O(n)',sc:'O(1)'},
+      {id:'dp3',title:'House Robber II (Circular)',diff:'medium',tags:['1D DP'],hint:'Can\'t rob both first and last. Run rob() on [0..n-2] and [1..n-1], take max.',approach:'Run linear house robber twice: once excluding last house, once excluding first house.',tc:'O(n)',sc:'O(1)'},
+      {id:'dp4',title:'Coin Change',diff:'medium',tags:['Bottom-up DP'],hint:'dp[i] = min coins to make amount i. dp[0]=0, rest=INF.',approach:'For each coin, for each amount a from coin..target: dp[a] = min(dp[a], dp[a-coin]+1).',tc:'O(amount×coins)',sc:'O(amount)'},
+      {id:'dp5',title:'Coin Change II (Count Ways)',diff:'medium',tags:['Knapsack DP'],hint:'dp[i] = number of ways to make amount i. Iterate coins then amounts to avoid duplicates.',approach:'dp[0]=1. For each coin: for a = coin..amount: dp[a] += dp[a-coin].',tc:'O(amount×coins)',sc:'O(amount)'},
+      {id:'dp6',title:'Longest Increasing Subsequence',diff:'medium',tags:['Binary Search','Patience Sort'],hint:'Maintain a sorted tails array. Binary search for insertion position.',approach:'For each num: binary search in tails for first element >= num. Replace or append. tails.length is LIS length.',tc:'O(n log n)',sc:'O(n)'},
+      {id:'dp7',title:'Longest Common Subsequence',diff:'medium',tags:['2D DP'],hint:'dp[i][j] = LCS of s1[0..i-1] and s2[0..j-1]. If chars match, diagonal+1.',approach:'dp[i][j] = dp[i-1][j-1]+1 if match, else max(dp[i-1][j], dp[i][j-1]).',tc:'O(m×n)',sc:'O(m×n)'},
+      {id:'dp8',title:'0/1 Knapsack',diff:'medium',tags:['2D DP','Knapsack'],hint:'For each item decide include or exclude. Include only if weight fits.',approach:'dp[i][w] = max value with i items, weight w. If weight[i]>w: dp[i][w]=dp[i-1][w]. Else: max(dp[i-1][w], val[i]+dp[i-1][w-wt[i]]).',tc:'O(n×W)',sc:'O(n×W)'},
+      {id:'dp9',title:'Word Break',diff:'medium',tags:['DP','Trie'],hint:'dp[i] = can s[0..i-1] be segmented. For each j<i: if dp[j] and s[j..i-1] in dict.',approach:'dp[0]=true. For i 1..n: for j 0..i: if dp[j] and s[j:i] in wordSet: dp[i]=true.',tc:'O(n²)',sc:'O(n)'},
+      {id:'dp10',title:'Partition Equal Subset Sum',diff:'medium',tags:['Knapsack DP'],hint:'Can we find subset summing to total/2? 0/1 knapsack boolean variant.',approach:'If total odd, false. Target=total/2. dp boolean array size target+1. dp[0]=true. For each num: for j=target..num: dp[j]|=dp[j-num].',tc:'O(n×sum)',sc:'O(sum)'},
+      {id:'dp11',title:'Edit Distance',diff:'hard',tags:['2D DP','LCS variant'],hint:'dp[i][j] = min edits to convert s1[0..i] to s2[0..j].',approach:'If chars match: dp[i][j]=dp[i-1][j-1]. Else 1 + min(dp[i-1][j] delete, dp[i][j-1] insert, dp[i-1][j-1] replace).',tc:'O(m×n)',sc:'O(m×n)'},
+      {id:'dp12',title:'Unique Paths',diff:'medium',tags:['2D DP'],hint:'dp[i][j] = ways to reach (i,j) = dp[i-1][j] + dp[i][j-1].',approach:'Initialize top row and left col to 1. Fill dp[i][j]=dp[i-1][j]+dp[i][j-1]. Return dp[m-1][n-1].',tc:'O(m×n)',sc:'O(n)'},
+      {id:'dp13',title:'Jump Game II (Min Jumps)',diff:'medium',tags:['Greedy DP'],hint:'Track the furthest reach and current jump end. Increment jumps when you pass jump end.',approach:'jumps=0, curEnd=0, farthest=0. For i 0..n-2: farthest=max(farthest,i+nums[i]). If i==curEnd: jumps++; curEnd=farthest.',tc:'O(n)',sc:'O(1)'},
+      {id:'dp14',title:'Palindromic Substrings Count',diff:'medium',tags:['Expand Around Center'],hint:'Expand around each center (n centers for odd, n-1 for even).',approach:'For each center i: count odd palindromes (expand l=r=i) and even (expand l=i,r=i+1). Count each valid expansion.',tc:'O(n²)',sc:'O(1)'},
+    ]
+  },
+  {
+    id:'recursion',label:'Recursion & Backtracking',icon:'🔄',color:'#06d6a0',
+    desc:'Generate all solutions, prune early, and conquer subproblems',
+    questions:[
+      {id:'r1',title:'Subsets',diff:'medium',tags:['Backtracking'],hint:'At each element decide include or exclude.',approach:'Backtrack with index. For each call: add current subset to results. Try adding nums[i] and recurse with i+1.',tc:'O(2ⁿ)',sc:'O(n)'},
+      {id:'r2',title:'Subsets II (with Duplicates)',diff:'medium',tags:['Backtracking','Sorting'],hint:'Sort input. Skip duplicate elements at the same recursion level.',approach:'Sort. Backtrack: for i from start: if i>start and nums[i]==nums[i-1] skip. Add nums[i], recurse with i+1, backtrack.',tc:'O(2ⁿ)',sc:'O(n)'},
+      {id:'r3',title:'Permutations',diff:'medium',tags:['Backtracking'],hint:'Swap current index with each subsequent index. Recurse. Swap back.',approach:'Swap nums[start] with nums[i] for i>=start. Recurse(start+1). Swap back.',tc:'O(n!)',sc:'O(n)'},
+      {id:'r4',title:'Combination Sum',diff:'medium',tags:['Backtracking'],hint:'Use same element multiple times. Only go forward (not back) to avoid duplicates.',approach:'Backtrack with remaining target. For each candidate ≥ current index: subtract from target, recurse, backtrack.',tc:'O(2^target)',sc:'O(target/min)'},
+      {id:'r5',title:'N-Queens',diff:'hard',tags:['Backtracking','Bitmasking'],hint:'Track attacked columns, diagonals, anti-diagonals with sets.',approach:'Place queen row by row. Track cols, diag (r-c), anti-diag (r+c) as sets. Valid if not attacked. Backtrack after each attempt.',tc:'O(n!)',sc:'O(n²)'},
+      {id:'r6',title:'Sudoku Solver',diff:'hard',tags:['Backtracking','Constraint Propagation'],hint:'Fill empty cell with 1-9, check validity (row/col/box), recurse.',approach:'Find first empty cell. Try 1-9. If valid (not in same row/col/3x3 box), place and recurse. If recurse returns false, backtrack.',tc:'O(9^m)',sc:'O(m)'},
+      {id:'r7',title:'Generate Parentheses',diff:'medium',tags:['Backtracking'],hint:'open < n lets you add \'(\'. close < open lets you add \')\'.',approach:'Backtrack with open and close counts. Add \'(\' if open<n. Add \')\' if close<open. Base: if open==close==n, add to result.',tc:'O(4ⁿ/√n)',sc:'O(n)'},
+      {id:'r8',title:'Letter Combinations Phone Number',diff:'medium',tags:['Backtracking'],hint:'Map each digit to its letters. Backtrack through digits.',approach:'Map: {\'2\':abc, \'3\':def...}. Backtrack: for each letter of digits[index], add to path and recurse with index+1.',tc:'O(4ⁿ)',sc:'O(n)'},
+      {id:'r9',title:'Word Search in Grid',diff:'medium',tags:['DFS','Backtracking'],hint:'DFS from each cell matching first char. Mark visited in-place.',approach:'For each cell: if match start char, DFS. DFS checks bounds, match, not visited. Mark cell visited, recurse 4 dirs, unmark.',tc:'O(m×n×4^L)',sc:'O(L)'},
+      {id:'r10',title:'Palindrome Partitioning',diff:'medium',tags:['Backtracking','DP'],hint:'Partition string where each substring is palindrome.',approach:'Backtrack: for each substring s[start..i], if palindrome add to path, recurse from i+1, backtrack.',tc:'O(n×2ⁿ)',sc:'O(n)'},
+    ]
+  },
+  {
+    id:'sorting',label:'Sorting & Searching',icon:'🔀',color:'#4f8ef7',
+    desc:'Core algorithms every developer must know cold',
+    questions:[
+      {id:'ss1',title:'Binary Search',diff:'easy',tags:['Binary Search'],hint:'lo=0, hi=n-1. mid=(lo+hi)/2. Adjust lo or hi based on comparison.',approach:'While lo<=hi: mid=lo+(hi-lo)/2. If arr[mid]==target return mid. If <target lo=mid+1. Else hi=mid-1.',tc:'O(log n)',sc:'O(1)'},
+      {id:'ss2',title:'Find First and Last Position',diff:'medium',tags:['Binary Search'],hint:'Two binary searches: one for leftmost, one for rightmost occurrence.',approach:'findLeft: standard BS but when found, hi=mid-1. findRight: when found, lo=mid+1.',tc:'O(log n)',sc:'O(1)'},
+      {id:'ss3',title:'Merge Sort',diff:'medium',tags:['Divide & Conquer'],hint:'Divide array in half, sort each half, merge sorted halves.',approach:'Recursively split to size 1. Merge two sorted halves using two-pointer technique into temp array.',tc:'O(n log n)',sc:'O(n)'},
+      {id:'ss4',title:'Quick Sort',diff:'medium',tags:['Divide & Conquer','Partition'],hint:'Partition around pivot, recurse on both sides. Random pivot avoids O(n²) worst case.',approach:'Lomuto/Hoare partition. Place pivot in correct position. All left < pivot, all right > pivot. Recurse.',tc:'O(n log n) avg',sc:'O(log n)'},
+      {id:'ss5',title:'Kth Largest Element',diff:'medium',tags:['QuickSelect','Heap'],hint:'QuickSelect: partition like QuickSort but only recurse on one side.',approach:'QuickSelect: if pivot at position k, return it. If k < pivot index recurse left. Else right. Or: min-heap of size k.',tc:'O(n) avg',sc:'O(1)'},
+      {id:'ss6',title:'Sort Colors (Dutch Flag)',diff:'medium',tags:['Three Pointer'],hint:'Three pointers: lo (0s end), mid (current), hi (2s start).',approach:'lo=mid=0, hi=n-1. While mid<=hi: if nums[mid]==0 swap with lo,lo++,mid++. If 2 swap with hi,hi--. If 1 mid++.',tc:'O(n)',sc:'O(1)'},
+      {id:'ss7',title:'Count Inversions (Merge Sort)',diff:'hard',tags:['Merge Sort'],hint:'During merge, when right element < left element, all remaining left elements form inversions.',approach:'Modified merge sort. Count inversions = (mid-left) inversions each time right element placed before remaining left.',tc:'O(n log n)',sc:'O(n)'},
+    ]
+  },
+  {
+    id:'hashing',label:'Hashing & Maps',icon:'#️⃣',color:'#22d3ee',
+    desc:'HashMap, HashSet patterns for O(1) lookup problems',
+    questions:[
+      {id:'h1',title:'Group Anagrams',diff:'medium',tags:['HashMap','Sorting'],hint:'Sort each word as key; group words with same key.',approach:'Map<String,List>. For each word: key = sorted(word). Add to map[key].',tc:'O(n·k log k)',sc:'O(n·k)'},
+      {id:'h2',title:'Top K Frequent Elements',diff:'medium',tags:['Bucket Sort','Heap'],hint:'Bucket sort: buckets indexed by frequency. Fill from high freq down.',approach:'Count frequencies. Array of buckets indexed 0..n (frequency). Put words in their frequency bucket. Read from top.',tc:'O(n)',sc:'O(n)'},
+      {id:'h3',title:'Encode and Decode Strings',diff:'medium',tags:['Design','Length Prefix'],hint:'Encode each string as length#string. Decode by reading length, then # delimiter.',approach:'Encode: join as len(s)+"#"+s. Decode: find "#", read next len chars, advance pointer.',tc:'O(n)',sc:'O(n)'},
+      {id:'h4',title:'Valid Anagram',diff:'easy',tags:['Frequency Count'],hint:'Count character frequencies. s is anagram of t if their freq maps are equal.',approach:'If lengths differ return false. Freq array of size 26. Increment for s, decrement for t. If any non-zero, not anagram.',tc:'O(n)',sc:'O(1)'},
+      {id:'h5',title:'Intersection of Two Arrays',diff:'easy',tags:['HashSet'],hint:'Put one array in set, check other array against set.',approach:'Set of nums1. For each n in nums2: if in set, add to result set. Return result as array.',tc:'O(n+m)',sc:'O(n)'},
+      {id:'h6',title:'Subarray Sum Equals K',diff:'medium',tags:['Prefix Sum','HashMap'],hint:'Prefix sum: if prefixSum[j]-prefixSum[i]=k then subarray i+1..j sums to k.',approach:'Map of {prefixSum→count}. init {0:1}. Running sum; for each element: count+=map.get(sum-k,0); map[sum]++.',tc:'O(n)',sc:'O(n)'},
+      {id:'h7',title:'Longest Subarray with Sum K',diff:'medium',tags:['Prefix Sum','HashMap'],hint:'Similar to subarray sum=k but track first occurrence of each prefix sum.',approach:'Map {prefixSum→firstIndex}. If sum-k in map: len=i-map[sum-k]; update maxLen. Only add sum to map if not present.',tc:'O(n)',sc:'O(n)'},
+    ]
+  },
+  {
+    id:'heaps',label:'Heaps & Priority Queue',icon:'⛰️',color:'#8b5cf6',
+    desc:'Min/max heap applications, top-k patterns, median maintenance',
+    questions:[
+      {id:'hp1',title:'Find Median from Data Stream',diff:'hard',tags:['Two Heaps'],hint:'Max-heap for lower half, min-heap for upper half. Balance sizes.',approach:'maxHeap (lower), minHeap (upper). Add to maxHeap. Balance: if maxHeap.top > minHeap.top, move top to minHeap. Balance sizes. Median = top of larger or avg of both tops.',tc:'O(log n)',sc:'O(n)'},
+      {id:'hp2',title:'Task Scheduler',diff:'medium',tags:['Greedy','Max Heap'],hint:'Most frequent task dictates idle time. Greedy: always schedule most frequent available task.',approach:'Count frequencies. At each cycle (n+1 size): greedily pick top-n+1 most frequent tasks. Calculate idles for last cycle.',tc:'O(n)',sc:'O(1)'},
+      {id:'hp3',title:'K Closest Points to Origin',diff:'medium',tags:['Max Heap','QuickSelect'],hint:'Max-heap of size k. When heap exceeds k, remove farthest.',approach:'Min-heap by distance. Add all points. Poll k times. Or QuickSelect for O(n) average.',tc:'O(n log k)',sc:'O(k)'},
+      {id:'hp4',title:'Reorganize String (No Adjacent Same)',diff:'medium',tags:['Greedy','Max Heap'],hint:'Greedily place most frequent character that\'s not the previous one.',approach:'Count frequencies. Max-heap. Each step: pop most frequent (if ≠ last placed). Place it. Re-push previous char if freq>0.',tc:'O(n log n)',sc:'O(n)'},
+      {id:'hp5',title:'Top K Frequent Words',diff:'medium',tags:['Min Heap'],hint:'Min-heap of size k sorted by frequency then lexicographic reverse order.',approach:'Count frequencies. Min-heap with custom comparator (lower freq comes first; among equal freq, lexicographically larger comes first for min-heap). Return reversed.',tc:'O(n log k)',sc:'O(n)'},
+      {id:'hp6',title:'Merge K Sorted Arrays',diff:'medium',tags:['Min Heap'],hint:'Min-heap of (value, array_idx, element_idx). Always merge smallest.',approach:'Add first element of each array to min-heap. Pop min, add to result, push next element from same array.',tc:'O(n log k)',sc:'O(k)'},
+    ]
+  },
+  {
+    id:'greedy',label:'Greedy Algorithms',icon:'💰',color:'#f59e0b',
+    desc:'Make locally optimal choices — prove greedy correctness by exchange argument',
+    questions:[
+      {id:'gr1',title:'Jump Game (Can Reach End?)',diff:'medium',tags:['Greedy'],hint:'Track max reachable index. If current index > maxReach, stuck.',approach:'maxReach=0. For i 0..n-1: if i>maxReach return false. maxReach=max(maxReach, i+nums[i]). Return true.',tc:'O(n)',sc:'O(1)'},
+      {id:'gr2',title:'Gas Station',diff:'medium',tags:['Greedy'],hint:'If total gas ≥ total cost, solution exists. The start is first station where tank never goes negative.',approach:'If sum(gas-cost)<0: no solution. Else: track tank. When tank<0: reset tank=0, start=i+1.',tc:'O(n)',sc:'O(1)'},
+      {id:'gr3',title:'Assign Cookies',diff:'easy',tags:['Greedy','Sorting'],hint:'Sort both. Greedily assign smallest sufficient cookie to each child.',approach:'Sort greed and size. Two pointers. Advance cookie pointer if current cookie ≥ current greed. Count satisfied children.',tc:'O(n log n)',sc:'O(1)'},
+      {id:'gr4',title:'Minimum Number of Arrows (Intervals)',diff:'medium',tags:['Greedy','Intervals'],hint:'Sort by end. Shoot at rightmost point of first interval; skip all overlapping.',approach:'Sort by end. Shoot at first interval\'s end. Skip all intervals that include that point. Increment arrows when new interval found.',tc:'O(n log n)',sc:'O(1)'},
+      {id:'gr5',title:'Non-overlapping Intervals',diff:'medium',tags:['Greedy'],hint:'Sort by end. Keep interval with earliest end; remove any that overlap it.',approach:'Sort by end. Track end of last kept interval. For each interval: if start >= last_end keep (update last_end). Else remove (increment count).',tc:'O(n log n)',sc:'O(1)'},
+      {id:'gr6',title:'Partition Labels',diff:'medium',tags:['Greedy'],hint:'Last occurrence of each char in partition must fit in same partition.',approach:'Map char→last occurrence. Greedy: track current partition end = max last occurrence of chars seen. When i==end, start new partition.',tc:'O(n)',sc:'O(1)'},
+    ]
+  },
+  {
+    id:'bits',label:'Bit Manipulation',icon:'⚡',color:'#ec4899',
+    desc:'XOR tricks, bit masking, and shift operations',
+    questions:[
+      {id:'b1',title:'Single Number (XOR)',diff:'easy',tags:['XOR'],hint:'XOR of same numbers = 0. XOR of 0 and x = x.',approach:'result=0. For each num: result ^= num. Return result.',tc:'O(n)',sc:'O(1)'},
+      {id:'b2',title:'Number of 1 Bits (Hamming Weight)',diff:'easy',tags:['Bit Tricks'],hint:'n & (n-1) clears the lowest set bit. Count how many times until 0.',approach:'count=0. While n!=0: n &= (n-1); count++.',tc:'O(k)',sc:'O(1)'},
+      {id:'b3',title:'Reverse Bits',diff:'easy',tags:['Bit Manipulation'],hint:'For each of 32 bits: extract LSB, shift result left, OR in extracted bit, shift n right.',approach:'result=0. For i 0..31: result=(result<<1)|(n&1); n>>=1.',tc:'O(1)',sc:'O(1)'},
+      {id:'b4',title:'Missing Number',diff:'easy',tags:['XOR','Math'],hint:'XOR all indices 0..n with all array values. Duplicates cancel.',approach:'result=n. For i,num: result ^= i^num. Or: n*(n+1)/2 - sum(arr).',tc:'O(n)',sc:'O(1)'},
+      {id:'b5',title:'Power of Two',diff:'easy',tags:['Bit Trick'],hint:'Power of 2 has exactly one set bit: n & (n-1) == 0.',approach:'Return n>0 && (n & (n-1))==0.',tc:'O(1)',sc:'O(1)'},
+      {id:'b6',title:'Sum of Two Integers Without + or -',diff:'medium',tags:['XOR','Carry'],hint:'XOR gives sum without carry. AND shifted left gives carry.',approach:'While b!=0: carry=(a&b)<<1; a=a^b; b=carry.',tc:'O(1)',sc:'O(1)'},
+      {id:'b7',title:'Counting Bits (0 to n)',diff:'easy',tags:['DP','Bit Trick'],hint:'dp[i] = dp[i>>1] + (i&1)',approach:'dp[0]=0. For i 1..n: dp[i]=dp[i>>1]+(i&1).',tc:'O(n)',sc:'O(n)'},
+    ]
+  },
+  {
+    id:'trie',label:'Trie',icon:'🌿',color:'#06d6a0',
+    desc:'Prefix tree for string search, autocomplete, and XOR problems',
+    questions:[
+      {id:'tr1',title:'Implement Trie (Prefix Tree)',diff:'medium',tags:['Design'],hint:'Each node has 26 children and an isEnd flag.',approach:'Node: children[26], isEnd. insert: create nodes along path. search: traverse, check isEnd. startsWith: traverse, return true if path exists.',tc:'O(m)',sc:'O(m)'},
+      {id:'tr2',title:'Search Suggestions System',diff:'medium',tags:['Trie','Binary Search'],hint:'Insert all products. For each prefix, DFS to find up to 3 suggestions.',approach:'Insert all sorted products into Trie. For each prefix char: traverse Trie; DFS to collect up to 3 words. Or: binary search in sorted list.',tc:'O(n·m)',sc:'O(n·m)'},
+      {id:'tr3',title:'Word Search II (Multiple Words)',diff:'hard',tags:['Trie','DFS'],hint:'Build Trie of all words. DFS grid, follow Trie; add word when end found.',approach:'Insert all words into Trie. DFS from each cell: traverse Trie node by node. When isEnd: add to results. Mark visited. Prune empty Trie nodes.',tc:'O(m×n×4^L)',sc:'O(W×L)'},
+      {id:'tr4',title:'Maximum XOR of Two Numbers',diff:'medium',tags:['Trie','XOR'],hint:'Insert all numbers into binary Trie. For each number, greedily pick opposite bits.',approach:'Build Trie of binary representations. For each num: traverse Trie choosing complement bit when available. Accumulate XOR.',tc:'O(n)',sc:'O(n)'},
+      {id:'tr5',title:'Replace Words with Root',diff:'medium',tags:['Trie'],hint:'Build Trie of roots. For each word, find shortest root prefix.',approach:'Insert all roots into Trie. For each sentence word: traverse Trie char by char; if isEnd found, replace word with that prefix.',tc:'O(n·m)',sc:'O(n·m)'},
+    ]
+  },
+  {
+    id:'math',label:'Math & Number Theory',icon:'🔢',color:'#fb923c',
+    desc:'GCD, prime sieves, modular arithmetic, and combinatorics',
+    questions:[
+      {id:'m1',title:'Palindrome Number',diff:'easy',tags:['Math'],hint:'Reverse second half of number. Compare with first half.',approach:'If x<0 or (x%10==0 and x!=0): return false. revertedNum=0. While x>revertedNum: pop digit. Compare x==revertedNum or x==revertedNum/10.',tc:'O(log n)',sc:'O(1)'},
+      {id:'m2',title:'Happy Number',diff:'easy',tags:['Floyd Cycle','Hash Set'],hint:'Sum of squares of digits eventually reaches 1 (happy) or cycles.',approach:'Floyd\'s algorithm on digit-square-sum function. If fast==1 return true. If fast==slow (cycle) return false.',tc:'O(log n)',sc:'O(1)'},
+      {id:'m3',title:'Count Primes (Sieve of Eratosthenes)',diff:'medium',tags:['Sieve'],hint:'Mark all multiples of each prime starting from 2 as composite.',approach:'Boolean array size n. For i 2..√n: if isPrime[i]: mark i*i, i*i+i, ... as false. Count remaining true.',tc:'O(n log log n)',sc:'O(n)'},
+      {id:'m4',title:'Pow(x, n) — Fast Exponentiation',diff:'medium',tags:['Binary Exponentiation'],hint:'If n is even: pow(x,n) = pow(x*x, n/2). Handle negative n.',approach:'If n==0 return 1. If n<0: x=1/x, n=-n. If n odd: return x*pow(x,n-1). Else return pow(x*x, n/2).',tc:'O(log n)',sc:'O(log n)'},
+      {id:'m5',title:'Integer to Roman',diff:'medium',tags:['Greedy','Array'],hint:'Greedy: pick largest symbol that fits, subtract its value.',approach:'Pre-define symbol-value pairs in desc order including subtractive (CM,CD etc). Greedily pick largest fitting value.',tc:'O(1)',sc:'O(1)'},
+      {id:'m6',title:'GCD and LCM',diff:'easy',tags:['Euclidean'],hint:'gcd(a,b) = gcd(b, a%b). lcm = a*b/gcd.',approach:'gcd: recursive or iterative Euclidean. lcm(a,b)=a/gcd(a,b)*b (avoid overflow).',tc:'O(log(min(a,b)))',sc:'O(1)'},
+    ]
+  },
+  {
+    id:'design',label:'System Design Coding',icon:'🏗️',color:'#8b5cf6',
+    desc:'Design and implement classic data structures and system components',
+    questions:[
+      {id:'des1',title:'Design HashMap',diff:'easy',tags:['Hashing','Chaining'],hint:'Array of buckets with linked list chaining for collision resolution.',approach:'Fixed array of size 1009 (prime). Hash = key%size. Each bucket is linked list of [key,val] pairs.',tc:'O(1) avg',sc:'O(n)'},
+      {id:'des2',title:'Design LRU Cache',diff:'medium',tags:['DLL','HashMap'],hint:'Doubly linked list (head=MRU, tail=LRU) + HashMap for O(1) access.',approach:'Get: move to head. Put: add to head; if key exists update+move; if over capacity evict tail.',tc:'O(1)',sc:'O(capacity)'},
+      {id:'des3',title:'Design LFU Cache',diff:'hard',tags:['HashMap','Frequency'],hint:'HashMap key→(val,freq); Map freq→LinkedHashSet of keys; track minFreq.',approach:'On access: update freq, move key from old freq set to new. On evict: remove from minFreq set.',tc:'O(1)',sc:'O(capacity)'},
+      {id:'des4',title:'Design Twitter',diff:'medium',tags:['Design','Heap'],hint:'User follows map; tweet list per user with global timestamp. getNewsFeed: merge-k-sorted from followed users.',approach:'HashMap userTweets (10 most recent). HashMap follows. getNewsFeed: collect from all followed, merge with min-heap by timestamp.',tc:'O(n log n)',sc:'O(n)'},
+      {id:'des5',title:'Design Skiplist',diff:'hard',tags:['Probabilistic'],hint:'Layered linked list. Each node appears at higher levels with probability 1/2.',approach:'Levels decided randomly. Search/insert/delete traverse top-down, dropping level when overshoot.',tc:'O(log n) avg',sc:'O(n log n)'},
+      {id:'des6',title:'Implement Stack Using Queues',diff:'easy',tags:['Queue'],hint:'On push: enqueue, then rotate (dequeue and enqueue n-1 times) so new element is at front.',approach:'Single queue. On push: add element, rotate queue size-1 times. Pop/peek operate on front.',tc:'O(n) push',sc:'O(n)'},
+    ]
+  }
+];
+
+/* ══════════════════════════════════════════════════════
+   CODE MAP — Java solutions for every question
+══════════════════════════════════════════════════════ */
+const CODE_MAP = {
+/* ── ARRAYS ── */
+'a1':`class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        Map<Integer, Integer> map = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            int complement = target - nums[i];
+            if (map.containsKey(complement))
+                return new int[]{map.get(complement), i};
+            map.put(nums[i], i);
+        }
+        return new int[0];
+    }
+}`,
+'a2':`class Solution {
+    public int maxProfit(int[] prices) {
+        int minPrice = Integer.MAX_VALUE, maxProfit = 0;
+        for (int price : prices) {
+            minPrice = Math.min(minPrice, price);
+            maxProfit = Math.max(maxProfit, price - minPrice);
+        }
+        return maxProfit;
+    }
+}`,
+'a3':`class Solution {
+    public boolean containsDuplicate(int[] nums) {
+        Set<Integer> set = new HashSet<>();
+        for (int n : nums)
+            if (!set.add(n)) return true;
+        return false;
+    }
+}`,
+'a4':`class Solution {
+    public int[] productExceptSelf(int[] nums) {
+        int n = nums.length;
+        int[] result = new int[n];
+        result[0] = 1;
+        for (int i = 1; i < n; i++)
+            result[i] = result[i - 1] * nums[i - 1];
+        int suffix = 1;
+        for (int i = n - 1; i >= 0; i--) {
+            result[i] *= suffix;
+            suffix *= nums[i];
+        }
+        return result;
+    }
+}`,
+'a5':`class Solution {
+    public int maxSubArray(int[] nums) {
+        int maxSum = nums[0], curSum = nums[0];
+        for (int i = 1; i < nums.length; i++) {
+            curSum = Math.max(nums[i], curSum + nums[i]);
+            maxSum = Math.max(maxSum, curSum);
+        }
+        return maxSum;
+    }
+}`,
+'a6':`class Solution {
+    public int findMin(int[] nums) {
+        int lo = 0, hi = nums.length - 1;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] > nums[hi]) lo = mid + 1;
+            else hi = mid;
+        }
+        return nums[lo];
+    }
+}`,
+'a7':`class Solution {
+    public int search(int[] nums, int target) {
+        int lo = 0, hi = nums.length - 1;
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] == target) return mid;
+            if (nums[lo] <= nums[mid]) {
+                if (nums[lo] <= target && target < nums[mid]) hi = mid - 1;
+                else lo = mid + 1;
+            } else {
+                if (nums[mid] < target && target <= nums[hi]) lo = mid + 1;
+                else hi = mid - 1;
+            }
+        }
+        return -1;
+    }
+}`,
+'a8':`class Solution {
+    public List<List<Integer>> threeSum(int[] nums) {
+        Arrays.sort(nums);
+        List<List<Integer>> res = new ArrayList<>();
+        for (int i = 0; i < nums.length - 2; i++) {
+            if (i > 0 && nums[i] == nums[i - 1]) continue;
+            int lo = i + 1, hi = nums.length - 1;
+            while (lo < hi) {
+                int sum = nums[i] + nums[lo] + nums[hi];
+                if (sum == 0) {
+                    res.add(Arrays.asList(nums[i], nums[lo], nums[hi]));
+                    while (lo < hi && nums[lo] == nums[lo + 1]) lo++;
+                    while (lo < hi && nums[hi] == nums[hi - 1]) hi--;
+                    lo++; hi--;
+                } else if (sum < 0) lo++;
+                else hi--;
+            }
+        }
+        return res;
+    }
+}`,
+'a9':`class Solution {
+    public int trap(int[] height) {
+        int lo = 0, hi = height.length - 1;
+        int leftMax = 0, rightMax = 0, water = 0;
+        while (lo < hi) {
+            if (height[lo] < height[hi]) {
+                if (height[lo] >= leftMax) leftMax = height[lo];
+                else water += leftMax - height[lo];
+                lo++;
+            } else {
+                if (height[hi] >= rightMax) rightMax = height[hi];
+                else water += rightMax - height[hi];
+                hi--;
+            }
+        }
+        return water;
+    }
+}`,
+'a10':`class Solution {
+    public int longestConsecutive(int[] nums) {
+        Set<Integer> set = new HashSet<>();
+        for (int n : nums) set.add(n);
+        int maxLen = 0;
+        for (int n : set) {
+            if (!set.contains(n - 1)) {
+                int cur = n, len = 1;
+                while (set.contains(cur + 1)) { cur++; len++; }
+                maxLen = Math.max(maxLen, len);
+            }
+        }
+        return maxLen;
+    }
+}`,
+'a11':`class Solution {
+    public void rotate(int[] nums, int k) {
+        int n = nums.length;
+        k = k % n;
+        reverse(nums, 0, n - 1);
+        reverse(nums, 0, k - 1);
+        reverse(nums, k, n - 1);
+    }
+    private void reverse(int[] nums, int lo, int hi) {
+        while (lo < hi) {
+            int tmp = nums[lo]; nums[lo++] = nums[hi]; nums[hi--] = tmp;
+        }
+    }
+}`,
+'a12':`class Solution {
+    public int[][] merge(int[][] intervals) {
+        Arrays.sort(intervals, (a, b) -> a[0] - b[0]);
+        List<int[]> res = new ArrayList<>();
+        for (int[] cur : intervals) {
+            if (res.isEmpty() || res.get(res.size() - 1)[1] < cur[0])
+                res.add(cur);
+            else
+                res.get(res.size() - 1)[1] = Math.max(res.get(res.size() - 1)[1], cur[1]);
+        }
+        return res.toArray(new int[0][]);
+    }
+}`,
+'a13':`class Solution {
+    public int minMeetingRooms(int[][] intervals) {
+        Arrays.sort(intervals, (a, b) -> a[0] - b[0]);
+        PriorityQueue<Integer> minHeap = new PriorityQueue<>();
+        for (int[] iv : intervals) {
+            if (!minHeap.isEmpty() && minHeap.peek() <= iv[0])
+                minHeap.poll();
+            minHeap.offer(iv[1]);
+        }
+        return minHeap.size();
+    }
+}`,
+'a14':`class Solution {
+    public int firstMissingPositive(int[] nums) {
+        int n = nums.length;
+        // Cyclic sort: place num at index num-1
+        for (int i = 0; i < n; i++)
+            while (nums[i] > 0 && nums[i] <= n && nums[nums[i]-1] != nums[i])
+                swap(nums, i, nums[i] - 1);
+        for (int i = 0; i < n; i++)
+            if (nums[i] != i + 1) return i + 1;
+        return n + 1;
+    }
+    private void swap(int[] a, int i, int j) {
+        int t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+}`,
+/* ── SLIDING WINDOW ── */
+'sw1':`class Solution {
+    public int lengthOfLongestSubstring(String s) {
+        Map<Character, Integer> map = new HashMap<>();
+        int maxLen = 0, lo = 0;
+        for (int hi = 0; hi < s.length(); hi++) {
+            char c = s.charAt(hi);
+            if (map.containsKey(c) && map.get(c) >= lo)
+                lo = map.get(c) + 1;
+            map.put(c, hi);
+            maxLen = Math.max(maxLen, hi - lo + 1);
+        }
+        return maxLen;
+    }
+}`,
+'sw2':`class Solution {
+    public String minWindow(String s, String t) {
+        int[] freq = new int[128];
+        for (char c : t.toCharArray()) freq[c]++;
+        int required = t.length(), lo = 0, minLen = Integer.MAX_VALUE, start = 0;
+        for (int hi = 0; hi < s.length(); hi++) {
+            if (freq[s.charAt(hi)]-- > 0) required--;
+            while (required == 0) {
+                if (hi - lo + 1 < minLen) { minLen = hi - lo + 1; start = lo; }
+                if (freq[s.charAt(lo++)]++ == 0) required++;
+            }
+        }
+        return minLen == Integer.MAX_VALUE ? "" : s.substring(start, start + minLen);
+    }
+}`,
+'sw3':`class Solution {
+    public boolean checkInclusion(String s1, String s2) {
+        int[] freq = new int[26];
+        for (char c : s1.toCharArray()) freq[c - 'a']++;
+        int lo = 0, match = 0;
+        for (int hi = 0; hi < s2.length(); hi++) {
+            int c = s2.charAt(hi) - 'a';
+            if (--freq[c] >= 0) match++;
+            if (hi - lo + 1 > s1.length()) {
+                int l = s2.charAt(lo++) - 'a';
+                if (freq[l]++ >= 0) match--;
+            }
+            if (match == s1.length()) return true;
+        }
+        return false;
+    }
+}`,
+'sw4':`class Solution {
+    public int characterReplacement(String s, int k) {
+        int[] freq = new int[26];
+        int maxFreq = 0, lo = 0, maxLen = 0;
+        for (int hi = 0; hi < s.length(); hi++) {
+            maxFreq = Math.max(maxFreq, ++freq[s.charAt(hi) - 'A']);
+            if (hi - lo + 1 - maxFreq > k)
+                freq[s.charAt(lo++) - 'A']--;
+            maxLen = Math.max(maxLen, hi - lo + 1);
+        }
+        return maxLen;
+    }
+}`,
+'sw5':`class Solution {
+    public int maxSumSubarray(int[] nums, int k) {
+        int windowSum = 0, maxSum = 0;
+        for (int i = 0; i < k; i++) windowSum += nums[i];
+        maxSum = windowSum;
+        for (int i = k; i < nums.length; i++) {
+            windowSum += nums[i] - nums[i - k];
+            maxSum = Math.max(maxSum, windowSum);
+        }
+        return maxSum;
+    }
+}`,
+'sw6':`class Solution {
+    public int maxArea(int[] height) {
+        int lo = 0, hi = height.length - 1, maxArea = 0;
+        while (lo < hi) {
+            maxArea = Math.max(maxArea,
+                Math.min(height[lo], height[hi]) * (hi - lo));
+            if (height[lo] < height[hi]) lo++;
+            else hi--;
+        }
+        return maxArea;
+    }
+}`,
+'sw7':`class Solution {
+    public int[] pairWithTargetSum(int[] arr, int target) {
+        int lo = 0, hi = arr.length - 1;
+        while (lo < hi) {
+            int sum = arr[lo] + arr[hi];
+            if (sum == target) return new int[]{lo, hi};
+            else if (sum < target) lo++;
+            else hi--;
+        }
+        return new int[]{-1, -1};
+    }
+}`,
+'sw8':`class Solution {
+    public int numSubarrayProductLessThanK(int[] nums, int k) {
+        if (k <= 1) return 0;
+        int product = 1, lo = 0, count = 0;
+        for (int hi = 0; hi < nums.length; hi++) {
+            product *= nums[hi];
+            while (product >= k) product /= nums[lo++];
+            count += hi - lo + 1;
+        }
+        return count;
+    }
+}`,
+/* ── LINKED LISTS ── */
+'ll1':`class Solution {
+    public ListNode reverseList(ListNode head) {
+        ListNode prev = null, curr = head;
+        while (curr != null) {
+            ListNode next = curr.next;
+            curr.next = prev;
+            prev = curr;
+            curr = next;
+        }
+        return prev;
+    }
+}`,
+'ll2':`class Solution {
+    public ListNode mergeTwoLists(ListNode l1, ListNode l2) {
+        ListNode dummy = new ListNode(0), cur = dummy;
+        while (l1 != null && l2 != null) {
+            if (l1.val <= l2.val) { cur.next = l1; l1 = l1.next; }
+            else { cur.next = l2; l2 = l2.next; }
+            cur = cur.next;
+        }
+        cur.next = (l1 != null) ? l1 : l2;
+        return dummy.next;
+    }
+}`,
+'ll3':`class Solution {
+    public boolean hasCycle(ListNode head) {
+        ListNode slow = head, fast = head;
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+            if (slow == fast) return true;
+        }
+        return false;
+    }
+}`,
+'ll4':`class Solution {
+    public ListNode detectCycle(ListNode head) {
+        ListNode slow = head, fast = head;
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+            if (slow == fast) {
+                slow = head;
+                while (slow != fast) {
+                    slow = slow.next;
+                    fast = fast.next;
+                }
+                return slow;
+            }
+        }
+        return null;
+    }
+}`,
+'ll5':`class Solution {
+    public void reorderList(ListNode head) {
+        // 1. Find middle
+        ListNode slow = head, fast = head;
+        while (fast.next != null && fast.next.next != null) {
+            slow = slow.next; fast = fast.next.next;
+        }
+        // 2. Reverse second half
+        ListNode prev = null, curr = slow.next;
+        slow.next = null;
+        while (curr != null) {
+            ListNode next = curr.next; curr.next = prev;
+            prev = curr; curr = next;
+        }
+        // 3. Merge two halves
+        ListNode first = head, second = prev;
+        while (second != null) {
+            ListNode t1 = first.next, t2 = second.next;
+            first.next = second; second.next = t1;
+            first = t1; second = t2;
+        }
+    }
+}`,
+'ll6':`class Solution {
+    public ListNode removeNthFromEnd(ListNode head, int n) {
+        ListNode dummy = new ListNode(0);
+        dummy.next = head;
+        ListNode fast = dummy, slow = dummy;
+        for (int i = 0; i <= n; i++) fast = fast.next;
+        while (fast != null) { slow = slow.next; fast = fast.next; }
+        slow.next = slow.next.next;
+        return dummy.next;
+    }
+}`,
+'ll7':`class Solution {
+    public Node copyRandomList(Node head) {
+        if (head == null) return null;
+        Map<Node, Node> map = new HashMap<>();
+        Node curr = head;
+        while (curr != null) { map.put(curr, new Node(curr.val)); curr = curr.next; }
+        curr = head;
+        while (curr != null) {
+            map.get(curr).next   = map.get(curr.next);
+            map.get(curr).random = map.get(curr.random);
+            curr = curr.next;
+        }
+        return map.get(head);
+    }
+}`,
+'ll8':`class LRUCache {
+    private final int capacity;
+    private final LinkedHashMap<Integer,Integer> cache;
+
+    public LRUCache(int capacity) {
+        this.capacity = capacity;
+        // accessOrder=true makes get() move entry to end (MRU)
+        cache = new LinkedHashMap<>(capacity, 0.75f, true) {
+            protected boolean removeEldestEntry(Map.Entry<Integer,Integer> e) {
+                return size() > capacity;
+            }
+        };
+    }
+    public int get(int key) { return cache.getOrDefault(key, -1); }
+    public void put(int key, int value) { cache.put(key, value); }
+}`,
+'ll9':`class Solution {
+    public ListNode mergeKLists(ListNode[] lists) {
+        PriorityQueue<ListNode> heap =
+            new PriorityQueue<>((a, b) -> a.val - b.val);
+        for (ListNode l : lists) if (l != null) heap.offer(l);
+        ListNode dummy = new ListNode(0), cur = dummy;
+        while (!heap.isEmpty()) {
+            cur.next = heap.poll();
+            cur = cur.next;
+            if (cur.next != null) heap.offer(cur.next);
+        }
+        return dummy.next;
+    }
+}`,
+/* ── STACKS & QUEUES ── */
+'sq1':`class Solution {
+    public boolean isValid(String s) {
+        Deque<Character> stack = new ArrayDeque<>();
+        for (char c : s.toCharArray()) {
+            if (c == '(' || c == '{' || c == '[') { stack.push(c); continue; }
+            if (stack.isEmpty()) return false;
+            char top = stack.pop();
+            if (c == ')' && top != '(') return false;
+            if (c == '}' && top != '{') return false;
+            if (c == ']' && top != '[') return false;
+        }
+        return stack.isEmpty();
+    }
+}`,
+'sq2':`class MinStack {
+    private Deque<Integer> stack   = new ArrayDeque<>();
+    private Deque<Integer> minStk  = new ArrayDeque<>();
+
+    public void push(int val) {
+        stack.push(val);
+        minStk.push(minStk.isEmpty() ? val : Math.min(val, minStk.peek()));
+    }
+    public void pop()      { stack.pop(); minStk.pop(); }
+    public int top()       { return stack.peek(); }
+    public int getMin()    { return minStk.peek(); }
+}`,
+'sq3':`class Solution {
+    public int[] dailyTemperatures(int[] temps) {
+        int n = temps.length;
+        int[] result = new int[n];
+        Deque<Integer> stack = new ArrayDeque<>(); // indices, dec temp order
+        for (int i = 0; i < n; i++) {
+            while (!stack.isEmpty() && temps[i] > temps[stack.peek()]) {
+                int idx = stack.pop();
+                result[idx] = i - idx;
+            }
+            stack.push(i);
+        }
+        return result;
+    }
+}`,
+'sq4':`class Solution {
+    public int largestRectangleArea(int[] heights) {
+        Deque<Integer> stack = new ArrayDeque<>();
+        int maxArea = 0, n = heights.length;
+        for (int i = 0; i <= n; i++) {
+            int h = (i == n) ? 0 : heights[i];
+            while (!stack.isEmpty() && h < heights[stack.peek()]) {
+                int height = heights[stack.pop()];
+                int width  = stack.isEmpty() ? i : i - stack.peek() - 1;
+                maxArea = Math.max(maxArea, height * width);
+            }
+            stack.push(i);
+        }
+        return maxArea;
+    }
+}`,
+'sq5':`class Solution {
+    public int[] maxSlidingWindow(int[] nums, int k) {
+        int n = nums.length;
+        int[] result = new int[n - k + 1];
+        Deque<Integer> dq = new ArrayDeque<>(); // monotonic decreasing
+        for (int i = 0; i < n; i++) {
+            while (!dq.isEmpty() && dq.peekFirst() < i - k + 1) dq.pollFirst();
+            while (!dq.isEmpty() && nums[dq.peekLast()] <= nums[i]) dq.pollLast();
+            dq.offerLast(i);
+            if (i >= k - 1) result[i - k + 1] = nums[dq.peekFirst()];
+        }
+        return result;
+    }
+}`,
+'sq6':`class Solution {
+    public int evalRPN(String[] tokens) {
+        Deque<Integer> stack = new ArrayDeque<>();
+        for (String t : tokens) {
+            if (t.equals("+")) stack.push(stack.pop() + stack.pop());
+            else if (t.equals("*")) stack.push(stack.pop() * stack.pop());
+            else if (t.equals("-")) { int b=stack.pop(),a=stack.pop(); stack.push(a-b); }
+            else if (t.equals("/")) { int b=stack.pop(),a=stack.pop(); stack.push(a/b); }
+            else stack.push(Integer.parseInt(t));
+        }
+        return stack.pop();
+    }
+}`,
+'sq7':`class Solution {
+    public int[] nextGreaterElements(int[] nums) {
+        int n = nums.length;
+        int[] result = new int[n];
+        Arrays.fill(result, -1);
+        Deque<Integer> stack = new ArrayDeque<>();
+        for (int i = 0; i < 2 * n; i++) {
+            while (!stack.isEmpty() && nums[i % n] > nums[stack.peek()])
+                result[stack.pop()] = nums[i % n];
+            if (i < n) stack.push(i);
+        }
+        return result;
+    }
+}`,
+'sq8':`class MyQueue {
+    private Deque<Integer> in  = new ArrayDeque<>();
+    private Deque<Integer> out = new ArrayDeque<>();
+
+    public void push(int x) { in.push(x); }
+
+    private void transfer() {
+        if (out.isEmpty()) while (!in.isEmpty()) out.push(in.pop());
+    }
+    public int pop()        { transfer(); return out.pop(); }
+    public int peek()       { transfer(); return out.peek(); }
+    public boolean empty()  { return in.isEmpty() && out.isEmpty(); }
+}`,
+/* ── TREES & BST ── */
+'t1':`class Solution {
+    public TreeNode invertTree(TreeNode root) {
+        if (root == null) return null;
+        TreeNode tmp   = root.left;
+        root.left      = invertTree(root.right);
+        root.right     = invertTree(tmp);
+        return root;
+    }
+}`,
+'t2':`class Solution {
+    public int maxDepth(TreeNode root) {
+        if (root == null) return 0;
+        return 1 + Math.max(maxDepth(root.left), maxDepth(root.right));
+    }
+}`,
+'t3':`class Solution {
+    public boolean isBalanced(TreeNode root) { return height(root) != -1; }
+    private int height(TreeNode node) {
+        if (node == null) return 0;
+        int lh = height(node.left), rh = height(node.right);
+        if (lh == -1 || rh == -1 || Math.abs(lh - rh) > 1) return -1;
+        return 1 + Math.max(lh, rh);
+    }
+}`,
+'t4':`class Solution {
+    public List<List<Integer>> levelOrder(TreeNode root) {
+        List<List<Integer>> result = new ArrayList<>();
+        if (root == null) return result;
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+        while (!queue.isEmpty()) {
+            List<Integer> level = new ArrayList<>();
+            for (int i = queue.size(); i > 0; i--) {
+                TreeNode node = queue.poll();
+                level.add(node.val);
+                if (node.left  != null) queue.offer(node.left);
+                if (node.right != null) queue.offer(node.right);
+            }
+            result.add(level);
+        }
+        return result;
+    }
+}`,
+'t5':`class Solution {
+    public List<Integer> rightSideView(TreeNode root) {
+        List<Integer> result = new ArrayList<>();
+        if (root == null) return result;
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+        while (!queue.isEmpty()) {
+            int size = queue.size();
+            for (int i = 0; i < size; i++) {
+                TreeNode node = queue.poll();
+                if (i == size - 1) result.add(node.val);
+                if (node.left  != null) queue.offer(node.left);
+                if (node.right != null) queue.offer(node.right);
+            }
+        }
+        return result;
+    }
+}`,
+'t6':`class Solution {
+    public boolean isValidBST(TreeNode root) {
+        return validate(root, Long.MIN_VALUE, Long.MAX_VALUE);
+    }
+    private boolean validate(TreeNode node, long min, long max) {
+        if (node == null) return true;
+        if (node.val <= min || node.val >= max) return false;
+        return validate(node.left, min, node.val)
+            && validate(node.right, node.val, max);
+    }
+}`,
+'t7':`class Solution {
+    public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {
+        while (root != null) {
+            if (p.val < root.val && q.val < root.val) root = root.left;
+            else if (p.val > root.val && q.val > root.val) root = root.right;
+            else return root;
+        }
+        return null;
+    }
+}`,
+'t8':`class Solution {
+    public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {
+        if (root == null || root == p || root == q) return root;
+        TreeNode left  = lowestCommonAncestor(root.left,  p, q);
+        TreeNode right = lowestCommonAncestor(root.right, p, q);
+        if (left != null && right != null) return root;
+        return left != null ? left : right;
+    }
+}`,
+'t9':`class Solution {
+    int maxSum = Integer.MIN_VALUE;
+    public int maxPathSum(TreeNode root) { dfs(root); return maxSum; }
+    private int dfs(TreeNode node) {
+        if (node == null) return 0;
+        int left  = Math.max(0, dfs(node.left));
+        int right = Math.max(0, dfs(node.right));
+        maxSum = Math.max(maxSum, left + node.val + right);
+        return node.val + Math.max(left, right);
+    }
+}`,
+'t10':`public class Codec {
+    // Serialize using preorder with "N" for nulls
+    public String serialize(TreeNode root) {
+        if (root == null) return "N,";
+        return root.val + "," + serialize(root.left) + serialize(root.right);
+    }
+    int idx = 0;
+    public TreeNode deserialize(String data) {
+        return build(data.split(","));
+    }
+    private TreeNode build(String[] vals) {
+        if (vals[idx].equals("N")) { idx++; return null; }
+        TreeNode node = new TreeNode(Integer.parseInt(vals[idx++]));
+        node.left  = build(vals);
+        node.right = build(vals);
+        return node;
+    }
+}`,
+'t11':`class Solution {
+    int count, result;
+    public int kthSmallest(TreeNode root, int k) {
+        count = k; inorder(root); return result;
+    }
+    private void inorder(TreeNode node) {
+        if (node == null || count == 0) return;
+        inorder(node.left);
+        if (--count == 0) result = node.val;
+        inorder(node.right);
+    }
+}`,
+'t12':`class Solution {
+    int idx = 0;
+    public TreeNode bstFromPreorder(int[] preorder) {
+        return build(preorder, Integer.MAX_VALUE);
+    }
+    private TreeNode build(int[] pre, int bound) {
+        if (idx == pre.length || pre[idx] > bound) return null;
+        TreeNode node = new TreeNode(pre[idx++]);
+        node.left  = build(pre, node.val);
+        node.right = build(pre, bound);
+        return node;
+    }
+}`,
+'t13':`class Solution {
+    int maxDiameter = 0;
+    public int diameterOfBinaryTree(TreeNode root) { depth(root); return maxDiameter; }
+    private int depth(TreeNode node) {
+        if (node == null) return 0;
+        int left = depth(node.left), right = depth(node.right);
+        maxDiameter = Math.max(maxDiameter, left + right);
+        return 1 + Math.max(left, right);
+    }
+}`,
+/* ── GRAPHS ── */
+'g1':`class Solution {
+    public int numIslands(char[][] grid) {
+        int count = 0;
+        for (int i = 0; i < grid.length; i++)
+            for (int j = 0; j < grid[0].length; j++)
+                if (grid[i][j] == '1') { dfs(grid, i, j); count++; }
+        return count;
+    }
+    private void dfs(char[][] grid, int i, int j) {
+        if (i < 0 || i >= grid.length || j < 0 || j >= grid[0].length
+                || grid[i][j] != '1') return;
+        grid[i][j] = '0';
+        dfs(grid,i+1,j); dfs(grid,i-1,j);
+        dfs(grid,i,j+1); dfs(grid,i,j-1);
+    }
+}`,
+'g2':`class Solution {
+    public int maxAreaOfIsland(int[][] grid) {
+        int maxArea = 0;
+        for (int i = 0; i < grid.length; i++)
+            for (int j = 0; j < grid[0].length; j++)
+                if (grid[i][j] == 1)
+                    maxArea = Math.max(maxArea, dfs(grid, i, j));
+        return maxArea;
+    }
+    private int dfs(int[][] grid, int i, int j) {
+        if (i<0||i>=grid.length||j<0||j>=grid[0].length||grid[i][j]==0) return 0;
+        grid[i][j] = 0;
+        return 1+dfs(grid,i+1,j)+dfs(grid,i-1,j)+dfs(grid,i,j+1)+dfs(grid,i,j-1);
+    }
+}`,
+'g3':`class Solution {
+    Map<Node, Node> map = new HashMap<>();
+    public Node cloneGraph(Node node) {
+        if (node == null) return null;
+        if (map.containsKey(node)) return map.get(node);
+        Node clone = new Node(node.val);
+        map.put(node, clone);
+        for (Node nb : node.neighbors)
+            clone.neighbors.add(cloneGraph(nb));
+        return clone;
+    }
+}`,
+'g4':`class Solution {
+    int[][] dirs = {{0,1},{0,-1},{1,0},{-1,0}};
+    public List<List<Integer>> pacificAtlantic(int[][] h) {
+        int m = h.length, n = h[0].length;
+        boolean[][] pac = new boolean[m][n], atl = new boolean[m][n];
+        for (int i = 0; i < m; i++) { bfs(h,pac,i,0); bfs(h,atl,i,n-1); }
+        for (int j = 0; j < n; j++) { bfs(h,pac,0,j); bfs(h,atl,m-1,j); }
+        List<List<Integer>> res = new ArrayList<>();
+        for (int i = 0; i < m; i++) for (int j = 0; j < n; j++)
+            if (pac[i][j] && atl[i][j]) res.add(Arrays.asList(i,j));
+        return res;
+    }
+    private void bfs(int[][] h, boolean[][] vis, int r, int c) {
+        Queue<int[]> q = new LinkedList<>();
+        vis[r][c] = true; q.offer(new int[]{r,c});
+        while (!q.isEmpty()) {
+            int[] cur = q.poll();
+            for (int[] d : dirs) {
+                int nr=cur[0]+d[0], nc=cur[1]+d[1];
+                if (nr>=0&&nr<h.length&&nc>=0&&nc<h[0].length
+                    &&!vis[nr][nc]&&h[nr][nc]>=h[cur[0]][cur[1]])
+                { vis[nr][nc]=true; q.offer(new int[]{nr,nc}); }
+            }
+        }
+    }
+}`,
+'g5':`class Solution {
+    public boolean canFinish(int n, int[][] prerequisites) {
+        List<List<Integer>> adj = new ArrayList<>();
+        for (int i = 0; i < n; i++) adj.add(new ArrayList<>());
+        for (int[] p : prerequisites) adj.get(p[0]).add(p[1]);
+        int[] state = new int[n]; // 0=unvisited, 1=visiting, 2=done
+        for (int i = 0; i < n; i++)
+            if (hasCycle(adj, state, i)) return false;
+        return true;
+    }
+    private boolean hasCycle(List<List<Integer>> adj, int[] state, int node) {
+        if (state[node] == 1) return true;
+        if (state[node] == 2) return false;
+        state[node] = 1;
+        for (int next : adj.get(node))
+            if (hasCycle(adj, state, next)) return true;
+        state[node] = 2;
+        return false;
+    }
+}`,
+'g6':`class Solution {
+    public int[] findOrder(int n, int[][] prerequisites) {
+        int[] inDeg = new int[n];
+        List<List<Integer>> adj = new ArrayList<>();
+        for (int i = 0; i < n; i++) adj.add(new ArrayList<>());
+        for (int[] p : prerequisites) { adj.get(p[1]).add(p[0]); inDeg[p[0]]++; }
+        Queue<Integer> q = new LinkedList<>();
+        for (int i = 0; i < n; i++) if (inDeg[i] == 0) q.offer(i);
+        int[] order = new int[n]; int idx = 0;
+        while (!q.isEmpty()) {
+            int course = q.poll(); order[idx++] = course;
+            for (int next : adj.get(course))
+                if (--inDeg[next] == 0) q.offer(next);
+        }
+        return idx == n ? order : new int[0];
+    }
+}`,
+'g7':`class Solution {
+    int[] parent, rank;
+    public int countComponents(int n, int[][] edges) {
+        parent = new int[n]; rank = new int[n];
+        for (int i = 0; i < n; i++) parent[i] = i;
+        int components = n;
+        for (int[] e : edges) if (union(e[0], e[1])) components--;
+        return components;
+    }
+    int find(int x) {
+        if (parent[x] != x) parent[x] = find(parent[x]); // path compression
+        return parent[x];
+    }
+    boolean union(int x, int y) {
+        int px = find(x), py = find(y);
+        if (px == py) return false;
+        if (rank[px] < rank[py]) parent[px] = py;
+        else if (rank[px] > rank[py]) parent[py] = px;
+        else { parent[py] = px; rank[px]++; }
+        return true;
+    }
+}`,
+'g8':`class Solution {
+    int[] parent;
+    public int[] findRedundantConnection(int[][] edges) {
+        parent = new int[edges.length + 1];
+        for (int i = 0; i < parent.length; i++) parent[i] = i;
+        for (int[] edge : edges) {
+            if (find(edge[0]) == find(edge[1])) return edge;
+            union(edge[0], edge[1]);
+        }
+        return new int[0];
+    }
+    int find(int x) { return parent[x]==x ? x : (parent[x]=find(parent[x])); }
+    void union(int x, int y) { parent[find(x)] = find(y); }
+}`,
+'g9':`class Solution {
+    public int ladderLength(String begin, String end, List<String> wordList) {
+        Set<String> wordSet = new HashSet<>(wordList);
+        if (!wordSet.contains(end)) return 0;
+        Queue<String> queue = new LinkedList<>();
+        queue.offer(begin); int steps = 1;
+        while (!queue.isEmpty()) {
+            int size = queue.size();
+            for (int i = 0; i < size; i++) {
+                String word = queue.poll();
+                char[] chars = word.toCharArray();
+                for (int j = 0; j < chars.length; j++) {
+                    char orig = chars[j];
+                    for (char c = 'a'; c <= 'z'; c++) {
+                        chars[j] = c;
+                        String next = new String(chars);
+                        if (next.equals(end)) return steps + 1;
+                        if (wordSet.remove(next)) queue.offer(next);
+                    }
+                    chars[j] = orig;
+                }
+            }
+            steps++;
+        }
+        return 0;
+    }
+}`,
+'g10':`class Solution {
+    public void wallsAndGates(int[][] rooms) {
+        int m = rooms.length, n = rooms[0].length;
+        Queue<int[]> queue = new LinkedList<>();
+        for (int i = 0; i < m; i++) for (int j = 0; j < n; j++)
+            if (rooms[i][j] == 0) queue.offer(new int[]{i, j});
+        int[][] dirs = {{0,1},{0,-1},{1,0},{-1,0}};
+        while (!queue.isEmpty()) {
+            int[] cur = queue.poll();
+            for (int[] d : dirs) {
+                int r = cur[0]+d[0], c = cur[1]+d[1];
+                if (r>=0&&r<m&&c>=0&&c<n&&rooms[r][c]==Integer.MAX_VALUE) {
+                    rooms[r][c] = rooms[cur[0]][cur[1]] + 1;
+                    queue.offer(new int[]{r, c});
+                }
+            }
+        }
+    }
+}`,
+'g11':`class Solution {
+    public int orangesRotting(int[][] grid) {
+        Queue<int[]> queue = new LinkedList<>();
+        int fresh = 0, m = grid.length, n = grid[0].length;
+        for (int i = 0; i < m; i++) for (int j = 0; j < n; j++) {
+            if (grid[i][j] == 2) queue.offer(new int[]{i, j});
+            else if (grid[i][j] == 1) fresh++;
+        }
+        if (fresh == 0) return 0;
+        int[][] dirs = {{0,1},{0,-1},{1,0},{-1,0}};
+        int minutes = 0;
+        while (!queue.isEmpty()) {
+            minutes++;
+            for (int i = queue.size(); i > 0; i--) {
+                int[] cur = queue.poll();
+                for (int[] d : dirs) {
+                    int r=cur[0]+d[0], c=cur[1]+d[1];
+                    if (r>=0&&r<m&&c>=0&&c<n&&grid[r][c]==1) {
+                        grid[r][c]=2; fresh--; queue.offer(new int[]{r,c});
+                    }
+                }
+            }
+        }
+        return fresh == 0 ? minutes - 1 : -1;
+    }
+}`,
+'g12':`class Solution {
+    public int networkDelayTime(int[][] times, int n, int k) {
+        Map<Integer, List<int[]>> adj = new HashMap<>();
+        for (int[] t : times)
+            adj.computeIfAbsent(t[0], x -> new ArrayList<>()).add(new int[]{t[1], t[2]});
+        int[] dist = new int[n + 1];
+        Arrays.fill(dist, Integer.MAX_VALUE);
+        dist[k] = 0;
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> a[0] - b[0]);
+        pq.offer(new int[]{0, k});
+        while (!pq.isEmpty()) {
+            int[] cur = pq.poll();
+            int d = cur[0], node = cur[1];
+            if (d > dist[node]) continue;
+            for (int[] next : adj.getOrDefault(node, new ArrayList<>())) {
+                int nd = d + next[1];
+                if (nd < dist[next[0]]) { dist[next[0]]=nd; pq.offer(new int[]{nd,next[0]}); }
+            }
+        }
+        int maxDist = 0;
+        for (int i = 1; i <= n; i++) {
+            if (dist[i] == Integer.MAX_VALUE) return -1;
+            maxDist = Math.max(maxDist, dist[i]);
+        }
+        return maxDist;
+    }
+}`,
+/* ── DYNAMIC PROGRAMMING ── */
+'dp1':`class Solution {
+    public int climbStairs(int n) {
+        if (n <= 2) return n;
+        int prev2 = 1, prev1 = 2;
+        for (int i = 3; i <= n; i++) {
+            int cur = prev1 + prev2; prev2 = prev1; prev1 = cur;
+        }
+        return prev1;
+    }
+}`,
+'dp2':`class Solution {
+    public int rob(int[] nums) {
+        int prev2 = 0, prev1 = 0;
+        for (int num : nums) {
+            int cur = Math.max(prev1, prev2 + num);
+            prev2 = prev1; prev1 = cur;
+        }
+        return prev1;
+    }
+}`,
+'dp3':`class Solution {
+    public int rob(int[] nums) {
+        int n = nums.length;
+        if (n == 1) return nums[0];
+        return Math.max(robRange(nums,0,n-2), robRange(nums,1,n-1));
+    }
+    private int robRange(int[] nums, int lo, int hi) {
+        int prev2 = 0, prev1 = 0;
+        for (int i = lo; i <= hi; i++) {
+            int cur = Math.max(prev1, prev2 + nums[i]);
+            prev2 = prev1; prev1 = cur;
+        }
+        return prev1;
+    }
+}`,
+'dp4':`class Solution {
+    public int coinChange(int[] coins, int amount) {
+        int[] dp = new int[amount + 1];
+        Arrays.fill(dp, amount + 1);
+        dp[0] = 0;
+        for (int coin : coins)
+            for (int a = coin; a <= amount; a++)
+                dp[a] = Math.min(dp[a], dp[a - coin] + 1);
+        return dp[amount] > amount ? -1 : dp[amount];
+    }
+}`,
+'dp5':`class Solution {
+    public int change(int amount, int[] coins) {
+        int[] dp = new int[amount + 1];
+        dp[0] = 1;
+        for (int coin : coins)
+            for (int a = coin; a <= amount; a++)
+                dp[a] += dp[a - coin];
+        return dp[amount];
+    }
+}`,
+'dp6':`class Solution {
+    public int lengthOfLIS(int[] nums) {
+        List<Integer> tails = new ArrayList<>();
+        for (int num : nums) {
+            int lo = 0, hi = tails.size();
+            while (lo < hi) {
+                int mid = lo + (hi - lo) / 2;
+                if (tails.get(mid) < num) lo = mid + 1; else hi = mid;
+            }
+            if (lo == tails.size()) tails.add(num);
+            else tails.set(lo, num);
+        }
+        return tails.size();
+    }
+}`,
+'dp7':`class Solution {
+    public int longestCommonSubsequence(String s1, String s2) {
+        int m = s1.length(), n = s2.length();
+        int[] dp = new int[n + 1];
+        for (int i = 1; i <= m; i++) {
+            int prev = 0;
+            for (int j = 1; j <= n; j++) {
+                int tmp = dp[j];
+                dp[j] = s1.charAt(i-1) == s2.charAt(j-1)
+                        ? prev + 1 : Math.max(dp[j], dp[j-1]);
+                prev = tmp;
+            }
+        }
+        return dp[n];
+    }
+}`,
+'dp8':`class Solution {
+    // 0/1 Knapsack — O(n*W) time, O(W) space
+    public int knapsack(int[] weights, int[] values, int W) {
+        int[] dp = new int[W + 1];
+        for (int i = 0; i < weights.length; i++)
+            for (int w = W; w >= weights[i]; w--)
+                dp[w] = Math.max(dp[w], values[i] + dp[w - weights[i]]);
+        return dp[W];
+    }
+}`,
+'dp9':`class Solution {
+    public boolean wordBreak(String s, List<String> wordDict) {
+        Set<String> dict = new HashSet<>(wordDict);
+        boolean[] dp = new boolean[s.length() + 1];
+        dp[0] = true;
+        for (int i = 1; i <= s.length(); i++)
+            for (int j = 0; j < i; j++)
+                if (dp[j] && dict.contains(s.substring(j, i))) {
+                    dp[i] = true; break;
+                }
+        return dp[s.length()];
+    }
+}`,
+'dp10':`class Solution {
+    public boolean canPartition(int[] nums) {
+        int sum = 0;
+        for (int n : nums) sum += n;
+        if (sum % 2 != 0) return false;
+        int target = sum / 2;
+        boolean[] dp = new boolean[target + 1];
+        dp[0] = true;
+        for (int num : nums)
+            for (int j = target; j >= num; j--)
+                dp[j] |= dp[j - num];
+        return dp[target];
+    }
+}`,
+'dp11':`class Solution {
+    public int minDistance(String s1, String s2) {
+        int m = s1.length(), n = s2.length();
+        int[] dp = new int[n + 1];
+        for (int j = 0; j <= n; j++) dp[j] = j;
+        for (int i = 1; i <= m; i++) {
+            int prev = dp[0]; dp[0] = i;
+            for (int j = 1; j <= n; j++) {
+                int tmp = dp[j];
+                dp[j] = s1.charAt(i-1) == s2.charAt(j-1)
+                        ? prev : 1 + Math.min(prev, Math.min(dp[j], dp[j-1]));
+                prev = tmp;
+            }
+        }
+        return dp[n];
+    }
+}`,
+'dp12':`class Solution {
+    public int uniquePaths(int m, int n) {
+        int[] dp = new int[n];
+        Arrays.fill(dp, 1);
+        for (int i = 1; i < m; i++)
+            for (int j = 1; j < n; j++)
+                dp[j] += dp[j - 1];
+        return dp[n - 1];
+    }
+}`,
+'dp13':`class Solution {
+    public int jump(int[] nums) {
+        int jumps = 0, curEnd = 0, farthest = 0;
+        for (int i = 0; i < nums.length - 1; i++) {
+            farthest = Math.max(farthest, i + nums[i]);
+            if (i == curEnd) { jumps++; curEnd = farthest; }
+        }
+        return jumps;
+    }
+}`,
+'dp14':`class Solution {
+    public int countSubstrings(String s) {
+        int count = 0;
+        for (int center = 0; center < 2 * s.length() - 1; center++) {
+            int lo = center / 2, hi = lo + center % 2;
+            while (lo >= 0 && hi < s.length() && s.charAt(lo) == s.charAt(hi)) {
+                count++; lo--; hi++;
+            }
+        }
+        return count;
+    }
+}`,
+/* ── RECURSION & BACKTRACKING ── */
+'r1':`class Solution {
+    public List<List<Integer>> subsets(int[] nums) {
+        List<List<Integer>> result = new ArrayList<>();
+        backtrack(nums, 0, new ArrayList<>(), result);
+        return result;
+    }
+    private void backtrack(int[] nums, int start, List<Integer> curr, List<List<Integer>> result) {
+        result.add(new ArrayList<>(curr));
+        for (int i = start; i < nums.length; i++) {
+            curr.add(nums[i]);
+            backtrack(nums, i + 1, curr, result);
+            curr.remove(curr.size() - 1);
+        }
+    }
+}`,
+'r2':`class Solution {
+    public List<List<Integer>> subsetsWithDup(int[] nums) {
+        Arrays.sort(nums);
+        List<List<Integer>> result = new ArrayList<>();
+        backtrack(nums, 0, new ArrayList<>(), result);
+        return result;
+    }
+    private void backtrack(int[] nums, int start, List<Integer> curr, List<List<Integer>> result) {
+        result.add(new ArrayList<>(curr));
+        for (int i = start; i < nums.length; i++) {
+            if (i > start && nums[i] == nums[i - 1]) continue; // skip duplicates
+            curr.add(nums[i]);
+            backtrack(nums, i + 1, curr, result);
+            curr.remove(curr.size() - 1);
+        }
+    }
+}`,
+'r3':`class Solution {
+    public List<List<Integer>> permute(int[] nums) {
+        List<List<Integer>> result = new ArrayList<>();
+        backtrack(nums, 0, result);
+        return result;
+    }
+    private void backtrack(int[] nums, int start, List<List<Integer>> result) {
+        if (start == nums.length) {
+            List<Integer> perm = new ArrayList<>();
+            for (int n : nums) perm.add(n);
+            result.add(perm); return;
+        }
+        for (int i = start; i < nums.length; i++) {
+            swap(nums, start, i);
+            backtrack(nums, start + 1, result);
+            swap(nums, start, i); // backtrack
+        }
+    }
+    private void swap(int[] a, int i, int j) { int t=a[i]; a[i]=a[j]; a[j]=t; }
+}`,
+'r4':`class Solution {
+    public List<List<Integer>> combinationSum(int[] candidates, int target) {
+        Arrays.sort(candidates);
+        List<List<Integer>> result = new ArrayList<>();
+        backtrack(candidates, 0, target, new ArrayList<>(), result);
+        return result;
+    }
+    private void backtrack(int[] cands, int start, int remain,
+                            List<Integer> curr, List<List<Integer>> result) {
+        if (remain == 0) { result.add(new ArrayList<>(curr)); return; }
+        for (int i = start; i < cands.length; i++) {
+            if (cands[i] > remain) break;
+            curr.add(cands[i]);
+            backtrack(cands, i, remain - cands[i], curr, result); // reuse same element
+            curr.remove(curr.size() - 1);
+        }
+    }
+}`,
+'r5':`class Solution {
+    public List<List<String>> solveNQueens(int n) {
+        List<List<String>> result = new ArrayList<>();
+        int[] queens = new int[n];
+        Arrays.fill(queens, -1);
+        Set<Integer> cols = new HashSet<>(), d1 = new HashSet<>(), d2 = new HashSet<>();
+        backtrack(queens, n, 0, cols, d1, d2, result);
+        return result;
+    }
+    private void backtrack(int[] queens, int n, int row,
+                            Set<Integer> cols, Set<Integer> d1, Set<Integer> d2,
+                            List<List<String>> result) {
+        if (row == n) { result.add(build(queens, n)); return; }
+        for (int col = 0; col < n; col++) {
+            if (cols.contains(col) || d1.contains(row-col) || d2.contains(row+col)) continue;
+            queens[row]=col; cols.add(col); d1.add(row-col); d2.add(row+col);
+            backtrack(queens, n, row+1, cols, d1, d2, result);
+            queens[row]=-1; cols.remove(col); d1.remove(row-col); d2.remove(row+col);
+        }
+    }
+    private List<String> build(int[] queens, int n) {
+        List<String> board = new ArrayList<>();
+        for (int q : queens) {
+            char[] row = new char[n]; Arrays.fill(row, '.'); row[q]='Q';
+            board.add(new String(row));
+        }
+        return board;
+    }
+}`,
+'r6':`class Solution {
+    public void solveSudoku(char[][] board) { solve(board); }
+    private boolean solve(char[][] board) {
+        for (int i = 0; i < 9; i++) for (int j = 0; j < 9; j++) {
+            if (board[i][j] != '.') continue;
+            for (char c = '1'; c <= '9'; c++) {
+                if (isValid(board, i, j, c)) {
+                    board[i][j] = c;
+                    if (solve(board)) return true;
+                    board[i][j] = '.';
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+    private boolean isValid(char[][] board, int r, int c, char num) {
+        for (int i = 0; i < 9; i++) {
+            if (board[r][i] == num || board[i][c] == num) return false;
+            if (board[3*(r/3)+i/3][3*(c/3)+i%3] == num) return false;
+        }
+        return true;
+    }
+}`,
+'r7':`class Solution {
+    public List<String> generateParenthesis(int n) {
+        List<String> result = new ArrayList<>();
+        backtrack(n, 0, 0, new StringBuilder(), result);
+        return result;
+    }
+    private void backtrack(int n, int open, int close, StringBuilder sb, List<String> result) {
+        if (sb.length() == 2 * n) { result.add(sb.toString()); return; }
+        if (open < n)    { sb.append('('); backtrack(n,open+1,close,sb,result); sb.deleteCharAt(sb.length()-1); }
+        if (close < open){ sb.append(')'); backtrack(n,open,close+1,sb,result); sb.deleteCharAt(sb.length()-1); }
+    }
+}`,
+'r8':`class Solution {
+    String[] map = {"","","abc","def","ghi","jkl","mno","pqrs","tuv","wxyz"};
+    public List<String> letterCombinations(String digits) {
+        List<String> result = new ArrayList<>();
+        if (digits.isEmpty()) return result;
+        backtrack(digits, 0, new StringBuilder(), result);
+        return result;
+    }
+    private void backtrack(String digits, int idx, StringBuilder sb, List<String> result) {
+        if (idx == digits.length()) { result.add(sb.toString()); return; }
+        for (char c : map[digits.charAt(idx) - '0'].toCharArray()) {
+            sb.append(c);
+            backtrack(digits, idx + 1, sb, result);
+            sb.deleteCharAt(sb.length() - 1);
+        }
+    }
+}`,
+'r9':`class Solution {
+    public boolean exist(char[][] board, String word) {
+        for (int i = 0; i < board.length; i++)
+            for (int j = 0; j < board[0].length; j++)
+                if (dfs(board, word, i, j, 0)) return true;
+        return false;
+    }
+    private boolean dfs(char[][] board, String word, int i, int j, int idx) {
+        if (idx == word.length()) return true;
+        if (i<0||i>=board.length||j<0||j>=board[0].length||board[i][j]!=word.charAt(idx)) return false;
+        char tmp = board[i][j]; board[i][j] = '#';
+        boolean found = dfs(board,word,i+1,j,idx+1)||dfs(board,word,i-1,j,idx+1)
+                     || dfs(board,word,i,j+1,idx+1)||dfs(board,word,i,j-1,idx+1);
+        board[i][j] = tmp;
+        return found;
+    }
+}`,
+'r10':`class Solution {
+    public List<List<String>> partition(String s) {
+        List<List<String>> result = new ArrayList<>();
+        backtrack(s, 0, new ArrayList<>(), result);
+        return result;
+    }
+    private void backtrack(String s, int start, List<String> curr, List<List<String>> result) {
+        if (start == s.length()) { result.add(new ArrayList<>(curr)); return; }
+        for (int end = start + 1; end <= s.length(); end++) {
+            String sub = s.substring(start, end);
+            if (isPalindrome(sub)) {
+                curr.add(sub);
+                backtrack(s, end, curr, result);
+                curr.remove(curr.size() - 1);
+            }
+        }
+    }
+    private boolean isPalindrome(String s) {
+        int lo = 0, hi = s.length() - 1;
+        while (lo < hi) if (s.charAt(lo++) != s.charAt(hi--)) return false;
+        return true;
+    }
+}`,
+/* ── SORTING & SEARCHING ── */
+'ss1':`class Solution {
+    public int search(int[] nums, int target) {
+        int lo = 0, hi = nums.length - 1;
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] == target) return mid;
+            else if (nums[mid] < target) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        return -1;
+    }
+}`,
+'ss2':`class Solution {
+    public int[] searchRange(int[] nums, int target) {
+        return new int[]{findFirst(nums,target), findLast(nums,target)};
+    }
+    private int findFirst(int[] a, int t) {
+        int lo=0, hi=a.length-1, pos=-1;
+        while (lo<=hi) {
+            int mid=lo+(hi-lo)/2;
+            if (a[mid]==t){pos=mid; hi=mid-1;} else if (a[mid]<t) lo=mid+1; else hi=mid-1;
+        }
+        return pos;
+    }
+    private int findLast(int[] a, int t) {
+        int lo=0, hi=a.length-1, pos=-1;
+        while (lo<=hi) {
+            int mid=lo+(hi-lo)/2;
+            if (a[mid]==t){pos=mid; lo=mid+1;} else if (a[mid]<t) lo=mid+1; else hi=mid-1;
+        }
+        return pos;
+    }
+}`,
+'ss3':`class Solution {
+    public int[] mergeSort(int[] nums) {
+        if (nums.length <= 1) return nums;
+        int mid = nums.length / 2;
+        int[] left  = mergeSort(Arrays.copyOfRange(nums, 0, mid));
+        int[] right = mergeSort(Arrays.copyOfRange(nums, mid, nums.length));
+        return merge(left, right);
+    }
+    private int[] merge(int[] left, int[] right) {
+        int[] result = new int[left.length + right.length];
+        int i=0, j=0, k=0;
+        while (i<left.length && j<right.length)
+            result[k++] = left[i]<=right[j] ? left[i++] : right[j++];
+        while (i<left.length)  result[k++]=left[i++];
+        while (j<right.length) result[k++]=right[j++];
+        return result;
+    }
+}`,
+'ss4':`class Solution {
+    public void quickSort(int[] nums, int lo, int hi) {
+        if (lo >= hi) return;
+        int p = partition(nums, lo, hi);
+        quickSort(nums, lo, p - 1);
+        quickSort(nums, p + 1, hi);
+    }
+    private int partition(int[] nums, int lo, int hi) {
+        int pivot = nums[hi], i = lo;
+        for (int j = lo; j < hi; j++)
+            if (nums[j] <= pivot) swap(nums, i++, j);
+        swap(nums, i, hi);
+        return i;
+    }
+    private void swap(int[] a, int i, int j){ int t=a[i]; a[i]=a[j]; a[j]=t; }
+}`,
+'ss5':`class Solution {
+    public int findKthLargest(int[] nums, int k) {
+        int lo=0, hi=nums.length-1, target=nums.length-k;
+        while (lo < hi) {
+            int pivot = partition(nums, lo, hi);
+            if (pivot==target) break;
+            else if (pivot<target) lo=pivot+1;
+            else hi=pivot-1;
+        }
+        return nums[target];
+    }
+    private int partition(int[] a, int lo, int hi){
+        int pivot=a[hi], i=lo;
+        for (int j=lo; j<hi; j++) if (a[j]<=pivot) swap(a,i++,j);
+        swap(a,i,hi); return i;
+    }
+    private void swap(int[] a,int i,int j){ int t=a[i]; a[i]=a[j]; a[j]=t; }
+}`,
+'ss6':`class Solution {
+    public void sortColors(int[] nums) {
+        int lo=0, mid=0, hi=nums.length-1;
+        while (mid <= hi) {
+            if (nums[mid]==0)      swap(nums,lo++,mid++);
+            else if (nums[mid]==2) swap(nums,mid,hi--);
+            else                   mid++;
+        }
+    }
+    private void swap(int[] a,int i,int j){ int t=a[i]; a[i]=a[j]; a[j]=t; }
+}`,
+'ss7':`class Solution {
+    long count = 0;
+    public long countInversions(int[] nums) { mergeSort(nums,0,nums.length-1); return count; }
+    private void mergeSort(int[] a, int lo, int hi) {
+        if (lo>=hi) return;
+        int mid = lo+(hi-lo)/2;
+        mergeSort(a,lo,mid); mergeSort(a,mid+1,hi); merge(a,lo,mid,hi);
+    }
+    private void merge(int[] a, int lo, int mid, int hi) {
+        int[] tmp = new int[hi-lo+1]; int i=lo, j=mid+1, k=0;
+        while (i<=mid && j<=hi) {
+            if (a[i]<=a[j]) tmp[k++]=a[i++];
+            else { count += mid-i+1; tmp[k++]=a[j++]; }
+        }
+        while (i<=mid) tmp[k++]=a[i++];
+        while (j<=hi)  tmp[k++]=a[j++];
+        System.arraycopy(tmp,0,a,lo,tmp.length);
+    }
+}`,
+/* ── HASHING ── */
+'h1':`class Solution {
+    public List<List<String>> groupAnagrams(String[] strs) {
+        Map<String, List<String>> map = new HashMap<>();
+        for (String s : strs) {
+            char[] chars = s.toCharArray();
+            Arrays.sort(chars);
+            String key = new String(chars);
+            map.computeIfAbsent(key, k -> new ArrayList<>()).add(s);
+        }
+        return new ArrayList<>(map.values());
+    }
+}`,
+'h2':`class Solution {
+    public int[] topKFrequent(int[] nums, int k) {
+        Map<Integer,Integer> freq = new HashMap<>();
+        for (int n : nums) freq.merge(n,1,Integer::sum);
+        // Bucket sort by frequency
+        List<Integer>[] buckets = new List[nums.length+1];
+        freq.forEach((num,f)->{
+            if (buckets[f]==null) buckets[f]=new ArrayList<>();
+            buckets[f].add(num);
+        });
+        int[] result = new int[k]; int idx=0;
+        for (int i=buckets.length-1; i>=0&&idx<k; i--)
+            if (buckets[i]!=null) for (int n : buckets[i]) if (idx<k) result[idx++]=n;
+        return result;
+    }
+}`,
+'h3':`class Codec {
+    public String encode(List<String> strs) {
+        StringBuilder sb = new StringBuilder();
+        for (String s : strs) sb.append(s.length()).append('#').append(s);
+        return sb.toString();
+    }
+    public List<String> decode(String s) {
+        List<String> result = new ArrayList<>();
+        int i = 0;
+        while (i < s.length()) {
+            int j = s.indexOf('#', i);
+            int len = Integer.parseInt(s.substring(i, j));
+            result.add(s.substring(j+1, j+1+len));
+            i = j+1+len;
+        }
+        return result;
+    }
+}`,
+'h4':`class Solution {
+    public boolean isAnagram(String s, String t) {
+        if (s.length() != t.length()) return false;
+        int[] freq = new int[26];
+        for (char c : s.toCharArray()) freq[c-'a']++;
+        for (char c : t.toCharArray()) if (--freq[c-'a'] < 0) return false;
+        return true;
+    }
+}`,
+'h5':`class Solution {
+    public int[] intersection(int[] nums1, int[] nums2) {
+        Set<Integer> set = new HashSet<>();
+        for (int n : nums1) set.add(n);
+        Set<Integer> res = new HashSet<>();
+        for (int n : nums2) if (set.contains(n)) res.add(n);
+        return res.stream().mapToInt(Integer::intValue).toArray();
+    }
+}`,
+'h6':`class Solution {
+    public int subarraySum(int[] nums, int k) {
+        Map<Integer,Integer> prefixCount = new HashMap<>();
+        prefixCount.put(0, 1);
+        int sum = 0, count = 0;
+        for (int n : nums) {
+            sum += n;
+            count += prefixCount.getOrDefault(sum - k, 0);
+            prefixCount.merge(sum, 1, Integer::sum);
+        }
+        return count;
+    }
+}`,
+'h7':`class Solution {
+    public int maxSubarrayLen(int[] nums, int k) {
+        Map<Integer,Integer> firstSeen = new HashMap<>();
+        firstSeen.put(0, -1);
+        int sum = 0, maxLen = 0;
+        for (int i = 0; i < nums.length; i++) {
+            sum += nums[i];
+            if (firstSeen.containsKey(sum - k))
+                maxLen = Math.max(maxLen, i - firstSeen.get(sum - k));
+            firstSeen.putIfAbsent(sum, i); // only store first occurrence
+        }
+        return maxLen;
+    }
+}`,
+/* ── HEAPS ── */
+'hp1':`class MedianFinder {
+    PriorityQueue<Integer> small = new PriorityQueue<>(Collections.reverseOrder()); // max-heap (lower half)
+    PriorityQueue<Integer> large = new PriorityQueue<>();                            // min-heap (upper half)
+
+    public void addNum(int num) {
+        small.offer(num);
+        large.offer(small.poll());
+        if (large.size() > small.size()) small.offer(large.poll());
+    }
+    public double findMedian() {
+        return small.size() > large.size()
+                ? small.peek()
+                : (small.peek() + large.peek()) / 2.0;
+    }
+}`,
+'hp2':`class Solution {
+    public int leastInterval(char[] tasks, int n) {
+        int[] freq = new int[26];
+        for (char t : tasks) freq[t-'A']++;
+        Arrays.sort(freq);
+        int maxFreq = freq[25];
+        int idleSlots = (maxFreq - 1) * n;
+        for (int i = 24; i >= 0 && idleSlots > 0; i--)
+            idleSlots -= Math.min(maxFreq - 1, freq[i]);
+        return tasks.length + Math.max(0, idleSlots);
+    }
+}`,
+'hp3':`class Solution {
+    public int[][] kClosest(int[][] points, int k) {
+        PriorityQueue<int[]> maxHeap =
+            new PriorityQueue<>((a,b) -> dist(b)-dist(a)); // keep k smallest
+        for (int[] p : points) {
+            maxHeap.offer(p);
+            if (maxHeap.size() > k) maxHeap.poll();
+        }
+        return maxHeap.toArray(new int[0][]);
+    }
+    private int dist(int[] p) { return p[0]*p[0] + p[1]*p[1]; }
+}`,
+'hp4':`class Solution {
+    public String reorganizeString(String s) {
+        int[] freq = new int[26];
+        for (char c : s.toCharArray()) freq[c-'a']++;
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a,b)->b[0]-a[0]);
+        for (int i=0; i<26; i++) if (freq[i]>0) pq.offer(new int[]{freq[i],i});
+        StringBuilder sb = new StringBuilder();
+        while (pq.size() > 1) {
+            int[] a=pq.poll(), b=pq.poll();
+            sb.append((char)('a'+a[1])); sb.append((char)('a'+b[1]));
+            if (--a[0]>0) pq.offer(a);
+            if (--b[0]>0) pq.offer(b);
+        }
+        if (!pq.isEmpty()) {
+            if (pq.peek()[0] > 1) return "";
+            sb.append((char)('a'+pq.peek()[1]));
+        }
+        return sb.toString();
+    }
+}`,
+'hp5':`class Solution {
+    public List<String> topKFrequent(String[] words, int k) {
+        Map<String,Integer> freq = new HashMap<>();
+        for (String w : words) freq.merge(w,1,Integer::sum);
+        // min-heap: lowest freq at top; among equal freq, lexicographically larger at top
+        PriorityQueue<String> minHeap = new PriorityQueue<>((a,b)->
+            freq.get(a).equals(freq.get(b)) ? b.compareTo(a) : freq.get(a)-freq.get(b));
+        for (String w : freq.keySet()) {
+            minHeap.offer(w);
+            if (minHeap.size() > k) minHeap.poll();
+        }
+        LinkedList<String> result = new LinkedList<>();
+        while (!minHeap.isEmpty()) result.addFirst(minHeap.poll());
+        return result;
+    }
+}`,
+'hp6':`class Solution {
+    public int[] mergeKSortedArrays(int[][] arrays) {
+        // [value, arrayIdx, elementIdx]
+        PriorityQueue<int[]> minHeap = new PriorityQueue<>((a,b)->a[0]-b[0]);
+        int total = 0;
+        for (int i = 0; i < arrays.length; i++) {
+            if (arrays[i].length > 0) { minHeap.offer(new int[]{arrays[i][0],i,0}); total+=arrays[i].length; }
+        }
+        int[] result = new int[total]; int idx=0;
+        while (!minHeap.isEmpty()) {
+            int[] cur = minHeap.poll(); result[idx++]=cur[0];
+            if (cur[2]+1 < arrays[cur[1]].length)
+                minHeap.offer(new int[]{arrays[cur[1]][cur[2]+1], cur[1], cur[2]+1});
+        }
+        return result;
+    }
+}`,
+/* ── GREEDY ── */
+'gr1':`class Solution {
+    public boolean canJump(int[] nums) {
+        int maxReach = 0;
+        for (int i = 0; i < nums.length; i++) {
+            if (i > maxReach) return false;
+            maxReach = Math.max(maxReach, i + nums[i]);
+        }
+        return true;
+    }
+}`,
+'gr2':`class Solution {
+    public int canCompleteCircuit(int[] gas, int[] cost) {
+        int totalGas=0, tank=0, start=0;
+        for (int i=0; i<gas.length; i++) {
+            totalGas += gas[i]-cost[i];
+            tank     += gas[i]-cost[i];
+            if (tank < 0) { start=i+1; tank=0; }
+        }
+        return totalGas >= 0 ? start : -1;
+    }
+}`,
+'gr3':`class Solution {
+    public int findContentChildren(int[] g, int[] s) {
+        Arrays.sort(g); Arrays.sort(s);
+        int child=0, cookie=0;
+        while (child<g.length && cookie<s.length) {
+            if (s[cookie] >= g[child]) child++;
+            cookie++;
+        }
+        return child;
+    }
+}`,
+'gr4':`class Solution {
+    public int findMinArrowShots(int[][] points) {
+        Arrays.sort(points, (a,b)->Integer.compare(a[1],b[1]));
+        int arrows=1, end=points[0][1];
+        for (int i=1; i<points.length; i++)
+            if (points[i][0] > end) { arrows++; end=points[i][1]; }
+        return arrows;
+    }
+}`,
+'gr5':`class Solution {
+    public int eraseOverlapIntervals(int[][] intervals) {
+        Arrays.sort(intervals, (a,b)->a[1]-b[1]);
+        int count=0, end=Integer.MIN_VALUE;
+        for (int[] iv : intervals) {
+            if (iv[0] >= end) end=iv[1];
+            else count++;
+        }
+        return count;
+    }
+}`,
+'gr6':`class Solution {
+    public List<Integer> partitionLabels(String s) {
+        int[] last = new int[26];
+        for (int i=0; i<s.length(); i++) last[s.charAt(i)-'a']=i;
+        List<Integer> result = new ArrayList<>();
+        int start=0, end=0;
+        for (int i=0; i<s.length(); i++) {
+            end = Math.max(end, last[s.charAt(i)-'a']);
+            if (i==end) { result.add(end-start+1); start=i+1; }
+        }
+        return result;
+    }
+}`,
+/* ── BIT MANIPULATION ── */
+'b1':`class Solution {
+    public int singleNumber(int[] nums) {
+        int result = 0;
+        for (int n : nums) result ^= n; // XOR: a^a=0, a^0=a
+        return result;
+    }
+}`,
+'b2':`class Solution {
+    public int hammingWeight(int n) {
+        int count = 0;
+        while (n != 0) { n &= (n - 1); count++; } // clears lowest set bit
+        return count;
+    }
+}`,
+'b3':`class Solution {
+    public int reverseBits(int n) {
+        int result = 0;
+        for (int i = 0; i < 32; i++) {
+            result = (result << 1) | (n & 1);
+            n >>>= 1;
+        }
+        return result;
+    }
+}`,
+'b4':`class Solution {
+    public int missingNumber(int[] nums) {
+        int n = nums.length;
+        int sum = n * (n + 1) / 2; // Gauss formula
+        for (int num : nums) sum -= num;
+        return sum;
+    }
+}`,
+'b5':`class Solution {
+    public boolean isPowerOfTwo(int n) {
+        return n > 0 && (n & (n - 1)) == 0;
+    }
+}`,
+'b6':`class Solution {
+    public int getSum(int a, int b) {
+        while (b != 0) {
+            int carry = (a & b) << 1; // carry bits
+            a = a ^ b;                // sum without carry
+            b = carry;
+        }
+        return a;
+    }
+}`,
+'b7':`class Solution {
+    public int[] countBits(int n) {
+        int[] dp = new int[n + 1];
+        for (int i = 1; i <= n; i++)
+            dp[i] = dp[i >> 1] + (i & 1); // dp[i] = dp[i/2] + last bit
+        return dp;
+    }
+}`,
+/* ── TRIE ── */
+'tr1':`class Trie {
+    private TrieNode root = new TrieNode();
+
+    static class TrieNode {
+        TrieNode[] children = new TrieNode[26];
+        boolean isEnd;
+    }
+    public void insert(String word) {
+        TrieNode node = root;
+        for (char c : word.toCharArray()) {
+            int idx = c - 'a';
+            if (node.children[idx] == null) node.children[idx] = new TrieNode();
+            node = node.children[idx];
+        }
+        node.isEnd = true;
+    }
+    public boolean search(String word) {
+        TrieNode node = root;
+        for (char c : word.toCharArray()) {
+            int idx = c - 'a';
+            if (node.children[idx] == null) return false;
+            node = node.children[idx];
+        }
+        return node.isEnd;
+    }
+    public boolean startsWith(String prefix) {
+        TrieNode node = root;
+        for (char c : prefix.toCharArray()) {
+            int idx = c - 'a';
+            if (node.children[idx] == null) return false;
+            node = node.children[idx];
+        }
+        return true;
+    }
+}`,
+'tr2':`class Solution {
+    public List<List<String>> suggestedProducts(String[] products, String searchWord) {
+        Arrays.sort(products);
+        List<List<String>> result = new ArrayList<>();
+        int lo=0, hi=products.length-1;
+        for (int i=0; i<searchWord.length(); i++) {
+            char c = searchWord.charAt(i);
+            while (lo<=hi && (products[lo].length()<=i || products[lo].charAt(i)!=c)) lo++;
+            while (lo<=hi && (products[hi].length()<=i || products[hi].charAt(i)!=c)) hi--;
+            List<String> sugg = new ArrayList<>();
+            for (int j=lo; j<=Math.min(lo+2,hi); j++) sugg.add(products[j]);
+            result.add(sugg);
+        }
+        return result;
+    }
+}`,
+'tr3':`class Solution {
+    static class TrieNode { TrieNode[] children=new TrieNode[26]; String word; }
+    public List<String> findWords(char[][] board, String[] words) {
+        TrieNode root = new TrieNode();
+        for (String w : words) {
+            TrieNode node = root;
+            for (char c : w.toCharArray()) {
+                if (node.children[c-'a']==null) node.children[c-'a']=new TrieNode();
+                node = node.children[c-'a'];
+            }
+            node.word = w;
+        }
+        Set<String> result = new HashSet<>();
+        for (int i=0; i<board.length; i++)
+            for (int j=0; j<board[0].length; j++)
+                dfs(board, i, j, root, result);
+        return new ArrayList<>(result);
+    }
+    private void dfs(char[][] board, int i, int j, TrieNode node, Set<String> result) {
+        if (i<0||i>=board.length||j<0||j>=board[0].length||board[i][j]=='#') return;
+        char c = board[i][j];
+        TrieNode next = node.children[c-'a'];
+        if (next==null) return;
+        if (next.word!=null) result.add(next.word);
+        board[i][j]='#';
+        dfs(board,i+1,j,next,result); dfs(board,i-1,j,next,result);
+        dfs(board,i,j+1,next,result); dfs(board,i,j-1,next,result);
+        board[i][j]=c;
+    }
+}`,
+'tr4':`class Solution {
+    static class TrieNode { TrieNode[] ch=new TrieNode[2]; }
+    public int findMaximumXOR(int[] nums) {
+        TrieNode root = new TrieNode();
+        for (int num : nums) {
+            TrieNode node = root;
+            for (int i=31; i>=0; i--) {
+                int bit=(num>>i)&1;
+                if (node.ch[bit]==null) node.ch[bit]=new TrieNode();
+                node=node.ch[bit];
+            }
+        }
+        int maxXOR=0;
+        for (int num : nums) {
+            TrieNode node=root; int curXOR=0;
+            for (int i=31; i>=0; i--) {
+                int bit=(num>>i)&1, want=1-bit;
+                if (node.ch[want]!=null) { curXOR|=(1<<i); node=node.ch[want]; }
+                else node=node.ch[bit];
+            }
+            maxXOR=Math.max(maxXOR,curXOR);
+        }
+        return maxXOR;
+    }
+}`,
+'tr5':`class Solution {
+    static class TrieNode { TrieNode[] ch=new TrieNode[26]; boolean isEnd; }
+    public String replaceWords(List<String> dictionary, String sentence) {
+        TrieNode root = new TrieNode();
+        for (String root2 : dictionary) {
+            TrieNode node=root;
+            for (char c : root2.toCharArray()) {
+                if (node.ch[c-'a']==null) node.ch[c-'a']=new TrieNode();
+                node=node.ch[c-'a']; if (node.isEnd) break;
+            }
+            node.isEnd=true;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String word : sentence.split(" ")) {
+            if (sb.length()>0) sb.append(' ');
+            TrieNode node=root; StringBuilder prefix=new StringBuilder(); boolean found=false;
+            for (char c : word.toCharArray()) {
+                if (node.ch[c-'a']==null) break;
+                prefix.append(c); node=node.ch[c-'a'];
+                if (node.isEnd) { found=true; break; }
+            }
+            sb.append(found ? prefix : word);
+        }
+        return sb.toString();
+    }
+}`,
+/* ── MATH ── */
+'m1':`class Solution {
+    public boolean isPalindrome(int x) {
+        if (x < 0 || (x % 10 == 0 && x != 0)) return false;
+        int reversed = 0;
+        while (x > reversed) { reversed = reversed*10 + x%10; x /= 10; }
+        return x == reversed || x == reversed / 10;
+    }
+}`,
+'m2':`class Solution {
+    public boolean isHappy(int n) {
+        int slow=n, fast=digitSquareSum(n);
+        while (fast!=1 && slow!=fast) {
+            slow=digitSquareSum(slow);
+            fast=digitSquareSum(digitSquareSum(fast));
+        }
+        return fast==1;
+    }
+    private int digitSquareSum(int n) {
+        int sum=0; while (n>0) { int d=n%10; sum+=d*d; n/=10; } return sum;
+    }
+}`,
+'m3':`class Solution {
+    public int countPrimes(int n) {
+        boolean[] isComposite = new boolean[n];
+        int count = 0;
+        for (int i=2; i<n; i++) {
+            if (!isComposite[i]) {
+                count++;
+                for (long j=(long)i*i; j<n; j+=i) isComposite[(int)j]=true;
+            }
+        }
+        return count;
+    }
+}`,
+'m4':`class Solution {
+    public double myPow(double x, int n) {
+        long N = n;
+        if (N < 0) { x = 1/x; N = -N; }
+        double result = 1.0;
+        while (N > 0) {
+            if ((N & 1) == 1) result *= x;
+            x *= x; N >>= 1;
+        }
+        return result;
+    }
+}`,
+'m5':`class Solution {
+    public String intToRoman(int num) {
+        int[]    vals = {1000,900,500,400,100,90,50,40,10,9,5,4,1};
+        String[] syms = {"M","CM","D","CD","C","XC","L","XL","X","IX","V","IV","I"};
+        StringBuilder sb = new StringBuilder();
+        for (int i=0; i<vals.length; i++)
+            while (num>=vals[i]) { sb.append(syms[i]); num-=vals[i]; }
+        return sb.toString();
+    }
+}`,
+'m6':`class Solution {
+    public int gcd(int a, int b) {
+        while (b!=0) { int t=b; b=a%b; a=t; } return a;
+    }
+    public long lcm(int a, int b) {
+        return (long)a / gcd(a,b) * b; // divide first to avoid overflow
+    }
+}`,
+/* ── SYSTEM DESIGN ── */
+'des1':`class MyHashMap {
+    private static final int SIZE = 1009; // prime bucket count
+    private LinkedList<int[]>[] buckets;
+
+    @SuppressWarnings("unchecked")
+    public MyHashMap() {
+        buckets = new LinkedList[SIZE];
+        for (int i=0; i<SIZE; i++) buckets[i]=new LinkedList<>();
+    }
+    private int hash(int key) { return key % SIZE; }
+    public void put(int key, int value) {
+        int h = hash(key);
+        for (int[] pair : buckets[h]) { if (pair[0]==key){ pair[1]=value; return; } }
+        buckets[h].add(new int[]{key, value});
+    }
+    public int get(int key) {
+        for (int[] pair : buckets[hash(key)]) if (pair[0]==key) return pair[1];
+        return -1;
+    }
+    public void remove(int key) { buckets[hash(key)].removeIf(p->p[0]==key); }
+}`,
+'des2':`class LRUCache {
+    private final int capacity;
+    private final LinkedHashMap<Integer,Integer> cache;
+
+    public LRUCache(int capacity) {
+        this.capacity = capacity;
+        cache = new LinkedHashMap<>(16, 0.75f, true) {
+            protected boolean removeEldestEntry(Map.Entry<Integer,Integer> e) {
+                return size() > capacity;
+            }
+        };
+    }
+    public int get(int key)              { return cache.getOrDefault(key,-1); }
+    public void put(int key, int value)  { cache.put(key, value); }
+}`,
+'des3':`class LFUCache {
+    int capacity, minFreq;
+    Map<Integer,Integer> keyVal=new HashMap<>(), keyFreq=new HashMap<>();
+    Map<Integer,LinkedHashSet<Integer>> freqKeys=new HashMap<>();
+
+    public LFUCache(int capacity) { this.capacity=capacity; }
+
+    public int get(int key) {
+        if (!keyVal.containsKey(key)) return -1;
+        updateFreq(key); return keyVal.get(key);
+    }
+    public void put(int key, int value) {
+        if (capacity==0) return;
+        if (keyVal.containsKey(key)) { keyVal.put(key,value); updateFreq(key); return; }
+        if (keyVal.size()==capacity) {
+            int evict=freqKeys.get(minFreq).iterator().next();
+            freqKeys.get(minFreq).remove(evict); keyVal.remove(evict); keyFreq.remove(evict);
+        }
+        keyVal.put(key,value); keyFreq.put(key,1);
+        freqKeys.computeIfAbsent(1,k->new LinkedHashSet<>()).add(key);
+        minFreq=1;
+    }
+    private void updateFreq(int key) {
+        int freq=keyFreq.get(key);
+        freqKeys.get(freq).remove(key);
+        if (freqKeys.get(freq).isEmpty() && freq==minFreq) minFreq++;
+        keyFreq.put(key,freq+1);
+        freqKeys.computeIfAbsent(freq+1,k->new LinkedHashSet<>()).add(key);
+    }
+}`,
+'des4':`class Twitter {
+    int ts=0;
+    Map<Integer,List<int[]>> tweets=new HashMap<>();
+    Map<Integer,Set<Integer>> follows=new HashMap<>();
+
+    public void postTweet(int userId, int tweetId) {
+        tweets.computeIfAbsent(userId, k->new ArrayList<>()).add(new int[]{ts++,tweetId});
+    }
+    public List<Integer> getNewsFeed(int userId) {
+        PriorityQueue<int[]> pq=new PriorityQueue<>((a,b)->b[0]-a[0]);
+        Set<Integer> users=new HashSet<>(follows.getOrDefault(userId,new HashSet<>()));
+        users.add(userId);
+        for (int u : users) {
+            List<int[]> ts=tweets.getOrDefault(u,new ArrayList<>());
+            for (int i=ts.size()-1; i>=Math.max(0,ts.size()-10); i--) pq.offer(ts.get(i));
+        }
+        List<Integer> result=new ArrayList<>();
+        while (!pq.isEmpty() && result.size()<10) result.add(pq.poll()[1]);
+        return result;
+    }
+    public void follow(int f, int e)   { follows.computeIfAbsent(f,k->new HashSet<>()).add(e); }
+    public void unfollow(int f, int e) { follows.getOrDefault(f,new HashSet<>()).remove(e); }
+}`,
+'des5':`class Skiplist {
+    static final int MAX_LEVEL=16; static final double P=0.5;
+    static class Node { int val; Node[] next; Node(int v,int l){val=v;next=new Node[l];} }
+    Node head = new Node(Integer.MIN_VALUE, MAX_LEVEL);
+
+    private int randomLevel() {
+        int level=1; while (Math.random()<P && level<MAX_LEVEL) level++; return level;
+    }
+    public boolean search(int target) {
+        Node cur=head;
+        for (int i=MAX_LEVEL-1; i>=0; i--)
+            while (cur.next[i]!=null && cur.next[i].val<target) cur=cur.next[i];
+        return cur.next[0]!=null && cur.next[0].val==target;
+    }
+    public void add(int num) {
+        Node[] update=new Node[MAX_LEVEL]; Node cur=head;
+        for (int i=MAX_LEVEL-1; i>=0; i--) {
+            while (cur.next[i]!=null && cur.next[i].val<num) cur=cur.next[i];
+            update[i]=cur;
+        }
+        int level=randomLevel(); Node newNode=new Node(num,level);
+        for (int i=0; i<level; i++) { newNode.next[i]=update[i].next[i]; update[i].next[i]=newNode; }
+    }
+    public boolean erase(int num) {
+        Node[] update=new Node[MAX_LEVEL]; Node cur=head;
+        for (int i=MAX_LEVEL-1; i>=0; i--) {
+            while (cur.next[i]!=null && cur.next[i].val<num) cur=cur.next[i];
+            update[i]=cur;
+        }
+        if (cur.next[0]==null || cur.next[0].val!=num) return false;
+        Node target=cur.next[0];
+        for (int i=0; i<MAX_LEVEL && update[i].next[i]==target; i++) update[i].next[i]=target.next[i];
+        return true;
+    }
+}`,
+'des6':`class MyStack {
+    private Queue<Integer> queue = new LinkedList<>();
+
+    public void push(int x) {
+        queue.offer(x);
+        // Rotate: move all existing elements behind the new one
+        for (int i = queue.size()-1; i > 0; i--)
+            queue.offer(queue.poll());
+    }
+    public int pop()        { return queue.poll(); }
+    public int top()        { return queue.peek(); }
+    public boolean empty()  { return queue.isEmpty(); }
+}`,
+};
+
+/* ══════════════════════════════════════════════════════
+   PERSISTENCE
+══════════════════════════════════════════════════════ */
+const DSA_KEY = 'dsa_prep_done_v1';
+function loadDone(){ return new Set(JSON.parse(localStorage.getItem(DSA_KEY)||'[]')); }
+function saveDone(set){ localStorage.setItem(DSA_KEY, JSON.stringify([...set])); }
+
+/* ══════════════════════════════════════════════════════
+   RENDER ENGINE
+══════════════════════════════════════════════════════ */
+let activeFilter = 'all';
+let activeSearch = '';
+let activeCatFilter = 'all';
+
+function buildPage(){
+  buildCatNav();
+  buildContent();
+  restoreMarked();
+  updateProgress();
+  updateDiffStats();
+}
+
+function buildCatNav(){
+  const nav = document.getElementById('catNavList');
+  const colors = CATEGORIES.map(c=>c.color);
+  nav.innerHTML = `
+    <button class="cat-btn active" data-cat="all" onclick="filterCat('all')">
+      <span class="cat-dot" style="background:#4f8ef7"></span>All Categories
+      <span class="cat-count" id="nav-count-all">${CATEGORIES.reduce((a,c)=>a+c.questions.length,0)}</span>
+    </button>
+    ${CATEGORIES.map(c=>`
+      <button class="cat-btn" data-cat="${c.id}" onclick="filterCat('${c.id}')">
+        <span class="cat-dot" style="background:${c.color}"></span>${c.label}
+        <span class="cat-count" id="nav-count-${c.id}">${c.questions.length}</span>
+        <span class="cat-done" id="nav-done-${c.id}">✓</span>
+      </button>
+    `).join('')}
+  `;
+}
+
+function buildContent(){
+  const container = document.getElementById('mainContent');
+  let html = '<div id="noResults" class="no-results" style="display:none"><div class="no-results-icon">🔍</div><div class="no-results-text">No questions match your search or filter.</div></div>';
+  CATEGORIES.forEach((cat,ci)=>{
+    html += `
+      <div class="cat-section" id="cat-sec-${cat.id}" style="animation-delay:${ci*40}ms">
+        <div class="cat-header">
+          <div class="cat-icon" style="background:${cat.color}18;color:${cat.color}">${cat.icon}</div>
+          <div>
+            <div class="cat-title">${cat.label}</div>
+            <div class="cat-subtitle">${cat.desc}</div>
+          </div>
+          <div class="cat-badge" id="cat-badge-${cat.id}">${cat.questions.length} questions</div>
+        </div>
+        <div class="dsa-grid" id="grid-${cat.id}">
+          ${cat.questions.map((q,qi)=>buildCard(q,cat.color,qi)).join('')}
+        </div>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+/* ── JAVA SYNTAX HIGHLIGHTER ── */
+function hlJava(raw){
+  let s = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const M=[];
+  // Encode index as letters (a=0…j=9) so later regexes never match marker text
+  const protect=(t,c)=>{
+    const i=M.length;
+    M.push(`<span class="${c}">${t}</span>`);
+    const enc=String(i).split('').map(d=>String.fromCharCode(97+Number(d))).join('');
+    return'\x00'+enc+'\x00';
+  };
+  const restore=s=>s.replace(/\x00([a-j]+)\x00/g,(_,enc)=>M[+enc.split('').map(c=>c.charCodeAt(0)-97).join('')]);
+
+  // 1. Comments (protect entire line — may contain anything)
+  s=s.replace(/\/\/[^\n]*/g,m=>protect(m,'cm'));
+  // 2. String literals
+  s=s.replace(/"(?:[^"\\]|\\.)*"/g,m=>protect(m,'str'));
+  // 3. Char literals ('a', '\n', '#')
+  s=s.replace(/'(?:[^'\\]|\\.){0,3}'/g,m=>protect(m,'str'));
+  // 4. Annotations
+  s=s.replace(/@\w+/g,m=>protect(m,'ann'));
+  // 5. Numbers — MUST come before keywords so marker indices aren't re-matched
+  s=s.replace(/\b\d+L?\b/g,m=>protect(m,'num'));
+  // 6. Keywords
+  const KW='public|private|protected|class|interface|extends|implements|static|final|void|return|new|if|else|while|for|do|break|continue|null|true|false|throw|throws|try|catch|finally|super|this|abstract|enum|instanceof|switch|case|default|import|int|long|char|boolean|double|float|byte|short|var';
+  s=s.replace(new RegExp(`\\b(${KW})\\b`,'g'),m=>protect(m,'kw'));
+  // 7. Class / type names
+  const CL='String|Integer|Long|Boolean|Character|Double|Float|List|ArrayList|LinkedList|Map|HashMap|TreeMap|LinkedHashMap|Set|HashSet|TreeSet|LinkedHashSet|Queue|Deque|ArrayDeque|PriorityQueue|Stack|Arrays|Collections|Math|Object|StringBuilder|Optional|TreeNode|ListNode|Node|TrieNode|Codec|Solution|MedianFinder|LRUCache|LFUCache|MyStack|MyQueue|MyHashMap|Twitter|Trie|Skiplist|System';
+  s=s.replace(new RegExp(`\\b(${CL})\\b`,'g'),m=>protect(m,'cls'));
+  return restore(s);
+}
+
+function buildCard(q, color, qi){
+  const rawCode = q.code || CODE_MAP[q.id] || null;
+  const hl = rawCode ? hlJava(rawCode.trim()) : null;
+  return `
+    <div class="dsa-card" id="card-${q.id}" data-id="${q.id}" data-diff="${q.diff}" style="--card-accent:${color};animation-delay:${qi*30}ms">
+      <div class="card-top">
+        <span class="card-num">${q.id.toUpperCase()}</span>
+        <div class="card-title">${q.title}</div>
+        <div class="card-done-badge">✓</div>
+      </div>
+      <div class="card-meta">
+        <span class="diff-tag ${q.diff}">${q.diff.charAt(0).toUpperCase()+q.diff.slice(1)}</span>
+        ${q.tags.map(t=>`<span class="topic-tag">${t}</span>`).join('')}
+      </div>
+      <div class="card-hint" id="hint-${q.id}">${q.hint}</div>
+      <div class="card-approach" id="approach-${q.id}">
+        <div class="card-approach-label">💡 Approach</div>
+        <p>${q.approach}</p>
+      </div>
+      <div class="card-complexity" id="complex-${q.id}">
+        <div class="complexity-item">Time: <span>${q.tc}</span></div>
+        <div class="complexity-item">Space: <span>${q.sc}</span></div>
+      </div>
+      ${hl?`<div class="card-code" id="code-${q.id}"><div class="code-hdr"><span class="code-lang">☕ JAVA</span><button class="code-copy" onclick="copyCode('${q.id}')">Copy</button></div><pre class="code-block"><code>${hl}</code></pre></div>`:''}
+      <div class="card-actions">
+        <button class="btn-hint" onclick="toggleHint('${q.id}')">Hint</button>
+        ${hl?`<button class="btn-code" onclick="toggleCode('${q.id}')">View Code</button>`:''}
+        <button class="btn-mark" onclick="markDone('${q.id}')">Mark Done</button>
+      </div>
+    </div>
+  `;
+}
+
+function toggleCode(id){
+  const el=document.getElementById('code-'+id);
+  const card=document.getElementById('card-'+id);
+  const btn=card.querySelector('.btn-code');
+  const show=el.classList.toggle('show');
+  card.classList.toggle('code-open',show);
+  if(btn) btn.textContent=show?'Hide Code':'View Code';
+}
+
+function copyCode(id){
+  const pre=document.querySelector(`#code-${id} .code-block`);
+  if(!pre) return;
+  navigator.clipboard.writeText(pre.textContent.trim()).then(()=>{
+    const btn=document.querySelector(`#code-${id} .code-copy`);
+    if(btn){btn.textContent='Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('copied');},2000);}
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   MARK DONE
+══════════════════════════════════════════════════════ */
+function markDone(id){
+  const done = loadDone();
+  const card = document.getElementById('card-'+id);
+  if(!card) return;
+  if(done.has(id)){
+    done.delete(id);
+    card.classList.remove('answered');
+  } else {
+    done.add(id);
+    card.classList.add('answered');
+  }
+  saveDone(done);
+  updateProgress();
+  updateNavDoneIndicators();
+}
+
+function restoreMarked(){
+  const done = loadDone();
+  done.forEach(id=>{
+    const card = document.getElementById('card-'+id);
+    if(card) card.classList.add('answered');
+  });
+  updateNavDoneIndicators();
+}
+
+function clearAllProgress(){
+  if(!confirm('Clear all marked-done questions? This cannot be undone.')) return;
+  localStorage.removeItem(DSA_KEY);
+  document.querySelectorAll('.dsa-card.answered').forEach(c=>c.classList.remove('answered'));
+  updateProgress();
+  updateNavDoneIndicators();
+}
+
+function updateNavDoneIndicators(){
+  const done = loadDone();
+  CATEGORIES.forEach(cat=>{
+    const catDone = cat.questions.filter(q=>done.has(q.id)).length;
+    const btn = document.querySelector(`.cat-btn[data-cat="${cat.id}"]`);
+    if(btn){
+      if(catDone>0) btn.classList.add('has-done'); else btn.classList.remove('has-done');
+    }
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   TOGGLE HINT / APPROACH
+══════════════════════════════════════════════════════ */
+function toggleHint(id){
+  const hint = document.getElementById('hint-'+id);
+  const approach = document.getElementById('approach-'+id);
+  const complex = document.getElementById('complex-'+id);
+  const btn = document.querySelector(`#card-${id} .btn-hint`);
+  const showing = hint.classList.contains('show');
+  if(showing){
+    hint.classList.remove('show');
+    approach.classList.remove('show');
+    complex.classList.remove('show');
+    if(btn) btn.textContent = 'Show Hint';
+  } else {
+    hint.classList.add('show');
+    approach.classList.add('show');
+    complex.classList.add('show');
+    if(btn) btn.textContent = 'Hide Hint';
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   PROGRESS
+══════════════════════════════════════════════════════ */
+function updateProgress(){
+  const done = loadDone();
+  const total = CATEGORIES.reduce((a,c)=>a+c.questions.length,0);
+  const answered = done.size;
+  document.getElementById('answeredCount').textContent = answered;
+  document.getElementById('totalCount').textContent = total;
+  const pct = total>0 ? Math.round((answered/total)*100) : 0;
+  document.getElementById('progressFill').style.width = pct+'%';
+  document.getElementById('progressPct').textContent = pct+'%';
+}
+
+function updateDiffStats(){
+  let easy=0, med=0, hard=0;
+  CATEGORIES.forEach(c=>c.questions.forEach(q=>{
+    if(q.diff==='easy') easy++;
+    else if(q.diff==='medium') med++;
+    else hard++;
+  }));
+  document.getElementById('easyCount').textContent = easy+' Easy';
+  document.getElementById('medCount').textContent = med+' Med';
+  document.getElementById('hardCount').textContent = hard+' Hard';
+  document.getElementById('heroEasyC').textContent = easy;
+  document.getElementById('heroMedC').textContent = med;
+  document.getElementById('heroHardC').textContent = hard;
+  const total = easy+med+hard;
+  document.getElementById('heroTotal').textContent = total+'+';
+}
+
+/* ══════════════════════════════════════════════════════
+   FILTER & SEARCH
+══════════════════════════════════════════════════════ */
+function filterCat(catId){
+  activeCatFilter = catId;
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.toggle('active', b.dataset.cat===catId));
+  document.querySelectorAll('.cat-section').forEach(s=>{
+    const id = s.id.replace('cat-sec-','');
+    s.classList.toggle('hidden', catId!=='all' && id!==catId);
+  });
+  applyFilters();
+}
+
+document.querySelectorAll && document.addEventListener('DOMContentLoaded', ()=>{
+  document.querySelectorAll('.filter-btn').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+      activeFilter = this.dataset.filter;
+      applyFilters();
+    });
+  });
+});
+
+function applyFilters(){
+  const done = loadDone();
+  const q = activeSearch.toLowerCase().trim();
+  let visible = 0;
+
+  CATEGORIES.forEach(cat=>{
+    let catVisible = 0;
+    cat.questions.forEach(qObj=>{
+      const card = document.getElementById('card-'+qObj.id);
+      if(!card) return;
+      const isDone = done.has(qObj.id);
+      let show = true;
+      if(activeFilter==='easy' && qObj.diff!=='easy') show=false;
+      if(activeFilter==='medium' && qObj.diff!=='medium') show=false;
+      if(activeFilter==='hard' && qObj.diff!=='hard') show=false;
+      if(activeFilter==='done' && !isDone) show=false;
+      if(activeFilter==='todo' && isDone) show=false;
+      if(q){
+        const text = (qObj.title+' '+qObj.tags.join(' ')+' '+qObj.hint+' '+qObj.approach).toLowerCase();
+        if(!text.includes(q)) show=false;
+      }
+      card.classList.toggle('hidden', !show);
+      if(show) catVisible++;
+    });
+    visible += catVisible;
+    const sec = document.getElementById('cat-sec-'+cat.id);
+    if(sec && activeCatFilter==='all'){
+      sec.classList.toggle('hidden', catVisible===0);
+    }
+  });
+
+  const nr = document.getElementById('noResults');
+  if(nr) nr.style.display = visible===0 ? 'block' : 'none';
+}
+
+/* ══════════════════════════════════════════════════════
+   SEARCH INPUT
+══════════════════════════════════════════════════════ */
+let searchTimer;
+function handleSearch(val){
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(()=>{ activeSearch=val; applyFilters(); }, 180);
+}
+
+/* ══════════════════════════════════════════════════════
+   SIDEBAR FILTER
+══════════════════════════════════════════════════════ */
+function handleSideSearch(val){
+  const q = val.toLowerCase();
+  document.querySelectorAll('.cat-btn').forEach(btn=>{
+    const label = btn.textContent.toLowerCase();
+    btn.style.display = q && !label.includes(q) ? 'none' : '';
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   MOBILE SIDEBAR
+══════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', ()=>{
+  buildPage();
+
+  document.getElementById('menuBtn').addEventListener('click', ()=>{
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('show');
+  });
+  document.getElementById('sidebarOverlay').addEventListener('click', ()=>{
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('show');
+  });
+
+  document.getElementById('heroSearch').addEventListener('input', function(){ handleSearch(this.value); });
+  document.getElementById('sideSearch').addEventListener('input', function(){ handleSideSearch(this.value); });
+
+  document.querySelectorAll('.filter-btn').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+      activeFilter = this.dataset.filter;
+      applyFilters();
+    });
+  });
+
+  document.addEventListener('keydown', e=>{
+    if((e.ctrlKey||e.metaKey) && e.key==='k'){
+      e.preventDefault();
+      document.getElementById('heroSearch').focus();
+    }
+    if(e.key==='Escape') document.getElementById('heroSearch').blur();
+  });
+
+  /* THEME */
+  const savedTheme = localStorage.getItem('dsa_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  document.getElementById('themeBtn').textContent = savedTheme==='dark' ? '🌙' : '☀️';
+
+  document.getElementById('themeBtn').addEventListener('click', ()=>{
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = cur==='dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('dsa_theme', next);
+    document.getElementById('themeBtn').textContent = next==='dark' ? '🌙' : '☀️';
+  });
+});
+
+/* ══════════════════════════════════════════════════════
+   SCROLL PROGRESS
+══════════════════════════════════════════════════════ */
+window.addEventListener('scroll', ()=>{
+  const total = document.documentElement.scrollHeight - window.innerHeight;
+  const pct = total>0 ? (window.scrollY/total)*100 : 0;
+  document.getElementById('scroll-progress').style.width = pct+'%';
+});
+</script>
+</body>
+</html>

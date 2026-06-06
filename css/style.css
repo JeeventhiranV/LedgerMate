@@ -141,7 +141,44 @@ body::before {
 .sidebar-section-label {
   font-size: 10px; font-weight: 600; letter-spacing: 1.2px;
   text-transform: uppercase; color: var(--text-3); padding: 0 8px; margin-bottom: 6px;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; user-select: none; transition: color 0.15s;
 }
+.sidebar-section-label:hover { color: var(--text-2); }
+.sidebar-section-chevron {
+  font-style: normal; font-size: 10px; transition: transform 0.25s ease;
+  display: inline-block; color: var(--text-3); line-height: 1;
+}
+.sidebar-section.collapsed .sidebar-section-chevron { transform: rotate(-90deg); }
+.sidebar-section-items {
+  overflow: hidden;
+  max-height: 600px;
+  transition: max-height 0.28s ease, opacity 0.2s ease;
+  opacity: 1;
+}
+.sidebar-section.collapsed .sidebar-section-items {
+  max-height: 0 !important;
+  opacity: 0;
+}
+
+/* ── Template quick-pick bar inside Add Transaction modal ── */
+.atx-tpl-bar {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 14px; flex-wrap: wrap; padding: 10px 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.atx-tpl-bar-label {
+  font-size: 11px; font-weight: 600; color: var(--text-3);
+  white-space: nowrap; flex-shrink: 0;
+}
+.atx-tpl-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.atx-tpl-chip {
+  background: var(--bg); border: 1px solid var(--border2, var(--border));
+  border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: 500;
+  color: var(--text-2); cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.atx-tpl-chip:hover { border-color: var(--teal); color: var(--teal); background: rgba(45,212,191,0.07); }
 .sidebar-nav-item {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px; border-radius: 10px; cursor: pointer;
