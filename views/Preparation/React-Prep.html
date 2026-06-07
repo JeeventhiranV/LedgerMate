@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>React Interview Prep Hub 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../../css/Preparation.css">
+<style>
+/* ════════════════════════════════════════════════════
+   REACT INTERVIEW PREP HUB — DESIGN SYSTEM
+════════════════════════════════════════════════════ */
+:root[data-theme="dark"]{
+  --bg:#07080f;--bg2:#0d0f1a;--bg3:#13162200;--bg4:#1a1e2e;
+  --bgS:#0d0f1a;
+  --border:#1e2236;--border2:#2a3050;
+  --text:#e4eaf8;--text2:#8a93b5;--text3:#505878;
+  --react:#61dafb;--next:#ffffff;--js:#f7df1e;--ts:#3178c6;
+  --blue:#4f8ef7;--purple:#8b5cf6;--teal:#06d6a0;--rose:#f43f5e;
+  --gold:#f59e0b;--orange:#fb923c;--pink:#ec4899;--cyan:#22d3ee;
+  --card:#0e1018;--card2:#121620;
+  --glow-blue:rgba(79,142,247,0.14);--glow-purple:rgba(139,92,246,0.11);
+  --glow-teal:rgba(6,214,160,0.10);
+  --shadow:0 8px 32px rgba(0,0,0,0.6);
+  --glass:rgba(13,15,26,0.85);
+  --sidebar-w:276px;
+}
+:root[data-theme="light"]{
+  --bg:#f0f3fc;--bg2:#ffffff;--bg3:#f5f7ff;--bg4:#eaedfa;
+  --bgS:#ffffff;
+  --border:#dde2f2;--border2:#c5cce8;
+  --text:#1a1e35;--text2:#465080;--text3:#8891be;
+  --react:#087ea4;--next:#000000;--js:#b59800;--ts:#2060a8;
+  --blue:#2563eb;--purple:#7c3aed;--teal:#059669;--rose:#e11d48;
+  --gold:#d97706;--orange:#ea580c;--pink:#db2777;--cyan:#0891b2;
+  --card:#ffffff;--card2:#f7f9ff;
+  --glow-blue:rgba(37,99,235,0.07);--glow-purple:rgba(124,58,237,0.06);
+  --glow-teal:rgba(5,150,105,0.07);
+  --shadow:0 4px 20px rgba(0,0,0,0.10);
+  --glass:rgba(255,255,255,0.92);
+  --sidebar-w:276px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* ── SCROLL PROGRESS ── */
+#scroll-progress{position:fixed;top:0;left:0;height:2px;width:0%;background:linear-gradient(90deg,var(--react),var(--blue),var(--purple));z-index:9999;transition:width .1s}
+
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:100vh}
+.sidebar{width:var(--sidebar-w);background:var(--bgS);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:200;transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.sidebar-inner{flex:1;overflow-y:auto;padding-bottom:28px}
+.main{margin-left:var(--sidebar-w);flex:1;min-height:100vh}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:190;backdrop-filter:blur(2px)}
+.overlay.show{display:block}
+
+/* ── SIDEBAR LOGO ── */
+.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bgS);z-index:10;display:flex;align-items:center;gap:12px}
+.sidebar-logo-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--react),var(--blue));display:grid;place-items:center;font-size:20px;flex-shrink:0}
+.sidebar-logo-text{font-family:'Syne',sans-serif;font-size:13.5px;font-weight:800;color:var(--text);line-height:1.3}
+.sidebar-logo-text small{display:block;font-size:10px;font-weight:400;color:var(--text3);font-family:'Outfit',sans-serif;letter-spacing:.3px}
+
+/* ── SIDEBAR SEARCH ── */
+.sidebar-search{padding:12px 14px;border-bottom:1px solid var(--border);position:relative}
+.sidebar-search input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px 8px 34px;font-size:13px;color:var(--text);outline:none;font-family:'Outfit',sans-serif;transition:border .2s;background:var(--bg4)}
+.sidebar-search input:focus{border-color:var(--react);box-shadow:0 0 0 3px rgba(97,218,251,.1)}
+.sidebar-search .srch-icon{position:absolute;left:24px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none}
+
+/* ── SIDEBAR NAV ── */
+.sidebar-section-label{padding:12px 20px 4px;font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--text3);text-transform:uppercase;font-family:'JetBrains Mono',monospace}
+.cat-btn{display:flex;align-items:center;gap:10px;width:100%;padding:8px 18px;background:none;border:none;color:var(--text2);font-size:13px;font-weight:500;cursor:pointer;text-align:left;transition:all .15s;border-left:2px solid transparent;font-family:'Outfit',sans-serif}
+.cat-btn:hover{background:var(--bg4);color:var(--text);border-left-color:var(--border2)}
+.cat-btn.active{background:var(--glow-blue);color:var(--blue);border-left-color:var(--blue);font-weight:600}
+.cat-btn .cat-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.cat-btn .cat-count{margin-left:auto;font-size:10px;background:var(--bg4);border-radius:20px;padding:1px 7px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.cat-btn.active .cat-count{background:rgba(79,142,247,.2);color:var(--blue)}
+.cat-btn .cat-done{margin-left:4px;font-size:10px;color:var(--teal);display:none}
+.cat-btn.has-done .cat-done{display:inline}
+.sidebar-footer{padding:16px 20px;border-top:1px solid var(--border);margin-top:auto}
+.sidebar-footer-links{display:flex;flex-direction:column;gap:4px}
+.sidebar-footer-link{font-size:12px;color:var(--text3);text-decoration:none;padding:4px 0;transition:color .2s}
+.sidebar-footer-link:hover{color:var(--react)}
+
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;z-index:100;background:var(--glass);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:11px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.menu-btn{display:none;background:none;border:1px solid var(--border);border-radius:8px;padding:6px 9px;cursor:pointer;color:var(--text2);font-size:16px}
+.topbar-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;background:linear-gradient(135deg,var(--react),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;flex-shrink:0}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.progress-chip{display:flex;align-items:center;gap:6px;background:var(--bg4);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text2);font-family:'Outfit',sans-serif}
+.progress-chip strong{color:var(--blue);font-family:'JetBrains Mono',monospace}
+.clear-btn{background:none;border:1px solid var(--rose);border-radius:8px;padding:5px 11px;cursor:pointer;color:var(--rose);font-size:12px;font-weight:600;transition:all .2s}
+.clear-btn:hover{background:rgba(244,63,94,.12)}
+.theme-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;color:var(--text2);font-size:15px;transition:all .2s}
+.theme-btn:hover{background:var(--bg4);border-color:var(--react)}
+
+/* ── PROGRESS BAR ── */
+.progress-section{padding:8px 24px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.progress-label{font-size:12px;color:var(--text3);white-space:nowrap}
+.progress-bar-wrap{flex:1;min-width:120px}
+.progress-bar-track{height:4px;background:var(--bg4);border-radius:4px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--react),var(--blue));border-radius:4px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.progress-pct{font-size:12px;font-weight:700;color:var(--blue);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.diff-chips{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.diff-chip{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;font-family:'JetBrains Mono',monospace}
+.diff-chip.easy{background:rgba(6,214,160,.12);color:var(--teal)}
+.diff-chip.medium{background:rgba(245,158,11,.12);color:var(--gold)}
+.diff-chip.hard{background:rgba(244,63,94,.12);color:var(--rose)}
+
+/* ── HERO ── */
+.hero{padding:52px 40px 40px;background:var(--bg2);position:relative;overflow:hidden;border-bottom:1px solid var(--border)}
+.hero::before{content:'';position:absolute;top:-100px;right:-60px;width:500px;height:500px;background:radial-gradient(circle,var(--glow-purple) 0%,transparent 65%);pointer-events:none}
+.hero::after{content:'';position:absolute;bottom:-80px;left:10%;width:400px;height:400px;background:radial-gradient(circle,var(--glow-teal) 0%,transparent 65%);pointer-events:none}
+.hero-eyebrow{font-size:11px;font-weight:600;letter-spacing:.11em;color:var(--react);text-transform:uppercase;margin-bottom:14px;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:8px}
+.hero-eyebrow::before{content:'';width:24px;height:2px;background:var(--react);border-radius:1px}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(28px,4.5vw,52px);font-weight:800;line-height:1.1;margin-bottom:16px;letter-spacing:-.03em}
+.hero h1 .grad{background:linear-gradient(135deg,var(--react) 0%,var(--blue) 50%,var(--purple) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-desc{font-size:15px;color:var(--text2);max-width:680px;line-height:1.75;margin-bottom:32px;font-weight:400}
+.hero-stats{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:32px}
+.stat-chip{background:var(--bg4);border:1px solid var(--border);border-radius:12px;padding:12px 20px;display:flex;flex-direction:column;align-items:center;min-width:90px;gap:3px}
+.stat-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--react),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-label{font-size:11px;color:var(--text3);font-weight:500;letter-spacing:.3px}
+.hero-search{position:relative;max-width:580px}
+.hero-search input{width:100%;background:var(--bg4);border:1px solid var(--border2);border-radius:12px;padding:14px 16px 14px 46px;font-size:14px;color:var(--text);outline:none;font-family:'Outfit',sans-serif;transition:all .2s}
+.hero-search input:focus{border-color:var(--react);box-shadow:0 0 0 3px rgba(97,218,251,.1)}
+.hero-search input::placeholder{color:var(--text3)}
+.hero-search .hs-icon{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:16px;pointer-events:none}
+.hero-search kbd{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:var(--bg4);border:1px solid var(--border);border-radius:6px;padding:2px 7px;font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+
+/* ── ROADMAP BANNER ── */
+.roadmap-banner{margin:0 24px 28px;background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:22px 26px;position:relative;overflow:hidden}
+.roadmap-banner::before{content:'';position:absolute;top:-30px;right:-30px;width:160px;height:160px;background:radial-gradient(circle,var(--glow-blue) 0%,transparent 70%);pointer-events:none}
+.roadmap-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
+.roadmap-desc{font-size:12px;color:var(--text3);margin-bottom:14px}
+.roadmap-steps{display:flex;flex-wrap:wrap;gap:8px}
+.roadmap-step{background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:7px;transition:all .2s}
+.roadmap-step:hover{border-color:var(--react);color:var(--react)}
+.roadmap-step .step-num{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--react),var(--blue));color:#fff;font-size:9px;display:grid;place-items:center;flex-shrink:0;font-weight:700}
+
+/* ── FILTER BAR ── */
+.filter-bar{padding:14px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--bg2)}
+.filter-label{font-size:12px;color:var(--text3);flex-shrink:0;font-weight:500}
+.filter-btns{display:flex;gap:6px;flex-wrap:wrap}
+.filter-btn{background:var(--bg4);border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .2s;font-family:'Outfit',sans-serif}
+.filter-btn:hover{border-color:var(--react);color:var(--react)}
+.filter-btn.active{background:rgba(97,218,251,.1);border-color:var(--react);color:var(--react);font-weight:600}
+
+/* ── CONTENT ── */
+.content{padding:24px}
+
+/* ── CATEGORY SECTION ── */
+.cat-section{margin-bottom:44px;animation:fadeUp .4s both}
+.cat-section.hidden{display:none}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.cat-header{display:flex;align-items:center;gap:14px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.cat-icon{width:42px;height:42px;border-radius:10px;display:grid;place-items:center;font-size:21px;flex-shrink:0}
+.cat-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.02em}
+.cat-subtitle{font-size:12px;color:var(--text3);margin-top:2px}
+.cat-badge{margin-left:auto;font-size:11px;background:var(--bg4);border:1px solid var(--border);border-radius:20px;padding:3px 10px;color:var(--text3);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+
+/* ── QUESTION CARD GRID ── */
+.q-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}
+
+/* ── QUESTION CARD ── */
+.q-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 18px 14px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.q-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--card-accent,var(--blue));opacity:0;transition:opacity .2s}
+.q-card:hover{border-color:var(--border2);box-shadow:var(--shadow);transform:translateY(-1px)}
+.q-card:hover::before{opacity:1}
+.q-card.answered{border-color:rgba(6,214,160,.3);background:rgba(6,214,160,.025)}
+.q-card.answered::before{opacity:1;background:var(--teal)}
+.q-card.hidden{display:none}
+
+.card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.card-num{font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text3);background:var(--bg4);border:1px solid var(--border);border-radius:6px;padding:2px 7px;flex-shrink:0;margin-top:2px}
+.card-title{font-size:13.5px;font-weight:600;color:var(--text);line-height:1.45;flex:1;letter-spacing:-.01em}
+.card-done-badge{width:20px;height:20px;border-radius:50%;background:var(--teal);display:none;place-items:center;font-size:11px;flex-shrink:0;margin-top:1px;color:#fff}
+.q-card.answered .card-done-badge{display:grid}
+
+.card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.diff-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;font-family:'JetBrains Mono',monospace}
+.diff-tag.easy{background:rgba(6,214,160,.12);color:var(--teal)}
+.diff-tag.medium{background:rgba(245,158,11,.12);color:var(--gold)}
+.diff-tag.hard{background:rgba(244,63,94,.12);color:var(--rose)}
+.topic-tag{font-size:10px;background:var(--bg4);border:1px solid var(--border);border-radius:20px;padding:2px 8px;color:var(--text3)}
+.asked-tag{font-size:10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);border-radius:20px;padding:2px 8px;color:var(--gold);font-weight:700}
+
+/* ── HINT / ANSWER PANEL ── */
+.card-hint{font-size:12.5px;color:var(--text2);line-height:1.65;margin-bottom:10px;display:none;background:var(--bg4);border-radius:8px;padding:10px 12px;border:1px solid var(--border)}
+.card-hint.show{display:block}
+.card-hint strong{color:var(--text);font-weight:600}
+.card-hint ul{padding-left:18px;margin-top:6px}
+.card-hint li{margin-bottom:4px;color:var(--text2)}
+.card-hint ol{padding-left:18px;margin-top:6px}
+.card-hint-label{font-size:10px;font-weight:700;color:var(--blue);letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px;font-family:'JetBrains Mono',monospace}
+
+/* ── CODE BLOCK ── */
+.card-code{display:none;margin-bottom:12px;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+.card-code.show{display:block}
+.code-hdr{display:flex;align-items:center;justify-content:space-between;background:#090c12;padding:8px 14px;border-bottom:1px solid #1e2436}
+.code-lang{font-size:10px;font-weight:700;letter-spacing:.07em;font-family:'JetBrains Mono',monospace}
+.code-copy{background:none;border:1px solid #2a3050;border-radius:5px;padding:2px 9px;font-size:10px;color:#6b7494;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .2s}
+.code-copy:hover{border-color:var(--react);color:var(--react)}
+.code-copy.copied{border-color:var(--teal);color:var(--teal)}
+pre.code-block{background:#090c12;margin:0;padding:14px 16px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.75;color:#c0ccee;tab-size:2}
+
+/* Syntax highlight */
+.kw{color:#c792ea;font-weight:600}
+.fn{color:#82aaff}
+.cls{color:#ffcb6b}
+.str{color:#c3e88d}
+.cmt{color:#546e7a;font-style:italic}
+.num{color:#f78c6c}
+.jsx{color:#f07178}
+.attr{color:#ffcb6b}
+.op{color:#89ddff}
+
+/* ── CARD ACTIONS ── */
+.card-actions{display:flex;gap:8px;align-items:center;margin-top:6px}
+.btn-hint{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:12px;color:var(--text2);cursor:pointer;transition:all .2s;font-family:'Outfit',sans-serif}
+.btn-hint:hover{border-color:var(--blue);color:var(--blue)}
+.btn-code{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:12px;color:var(--cyan);cursor:pointer;transition:all .2s;font-family:'Outfit',sans-serif}
+.btn-code:hover{border-color:var(--cyan);background:rgba(34,211,238,.07)}
+.q-card.code-open .btn-code{border-color:var(--cyan);background:rgba(34,211,238,.07)}
+.btn-mark{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:12px;color:var(--text2);cursor:pointer;transition:all .2s;font-family:'Outfit',sans-serif;margin-left:auto}
+.btn-mark:hover{border-color:var(--teal);color:var(--teal)}
+.q-card.answered .btn-mark{border-color:rgba(6,214,160,.4);color:var(--teal);background:rgba(6,214,160,.07)}
+
+/* ── NO RESULTS ── */
+.no-results{text-align:center;padding:64px 24px;display:none}
+.no-results-icon{font-size:48px;margin-bottom:12px}
+.no-results-text{color:var(--text3);font-size:14px}
+
+/* ── MOBILE ── */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .menu-btn{display:block}
+  .q-grid{grid-template-columns:1fr}
+  .hero h1{font-size:26px}
+  .hero{padding:28px 20px 24px}
+  .hero-stats{gap:10px}
+  .stat-chip{min-width:76px;padding:10px 14px}
+  .content{padding:16px}
+  .topbar{padding:10px 14px}
+  .progress-section{padding:6px 16px}
+  .diff-chips{display:none}
+  .roadmap-banner{margin:0 16px 20px;padding:16px}
+}
+@media(max-width:480px){
+  .hero-search kbd{display:none}
+  .topbar-title{font-size:13px}
+  .hero h1{font-size:22px}
+  .filter-bar{padding:10px 14px}
+}
+</style>
+</head>
+<body>
+
+<div id="scroll-progress"></div>
+<div class="overlay" id="sidebarOverlay"></div>
+
+<div class="layout">
+<!-- ══════════════ SIDEBAR ══════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-inner">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">⚛</div>
+      <div class="sidebar-logo-text">React Interview Hub<small>2026 Prep Edition</small></div>
+    </div>
+
+    <div class="sidebar-search">
+      <span class="srch-icon">🔍</span>
+      <input type="text" id="sideSearch" placeholder="Filter categories…" autocomplete="off"/>
+    </div>
+
+    <div class="sidebar-section-label">Categories</div>
+    <div id="catNavList"><!-- JS injected --></div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="sidebar-footer-links">
+      <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-weight:700;font-family:'JetBrains Mono',monospace;margin-bottom:4px;display:block">Quick Links</span>
+      <a class="sidebar-footer-link" href="#">⚛ React Docs</a>
+      <a class="sidebar-footer-link" href="#">▲ Next.js Docs</a>
+      <a class="sidebar-footer-link" href="#">📦 Zustand Docs</a>
+    </div>
+  </div>
+</aside>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<main class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button class="menu-btn" id="menuBtn">☰</button>
+    <div class="topbar-title">React Interview Prep Hub</div>
+    <a href="../Study-Resources.html" class="back-btn">← Study Resources</a>
+    <div class="topbar-right">
+      <div class="progress-chip">
+        <span>Progress</span>
+        <strong id="answeredCount">0</strong>/<strong id="totalCount">0</strong>
+      </div>
+      <button class="clear-btn" onclick="clearAllProgress()">Clear All</button>
+      <button class="theme-btn" id="themeBtn">🌙</button>
+    </div>
+  </div>
+
+  <!-- PROGRESS BAR -->
+  <div class="progress-section">
+    <span class="progress-label">Overall completion</span>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+    <span class="progress-pct" id="progressPct">0%</span>
+    <div class="diff-chips">
+      <span class="diff-chip easy" id="easyCount">0 Easy</span>
+      <span class="diff-chip medium" id="medCount">0 Med</span>
+      <span class="diff-chip hard" id="hardCount">0 Hard</span>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-eyebrow">// Frontend Interview Preparation • 2026 Edition</div>
+    <h1>React, Next.js &amp; JavaScript<br/><span class="grad">Interview Prep Hub</span></h1>
+    <p class="hero-desc">Complete preparation for Frontend Engineer roles — React internals, hooks, state management, JavaScript fundamentals, Next.js rendering, performance, and system design. Curated from real interview questions with full code examples.</p>
+    <div class="hero-stats">
+      <div class="stat-chip"><div class="stat-num" id="heroTotal">0</div><div class="stat-label">Questions</div></div>
+      <div class="stat-chip"><div class="stat-num" id="heroEasyC" style="background:linear-gradient(135deg,var(--teal),#00b37e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">—</div><div class="stat-label">Easy</div></div>
+      <div class="stat-chip"><div class="stat-num" id="heroMedC" style="background:linear-gradient(135deg,var(--gold),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">—</div><div class="stat-label">Medium</div></div>
+      <div class="stat-chip"><div class="stat-num" id="heroHardC" style="background:linear-gradient(135deg,var(--rose),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">—</div><div class="stat-label">Hard</div></div>
+      <div class="stat-chip"><div class="stat-num">7</div><div class="stat-label">Sections</div></div>
+    </div>
+    <div class="hero-search">
+      <span class="hs-icon">🔍</span>
+      <input type="text" id="heroSearch" placeholder="Search questions, hooks, patterns, concepts…" autocomplete="off"/>
+      <kbd>Ctrl+K</kbd>
+    </div>
+  </div>
+
+  <!-- ROADMAP BANNER -->
+  <div class="roadmap-banner" style="margin-top:24px">
+    <div class="roadmap-title">🗺️ Interview Preparation Roadmap</div>
+    <div class="roadmap-desc">Master these topics in order for maximum interview readiness.</div>
+    <div class="roadmap-steps">
+      <div class="roadmap-step"><div class="step-num">1</div>JS Fundamentals</div>
+      <div class="roadmap-step"><div class="step-num">2</div>React Core</div>
+      <div class="roadmap-step"><div class="step-num">3</div>Hooks Deep Dive</div>
+      <div class="roadmap-step"><div class="step-num">4</div>Performance</div>
+      <div class="roadmap-step"><div class="step-num">5</div>State Management</div>
+      <div class="roadmap-step"><div class="step-num">6</div>Next.js &amp; SSR</div>
+      <div class="roadmap-step"><div class="step-num">7</div>Security &amp; DevOps</div>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <span class="filter-label">Difficulty:</span>
+    <div class="filter-btns">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="easy">Easy</button>
+      <button class="filter-btn" data-filter="medium">Medium</button>
+      <button class="filter-btn" data-filter="hard">Hard</button>
+      <button class="filter-btn" data-filter="asked">🎯 Asked in Interviews</button>
+      <button class="filter-btn" data-filter="done">Done ✓</button>
+      <button class="filter-btn" data-filter="todo">Todo</button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content" id="mainContent">
+    <div class="no-results" id="noResults">
+      <div class="no-results-icon">🔍</div>
+      <div class="no-results-text">No questions match your search or filter.</div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════
+   REACT INTERVIEW PREP HUB — DATA
+════════════════════════════════════════════════════ */
+const CATEGORIES = [
+
+/* ──────────────────────────────────────────────
+   1. JAVASCRIPT FUNDAMENTALS
+────────────────────────────────────────────── */
+{
+  id:'js-fundamentals', label:'JavaScript Fundamentals', icon:'⚡', color:'#f59e0b',
+  desc:'Core JS concepts asked in every frontend interview',
+  questions:[
+    {
+      id:'js1', title:'Explain closures with a practical example.', diff:'easy', tags:['Closures','Scope'], asked:true,
+      hint:'<div class="card-hint-label">💡 Concept</div>A <strong>closure</strong> is a function that retains access to variables from its enclosing lexical scope even after that scope has finished executing. Closures are fundamental to React hooks, event handlers, and module patterns.',
+      code:{lang:'JavaScript',src:`// ── Classic Counter Closure ────────────────────────────
+<span class="kw">function</span> <span class="fn">makeCounter</span>(start = <span class="num">0</span>) {
+  <span class="kw">let</span> count = start; <span class="cmt">// enclosed variable</span>
+  <span class="kw">return</span> {
+    <span class="fn">increment</span>() { <span class="kw">return</span> ++count; },
+    <span class="fn">decrement</span>() { <span class="kw">return</span> --count; },
+    <span class="fn">value</span>()     { <span class="kw">return</span> count;   },
+  };
+}
+<span class="kw">const</span> c1 = <span class="fn">makeCounter</span>(<span class="num">10</span>);
+c1.<span class="fn">increment</span>(); <span class="cmt">// 11</span>
+
+<span class="cmt">// ── Closure in React — debounce hook ──────────────────</span>
+<span class="kw">function</span> <span class="fn">useDebounce</span>(value, delay) {
+  <span class="kw">const</span> [debounced, set] = <span class="fn">useState</span>(value);
+  <span class="fn">useEffect</span>(() => {
+    <span class="kw">const</span> id = <span class="fn">setTimeout</span>(() => <span class="fn">set</span>(value), delay); <span class="cmt">// closes over value</span>
+    <span class="kw">return</span> () => <span class="fn">clearTimeout</span>(id);
+  }, [value, delay]);
+  <span class="kw">return</span> debounced;
+}`}
+    },
+    {
+      id:'js2', title:'Difference between var, let, and const.', diff:'easy', tags:['Scope','Hoisting'], asked:true,
+      hint:'<div class="card-hint-label">💡 Key Differences</div>Three axes: <strong>scope</strong> (function vs block), <strong>hoisting</strong> (TDZ for let/const), and <strong>reassignability</strong>.',
+      code:{lang:'JavaScript',src:`<span class="cmt">// Scope ─────────────────────────────────────────────</span>
+{
+  <span class="kw">var</span>   x = <span class="num">1</span>; <span class="cmt">// function-scoped — LEAKS out of block</span>
+  <span class="kw">let</span>   y = <span class="num">2</span>; <span class="cmt">// block-scoped ✅</span>
+  <span class="kw">const</span> z = <span class="num">3</span>; <span class="cmt">// block-scoped ✅</span>
+}
+console.<span class="fn">log</span>(x); <span class="cmt">// 1 (var leaked)</span>
+console.<span class="fn">log</span>(y); <span class="cmt">// ReferenceError</span>
+
+<span class="cmt">// Hoisting ───────────────────────────────────────────</span>
+console.<span class="fn">log</span>(a); <span class="cmt">// undefined (var hoisted + initialised to undefined)</span>
+console.<span class="fn">log</span>(b); <span class="cmt">// ReferenceError — Temporal Dead Zone</span>
+<span class="kw">var</span>   a = <span class="num">5</span>;
+<span class="kw">let</span>   b = <span class="num">5</span>;
+
+<span class="cmt">// Reassignment ───────────────────────────────────────</span>
+<span class="kw">let</span>   count = <span class="num">0</span>; count = <span class="num">1</span>; <span class="cmt">// ✅</span>
+<span class="kw">const</span> MAX   = <span class="num">10</span>; MAX = <span class="num">11</span>;  <span class="cmt">// ❌ TypeError</span>
+<span class="kw">const</span> obj = { a: <span class="num">1</span> }; obj.a = <span class="num">2</span>; <span class="cmt">// ✅ reference is const, not the object</span>`}
+    },
+    {
+      id:'js3', title:'Event bubbling and event capturing.', diff:'easy', tags:['DOM Events','Propagation'], asked:true,
+      hint:'<div class="card-hint-label">💡 Three Phases</div><ol><li><strong>Capture:</strong> event travels window → target (top-down)</li><li><strong>Target:</strong> event fires on target</li><li><strong>Bubble:</strong> event travels target → window (bottom-up)</li></ol>',
+      code:{lang:'JavaScript',src:`<span class="cmt">// Bubbling (default) — child fires first</span>
+child.<span class="fn">addEventListener</span>(<span class="str">'click'</span>, () => console.<span class="fn">log</span>(<span class="str">'child'</span>));
+parent.<span class="fn">addEventListener</span>(<span class="str">'click'</span>, () => console.<span class="fn">log</span>(<span class="str">'parent'</span>));
+<span class="cmt">// Click child → "child" then "parent"</span>
+
+<span class="cmt">// Capture — third param true</span>
+parent.<span class="fn">addEventListener</span>(<span class="str">'click'</span>, () => console.<span class="fn">log</span>(<span class="str">'capture'</span>), <span class="kw">true</span>);
+
+<span class="cmt">// Stop propagation</span>
+child.<span class="fn">addEventListener</span>(<span class="str">'click'</span>, (e) => { e.<span class="fn">stopPropagation</span>(); });
+
+<span class="cmt">// Event Delegation — one listener for many children ✅</span>
+ul.<span class="fn">addEventListener</span>(<span class="str">'click'</span>, (e) => {
+  <span class="kw">const</span> li = e.target.<span class="fn">closest</span>(<span class="str">'li'</span>);
+  <span class="kw">if</span> (li) <span class="fn">handleItem</span>(li.dataset.id);
+});`}
+    },
+    {
+      id:'js4', title:'Promises, async/await, and error handling.', diff:'medium', tags:['Async','Promises'], asked:false,
+      hint:'<div class="card-hint-label">💡 Pattern</div>async/await is syntactic sugar over Promises. <strong>Always wrap await calls in try/catch</strong> or attach .catch(). Use Promise.all() for parallel requests.',
+      code:{lang:'JavaScript',src:`<span class="cmt">// ── Promise chain ────────────────────────────────────</span>
+<span class="fn">fetchUser</span>(id)
+  .<span class="fn">then</span>(user => <span class="fn">fetchPosts</span>(user.id))
+  .<span class="fn">then</span>(posts => console.<span class="fn">log</span>(posts))
+  .<span class="fn">catch</span>(err => console.<span class="fn">error</span>(err));
+
+<span class="cmt">// ── async/await ──────────────────────────────────────</span>
+<span class="kw">async function</span> <span class="fn">loadData</span>() {
+  <span class="kw">try</span> {
+    <span class="kw">const</span> user  = <span class="kw">await</span> <span class="fn">fetchUser</span>(id);
+    <span class="kw">const</span> posts = <span class="kw">await</span> <span class="fn">fetchPosts</span>(user.id);
+    <span class="kw">return</span> posts;
+  } <span class="kw">catch</span> (err) {
+    console.<span class="fn">error</span>(<span class="str">'Failed:'</span>, err);
+    <span class="kw">throw</span> err;
+  }
+}
+
+<span class="cmt">// ── Parallel requests ────────────────────────────────</span>
+<span class="kw">const</span> [user, settings] = <span class="kw">await</span> Promise.<span class="fn">all</span>([
+  <span class="fn">fetchUser</span>(id),
+  <span class="fn">fetchSettings</span>(id),
+]);
+
+<span class="cmt">// ── Retry with exponential backoff ───────────────────</span>
+<span class="kw">async function</span> <span class="fn">fetchWithRetry</span>(url, retries = <span class="num">3</span>) {
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i < retries; i++) {
+    <span class="kw">try</span> { <span class="kw">return await</span> (<span class="kw">await</span> <span class="fn">fetch</span>(url)).<span class="fn">json</span>(); }
+    <span class="kw">catch</span> (e) { <span class="kw">if</span> (i === retries - <span class="num">1</span>) <span class="kw">throw</span> e; <span class="kw">await</span> <span class="kw">new</span> Promise(r => <span class="fn">setTimeout</span>(r, <span class="num">2</span> ** i * <span class="num">500</span>)); }
+  }
+}`}
+    },
+    {
+      id:'js5', title:'How does Git rebase differ from Git merge?', diff:'easy', tags:['Git','Version Control'], asked:true,
+      hint:'<div class="card-hint-label">💡 Key Difference</div><strong>Merge</strong> creates a merge commit and preserves full history. <strong>Rebase</strong> rewrites commits onto the target — linear history, no merge commit. Never rebase shared/public branches.',
+      code:{lang:'Bash',src:`<span class="cmt"># Merge — creates a merge commit, preserves history</span>
+git checkout main
+git merge feature/login
+<span class="cmt"># Result: non-linear history with merge commit M</span>
+
+<span class="cmt"># Rebase — rewrites feature commits on top of main</span>
+git checkout feature/login
+git rebase main
+<span class="cmt"># Result: linear history, cleaner log</span>
+
+<span class="cmt"># Interactive rebase — squash / reword commits</span>
+git rebase -i HEAD~3
+
+<span class="cmt"># ⚠️ Never rebase shared branches — rewrites SHAs!</span>
+<span class="cmt"># Rule: rebase local feature branches, merge for integration</span>`}
+    },
+  ]
+},
+
+/* ──────────────────────────────────────────────
+   2. REACT CORE
+────────────────────────────────────────────── */
+{
+  id:'react-core', label:'React Core Concepts', icon:'⚛️', color:'#61dafb',
+  desc:'Virtual DOM, reconciliation, rendering — the engine under the hood',
+  questions:[
+    {
+      id:'rc1', title:'What is the Virtual DOM, and how does React use it?', diff:'easy', tags:['Virtual DOM','Internals'], asked:true,
+      hint:'<div class="card-hint-label">💡 How It Works</div>React keeps a lightweight JS copy of the DOM in memory. On state/prop change: 1) Build new VDOM tree. 2) Diff against old tree (reconciliation). 3) Compute minimal real DOM mutations. 4) Batch-apply in a single commit phase.',
+      code:{lang:'JSX',src:`<span class="cmt">// React only updates the changed node — not the whole tree</span>
+<span class="kw">function</span> <span class="fn">Counter</span>() {
+  <span class="kw">const</span> [count, setCount] = <span class="fn">useState</span>(<span class="num">0</span>);
+  <span class="kw">return</span> (
+    <span class="jsx">&lt;div&gt;</span>
+      <span class="jsx">&lt;p&gt;</span>Count: {count}<span class="jsx">&lt;/p&gt;</span>   <span class="cmt">// Only text node re-renders</span>
+      <span class="jsx">&lt;button</span> <span class="attr">onClick</span>={() => <span class="fn">setCount</span>(c => c + <span class="num">1</span>)}<span class="jsx">&gt;</span>+<span class="jsx">&lt;/button&gt;</span>
+      <span class="jsx">&lt;ExpensiveChild</span> <span class="jsx">/&gt;</span>     <span class="cmt">// Skipped if props unchanged</span>
+    <span class="jsx">&lt;/div&gt;</span>
+  );
+}
+
+<span class="cmt">// React.createElement is what JSX compiles to</span>
+<span class="cmt">// &lt;p&gt;Hello&lt;/p&gt;  →  React.createElement('p', null, 'Hello')</span>
+<span class="cmt">// Returns: { type:'p', props:{ children:'Hello' } }</span>`}
+    },
+    {
+      id:'rc2', title:"Explain React's reconciliation algorithm (diffing).", diff:'medium', tags:['Reconciliation','Fiber'], asked:true,
+      hint:`<div class="card-hint-label">💡 Two Heuristics</div><ul>
+        <li><strong>Element type changes</strong> → tear down old tree, mount new</li>
+        <li><strong>Same type</strong> → update props in place</li>
+        <li><strong>Lists</strong> → use key to match items</li>
+      </ul>`,
+      code:{lang:'JSX',src:`<span class="cmt">// ✅ Stable keys — React reuses DOM nodes</span>
+{items.<span class="fn">map</span>((item) => (
+  <span class="jsx">&lt;li</span> <span class="attr">key</span>={item.id}<span class="jsx">&gt;</span>{item.name}<span class="jsx">&lt;/li&gt;</span>  <span class="cmt">// ✅ unique id</span>
+))}
+
+<span class="cmt">// ❌ Index as key — wrong reuse on sort/filter</span>
+{items.<span class="fn">map</span>((item, i) => <span class="jsx">&lt;li</span> <span class="attr">key</span>={i}<span class="jsx">&gt;</span>{item.name}<span class="jsx">&lt;/li&gt;</span>)}
+
+<span class="cmt">// Type change → full unmount/remount</span>
+<span class="kw">const</span> el = isLoggedIn
+  ? <span class="jsx">&lt;UserDashboard</span> <span class="jsx">/&gt;</span>  <span class="cmt">// new type → mounts fresh</span>
+  : <span class="jsx">&lt;LoginForm</span> <span class="jsx">/&gt;</span>;    <span class="cmt">// old tree destroyed</span>`}
+    },
+    {
+      id:'rc3', title:'What causes a React component to re-render?', diff:'easy', tags:['Re-renders','Performance'], asked:true,
+      hint:`<div class="card-hint-label">💡 Triggers</div><ul>
+        <li>setState / useState setter called</li>
+        <li>Props change (by reference)</li>
+        <li>Context value changes</li>
+        <li>Parent re-renders (children re-render by default)</li>
+        <li>forceUpdate() (class components)</li>
+      </ul>`,
+      code:{lang:'JSX',src:`<span class="kw">function</span> <span class="fn">Parent</span>() {
+  <span class="kw">const</span> [count, setCount] = <span class="fn">useState</span>(<span class="num">0</span>);
+  <span class="kw">return</span> (
+    <span class="jsx">&lt;div&gt;</span>
+      <span class="jsx">&lt;button</span> <span class="attr">onClick</span>={() => <span class="fn">setCount</span>(c => c + <span class="num">1</span>)}<span class="jsx">&gt;</span>+<span class="jsx">&lt;/button&gt;</span>
+      <span class="jsx">&lt;Child</span> <span class="jsx">/&gt;</span>      <span class="cmt">// re-renders every time Parent does</span>
+      <span class="jsx">&lt;MemoChild</span> <span class="jsx">/&gt;</span>  <span class="cmt">// skips re-render if props unchanged</span>
+    <span class="jsx">&lt;/div&gt;</span>
+  );
+}
+
+<span class="kw">const</span> MemoChild = React.<span class="fn">memo</span>(Child);
+
+<span class="cmt">// ❌ Object literal as prop — new ref every render</span>
+<span class="jsx">&lt;MemoChild</span> <span class="attr">config</span>={{ dark: <span class="kw">true</span> }} <span class="jsx">/&gt;</span>  <span class="cmt">// memo won't help!</span>
+
+<span class="cmt">// ✅ Fix: useMemo or move config outside component</span>
+<span class="kw">const</span> config = <span class="fn">useMemo</span>(() => ({ dark: <span class="kw">true</span> }), []);`}
+    },
+    {
+      id:'rc4', title:'Controlled vs. uncontrolled components.', diff:'easy', tags:['Forms','Controlled'], asked:true,
+      hint:'<div class="card-hint-label">💡 Key Distinction</div><strong>Controlled</strong>: React owns value via state. <strong>Uncontrolled</strong>: DOM owns value, read via ref. Prefer controlled for validation and predictable state.',
+      code:{lang:'JSX',src:`<span class="cmt">// ✅ Controlled — React is single source of truth</span>
+<span class="kw">function</span> <span class="fn">ControlledForm</span>() {
+  <span class="kw">const</span> [name, setName] = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">return</span> <span class="jsx">&lt;input</span> <span class="attr">value</span>={name} <span class="attr">onChange</span>={e => <span class="fn">setName</span>(e.target.value)} <span class="jsx">/&gt;</span>;
+}
+
+<span class="cmt">// Uncontrolled — DOM owns value, read via ref</span>
+<span class="kw">function</span> <span class="fn">UncontrolledForm</span>() {
+  <span class="kw">const</span> inputRef = <span class="fn">useRef</span>();
+  <span class="kw">const</span> <span class="fn">submit</span> = () => console.<span class="fn">log</span>(inputRef.current.value);
+  <span class="kw">return</span> <span class="jsx">&lt;input</span> <span class="attr">ref</span>={inputRef} <span class="attr">defaultValue</span>=<span class="str">"hello"</span> <span class="jsx">/&gt;</span>;
+}
+
+<span class="cmt">// Use uncontrolled for: file inputs, third-party integrations</span>`}
+    },
+    {
+      id:'rc5', title:'Optimize a React application for performance.', diff:'medium', tags:['Performance','Optimization'], asked:true,
+      hint:`<div class="card-hint-label">💡 Strategies</div><ul>
+        <li>React.memo — skip re-render if props unchanged</li>
+        <li>useMemo — cache expensive computations</li>
+        <li>useCallback — stable function references</li>
+        <li>Code splitting with React.lazy + Suspense</li>
+        <li>State colocation — lift state only as high as needed</li>
+        <li>Virtualize long lists (react-window)</li>
+      </ul>`,
+      code:{lang:'JSX',src:`<span class="cmt">// ── State colocation ─────────────────────────────────</span>
+<span class="kw">function</span> <span class="fn">SearchBar</span>() {           <span class="cmt">// owns its own input state</span>
+  <span class="kw">const</span> [query, setQuery] = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">return</span> <span class="jsx">&lt;input</span> <span class="attr">value</span>={query} <span class="attr">onChange</span>={e => <span class="fn">setQuery</span>(e.target.value)} <span class="jsx">/&gt;</span>;
+}
+<span class="kw">function</span> <span class="fn">Page</span>() {
+  <span class="kw">return</span> (<span class="jsx">&lt;div&gt;&lt;SearchBar</span> <span class="jsx">/&gt;&lt;HeavyList</span> <span class="jsx">/&gt;&lt;/div&gt;</span>); <span class="cmt">// HeavyList unaffected</span>
+}
+
+<span class="cmt">// ── Code splitting ───────────────────────────────────</span>
+<span class="kw">const</span> Chart = <span class="fn">lazy</span>(() => <span class="kw">import</span>(<span class="str">'./HeavyChart'</span>));
+<span class="jsx">&lt;Suspense</span> <span class="attr">fallback</span>=<span class="jsx">&lt;Spinner</span> <span class="jsx">/&gt;</span><span class="jsx">&gt;&lt;Chart</span> <span class="jsx">/&gt;&lt;/Suspense&gt;</span>
+
+<span class="cmt">// ── Virtualize long lists ────────────────────────────</span>
+<span class="kw">import</span> { FixedSizeList } <span class="kw">from</span> <span class="str">'react-window'</span>;
+<span class="jsx">&lt;FixedSizeList</span> <span class="attr">height</span>={<span class="num">600</span>} <span class="attr">itemCount</span>={<span class="num">10000</span>} <span class="attr">itemSize</span>={<span class="num">35</span>}<span class="jsx">&gt;</span>
+  {({ index, style }) => <span class="jsx">&lt;div</span> <span class="attr">style</span>={style}<span class="jsx">&gt;</span>Row {index}<span class="jsx">&lt;/div&gt;</span>}
+<span class="jsx">&lt;/FixedSizeList&gt;</span>`}
+    },
+    {
+      id:'rc6', title:'Common causes of memory leaks in React & how to fix them.', diff:'hard', tags:['Memory Leaks','useEffect'], asked:false,
+      hint:`<div class="card-hint-label">💡 Causes & Fixes</div><ul>
+        <li>Async ops calling setState after unmount → cancellation flag</li>
+        <li>Event listeners not cleaned up → cleanup in useEffect</li>
+        <li>Timers not cleared → clearInterval/clearTimeout in cleanup</li>
+        <li>AbortController for fetch cancellation</li>
+      </ul>`,
+      code:{lang:'JSX',src:`<span class="cmt">// ✅ Cancellation flag pattern</span>
+<span class="fn">useEffect</span>(() => {
+  <span class="kw">let</span> cancelled = <span class="kw">false</span>;
+  <span class="fn">fetchUser</span>(userId).<span class="fn">then</span>(result => {
+    <span class="kw">if</span> (!cancelled) <span class="fn">setData</span>(result);  <span class="cmt">// only update if mounted</span>
+  });
+  <span class="kw">return</span> () => { cancelled = <span class="kw">true</span>; };
+}, [userId]);
+
+<span class="cmt">// ✅ AbortController for fetch</span>
+<span class="fn">useEffect</span>(() => {
+  <span class="kw">const</span> controller = <span class="kw">new</span> <span class="fn">AbortController</span>();
+  <span class="fn">fetch</span>(url, { signal: controller.signal }).<span class="fn">then</span>(setData);
+  <span class="kw">return</span> () => controller.<span class="fn">abort</span>();
+}, [url]);
+
+<span class="cmt">// ✅ Clean up subscriptions & timers</span>
+<span class="fn">useEffect</span>(() => {
+  <span class="kw">const</span> id = <span class="fn">setInterval</span>(<span class="fn">tick</span>, <span class="num">1000</span>);
+  <span class="kw">return</span> () => <span class="fn">clearInterval</span>(id);
+}, []);`}
+    },
+  ]
+},
+
+/* ──────────────────────────────────────────────
+   3. HOOKS DEEP DIVE
+────────────────────────────────────────────── */
+{
+  id:'react-hooks', label:'React Hooks', icon:'🪝', color:'#8b5cf6',
+  desc:'useState to useTransition — hooks internals and best practices',
+  questions:[
+    {
+      id:'h1', title:'What are React Hooks? Which hooks have you used?', diff:'easy', tags:['Hooks','Overview'], asked:true,
+      hint:'<div class="card-hint-label">💡 Overview</div>Hooks let functional components use state, lifecycle, context, and refs without classes. Rules: only call at top level, only in React functions.',
+      code:{lang:'JSX',src:`<span class="cmt">// Core Hooks Overview</span>
+<span class="fn">useState</span>          <span class="cmt">// local state</span>
+<span class="fn">useEffect</span>         <span class="cmt">// side effects (fetch, subscriptions, timers)</span>
+<span class="fn">useRef</span>            <span class="cmt">// mutable ref, DOM access, no re-render on change</span>
+<span class="fn">useMemo</span>           <span class="cmt">// cache expensive value</span>
+<span class="fn">useCallback</span>       <span class="cmt">// cache function reference</span>
+<span class="fn">useContext</span>        <span class="cmt">// consume context without HOC</span>
+<span class="fn">useReducer</span>        <span class="cmt">// complex state transitions</span>
+<span class="fn">useId</span>             <span class="cmt">// stable unique ID (React 18)</span>
+<span class="fn">useTransition</span>     <span class="cmt">// mark updates as non-urgent (React 18)</span>
+<span class="fn">useDeferredValue</span>  <span class="cmt">// defer a value until others settle (React 18)</span>
+
+<span class="cmt">// Custom hook — reusable logic</span>
+<span class="kw">function</span> <span class="fn">useWindowSize</span>() {
+  <span class="kw">const</span> [size, setSize] = <span class="fn">useState</span>({ w: window.innerWidth, h: window.innerHeight });
+  <span class="fn">useEffect</span>(() => {
+    <span class="kw">const</span> handler = () => <span class="fn">setSize</span>({ w: window.innerWidth, h: window.innerHeight });
+    window.<span class="fn">addEventListener</span>(<span class="str">'resize'</span>, handler);
+    <span class="kw">return</span> () => window.<span class="fn">removeEventListener</span>(<span class="str">'resize'</span>, handler);
+  }, []);
+  <span class="kw">return</span> size;
+}`}
+    },
+    {
+      id:'h2', title:'Difference between useMemo and useCallback?', diff:'easy', tags:['useMemo','useCallback','Memoization'], asked:true,
+      hint:'<div class="card-hint-label">💡 What each caches</div><strong>useMemo</strong> → caches a <em>computed value</em>.<br/><strong>useCallback</strong> → caches a <em>function reference</em> (is literally useMemo returning a function).',
+      code:{lang:'JSX',src:`<span class="cmt">// useMemo — caches a VALUE</span>
+<span class="kw">const</span> sortedList = <span class="fn">useMemo</span>(
+  () => [...items].<span class="fn">sort</span>((a, b) => a.score - b.score),
+  [items]  <span class="cmt">// recompute only when items changes</span>
+);
+
+<span class="cmt">// useCallback — caches a FUNCTION REFERENCE</span>
+<span class="kw">const</span> handleSubmit = <span class="fn">useCallback</span>((e) => {
+  e.<span class="fn">preventDefault</span>();
+  <span class="fn">saveData</span>(data);
+}, [data]);  <span class="cmt">// new function only when data changes</span>
+
+<span class="cmt">// They are equivalent (illustrative)</span>
+<span class="kw">const</span> fn = <span class="fn">useMemo</span>(() => () => <span class="fn">doSomething</span>(x), [x]);
+<span class="cmt">// same as</span>
+<span class="kw">const</span> fn = <span class="fn">useCallback</span>(() => <span class="fn">doSomething</span>(x), [x]);
+
+<span class="cmt">// ❌ Anti-pattern: trivial computation</span>
+<span class="kw">const</span> doubled = <span class="fn">useMemo</span>(() => count * <span class="num">2</span>, [count]); <span class="cmt">// just write count*2</span>`}
+    },
+    {
+      id:'h3', title:'Difference between useEffect and useLayoutEffect?', diff:'medium', tags:['useEffect','useLayoutEffect'], asked:false,
+      hint:'<div class="card-hint-label">💡 Timing</div><strong>useEffect</strong>: async, runs <em>after</em> browser paint. <strong>useLayoutEffect</strong>: sync, runs <em>after</em> DOM mutations but <em>before</em> paint. Use for DOM measurements that must not cause visual flicker.',
+      code:{lang:'JSX',src:`<span class="cmt">// useLayoutEffect — measure DOM BEFORE paint</span>
+<span class="fn">useLayoutEffect</span>(() => {
+  <span class="kw">const</span> rect = ref.current.<span class="fn">getBoundingClientRect</span>();
+  <span class="fn">setPos</span>({ top: rect.bottom, left: rect.left });
+}, [target]);
+
+<span class="cmt">// useEffect — for side effects that don't need to block paint</span>
+<span class="fn">useEffect</span>(() => {
+  <span class="fn">fetch</span>(<span class="str">'/api/data'</span>).<span class="fn">then</span>(r => r.<span class="fn">json</span>()).<span class="fn">then</span>(<span class="fn">setData</span>);
+}, []);
+
+<span class="cmt">// Timeline:</span>
+<span class="cmt">// Render → DOM mutations → useLayoutEffect → Browser paint → useEffect</span>`}
+    },
+    {
+      id:'h4', title:'useMemo, useCallback, React.memo — when can they hurt performance?', diff:'medium', tags:['Performance','Memoization'], asked:true,
+      hint:'<div class="card-hint-label">💡 Hidden Cost</div>These APIs are not free. Each call allocates a closure, compares deps, and stores the cached value. Use only when benefit outweighs cost.',
+      code:{lang:'JSX',src:`<span class="cmt">// ✅ Good — expensive computation worth caching</span>
+<span class="kw">const</span> filtered = <span class="fn">useMemo</span>(
+  () => hugeList.<span class="fn">filter</span>(i => i.active).<span class="fn">sort</span>(compareFn),
+  [hugeList]
+);
+
+<span class="cmt">// ❌ Wasteful — comparison overhead > computation cost</span>
+<span class="kw">const</span> doubled = <span class="fn">useMemo</span>(() => count * <span class="num">2</span>, [count]);
+
+<span class="cmt">// ❌ React.memo useless when parent passes new object each render</span>
+<span class="kw">function</span> <span class="fn">Parent</span>() {
+  <span class="kw">return</span> <span class="jsx">&lt;MemoChild</span> <span class="attr">style</span>={{ color: <span class="str">'red'</span> }} <span class="jsx">/&gt;</span>; <span class="cmt">// new ref!</span>
+}
+<span class="cmt">// ✅ Fix: move object outside or wrap with useMemo</span>
+<span class="kw">const</span> style = { color: <span class="str">'red'</span> }; <span class="cmt">// outside component</span>
+
+<span class="cmt">// When to use: pass callbacks to memoized children,</span>
+<span class="cmt">// expensive sorts/filters, stable refs for hook deps</span>`}
+    },
+    {
+      id:'h5', title:'Build a custom useFetch hook with loading and error state.', diff:'medium', tags:['Custom Hooks','Pattern'], asked:false,
+      hint:'<div class="card-hint-label">💡 Pattern</div>Custom hooks start with "use" and call other hooks. They extract reusable stateful logic without JSX.',
+      code:{lang:'JSX',src:`<span class="kw">function</span> <span class="fn">useFetch</span>(url) {
+  <span class="kw">const</span> [data, setData]    = <span class="fn">useState</span>(<span class="kw">null</span>);
+  <span class="kw">const</span> [loading, setLoad] = <span class="fn">useState</span>(<span class="kw">true</span>);
+  <span class="kw">const</span> [error, setError]  = <span class="fn">useState</span>(<span class="kw">null</span>);
+
+  <span class="fn">useEffect</span>(() => {
+    <span class="kw">let</span> cancelled = <span class="kw">false</span>;
+    <span class="fn">setLoad</span>(<span class="kw">true</span>); <span class="fn">setError</span>(<span class="kw">null</span>);
+    <span class="fn">fetch</span>(url)
+      .<span class="fn">then</span>(r => r.<span class="fn">json</span>())
+      .<span class="fn">then</span>(d  => { <span class="kw">if</span> (!cancelled) <span class="fn">setData</span>(d);   })
+      .<span class="fn">catch</span>(e => { <span class="kw">if</span> (!cancelled) <span class="fn">setError</span>(e); })
+      .<span class="fn">finally</span>(() => { <span class="kw">if</span> (!cancelled) <span class="fn">setLoad</span>(<span class="kw">false</span>); });
+    <span class="kw">return</span> () => { cancelled = <span class="kw">true</span>; };
+  }, [url]);
+
+  <span class="kw">return</span> { data, loading, error };
+}
+
+<span class="cmt">// Usage</span>
+<span class="kw">function</span> <span class="fn">UserList</span>() {
+  <span class="kw">const</span> { data, loading, error } = <span class="fn">useFetch</span>(<span class="str">'/api/users'</span>);
+  <span class="kw">if</span> (loading) <span class="kw">return</span> <span class="jsx">&lt;Spinner</span> <span class="jsx">/&gt;</span>;
+  <span class="kw">if</span> (error)   <span class="kw">return</span> <span class="jsx">&lt;Error</span> <span class="attr">msg</span>={error.message} <span class="jsx">/&gt;</span>;
+  <span class="kw">return</span> <span class="jsx">&lt;ul&gt;</span>{data.<span class="fn">map</span>(u => <span class="jsx">&lt;li</span> <span class="attr">key</span>={u.id}<span class="jsx">&gt;</span>{u.name}<span class="jsx">&lt;/li&gt;</span>)}<span class="jsx">&lt;/ul&gt;</span>;
+}`}
+    },
+    {
+      id:'h6', title:'useReducer — when to prefer it over useState?', diff:'medium', tags:['useReducer','State'], asked:false,
+      hint:'<div class="card-hint-label">💡 When to use</div>Prefer useReducer when: state has multiple sub-values, next state depends on previous, or you have complex state transitions that are easier to express as actions.',
+      code:{lang:'JSX',src:`<span class="kw">const</span> initialState = { count: <span class="num">0</span>, step: <span class="num">1</span>, history: [] };
+
+<span class="kw">function</span> <span class="fn">reducer</span>(state, action) {
+  <span class="kw">switch</span> (action.type) {
+    <span class="kw">case</span> <span class="str">'increment'</span>:
+      <span class="kw">return</span> { ...state, count: state.count + state.step,
+                history: [...state.history, state.count] };
+    <span class="kw">case</span> <span class="str">'setStep'</span>:
+      <span class="kw">return</span> { ...state, step: action.payload };
+    <span class="kw">case</span> <span class="str">'reset'</span>:
+      <span class="kw">return</span> initialState;
+    <span class="kw">default</span>:
+      <span class="kw">throw new</span> <span class="fn">Error</span>(<span class="str">'Unknown action'</span>);
+  }
+}
+
+<span class="kw">function</span> <span class="fn">Counter</span>() {
+  <span class="kw">const</span> [state, dispatch] = <span class="fn">useReducer</span>(reducer, initialState);
+  <span class="kw">return</span> (
+    <span class="jsx">&lt;div&gt;</span>
+      <span class="jsx">&lt;p&gt;</span>Count: {state.count}<span class="jsx">&lt;/p&gt;</span>
+      <span class="jsx">&lt;button</span> <span class="attr">onClick</span>={() => <span class="fn">dispatch</span>({ type: <span class="str">'increment'</span> })}<span class="jsx">&gt;</span>+<span class="jsx">&lt;/button&gt;</span>
+    <span class="jsx">&lt;/div&gt;</span>
+  );
+}`}
+    },
+  ]
+},
+
+/* ──────────────────────────────────────────────
+   4. PERFORMANCE & BROWSER
+────────────────────────────────────────────── */
+{
+  id:'performance', label:'Performance & Browser', icon:'🚀', color:'#22d3ee',
+  desc:'Lighthouse scores, CRP, lazy loading, and rendering optimizations',
+  questions:[
+    {
+      id:'p1', title:'How do browsers render a webpage — HTML parsing to painting?', diff:'hard', tags:['Critical Rendering Path','Browser'], asked:false,
+      hint:`<div class="card-hint-label">💡 Critical Rendering Path</div><ol>
+        <li>HTML parsing → DOM tree</li>
+        <li>CSS parsing → CSSOM tree (blocks rendering)</li>
+        <li>DOM + CSSOM → Render Tree (only visible nodes)</li>
+        <li>Layout/Reflow → positions &amp; sizes</li>
+        <li>Paint → pixels</li>
+        <li>Compositing → GPU combines layers</li>
+      </ol>`,
+      code:{lang:'JavaScript',src:`<span class="cmt">// ❌ Layout thrashing — read-write-read forces multiple reflows</span>
+<span class="kw">const</span> h1 = el1.offsetHeight;     <span class="cmt">// read → flushes pending styles</span>
+el2.style.height = h1 + <span class="str">'px'</span>;   <span class="cmt">// write → invalidates layout</span>
+<span class="kw">const</span> h2 = el2.offsetHeight;     <span class="cmt">// read → forced reflow!</span>
+
+<span class="cmt">// ✅ Batch reads, then writes</span>
+<span class="kw">const</span> h1 = el1.offsetHeight;
+<span class="kw">const</span> h2 = el2.offsetHeight;     <span class="cmt">// all reads first</span>
+el1.style.height = h2 + <span class="str">'px'</span>;   <span class="cmt">// then all writes</span>
+
+<span class="cmt">// ✅ GPU-composited properties — no reflow/repaint</span>
+el.style.transform = <span class="str">'translateX(100px)'</span>;
+el.style.opacity   = <span class="str">'0.5'</span>;
+
+<span class="cmt">// ✅ requestAnimationFrame for smooth animations</span>
+<span class="kw">function</span> <span class="fn">animate</span>() {
+  el.style.transform = <span class="str">\`translateX(\${x++}px)\`</span>;
+  <span class="fn">requestAnimationFrame</span>(animate);
+}`}
+    },
+    {
+      id:'p2', title:'How to improve Lighthouse performance scores?', diff:'medium', tags:['Lighthouse','LCP','CLS'], asked:false,
+      hint:`<div class="card-hint-label">💡 Core Web Vitals</div><ul>
+        <li><strong>LCP</strong>: Preload hero image, use next/image, serve WebP</li>
+        <li><strong>CLS</strong>: Always set image width/height, reserve space for async content</li>
+        <li><strong>FID/TBT</strong>: Code split, defer JS, Web Workers for heavy computation</li>
+        <li><strong>FCP</strong>: Inline critical CSS, SSR/SSG, preconnect to origins</li>
+      </ul>`,
+      code:{lang:'JSX',src:`<span class="cmt">// ✅ Preload LCP hero image</span>
+<span class="jsx">&lt;Image</span> <span class="attr">src</span>=<span class="str">"/hero.jpg"</span> <span class="attr">width</span>={<span class="num">1200</span>} <span class="attr">height</span>={<span class="num">630</span>} <span class="attr">priority</span> <span class="attr">alt</span>=<span class="str">"Hero"</span> <span class="jsx">/&gt;</span>
+
+<span class="cmt">// ✅ Preconnect to critical origins</span>
+<span class="jsx">&lt;link</span> <span class="attr">rel</span>=<span class="str">"preconnect"</span> <span class="attr">href</span>=<span class="str">"https://fonts.googleapis.com"</span> <span class="jsx">/&gt;</span>
+
+<span class="cmt">// ✅ Lazy-load heavy components</span>
+<span class="kw">const</span> Map = <span class="fn">dynamic</span>(() => <span class="kw">import</span>(<span class="str">'./HeavyMap'</span>), { ssr: <span class="kw">false</span> });
+
+<span class="cmt">// ✅ Reserve space to avoid CLS</span>
+<span class="jsx">&lt;div</span> <span class="attr">style</span>={{ minHeight: <span class="str">'200px'</span> }}<span class="jsx">&gt;</span>
+  {data ? <span class="jsx">&lt;Content</span> <span class="jsx">/&gt;</span> : <span class="kw">null</span>}
+<span class="jsx">&lt;/div&gt;</span>
+
+<span class="cmt">// ✅ useTransition — keep UI responsive during heavy state update</span>
+<span class="kw">const</span> [isPending, startTransition] = <span class="fn">useTransition</span>();
+startTransition(() => { <span class="fn">setFilteredList</span>(<span class="fn">heavyFilter</span>(data)); });`}
+    },
+    {
+      id:'p3', title:'How to implement lazy loading and code splitting in React?', diff:'medium', tags:['Code Splitting','React.lazy','Suspense'], asked:false,
+      hint:'<div class="card-hint-label">💡 Pattern</div>React.lazy + Suspense for component-level splitting. Dynamic import creates a separate JS chunk loaded on demand.',
+      code:{lang:'JSX',src:`<span class="kw">import</span> React, { lazy, Suspense } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { Route, Routes } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+
+<span class="cmt">// ✅ Separate JS chunks per route</span>
+<span class="kw">const</span> Dashboard = <span class="fn">lazy</span>(() => <span class="kw">import</span>(<span class="str">'./pages/Dashboard'</span>));
+<span class="kw">const</span> Settings  = <span class="fn">lazy</span>(() => <span class="kw">import</span>(<span class="str">'./pages/Settings'</span>));
+
+<span class="kw">function</span> <span class="fn">App</span>() {
+  <span class="kw">return</span> (
+    <span class="jsx">&lt;Suspense</span> <span class="attr">fallback</span>=<span class="jsx">&lt;Spinner</span> <span class="jsx">/&gt;</span><span class="jsx">&gt;</span>
+      <span class="jsx">&lt;Routes&gt;</span>
+        <span class="jsx">&lt;Route</span> <span class="attr">path</span>=<span class="str">"/dashboard"</span> <span class="attr">element</span>=<span class="jsx">&lt;Dashboard</span> <span class="jsx">/&gt;</span> <span class="jsx">/&gt;</span>
+        <span class="jsx">&lt;Route</span> <span class="attr">path</span>=<span class="str">"/settings"</span>  <span class="attr">element</span>=<span class="jsx">&lt;Settings</span>  <span class="jsx">/&gt;</span> <span class="jsx">/&gt;</span>
+      <span class="jsx">&lt;/Routes&gt;</span>
+    <span class="jsx">&lt;/Suspense&gt;</span>
+  );
+}
+
+<span class="cmt">// Named chunks for better DevTools debugging</span>
+<span class="kw">const</span> HeavyChart = <span class="fn">lazy</span>(() =>
+  <span class="kw">import</span>(/* webpackChunkName: "chart" */ <span class="str">'./HeavyChart'</span>)
+);`}
+    },
+  ]
+},
+
+/* ──────────────────────────────────────────────
+   5. STATE MANAGEMENT
+────────────────────────────────────────────── */
+{
+  id:'state-mgmt', label:'State Management', icon:'🗄️', color:'#06d6a0',
+  desc:'Context API, Redux, Zustand — choosing and scaling state',
+  questions:[
+    {
+      id:'sm1', title:'Context API vs Redux vs Zustand — when to use each?', diff:'medium', tags:['Context','Redux','Zustand'], asked:true,
+      hint:`<div class="card-hint-label">💡 Decision Guide</div><ul>
+        <li><strong>Context API</strong>: low-frequency updates (theme, auth, locale). Beware — every consumer re-renders on value change</li>
+        <li><strong>Redux</strong>: large teams, complex flows, excellent DevTools. Verbose boilerplate</li>
+        <li><strong>Zustand</strong>: minimal API, no Provider, selector-based — best for most apps</li>
+      </ul>`,
+      code:{lang:'JSX',src:`<span class="cmt">// ── Context — Auth (rarely changes) ─────────────────</span>
+<span class="kw">const</span> AuthCtx = <span class="fn">createContext</span>();
+<span class="kw">export function</span> <span class="fn">AuthProvider</span>({ children }) {
+  <span class="kw">const</span> [user, setUser] = <span class="fn">useState</span>(<span class="kw">null</span>);
+  <span class="kw">return</span> <span class="jsx">&lt;AuthCtx.Provider</span> <span class="attr">value</span>={{ user, setUser }}<span class="jsx">&gt;</span>{children}<span class="jsx">&lt;/AuthCtx.Provider&gt;</span>;
+}
+
+<span class="cmt">// ── Zustand — feature state (frequent updates) ───────</span>
+<span class="kw">const</span> useCartStore = <span class="fn">create</span>((set) => ({
+  items: [],
+  <span class="fn">addItem</span>:    (item) => <span class="fn">set</span>((s) => ({ items: [...s.items, item] })),
+  <span class="fn">removeItem</span>: (id)   => <span class="fn">set</span>((s) => ({ items: s.items.<span class="fn">filter</span>(i => i.id !== id) })),
+  <span class="fn">clearCart</span>:  ()     => <span class="fn">set</span>({ items: [] }),
+}));
+
+<span class="cmt">// Only re-renders when items.length changes (selector)</span>
+<span class="kw">const</span> count = <span class="fn">useCartStore</span>((s) => s.items.length);`}
+    },
+    {
+      id:'sm2', title:'Zustand fundamentals — create, selectors, actions.', diff:'easy', tags:['Zustand','Basics'], asked:true,
+      hint:'<div class="card-hint-label">💡 Key Points</div>No Provider needed. Store lives outside React. Selector subscriptions prevent unnecessary re-renders — only re-render when selected slice changes.',
+      code:{lang:'JSX',src:`<span class="kw">import</span> { create } <span class="kw">from</span> <span class="str">'zustand'</span>;
+
+<span class="kw">const</span> useBearStore = <span class="fn">create</span>((set, get) => ({
+  bears: <span class="num">0</span>,
+  name: <span class="str">'Zustand'</span>,
+  <span class="fn">addBear</span>:    () => <span class="fn">set</span>((s) => ({ bears: s.bears + <span class="num">1</span> })),
+  <span class="fn">resetBears</span>: () => <span class="fn">set</span>({ bears: <span class="num">0</span> }),
+  <span class="fn">getSnapshot</span>: () => get().bears,  <span class="cmt">// access state outside hook</span>
+}));
+
+<span class="cmt">// Selector — component only re-renders when bears changes</span>
+<span class="kw">function</span> <span class="fn">BearCounter</span>() {
+  <span class="kw">const</span> bears    = <span class="fn">useBearStore</span>((s) => s.bears);    <span class="cmt">// selector</span>
+  <span class="kw">const</span> addBear  = <span class="fn">useBearStore</span>((s) => s.addBear);
+  <span class="kw">return</span> <span class="jsx">&lt;button</span> <span class="attr">onClick</span>={addBear}<span class="jsx">&gt;</span>{bears} bears<span class="jsx">&lt;/button&gt;</span>;
+}
+
+<span class="cmt">// Outside React (WebSocket, utils) — no hook needed</span>
+useBearStore.<span class="fn">getState</span>().<span class="fn">addBear</span>();`}
+    },
+    {
+      id:'sm3', title:'Zustand advanced — devtools, persist, immer middleware.', diff:'hard', tags:['Zustand','Middleware','TypeScript'], asked:false,
+      hint:'<div class="card-hint-label">💡 Middleware Order</div>Stack middleware in this order: devtools → persist → immer. Use partialize to save only specific fields to localStorage.',
+      code:{lang:'JSX',src:`<span class="kw">import</span> { create } <span class="kw">from</span> <span class="str">'zustand'</span>;
+<span class="kw">import</span> { devtools, persist } <span class="kw">from</span> <span class="str">'zustand/middleware'</span>;
+<span class="kw">import</span> { immer } <span class="kw">from</span> <span class="str">'zustand/middleware/immer'</span>;
+
+<span class="kw">interface</span> AppState {
+  count: <span class="fn">number</span>; user: <span class="fn">string</span> | <span class="kw">null</span>;
+  <span class="fn">increment</span>: () => <span class="kw">void</span>; <span class="fn">setUser</span>: (u: <span class="fn">string</span>) => <span class="kw">void</span>;
+}
+
+<span class="kw">const</span> useStore = <span class="fn">create</span>&lt;AppState&gt;()(
+  <span class="fn">devtools</span>(<span class="fn">persist</span>(<span class="fn">immer</span>((set) => ({
+    count: <span class="num">0</span>, user: <span class="kw">null</span>,
+    <span class="fn">increment</span>: () => <span class="fn">set</span>((s) => { s.count++; }),  <span class="cmt">// immer: mutate directly</span>
+    <span class="fn">setUser</span>: (u) => <span class="fn">set</span>({ user: u }),
+  })), {
+    name: <span class="str">'app-storage'</span>,
+    <span class="fn">partialize</span>: (s) => ({ user: s.user }),  <span class="cmt">// persist only user</span>
+  }))
+);
+
+<span class="cmt">// Transient update — 60fps animation without re-renders</span>
+useStore.<span class="fn">subscribe</span>((state) => {
+  document.title = <span class="str">\`\${state.count} items\`</span>;  <span class="cmt">// side-effect without re-render</span>
+});`}
+    },
+    {
+      id:'sm4', title:'Zustand — what is a selector and why does it prevent re-renders?', diff:'medium', tags:['Zustand','Selectors','shallow'], asked:false,
+      hint:'<div class="card-hint-label">💡 How Selectors Work</div>Zustand compares the returned value using Object.is(). If selector returns an object, use shallow for field-by-field comparison.',
+      code:{lang:'JSX',src:`<span class="kw">import</span> { useShallow } <span class="kw">from</span> <span class="str">'zustand/react/shallow'</span>;
+
+<span class="cmt">// ✅ Primitive selector — re-renders only when count changes</span>
+<span class="kw">const</span> count = <span class="fn">useStore</span>((s) => s.count);
+
+<span class="cmt">// ❌ Inline object — new reference every render, always re-renders</span>
+<span class="kw">const</span> data = <span class="fn">useStore</span>((s) => ({ count: s.count, name: s.name }));
+
+<span class="cmt">// ✅ Fix with useShallow — field-by-field comparison</span>
+<span class="kw">const</span> data = <span class="fn">useStore</span>(<span class="fn">useShallow</span>((s) => ({ count: s.count, name: s.name })));
+
+<span class="cmt">// ✅ Derived state selector</span>
+<span class="kw">const</span> completedCount = <span class="fn">useStore</span>(
+  (s) => s.todos.<span class="fn">filter</span>(t => t.done).length
+);`}
+    },
+  ]
+},
+
+/* ──────────────────────────────────────────────
+   6. NEXT.JS & RENDERING
+────────────────────────────────────────────── */
+{
+  id:'nextjs-rendering', label:'Next.js & Rendering', icon:'▲', color:'#f43f5e',
+  desc:'SSR, SSG, ISR, Server Components, and rendering strategy trade-offs',
+  questions:[
+    {
+      id:'n1', title:'Difference between React.js and Next.js?', diff:'easy', tags:['Next.js','React'], asked:true,
+      hint:`<div class="card-hint-label">💡 Key Additions</div>Next.js builds on React and adds:
+        <ul>
+          <li>File-system routing (App Router / Pages Router)</li>
+          <li>SSR, SSG, ISR out of the box</li>
+          <li>API routes (serverless functions)</li>
+          <li>Image, font, and script optimization</li>
+          <li>React Server Components — zero-JS server rendering</li>
+        </ul>`,
+      code:{lang:'JSX',src:`<span class="cmt">// Next.js App Router — Server Component (default)</span>
+<span class="cmt">// No "use client" = runs ONLY on server, zero client JS shipped</span>
+<span class="kw">export default async function</span> <span class="fn">ProductPage</span>({ params }) {
+  <span class="kw">const</span> product = <span class="kw">await</span> <span class="fn">getProduct</span>(params.id);  <span class="cmt">// direct DB/API call</span>
+  <span class="kw">return</span> <span class="jsx">&lt;h1&gt;</span>{product.name}<span class="jsx">&lt;/h1&gt;</span>;
+}
+
+<span class="cmt">// Client Component — interactivity</span>
+<span class="str">'use client'</span>;
+<span class="kw">export function</span> <span class="fn">LikeButton</span>({ productId }) {
+  <span class="kw">const</span> [liked, setLiked] = <span class="fn">useState</span>(<span class="kw">false</span>);
+  <span class="kw">return</span> <span class="jsx">&lt;button</span> <span class="attr">onClick</span>={() => <span class="fn">setLiked</span>(l => !l)}<span class="jsx">&gt;</span>{liked ? <span class="str">'❤️'</span> : <span class="str">'🤍'</span>}<span class="jsx">&lt;/button&gt;</span>;
+}`}
+    },
+    {
+      id:'n2', title:'Explain SSR, CSR, SSG, and ISR — when to use each.', diff:'medium', tags:['SSR','CSR','SSG','ISR'], asked:true,
+      hint:`<div class="card-hint-label">💡 Quick Guide</div><ul>
+        <li><strong>CSR</strong>: Dashboard/SPA — fast interactions, poor SEO</li>
+        <li><strong>SSR</strong>: Personalized pages — great SEO, fresh data, higher server cost</li>
+        <li><strong>SSG</strong>: Blogs/docs — blazing fast, CDN served, can be stale</li>
+        <li><strong>ISR</strong>: E-commerce — SSG + background revalidation, best of both</li>
+      </ul>`,
+      code:{lang:'JSX',src:`<span class="cmt">// SSG + ISR — revalidate every 60 seconds</span>
+<span class="kw">export const</span> revalidate = <span class="num">60</span>;
+
+<span class="kw">export async function</span> <span class="fn">generateStaticParams</span>() {
+  <span class="kw">const</span> products = <span class="kw">await</span> <span class="fn">getAllProducts</span>();
+  <span class="kw">return</span> products.<span class="fn">map</span>(p => ({ id: p.id }));
+}
+
+<span class="cmt">// Force SSR — dynamic per-request rendering</span>
+<span class="kw">export const</span> dynamic = <span class="str">'force-dynamic'</span>;
+
+<span class="cmt">// Fetch with cache control</span>
+<span class="kw">const</span> data = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://api.example.com/data'</span>, {
+  next: { revalidate: <span class="num">3600</span> },  <span class="cmt">// revalidate every hour</span>
+});
+<span class="kw">const</span> fresh = <span class="kw">await</span> <span class="fn">fetch</span>(url, { cache: <span class="str">'no-store'</span> }); <span class="cmt">// always fresh (SSR)</span>`}
+    },
+    {
+      id:'n3', title:'How to handle environment variables and secrets in frontend builds?', diff:'medium', tags:['Environment','Security','Build'], asked:false,
+      hint:'<div class="card-hint-label">💡 Rules</div>Never expose secret keys in client bundles. NEXT_PUBLIC_ prefix exposes to browser. Use server-side env vars for secrets. Validate at startup.',
+      code:{lang:'JSX',src:`<span class="cmt">// .env.local ─────────────────────────────────────────</span>
+DATABASE_URL=<span class="str">postgres://...</span>         <span class="cmt">// server-side only ✅</span>
+NEXT_PUBLIC_API_URL=https://api.co  <span class="cmt">// exposed to browser (safe) ✅</span>
+SECRET_KEY=super-secret             <span class="cmt">// server-side only ✅</span>
+
+<span class="cmt">// ✅ Server Component — secret stays on server</span>
+<span class="kw">export async function</span> <span class="fn">Page</span>() {
+  <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(url, {
+    headers: { Authorization: process.env.SECRET_KEY },
+  });
+}
+
+<span class="cmt">// ✅ Client safe — only NEXT_PUBLIC_ prefix</span>
+<span class="kw">const</span> url = process.env.NEXT_PUBLIC_API_URL;
+
+<span class="cmt">// ✅ Validate env at startup (t3-env / zod)</span>
+<span class="kw">import</span> { z } <span class="kw">from</span> <span class="str">'zod'</span>;
+<span class="kw">const</span> envSchema = z.<span class="fn">object</span>({
+  DATABASE_URL: z.<span class="fn">string</span>().<span class="fn">url</span>(),
+  NEXT_PUBLIC_API_URL: z.<span class="fn">string</span>().<span class="fn">url</span>(),
+});
+envSchema.<span class="fn">parse</span>(process.env); <span class="cmt">// throws if missing</span>`}
+    },
+  ]
+},
+
+/* ──────────────────────────────────────────────
+   7. SECURITY & AUTH
+────────────────────────────────────────────── */
+{
+  id:'security-auth', label:'Security & Authentication', icon:'🔐', color:'#ec4899',
+  desc:'XSS, CSRF, auth vs authorization, JWT, and secure patterns',
+  questions:[
+    {
+      id:'sec1', title:'Authentication vs Authorization — difference and implementation.', diff:'easy', tags:['Auth','Security'], asked:true,
+      hint:'<div class="card-hint-label">💡 Difference</div><strong>Authentication</strong>: "Who are you?" — verify identity (login, JWT, OAuth).<br/><strong>Authorization</strong>: "What can you do?" — verify permissions (roles, scopes).',
+      code:{lang:'JSX',src:`<span class="cmt">// ── Auth Context ──────────────────────────────────────</span>
+<span class="kw">export function</span> <span class="fn">AuthProvider</span>({ children }) {
+  <span class="kw">const</span> [user, setUser] = <span class="fn">useState</span>(<span class="kw">null</span>);
+  <span class="kw">return</span> <span class="jsx">&lt;AuthCtx.Provider</span> <span class="attr">value</span>={{ user, setUser }}<span class="jsx">&gt;</span>{children}<span class="jsx">&lt;/AuthCtx.Provider&gt;</span>;
+}
+
+<span class="cmt">// ── Protected Route with RBAC ─────────────────────────</span>
+<span class="kw">function</span> <span class="fn">ProtectedRoute</span>({ children, requiredRole }) {
+  <span class="kw">const</span> { user, isAuthenticated } = <span class="fn">useAuth</span>();
+  <span class="kw">if</span> (!isAuthenticated) <span class="kw">return</span> <span class="jsx">&lt;Navigate</span> <span class="attr">to</span>=<span class="str">"/login"</span> <span class="attr">replace</span> <span class="jsx">/&gt;</span>;
+  <span class="kw">if</span> (requiredRole && !user.roles.<span class="fn">includes</span>(requiredRole))
+    <span class="kw">return</span> <span class="jsx">&lt;Navigate</span> <span class="attr">to</span>=<span class="str">"/403"</span> <span class="attr">replace</span> <span class="jsx">/&gt;</span>;
+  <span class="kw">return</span> children;
+}
+
+<span class="cmt">// ── Usage ─────────────────────────────────────────────</span>
+<span class="jsx">&lt;Route</span> <span class="attr">path</span>=<span class="str">"/admin"</span>
+  <span class="attr">element</span>=<span class="jsx">&lt;ProtectedRoute</span> <span class="attr">requiredRole</span>=<span class="str">"admin"</span><span class="jsx">&gt;&lt;AdminDashboard</span> <span class="jsx">/&gt;&lt;/ProtectedRoute&gt;</span>
+<span class="jsx">/&gt;</span>`}
+    },
+    {
+      id:'sec2', title:'How to protect a frontend app against XSS and CSRF?', diff:'hard', tags:['XSS','CSRF','Security'], asked:false,
+      hint:`<div class="card-hint-label">💡 Key Mitigations</div><ul>
+        <li>XSS: sanitize HTML, use DOMPurify, set CSP headers, avoid dangerouslySetInnerHTML</li>
+        <li>CSRF: SameSite cookie, CSRF token in headers, avoid credential in URL</li>
+        <li>Token storage: httpOnly cookies, NOT localStorage (XSS vulnerable)</li>
+      </ul>`,
+      code:{lang:'JSX',src:`<span class="cmt">// ── XSS Prevention ────────────────────────────────────</span>
+
+<span class="cmt">// ❌ Never render untrusted HTML</span>
+<span class="jsx">&lt;div</span> <span class="attr">dangerouslySetInnerHTML</span>={{ __html: userInput }} <span class="jsx">/&gt;</span>
+
+<span class="cmt">// ✅ Sanitize with DOMPurify when HTML is required</span>
+<span class="kw">import</span> DOMPurify <span class="kw">from</span> <span class="str">'dompurify'</span>;
+<span class="jsx">&lt;div</span> <span class="attr">dangerouslySetInnerHTML</span>={{ __html: DOMPurify.<span class="fn">sanitize</span>(html) }} <span class="jsx">/&gt;</span>
+
+<span class="cmt">// ✅ Content-Security-Policy (server header)</span>
+<span class="cmt">// Content-Security-Policy: default-src 'self'; script-src 'self'</span>
+
+<span class="cmt">// ── CSRF Prevention ───────────────────────────────────</span>
+
+<span class="cmt">// ✅ SameSite cookie prevents cross-origin requests</span>
+<span class="cmt">// Set-Cookie: session=abc; SameSite=Strict; Secure; HttpOnly</span>
+
+<span class="cmt">// ✅ CSRF token in custom request header</span>
+<span class="fn">fetch</span>(<span class="str">'/api/transfer'</span>, {
+  method: <span class="str">'POST'</span>,
+  headers: { <span class="str">'X-CSRF-Token'</span>: <span class="fn">getCsrfToken</span>() },
+  body: JSON.<span class="fn">stringify</span>(payload),
+});
+
+<span class="cmt">// ✅ Store JWT in httpOnly cookie, NOT localStorage</span>
+<span class="cmt">// localStorage is accessible to any JS — XSS vulnerable!</span>`}
+    },
+    {
+      id:'sec3', title:'Explain REST APIs — methods, status codes, error handling.', diff:'easy', tags:['REST','API','HTTP'], asked:true,
+      hint:'<div class="card-hint-label">💡 REST Conventions</div>REST uses HTTP verbs to manipulate resources. Key codes: 200 OK, 201 Created, 204 No Content, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 500 Server Error.',
+      code:{lang:'JavaScript',src:`<span class="cmt">// REST resource conventions</span>
+GET    /users          <span class="cmt">// list all</span>
+GET    /users/:id      <span class="cmt">// get one</span>
+POST   /users          <span class="cmt">// create</span>
+PUT    /users/:id      <span class="cmt">// full update</span>
+PATCH  /users/:id      <span class="cmt">// partial update</span>
+DELETE /users/:id      <span class="cmt">// delete</span>
+
+<span class="cmt">// ✅ Typed API client with error handling</span>
+<span class="kw">async function</span> <span class="fn">apiRequest</span>&lt;T&gt;(url: string, opts?: RequestInit): Promise&lt;T&gt; {
+  <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(url, opts);
+  <span class="kw">if</span> (!res.ok) {
+    <span class="kw">const</span> err = <span class="kw">await</span> res.<span class="fn">json</span>().<span class="fn">catch</span>(() => ({}));
+    <span class="kw">throw new</span> <span class="fn">Error</span>(err.message || <span class="str">\`HTTP \${res.status}\`</span>);
+  }
+  <span class="kw">return</span> res.<span class="fn">json</span>();
+}
+
+<span class="cmt">// Usage with React Query</span>
+<span class="kw">const</span> { data, isLoading, error } = <span class="fn">useQuery</span>({
+  queryKey: [<span class="str">'user'</span>, id],
+  queryFn: () => <span class="fn">apiRequest</span>(<span class="str">\`/api/users/\${id}\`</span>),
+  retry: <span class="num">3</span>, staleTime: <span class="num">5</span> * <span class="num">60</span> * <span class="num">1000</span>,
+});`}
+    },
+    {
+      id:'sec4', title:'What is TypeScript and why use it in React projects?', diff:'easy', tags:['TypeScript'], asked:true,
+      hint:'<div class="card-hint-label">💡 Benefits</div>TypeScript adds static type checking to JavaScript: catches bugs at compile time, enables autocomplete, makes refactoring safe, and serves as living documentation.',
+      code:{lang:'TypeScript',src:`<span class="cmt">// ── Typed component props ────────────────────────────</span>
+<span class="kw">interface</span> ButtonProps {
+  label: string;
+  onClick: () => <span class="kw">void</span>;
+  variant?: <span class="str">'primary'</span> | <span class="str">'secondary'</span>;  <span class="cmt">// union type</span>
+  disabled?: boolean;
+}
+
+<span class="kw">const</span> <span class="fn">Button</span>: React.FC&lt;ButtonProps&gt; = ({
+  label, onClick, variant = <span class="str">'primary'</span>, disabled = <span class="kw">false</span>
+}) => (
+  <span class="jsx">&lt;button</span> <span class="attr">className</span>={<span class="str">\`btn btn-\${variant}\`</span>} <span class="attr">onClick</span>={onClick} <span class="attr">disabled</span>={disabled}<span class="jsx">&gt;</span>
+    {label}
+  <span class="jsx">&lt;/button&gt;</span>
+);
+
+<span class="cmt">// ── Typed API response ───────────────────────────────</span>
+<span class="kw">interface</span> User { id: number; name: string; email: string; }
+
+<span class="kw">async function</span> <span class="fn">fetchUser</span>(id: number): Promise&lt;User&gt; {
+  <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">\`/api/users/\${id}\`</span>);
+  <span class="kw">return</span> res.<span class="fn">json</span>() <span class="kw">as</span> Promise&lt;User&gt;;
+}
+
+<span class="cmt">// ── Generic hook with TypeScript ─────────────────────</span>
+<span class="kw">function</span> <span class="fn">useLocalStorage</span>&lt;T&gt;(key: string, initial: T): [T, (v: T) => <span class="kw">void</span>] {
+  <span class="kw">const</span> [value, setValue] = <span class="fn">useState</span>&lt;T&gt;(() => {
+    <span class="kw">try</span> { <span class="kw">return</span> <span class="fn">JSON</span>.<span class="fn">parse</span>(localStorage.<span class="fn">getItem</span>(key)!) ?? initial; }
+    <span class="kw">catch</span> { <span class="kw">return</span> initial; }
+  });
+  <span class="kw">const</span> <span class="fn">set</span> = (v: T) => { setValue(v); localStorage.<span class="fn">setItem</span>(key, JSON.<span class="fn">stringify</span>(v)); };
+  <span class="kw">return</span> [value, set];
+}`}
+    },
+  ]
+},
+
+]; // end CATEGORIES
+
+/* ════════════════════════════════════════════════════
+   PERSISTENCE
+════════════════════════════════════════════════════ */
+const STORE_KEY = 'react_prep_done_v1';
+function loadDone()  { try { return new Set(JSON.parse(localStorage.getItem(STORE_KEY)||'[]')); } catch(e){ return new Set(); } }
+function saveDone(s) { localStorage.setItem(STORE_KEY, JSON.stringify([...s])); }
+
+/* ════════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════════ */
+let activeFilter = 'all';
+let activeSearch = '';
+let activeCat = 'all';
+
+/* ════════════════════════════════════════════════════
+   BUILD PAGE
+════════════════════════════════════════════════════ */
+function buildPage() {
+  buildCatNav();
+  buildContent();
+  restoreMarked();
+  updateProgress();
+  updateDiffStats();
+}
+
+function buildCatNav() {
+  const nav = document.getElementById('catNavList');
+  const total = CATEGORIES.reduce((a,c) => a + c.questions.length, 0);
+  nav.innerHTML = `
+    <button class="cat-btn active" data-cat="all" onclick="filterCat('all')">
+      <span class="cat-dot" style="background:var(--blue)"></span>All Categories
+      <span class="cat-count" id="nav-count-all">${total}</span>
+      <span class="cat-done" id="nav-done-all">✓</span>
+    </button>
+    ${CATEGORIES.map(c => `
+      <button class="cat-btn" data-cat="${c.id}" onclick="filterCat('${c.id}')">
+        <span class="cat-dot" style="background:${c.color}"></span>${c.label}
+        <span class="cat-count" id="nav-count-${c.id}">${c.questions.length}</span>
+        <span class="cat-done" id="nav-done-${c.id}">✓</span>
+      </button>
+    `).join('')}
+  `;
+}
+
+function buildContent() {
+  const container = document.getElementById('mainContent');
+  container.innerHTML = `
+    <div class="no-results" id="noResults">
+      <div class="no-results-icon">🔍</div>
+      <div class="no-results-text">No questions match your search or filter.</div>
+    </div>
+    ${CATEGORIES.map((cat, ci) => `
+      <div class="cat-section" id="cat-sec-${cat.id}" style="animation-delay:${ci*50}ms">
+        <div class="cat-header">
+          <div class="cat-icon" style="background:${cat.color}18;color:${cat.color}">${cat.icon}</div>
+          <div>
+            <div class="cat-title">${cat.label}</div>
+            <div class="cat-subtitle">${cat.desc}</div>
+          </div>
+          <div class="cat-badge">${cat.questions.length} questions</div>
+        </div>
+        <div class="q-grid" id="grid-${cat.id}">
+          ${cat.questions.map((q, qi) => buildCard(q, cat.color, qi)).join('')}
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+function buildCard(q, color, qi) {
+  const hasCode = q.code && q.code.src;
+  return `
+    <div class="q-card" id="card-${q.id}" data-id="${q.id}" data-diff="${q.diff}" data-asked="${q.asked||false}"
+         style="--card-accent:${color};animation-delay:${qi*25}ms">
+      <div class="card-top">
+        <span class="card-num">${q.id.toUpperCase()}</span>
+        <div class="card-title">${q.title}</div>
+        <div class="card-done-badge">✓</div>
+      </div>
+      <div class="card-meta">
+        <span class="diff-tag ${q.diff}">${q.diff.charAt(0).toUpperCase()+q.diff.slice(1)}</span>
+        ${q.tags.map(t => `<span class="topic-tag">${t}</span>`).join('')}
+        ${q.asked ? '<span class="asked-tag">🎯 Asked</span>' : ''}
+      </div>
+      <div class="card-hint" id="hint-${q.id}">${q.hint||''}</div>
+      ${hasCode ? `
+        <div class="card-code" id="code-${q.id}">
+          <div class="code-hdr">
+            <span class="code-lang" style="color:${getLangColor(q.code.lang)}">${q.code.lang}</span>
+            <button class="code-copy" onclick="copyCode('${q.id}')">Copy</button>
+          </div>
+          <pre class="code-block"><code>${q.code.src}</code></pre>
+        </div>` : ''}
+      <div class="card-actions">
+        <button class="btn-hint" onclick="toggleHint('${q.id}')">Hint</button>
+        ${hasCode ? `<button class="btn-code" onclick="toggleCode('${q.id}')">Code</button>` : ''}
+        <button class="btn-mark" onclick="markDone('${q.id}')">Mark Done</button>
+      </div>
+    </div>
+  `;
+}
+
+function getLangColor(lang) {
+  const m = { 'JSX':'#61dafb','JavaScript':'#f7df1e','TypeScript':'#3178c6','Bash':'#89e051' };
+  return m[lang] || '#61dafb';
+}
+
+/* ════════════════════════════════════════════════════
+   INTERACTIONS
+════════════════════════════════════════════════════ */
+function toggleHint(id) {
+  const hint = document.getElementById('hint-'+id);
+  const code = document.getElementById('code-'+id);
+  const card = document.getElementById('card-'+id);
+  const btn  = card.querySelector('.btn-hint');
+  const showing = hint.classList.contains('show');
+  hint.classList.toggle('show', !showing);
+  if (!showing && code) { code.classList.add('show'); card.classList.add('code-open'); }
+  if (showing && code)  { code.classList.remove('show'); card.classList.remove('code-open'); }
+  if (btn) btn.textContent = showing ? 'Hint' : 'Hide';
+}
+
+function toggleCode(id) {
+  const code = document.getElementById('code-'+id);
+  const card = document.getElementById('card-'+id);
+  const btn  = card.querySelector('.btn-code');
+  const show = code.classList.toggle('show');
+  card.classList.toggle('code-open', show);
+  if (btn) btn.textContent = show ? 'Hide Code' : 'Code';
+}
+
+function copyCode(id) {
+  const pre = document.querySelector(`#code-${id} .code-block`);
+  if (!pre) return;
+  navigator.clipboard.writeText(pre.textContent.trim()).then(() => {
+    const btn = document.querySelector(`#code-${id} .code-copy`);
+    if (btn) { btn.textContent='Copied!'; btn.classList.add('copied');
+      setTimeout(() => { btn.textContent='Copy'; btn.classList.remove('copied'); }, 2000); }
+  });
+}
+
+/* ════════════════════════════════════════════════════
+   MARK DONE
+════════════════════════════════════════════════════ */
+function markDone(id) {
+  const done = loadDone();
+  const card = document.getElementById('card-'+id);
+  if (!card) return;
+  done.has(id) ? done.delete(id) : done.add(id);
+  card.classList.toggle('answered', done.has(id));
+  saveDone(done);
+  updateProgress();
+  updateNavDoneIndicators();
+}
+
+function restoreMarked() {
+  loadDone().forEach(id => {
+    const card = document.getElementById('card-'+id);
+    if (card) card.classList.add('answered');
+  });
+  updateNavDoneIndicators();
+}
+
+function clearAllProgress() {
+  if (!confirm('Clear all progress? This cannot be undone.')) return;
+  localStorage.removeItem(STORE_KEY);
+  document.querySelectorAll('.q-card.answered').forEach(c => c.classList.remove('answered'));
+  updateProgress(); updateNavDoneIndicators();
+}
+
+function updateNavDoneIndicators() {
+  const done = loadDone();
+  CATEGORIES.forEach(cat => {
+    const catDone = cat.questions.filter(q => done.has(q.id)).length;
+    const btn = document.querySelector(`.cat-btn[data-cat="${cat.id}"]`);
+    if (btn) btn.classList.toggle('has-done', catDone > 0);
+  });
+}
+
+/* ════════════════════════════════════════════════════
+   PROGRESS
+════════════════════════════════════════════════════ */
+function updateProgress() {
+  const done  = loadDone();
+  const total = CATEGORIES.reduce((a,c) => a + c.questions.length, 0);
+  const answered = done.size;
+  document.getElementById('answeredCount').textContent = answered;
+  document.getElementById('totalCount').textContent    = total;
+  const pct = total > 0 ? Math.round((answered / total) * 100) : 0;
+  document.getElementById('progressFill').style.width  = pct + '%';
+  document.getElementById('progressPct').textContent   = pct + '%';
+}
+
+function updateDiffStats() {
+  let easy=0, med=0, hard=0;
+  CATEGORIES.forEach(c => c.questions.forEach(q => {
+    if (q.diff==='easy') easy++;
+    else if (q.diff==='medium') med++;
+    else hard++;
+  }));
+  const total = easy+med+hard;
+  document.getElementById('easyCount').textContent = easy + ' Easy';
+  document.getElementById('medCount').textContent  = med  + ' Med';
+  document.getElementById('hardCount').textContent = hard + ' Hard';
+  document.getElementById('heroEasyC').textContent = easy;
+  document.getElementById('heroMedC').textContent  = med;
+  document.getElementById('heroHardC').textContent = hard;
+  document.getElementById('heroTotal').textContent = total;
+  document.getElementById('totalCount').textContent = total;
+}
+
+/* ════════════════════════════════════════════════════
+   FILTER & SEARCH
+════════════════════════════════════════════════════ */
+function filterCat(catId) {
+  activeCat = catId;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === catId));
+  document.querySelectorAll('.cat-section').forEach(s => {
+    const id = s.id.replace('cat-sec-', '');
+    s.classList.toggle('hidden', catId !== 'all' && id !== catId);
+  });
+  applyFilters();
+}
+
+function applyFilters() {
+  const done = loadDone();
+  const q = activeSearch.toLowerCase().trim();
+  let visible = 0;
+  CATEGORIES.forEach(cat => {
+    let catVisible = 0;
+    cat.questions.forEach(qObj => {
+      const card = document.getElementById('card-'+qObj.id);
+      if (!card) return;
+      const isDone = done.has(qObj.id);
+      let show = true;
+      if (activeFilter === 'easy'   && qObj.diff !== 'easy')   show = false;
+      if (activeFilter === 'medium' && qObj.diff !== 'medium') show = false;
+      if (activeFilter === 'hard'   && qObj.diff !== 'hard')   show = false;
+      if (activeFilter === 'done'   && !isDone)                show = false;
+      if (activeFilter === 'todo'   && isDone)                 show = false;
+      if (activeFilter === 'asked'  && !qObj.asked)            show = false;
+      if (q) {
+        const text = (qObj.title+' '+qObj.tags.join(' ')+' '+(qObj.hint||'').replace(/<[^>]*>/g,'')).toLowerCase();
+        if (!text.includes(q)) show = false;
+      }
+      card.classList.toggle('hidden', !show);
+      if (show) catVisible++;
+    });
+    visible += catVisible;
+    const sec = document.getElementById('cat-sec-'+cat.id);
+    if (sec && activeCat === 'all') sec.classList.toggle('hidden', catVisible === 0);
+  });
+  const nr = document.getElementById('noResults');
+  if (nr) nr.style.display = visible === 0 ? 'block' : 'none';
+}
+
+/* ════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  buildPage();
+
+  // Sidebar toggle
+  document.getElementById('menuBtn').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('show');
+  });
+  document.getElementById('sidebarOverlay').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('show');
+  });
+
+  // Search
+  let searchTimer;
+  const handleSearch = (val) => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => { activeSearch = val; applyFilters(); }, 180);
+  };
+  document.getElementById('heroSearch').addEventListener('input', function() { handleSearch(this.value); });
+  document.getElementById('sideSearch').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.cat-btn').forEach(btn => {
+      btn.style.display = q && !btn.textContent.toLowerCase().includes(q) ? 'none' : '';
+    });
+  });
+
+  // Filter buttons
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      activeFilter = this.dataset.filter;
+      applyFilters();
+    });
+  });
+
+  // Keyboard shortcut
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); document.getElementById('heroSearch').focus(); }
+    if (e.key === 'Escape') document.getElementById('heroSearch').blur();
+  });
+
+  // Theme
+  const savedTheme = localStorage.getItem('react_prep_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  document.getElementById('themeBtn').textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+  document.getElementById('themeBtn').addEventListener('click', () => {
+    const cur  = document.documentElement.getAttribute('data-theme');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('react_prep_theme', next);
+    document.getElementById('themeBtn').textContent = next === 'dark' ? '🌙' : '☀️';
+  });
+
+  // Scroll progress
+  window.addEventListener('scroll', () => {
+    const total = document.documentElement.scrollHeight - window.innerHeight;
+    document.getElementById('scroll-progress').style.width = (total > 0 ? (window.scrollY/total)*100 : 0) + '%';
+  });
+});
+</script>
+</body>
+</html>
