@@ -157,6 +157,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .pdf-card.pdf-hidden{display:none}
 .pdf-card.completed{border-color:rgba(6,214,160,.25)}
 .pdf-card.completed::before{background:var(--teal)}
+.pdf-card.in-progress{border-color:rgba(245,158,11,.3)}
+.pdf-card.in-progress::before{background:var(--gold)}
 
 .tech-icon{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;font-size:18px;flex-shrink:0}
 .pdf-main{flex:1;min-width:0}
@@ -174,7 +176,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .btn-dl{background:none;border:1px solid var(--border2);border-radius:8px;width:30px;height:30px;display:grid;place-items:center;cursor:pointer;font-size:13px;transition:all .18s;color:var(--text2)}
 .btn-dl:hover{border-color:var(--teal);color:var(--teal);background:rgba(6,214,160,.08)}
 .btn-done{background:none;border:1px solid var(--border2);border-radius:8px;width:30px;height:30px;display:grid;place-items:center;cursor:pointer;font-size:13px;transition:all .18s;color:var(--text3)}
-.btn-done:hover{border-color:var(--teal);color:var(--teal)}
+.btn-done:hover{border-color:var(--gold);color:var(--gold)}
+.btn-done.inprogress{border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.1);color:var(--gold)}
 .btn-done.active{border-color:var(--teal);background:rgba(6,214,160,.12);color:var(--teal)}
 
 /* ── NO RESULTS ── */
@@ -427,20 +430,25 @@ function loadProgress() {
     return {
       viewed:     new Set(raw.viewed     || []),
       downloaded: new Set(raw.downloaded || []),
-      completed:  new Set(raw.completed  || [])
+      completed:  new Set(raw.completed  || []),
+      inprogress: new Set(raw.inprogress || [])
     };
-  } catch { return { viewed: new Set(), downloaded: new Set(), completed: new Set() }; }
+  } catch { return { viewed: new Set(), downloaded: new Set(), completed: new Set(), inprogress: new Set() }; }
 }
 
 function saveProgress(prog) {
   const obj = {
     viewed:     [...prog.viewed],
     downloaded: [...prog.downloaded],
-    completed:  [...prog.completed]
+    completed:  [...prog.completed],
+    inprogress: [...prog.inprogress]
   };
   localStorage.setItem(STORE_KEY, JSON.stringify(obj));
-  // Keep a flat completed list for Study-Resources.html compatibility
-  localStorage.setItem(COMPLETED_KEY, JSON.stringify(obj.completed));
+  // Compatible key for Study-Resources.html — object format with done/inprogress
+  const compat = {};
+  obj.completed.forEach(id  => compat[id] = 'done');
+  obj.inprogress.forEach(id => compat[id] = 'inprogress');
+  localStorage.setItem(COMPLETED_KEY, JSON.stringify(compat));
 }
 
 let PROG = loadProgress();
@@ -460,22 +468,29 @@ function markDownloaded(id) {
 }
 
 function toggleCompleted(id) {
-  if (PROG.completed.has(id)) {
-    PROG.completed.delete(id);
-  } else {
+  const card = document.querySelector(`[data-pdf-id="${id}"]`);
+  const btn = card ? card.querySelector('.btn-done') : null;
+  const cur = PROG.completed.has(id) ? 'done' : PROG.inprogress.has(id) ? 'inprogress' : 'none';
+
+  PROG.completed.delete(id); PROG.inprogress.delete(id);
+  card && card.classList.remove('completed','in-progress');
+  if (cur==='none') {
+    PROG.inprogress.add(id);
+    card && card.classList.add('in-progress');
+    if(btn){btn.className='btn-done inprogress';btn.title='Mark as done';btn.textContent='⏳';}
+    toast('⏳ Marked as in progress');
+  } else if (cur==='inprogress') {
     PROG.completed.add(id);
+    card && card.classList.add('completed');
+    if(btn){btn.className='btn-done active';btn.title='Mark as not done';btn.textContent='✓';}
+    toast('✓ Marked as completed');
+  } else {
+    if(btn){btn.className='btn-done';btn.title='Mark as done';btn.textContent='○';}
+    toast('○ Marked as not done');
   }
   saveProgress(PROG);
-  const card = document.querySelector(`[data-pdf-id="${id}"]`);
-  if (card) {
-    const done = PROG.completed.has(id);
-    card.classList.toggle('completed', done);
-    const btn = card.querySelector('.btn-done');
-    if (btn) { btn.classList.toggle('active', done); btn.title = done ? 'Mark as not done' : 'Mark as done'; btn.textContent = done ? '✓' : '○'; }
-  }
   updateCategoryProgress();
   updateStats();
-  toast(PROG.completed.has(id) ? '✓ Marked as completed' : '○ Marked as not done');
 }
 
 /* ══════════════════════════════════════════════════
@@ -515,6 +530,7 @@ function updateStats() {
   const viewed  = PROG.viewed.size;
   const dl      = PROG.downloaded.size;
   const done    = PROG.completed.size;
+  const inprog  = PROG.inprogress.size;
   const pct     = total > 0 ? Math.round((done / total) * 100) : 0;
 
   // Hero stats
@@ -548,13 +564,14 @@ function updateCategoryProgress() {
   ALL_DATA.categories.forEach(cat => {
     const card = document.getElementById('cat-' + cat.id);
     if (!card) return;
-    const total = cat.files.length;
-    const done  = cat.files.filter(f => PROG.completed.has(f.id)).length;
-    const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
+    const total   = cat.files.length;
+    const done    = cat.files.filter(f => PROG.completed.has(f.id)).length;
+    const inprog  = cat.files.filter(f => PROG.inprogress.has(f.id)).length;
+    const pct     = total > 0 ? Math.round((done / total) * 100) : 0;
     const fill  = card.querySelector('.cat-prog-fill');
     const txt   = card.querySelector('.cat-prog-txt');
     if (fill) fill.style.width = pct + '%';
-    if (txt)  txt.textContent  = done + '/' + total;
+    if (txt)  txt.textContent  = done + '/' + total + (inprog > 0 ? ` ⏳${inprog}` : '');
   });
 }
 
@@ -563,13 +580,14 @@ function updateCategoryProgress() {
 ══════════════════════════════════════════════════ */
 function buildPDFCard(file, catColor) {
   const meta   = techMeta(file.technology);
-  const viewed = PROG.viewed.has(file.id);
-  const done   = PROG.completed.has(file.id);
+  const viewed   = PROG.viewed.has(file.id);
+  const done     = PROG.completed.has(file.id);
+  const inprog   = PROG.inprogress.has(file.id);
   const bgTint = meta.color + '1a';
   const date   = file.lastUpdated ? new Date(file.lastUpdated).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '';
 
   return `
-    <div class="pdf-card${viewed ? ' viewed' : ''}${done ? ' completed' : ''}"
+    <div class="pdf-card${viewed ? ' viewed' : ''}${done ? ' completed' : inprog ? ' in-progress' : ''}"
          data-pdf-id="${file.id}"
          data-tech="${file.technology.toLowerCase()}"
          data-name="${file.name.toLowerCase()}"
@@ -590,8 +608,9 @@ function buildPDFCard(file, catColor) {
         </button>
         <button class="btn-dl" title="Download PDF"
           onclick="downloadPDF('${file.path.replace(/'/g,"\\'")}','${file.id}','${file.name.replace(/'/g,"\\'")}')">⬇</button>
-        <button class="btn-done${done ? ' active' : ''}" title="${done ? 'Mark as not done' : 'Mark as done'}"
-          onclick="toggleCompleted('${file.id}')">${done ? '✓' : '○'}</button>
+        <button class="btn-done${done ? ' active' : inprog ? ' inprogress' : ''}"
+          title="${done ? 'Mark as not done' : inprog ? 'Mark as done' : 'Mark as in progress'}"
+          onclick="toggleCompleted('${file.id}')">${done ? '✓' : inprog ? '⏳' : '○'}</button>
       </div>
     </div>`;
 }

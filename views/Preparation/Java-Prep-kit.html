@@ -82,8 +82,11 @@
     
     <div class="topbar-right">
       <div class="progress-chip">
-        <span>Progress</span>
+        <span>Done</span>
         <strong id="answeredCount">0</strong>/<strong id="totalCount">0</strong>
+      </div>
+      <div class="progress-chip" id="inProgressChip" style="display:none">
+        <span>⏳</span><strong id="inProgressCount">0</strong>
       </div>
       <button class="clear-progress-btn" id="clearProgressBtn" title="Clear all marked done" onclick="clearAllProgress()">Clear</button>
       <button class="theme-btn" id="themeBtn" title="Toggle theme">🌙</button>
@@ -185,7 +188,7 @@
   }
 }</pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -236,7 +239,7 @@
   }
 }</pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -299,7 +302,7 @@ counter++; <span class="cm">// still 3 steps (read → increment → write) — 
 <span class="cls">AtomicInteger</span> atomicCounter = <span class="kw">new</span> <span class="cls">AtomicInteger</span>(<span class="num">0</span>);
 atomicCounter.<span class="fn">incrementAndGet</span>(); <span class="cm">// atomic, thread-safe</span></pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -315,7 +318,7 @@ atomicCounter.<span class="fn">incrementAndGet</span>(); <span class="cm">// ato
           </ul>
           <strong>How?</strong> <code>private final char[] value</code> (Java 8) or <code>private final byte[] value</code> (Java 9+, compact strings). No setters. <code>final</code> class prevents subclassing.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -338,7 +341,7 @@ atomicCounter.<span class="fn">incrementAndGet</span>(); <span class="cm">// ato
             <li>ZGC/Shenandoah: ultra-low latency, sub-millisecond pauses</li>
           </ul>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -409,7 +412,7 @@ atomicCounter.<span class="fn">incrementAndGet</span>(); <span class="cm">// ato
   } <span class="cm">// ✅ all auto-closed — returned to pool</span>
 }</pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -426,7 +429,7 @@ atomicCounter.<span class="fn">incrementAndGet</span>(); <span class="cm">// ato
           </table>
           <div class="tip-box success"><span class="tip-label">Rule of thumb</span>Use ArrayList by default. Use LinkedList only if frequent insertions/deletions at beginning/middle AND no random access needed.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -480,7 +483,7 @@ atomicCounter.<span class="fn">incrementAndGet</span>(); <span class="cm">// ato
   }
 }</pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -562,7 +565,7 @@ atomicCounter.<span class="fn">incrementAndGet</span>(); <span class="cm">// ato
 <span class="cm">// Or: ThreadMXBean tmx = ManagementFactory.getThreadMXBean();</span>
 <span class="cm">//     long[] deadlocked = tmx.findDeadlockedThreads(); // returns null if none</span></pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -652,7 +655,7 @@ atomicCounter.<span class="fn">incrementAndGet</span>(); <span class="cm">// ato
 <span class="ann">@Service</span> <span class="kw">class</span> <span class="cls">RazorpayGateway</span> <span class="kw">implements</span> <span class="cls">PaymentGateway</span> { <span class="kw">public void</span> <span class="fn">charge</span>(<span class="cls">Order</span> o) { <span class="cm">/* Razorpay */</span> } }
 <span class="cm">// Spring injects correct impl — swap without touching OrderService</span></pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -670,7 +673,7 @@ atomicCounter.<span class="fn">incrementAndGet</span>(); <span class="cm">// ato
             <li><strong>Heavyweight lock:</strong> OS mutex — thread actually blocks</li>
           </ul>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -686,7 +689,7 @@ atomicCounter.<span class="fn">incrementAndGet</span>(); <span class="cm">// ato
             <tr><td>Thread</td><td>Thread-private</td><td>Shared across threads</td></tr>
           </table>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -706,7 +709,7 @@ atomicCounter.<span class="fn">incrementAndGet</span>(); <span class="cm">// ato
           <strong>Factory:</strong> Creates objects without exposing instantiation logic. e.g., <code>PaymentFactory.create("UPI")</code><br/><br/>
           <strong>Builder:</strong> Constructs complex objects step by step. Used in Lombok <code>@Builder</code>, StringBuilder, <code>RestTemplate.Builder</code>.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -794,7 +797,7 @@ atomicCounter.<span class="fn">incrementAndGet</span>(); <span class="cm">// ato
    Use Comparator when you need different orderings or can't modify the class
 */</span></pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -819,7 +822,7 @@ atomicCounter.<span class="fn">incrementAndGet</span>(); <span class="cm">// ato
   }
 }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -840,7 +843,7 @@ atomicCounter.<span class="fn">incrementAndGet</span>(); <span class="cm">// ato
   <span class="cls">String</span> s = <span class="kw">new</span> <span class="cls">String</span>(<span class="str">"hi"</span>);  <span class="cmt">// reference s on stack, object on heap</span>
 }                                 <span class="cmt">// x and s removed from stack on return</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -860,7 +863,7 @@ atomicCounter.<span class="fn">incrementAndGet</span>(); <span class="cm">// ato
 <span class="kw">synchronized</span>(<span class="cls">MyClass</span>.class) { <span class="cmt">// locks class-level (static)</span> }</pre>
           <div class="tip-box warn"><span class="tip-label">Pitfall</span>Two synchronized methods on SAME object share one lock — only one thread can run either at a time.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -882,7 +885,7 @@ atomicCounter.<span class="fn">incrementAndGet</span>(); <span class="cm">// ato
           <pre><span class="cls">AtomicInteger</span> counter = <span class="kw">new</span> <span class="cls">AtomicInteger</span>(<span class="num">0</span>);
 counter.<span class="fn">incrementAndGet</span>(); <span class="cmt">// atomic, no lock needed</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -903,7 +906,7 @@ counter.<span class="fn">incrementAndGet</span>(); <span class="cmt">// atomic, 
 } <span class="kw">while</span>(!atomicInt.<span class="fn">compareAndSet</span>(old, updated));</pre>
           Used by <code>AtomicInteger</code>, <code>ConcurrentHashMap</code>, <code>ConcurrentLinkedQueue</code>. Non-blocking but has ABA problem (use <code>AtomicStampedReference</code> to fix).
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -929,7 +932,7 @@ set.<span class="fn">add</span>(<span class="kw">new</span> <span class="cls">St
 }
 <span class="ann">@Override</span> <span class="kw">public int</span> <span class="fn">hashCode</span>() { <span class="kw">return</span> <span class="cls">Objects</span>.<span class="fn">hash</span>(id, name); }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -952,7 +955,7 @@ set.<span class="fn">add</span>(<span class="kw">new</span> <span class="cls">St
 list.<span class="fn">sort</span>(<span class="cls">Comparator</span>.<span class="fn">comparing</span>(<span class="cls">Employee</span>::getName)
          .<span class="fn">thenComparing</span>(<span class="cls">Employee</span>::getSalary));</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -971,7 +974,7 @@ list.<span class="fn">sort</span>(<span class="cls">Comparator</span>.<span clas
 list.<span class="fn">add</span>(<span class="str">"A"</span>); <span class="cmt">// creates new array internally</span>
 <span class="kw">for</span>(<span class="cls">String</span> s : list) { list.<span class="fn">add</span>(<span class="str">"B"</span>); } <span class="cmt">// safe — no ConcurrentModificationException</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -986,7 +989,7 @@ list.<span class="fn">add</span>(<span class="str">"A"</span>); <span class="cmt
   <span class="kw">private static final long</span> serialVersionUID = <span class="num">1L</span>; <span class="cmt">// explicit is best practice</span>
 }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1025,7 +1028,7 @@ list.<span class="fn">add</span>(<span class="str">"A"</span>); <span class="cmt
   <span class="cls">OrderService</span>(<span class="cls">PaymentGateway</span> gw) { <span class="kw">this</span>.gateway = gw; } <span class="cmt">// injected</span>
 }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1054,7 +1057,7 @@ p == q;  <span class="cmt">// false (not cached — new objects)</span>
 <span class="cmt">// ✅ Use Objects.equals(a, b) for null-safe comparison</span>
 <span class="cls">Objects</span>.<span class="fn">equals</span>(<span class="kw">null</span>, <span class="str">"x"</span>); <span class="cmt">// false, no NullPointerException</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1089,7 +1092,7 @@ p == q;  <span class="cmt">// false (not cached — new objects)</span>
     }
     """</span>;</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div><!-- end core-java-questions -->
@@ -1118,7 +1121,7 @@ nested.<span class="fn">stream</span>().<span class="fn">flatMap</span>(<span cl
        .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>()); <span class="cmt">// [1,2,3,4]</span></pre>
           <div class="tip-box"><span class="tip-label">Use case</span>flatMap is great for flattening nested lists, splitting sentences into words.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1183,7 +1186,7 @@ nested.<span class="fn">stream</span>().<span class="fn">flatMap</span>(<span cl
   <span class="kw">private</span> <span class="cls">String</span> <span class="fn">computeDefault</span>() { <span class="kw">return</span> <span class="str">"computed"</span>; }
 }</pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1242,7 +1245,7 @@ nested.<span class="fn">stream</span>().<span class="fn">flatMap</span>(<span cl
   }
 }</pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1253,7 +1256,7 @@ nested.<span class="fn">stream</span>().<span class="fn">flatMap</span>(<span cl
           <strong>findAny()</strong>: Returns any element — non-deterministic. More performant in parallel streams since any thread can return first found element.<br/><br/>
           Both return <code>Optional&lt;T&gt;</code>. In sequential streams both are effectively equivalent.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1269,7 +1272,7 @@ nested.<span class="fn">stream</span>().<span class="fn">flatMap</span>(<span cl
   .<span class="fn">reduce</span>((e1,e2) -> e1.<span class="fn">getSalary</span>() > e2.<span class="fn">getSalary</span>() ? e1 : e2);</pre>
           <strong>Variants:</strong> <code>reduce(identity, accumulator)</code>, <code>reduce(accumulator)</code>, <code>reduce(identity, accumulator, combiner)</code> (for parallel).
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1292,7 +1295,7 @@ list.<span class="fn">sort</span>((a, b) -> a.<span class="fn">getName</span>().
 <span class="cmt">// Method reference (shorthand lambda)</span>
 list.<span class="fn">forEach</span>(<span class="cls">System</span>.out::println);</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1309,7 +1312,7 @@ list.<span class="fn">forEach</span>(<span class="cls">System</span>.out::printl
   .<span class="fn">sorted</span>()                                    <span class="cmt">// intermediate</span>
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>());             <span class="cmt">// terminal — triggers all</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1324,7 +1327,7 @@ list.<span class="fn">stream</span>().<span class="fn">map</span>(x -> x * multi
 multiplier = <span class="num">10</span>; <span class="cmt">// ERROR: variable used in lambda must be final</span></pre>
           This is because lambdas capture the value, not the reference — changing the variable would make the captured value unpredictable.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -1359,7 +1362,7 @@ multiplier = <span class="num">10</span>; <span class="cmt">// ERROR: variable u
 }</pre>
           <div class="tip-box warn"><span class="tip-label">Caution</span>Don't pool virtual threads — they're cheap, create a new one per task. Don't use for CPU-heavy work.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1375,7 +1378,7 @@ multiplier = <span class="num">10</span>; <span class="cmt">// ERROR: variable u
 }</pre>
           Prevents thread leaks — all subtasks complete before scope exits.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1394,7 +1397,7 @@ e.name(); e.salary(); <span class="cmt">// accessor methods</span></pre>
             <tr><td>Extensible</td><td>Limited</td><td>Flexible</td></tr>
           </table>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1420,7 +1423,7 @@ e.name(); e.salary(); <span class="cmt">// accessor methods</span></pre>
 lock.<span class="fn">lock</span>();
 <span class="kw">try</span> { <span class="fn">doBlockingIO</span>(); } <span class="kw">finally</span> { lock.<span class="fn">unlock</span>(); }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1451,7 +1454,7 @@ lock.<span class="fn">lock</span>();
 }</pre>
           <div class="tip-box"><span class="tip-label">Recommendation</span>For new Java 21+ projects: prefer Virtual Threads. Use Reactive only when integrating with reactive databases (R2DBC) or needing backpressure control.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1484,7 +1487,7 @@ lock.<span class="fn">lock</span>();
 };</pre>
           Works with <strong>sealed classes</strong> — compiler enforces exhaustiveness at compile time.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1513,7 +1516,7 @@ lock.<span class="fn">lock</span>();
 }</pre>
           <div class="tip-box"><span class="tip-label">Use case</span>Propagating security context, request-ID, or tenant-ID through deep call stacks — especially with virtual threads where thousands of threads share data.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1541,7 +1544,7 @@ map.<span class="fn">firstEntry</span>(); <span class="cmt">// Map.Entry("a", 1)
 map.<span class="fn">lastEntry</span>();  <span class="cmt">// Map.Entry("b", 2)</span>
 map.<span class="fn">reversed</span>();  <span class="cmt">// reversed view of map</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1572,7 +1575,7 @@ map.<span class="fn">reversed</span>();  <span class="cmt">// reversed view of m
 -Xlog:gc*:file=gc.log:time:filecount=5,filesize=20m</pre>
           <div class="tip-box"><span class="tip-label">Generational hypothesis</span>Most objects die young. Generational GC exploits this — frequently collecting young gen (cheap) vs rarely collecting old gen (expensive).</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1608,7 +1611,7 @@ map.<span class="fn">reversed</span>();  <span class="cmt">// reversed view of m
 <span class="cmt">// 5. Test with JVM warnings enabled:</span>
 <span class="cmt">//    java --enable-preview ... (for preview features)</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -1665,7 +1668,7 @@ map.<span class="fn">reversed</span>();  <span class="cmt">// reversed view of m
   }
 }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1689,7 +1692,7 @@ map.<span class="fn">reversed</span>();  <span class="cmt">// reversed view of m
 }</pre>
           <div class="tip-box warn"><span class="tip-label">Red flag</span>Frequent Full GC = memory pressure. Alert if Full GC > 1/min or pause > 500ms.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1716,7 +1719,7 @@ map.<span class="fn">reversed</span>();  <span class="cmt">// reversed view of m
 -XX:ParallelGCThreads=8     <span class="cmt">// parallel GC threads</span></pre>
           <div class="tip-box"><span class="tip-label">Prod choice</span>G1GC for most Spring Boot apps. ZGC for real-time systems needing sub-millisecond pauses.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1750,7 +1753,7 @@ map.<span class="fn">reversed</span>();  <span class="cmt">// reversed view of m
 <span class="kw">finally</span> { conn.<span class="fn">remove</span>(); }</pre>
           <strong>Detection tools:</strong> VisualVM, Eclipse Memory Analyzer (MAT), <code>jmap -histo:live &lt;pid&gt;</code>, <code>jcmd &lt;pid&gt; GC.heap_dump heap.hprof</code>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1782,7 +1785,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -30
 <span class="cmt">// "unable to create new native thread" → too many threads; reduce pool size</span></pre>
           <div class="tip-box"><span class="tip-label">K8s tip</span>In Kubernetes, use <code>-XX:+ExitOnOutOfMemoryError</code> so the pod exits and is restarted by the deployment controller instead of hanging in an unusable OOM state.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1817,7 +1820,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -30
 -XX:+UseZGC -XX:+ZGenerational</pre>
           <div class="tip-box"><span class="tip-label">Container tip</span>In Docker/K8s, prefer <code>-XX:MaxRAMPercentage=75.0</code> over fixed <code>-Xmx</code> so the JVM adapts to different pod sizes without JVM flag changes.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1853,7 +1856,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
 <span class="cmt">//   1200000   48MB   java.lang.String</span>
 <span class="cmt">//    800000   64MB   com.myapp.UserData  ← investigate</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -1884,7 +1887,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
 <span class="kw">for</span>(<span class="cls">String</span> s : items) sb.<span class="fn">append</span>(s).<span class="fn">append</span>(<span class="str">','</span>); <span class="cmt">// ✅ one object</span>
 <span class="cmt">// vs: String result = "" + s1 + s2... (❌ N intermediate objects)</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -1970,7 +1973,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
   }
 }</pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2077,7 +2080,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
   <span class="kw">static</span> <span class="cls">String</span> <span class="fn">callServiceC</span>() { <span class="kw">return</span> <span class="str">"C"</span>; }
 }</pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2156,7 +2159,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
   <span class="cm">// ❌ synchronized is fine for simple mutual exclusion — less error-prone</span>
 }</pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2169,7 +2172,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
 <span class="kw">try</span> { result.<span class="fn">get</span>(<span class="num">5</span>, <span class="cls">TimeUnit</span>.SECONDS); }
 <span class="kw">catch</span>(<span class="cls">TimeoutException</span> e) { result.<span class="fn">cancel</span>(<span class="kw">true</span>); }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2190,7 +2193,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
 <span class="cls">Future</span>&lt;<span class="cls">String</span>&gt; future = executor.<span class="fn">submit</span>(task);
 <span class="cls">String</span> result = future.<span class="fn">get</span>(); <span class="cmt">// blocks until done</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2222,7 +2225,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
 }</pre>
           <code>volatile</code> is needed to prevent CPU reordering of object construction steps.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2250,7 +2253,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
 }</pre>
           <div class="tip-box"><span class="tip-label">Production</span>Use <code>BlockingQueue</code> in real code — it handles wait/notify internally and is more robust.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2281,7 +2284,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
 <span class="cmt">// Thread 1 calls c1.increment() — different objects</span>
 <span class="cmt">// Thread 2 calls c2.increment() — different locks, RUNS simultaneously</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2326,7 +2329,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
   }
 }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2419,7 +2422,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
  └────────────────────┴──────────────────────────────┴──────────────────────────────┘
 */</span></pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -2451,7 +2454,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
           <strong>@EnableAutoConfiguration</strong> vs <strong>@Configuration</strong>:<br/>
           <code>@Configuration</code> is a user-defined bean source. <code>@EnableAutoConfiguration</code> triggers the classpath scanning + conditional auto-wiring mechanism.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2471,7 +2474,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
             <li>Publishes <code>ApplicationReadyEvent</code> → app is live</li>
           </ol>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2486,7 +2489,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
           </ul>
           <div class="tip-box success"><span class="tip-label">Best Practice</span>Use them semantically correctly for readability and to enable future-proofed AOP/exception handling.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2509,7 +2512,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
   }
 }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2530,7 +2533,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
             <li><code>@PreDestroy</code> / <code>DisposableBean.destroy()</code></li>
           </ol>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2551,7 +2554,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
             <li>Catching exceptions inside method without rethrowing — Spring thinks success</li>
           </ul>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2569,7 +2572,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
             <tr><td>NEVER</td><td>Must NOT have transaction, else exception</td></tr>
           </table>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2596,7 +2599,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
 }</pre>
           Use <code>@Controller</code> for MVC apps returning HTML views. Use <code>@RestController</code> for REST APIs.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2613,7 +2616,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
 <span class="cls">UserService</span> svc = ctx.<span class="fn">getBean</span>(<span class="cls">UserService</span>.class);</pre>
           <strong>DI types:</strong> Constructor injection (preferred), Setter injection, Field injection (<code>@Autowired</code> on field — avoid in prod).
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2632,7 +2635,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
 <span class="kw">public</span> <span class="cls">MyBean</span> <span class="fn">myBean</span>() { <span class="kw">return new</span> <span class="cls">MyBean</span>(); }</pre>
           <div class="tip-box warn"><span class="tip-label">Pitfall</span>Injecting prototype bean into singleton bean — prototype is created once at singleton init, defeating its purpose. Use <code>ApplicationContext.getBean()</code> or <code>@Lookup</code> instead.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2656,7 +2659,7 @@ jcmd &lt;pid&gt; GC.class_histogram | head -20
 <span class="cmt">// app.database.max-connections=10</span></pre>
           <strong>Use @Value</strong> for a single simple property. <strong>Use @ConfigurationProperties</strong> for related grouped settings — supports validation with <code>@Validated</code>, type safety, IDE auto-complete.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2680,7 +2683,7 @@ management.endpoint.health.show-details=always
 management.endpoints.web.base-path=/management</pre>
           Integrate with Prometheus via <code>micrometer-registry-prometheus</code> dependency.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2702,7 +2705,7 @@ management.endpoints.web.base-path=/management</pre>
 <span class="kw">public</span> <span class="cls">UserService</span>(
   <span class="ann">@Qualifier</span>(<span class="str">"redisCache"</span>) <span class="cls">CacheService</span> cacheService) { ... }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2722,7 +2725,7 @@ management.endpoints.web.base-path=/management</pre>
           <strong>HandlerMapping types:</strong> <code>RequestMappingHandlerMapping</code> (annotation-based, default), <code>SimpleUrlHandlerMapping</code> (URL patterns).<br/><br/>
           In <code>@RestController</code>, step 5-6 is skipped — <code>HttpMessageConverter</code> serializes return value to JSON directly.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2742,7 +2745,7 @@ management.endpoints.web.base-path=/management</pre>
 ) { ... }</pre>
           <strong>PUT vs PATCH:</strong> PUT replaces entire resource (idempotent). PATCH applies partial update. Both should be idempotent.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2766,7 +2769,7 @@ management.endpoints.web.base-path=/management</pre>
 }</pre>
           <code>@Valid</code> triggers cascade validation. <code>@Validated</code> (Spring) supports group validation and method-level validation on services.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2793,7 +2796,7 @@ management.endpoints.web.base-path=/management</pre>
 }</pre>
           <strong>Full flow:</strong> Controller → Service → Repository → Entity → DB. Response: Entity → DTO → JSON.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2810,7 +2813,7 @@ spring.datasource.hikari.max-lifetime=1800000</pre>
           <strong>Tuning rule:</strong> <code>pool-size = (core_count × 2) + effective_spindle_count</code><br/><br/>
           <div class="tip-box warn"><span class="tip-label">Pitfall</span>Too many connections = DB bottleneck. PostgreSQL recommends &lt;100 connections total. Use PgBouncer for connection pooling at DB level.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2854,7 +2857,7 @@ spring.datasource.hikari.max-lifetime=1800000</pre>
 }</pre>
           <div class="tip-box"><span class="tip-label">Java 21 tip</span>For new Java 21 projects, Virtual Threads + Spring MVC is simpler than WebFlux. Use WebFlux when you need SSE streaming, backpressure control, or R2DBC reactive databases.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -2885,7 +2888,7 @@ spring.datasource.hikari.max-lifetime=1800000</pre>
           </ul>
           Each request flows through all filters. Filters can short-circuit (set authentication in context and call <code>filterChain.doFilter()</code>).
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2904,7 +2907,7 @@ spring.datasource.hikari.max-lifetime=1800000</pre>
 <span class="kw">public</span> <span class="cls">ResponseEntity</span>&lt;?&gt; <span class="fn">deleteUser</span>(<span class="cls">Long</span> id) {...}</pre>
           <div class="tip-box danger"><span class="tip-label">Security</span>Store refresh tokens in DB or Redis. Implement revocation. Never store tokens in localStorage.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2926,7 +2929,7 @@ http.<span class="fn">exceptionHandling</span>(ex -&gt; ex
 );</pre>
           <strong>Security chain:</strong> Authentication must succeed before Authorization check runs.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -2966,7 +2969,7 @@ jdbcTemplate.<span class="fn">query</span>(<span class="str">"SELECT * FROM user
             <li>WAF (Web Application Firewall) as last line of defense</li>
           </ul>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -3044,7 +3047,7 @@ orders.<span class="fn">forEach</span>(o -&gt; o.<span class="fn">getCustomer</s
 }
 <span class="cls">List</span>&lt;<span class="cls">OrderSummary</span>&gt; <span class="fn">findAllProjectedBy</span>(); <span class="cm">// Spring auto-builds efficient SELECT</span></pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3056,7 +3059,7 @@ orders.<span class="fn">forEach</span>(o -&gt; o.<span class="fn">getCustomer</s
           <strong>Pessimistic Locking:</strong> Acquires DB-level lock (SELECT FOR UPDATE). Holds lock until transaction ends. Best for write-heavy, conflict-prone scenarios (e.g., seat booking, inventory).
           <pre>em.<span class="fn">find</span>(<span class="cls">Product</span>.class, id, <span class="cls">LockModeType</span>.PESSIMISTIC_WRITE);</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3073,7 +3076,7 @@ orders.<span class="fn">forEach</span>(o -&gt; o.<span class="fn">getCustomer</s
           </ul>
           <div class="tip-box warn"><span class="tip-label">Gotcha</span>Direct JPQL/native updates bypass first-level cache — entity state in memory becomes stale.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3091,7 +3094,7 @@ orders.<span class="fn">forEach</span>(o -&gt; o.<span class="fn">getCustomer</s
 <span class="cmt">// Use saveAndFlush when another query in same transaction needs the saved data</span></pre>
           <strong>JPA vs Hibernate:</strong> JPA is the specification (interface). Hibernate is the most popular implementation. <code>@Entity</code>, <code>@OneToMany</code> etc. are JPA annotations — work with any provider. Hibernate-specific: <code>@Cache</code>, <code>@BatchSize</code>.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3109,7 +3112,7 @@ orders.<span class="fn">forEach</span>(o -&gt; o.<span class="fn">getCustomer</s
 <span class="kw">public void</span> <span class="fn">processPayment</span>() { ... }</pre>
           <strong>Use SERIALIZABLE</strong> for financial calculations. <strong>READ_COMMITTED</strong> for most web apps (good balance). Higher isolation = more locking = less throughput.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3131,7 +3134,7 @@ orders.<span class="fn">forEach</span>(o -&gt; o.<span class="fn">getCustomer</s
 }</pre>
           Use <code>JpaRepository</code> for most Spring Boot apps — it extends everything.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3240,7 +3243,7 @@ orders.<span class="fn">forEach</span>(o -&gt; o.<span class="fn">getCustomer</s
 //  repo.save(entity)  → persist if new (id null), merge if detached (id set)
 //  @Transactional ends → flush (auto dirty-check) + commit</span></pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -3351,7 +3354,7 @@ resilience4j:
   }
 }</pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3363,7 +3366,7 @@ resilience4j:
           <strong>Orchestration:</strong> Central saga orchestrator directs each service what to do. Easier to monitor and debug. Single point of coordination.<br/><br/>
           <strong>vs 2PC (Two-Phase Commit):</strong> 2PC uses DB-level locking across all services — doesn't scale, tightly coupled, blocking. Saga is async, eventual consistency, compensating transactions for rollback.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3380,7 +3383,7 @@ resilience4j:
           </ul>
           <div class="tip-box"><span class="tip-label">DB Design</span>Table: <code>idempotency_keys(key, response_body, status_code, created_at)</code> with unique constraint on key.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3396,7 +3399,7 @@ resilience4j:
             <li><strong>No Circuit Breaker:</strong> One slow downstream kills entire chain</li>
           </ul>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3422,7 +3425,7 @@ resilience4j:
   .<span class="fn">uri</span>(<span class="str">"/payments"</span>).<span class="fn">bodyValue</span>(req)
   .<span class="fn">retrieve</span>().<span class="fn">bodyToMono</span>(<span class="cls">PaymentResponse</span>.class);</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3443,7 +3446,7 @@ resilience4j:
   coreThreadPoolSize: 5
   queueCapacity: 20</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3463,7 +3466,7 @@ resilience4j:
   .<span class="fn">sum</span>();</pre>
           <strong>Use CQRS when:</strong> Read/write loads are very different, complex query requirements, need audit trail.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3485,7 +3488,7 @@ eureka.client.service-url.defaultZone=http://eureka:8761/eureka/
 <span class="kw">public interface</span> <span class="cls">OrderClient</span> { ... }</pre>
           Services send heartbeats every 30s. If heartbeat stops, Eureka deregisters after 90s (eviction threshold).
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3513,7 +3516,7 @@ eureka.client.service-url.defaultZone=http://eureka:8761/eureka/
   processedEvents.<span class="fn">add</span>(event.<span class="fn">getId</span>()); <span class="cmt">// mark as processed</span>
 }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3545,7 +3548,7 @@ eureka.client.service-url.defaultZone=http://eureka:8761/eureka/
 <span class="cmt">// resilience4j.bulkhead.instances.paymentService.maxConcurrentCalls=10</span>
 <span class="cmt">// resilience4j.bulkhead.instances.paymentService.maxWaitDuration=100ms</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -3603,7 +3606,7 @@ eureka.client.service-url.defaultZone=http://eureka:8761/eureka/
 }</pre>
           <strong>Use when:</strong> Read/write load is asymmetric, complex read queries hurt write performance, different scaling needed for reads vs writes.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3640,7 +3643,7 @@ eureka.client.service-url.defaultZone=http://eureka:8761/eureka/
 
 <span class="cmt">// Use Axon Framework or Eventuate for production Event Sourcing</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3682,7 +3685,7 @@ eureka.client.service-url.defaultZone=http://eureka:8761/eureka/
 }</pre>
           <div class="tip-box"><span class="tip-label">Production</span>Use Debezium for CDC (Change Data Capture) to avoid polling. Debezium reads the DB transaction log and publishes to Kafka automatically.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3716,7 +3719,7 @@ management.zipkin.tracing.endpoint: http://zipkin:9411/api/v2/spans
 <span class="cmt">// View in Grafana Tempo: linked with metrics</span></pre>
           <div class="tip-box"><span class="tip-label">Stack</span>Grafana stack: <strong>Loki</strong> (logs) + <strong>Prometheus</strong> (metrics) + <strong>Tempo</strong> (traces) + <strong>Grafana</strong> (visualization) — fully integrated observability.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3752,7 +3755,7 @@ management.zipkin.tracing.endpoint: http://zipkin:9411/api/v2/spans
     .<span class="fn">timeout</span>(<span class="cls">Duration</span>.<span class="fn">ofSeconds</span>(<span class="num">5</span>))
     .<span class="fn">onErrorReturn</span>(fallbackResponse);</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3788,7 +3791,7 @@ management.zipkin.tracing.endpoint: http://zipkin:9411/api/v2/spans
 <span class="cmt">// with clear interfaces — easy to split later</span></pre>
           <div class="tip-box"><span class="tip-label">Interview answer</span>"Microservices solve organizational and scaling problems, not technical problems. Start with a well-structured monolith."</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -3819,7 +3822,7 @@ management.zipkin.tracing.endpoint: http://zipkin:9411/api/v2/spans
           </table>
           <div class="tip-box"><span class="tip-label">Rule</span>Use Kafka for event streaming/analytics. Use RabbitMQ for complex routing, request-reply, priority queues.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3936,7 +3939,7 @@ spring:
   <span class="kw">return new</span> <span class="cls">DefaultErrorHandler</span>(dlq, backOff);
 }</pre></div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3953,7 +3956,7 @@ spring:
           <strong>Exactly-once:</strong> Enable idempotent producer (<code>enable.idempotence=true</code>) + transactional API. Prevents duplicates from retries. Combined with consumer <code>read_committed</code> isolation.<br/><br/>
           <strong>Consumer crash after consume, before commit:</strong> Message re-delivered on restart (at-least-once). Use idempotent processing to handle duplicates.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3965,7 +3968,7 @@ spring:
           <strong>Consumer Lag:</strong> Difference between latest offset produced vs highest offset consumed. Measures how behind consumers are.<br/><br/>
           <strong>Monitor:</strong> <code>kafka-consumer-groups.sh --describe</code> or Grafana + Kafka Exporter. Alert if lag grows continuously.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -3988,7 +3991,7 @@ jmsTemplate.<span class="fn">convertAndSend</span>(<span class="str">"order-queu
 <span class="ann">@JmsListener</span>(destination = <span class="str">"order-queue"</span>)
 <span class="kw">public void</span> <span class="fn">processOrder</span>(<span class="cls">OrderDto</span> order) { ... }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4013,7 +4016,7 @@ props.put("acks", "all");
 props.put("enable.idempotence", "true");
 props.put("min.insync.replicas", "2");</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4030,7 +4033,7 @@ props.put("min.insync.replicas", "2");</pre>
 }</pre>
           Messages go to topic <code>original-topic.DLT</code> automatically.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -4082,7 +4085,7 @@ props.put("min.insync.replicas", "2");</pre>
   <span class="fn">updateCache</span>(event); <span class="cmt">// ALL instances process this</span>
 }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4137,7 +4140,7 @@ spring.activemq.password: admin
   }
 }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4166,7 +4169,7 @@ spring.activemq.password: admin
 <span class="cmt">// - Multiple independent consumer groups</span>
 <span class="cmt">// - Data pipeline / stream processing</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -4202,7 +4205,7 @@ spring.activemq.password: admin
 <span class="kw">SELECT MAX</span>(salary) <span class="kw">FROM</span> employee
 <span class="kw">WHERE</span> salary &lt; (<span class="kw">SELECT MAX</span>(salary) <span class="kw">FROM</span> employee);</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4225,7 +4228,7 @@ spring.activemq.password: admin
 )
 <span class="kw">DELETE FROM</span> cte <span class="kw">WHERE</span> rn > <span class="num">1</span>;</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4242,7 +4245,7 @@ spring.activemq.password: admin
           </ul>
           <strong>Composite Index tip:</strong> Put most selective column first. Query: <code>WHERE status=? AND date=?</code> → index on <code>(status, date)</code>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4260,7 +4263,7 @@ spring.activemq.password: admin
           <strong>INNER JOIN:</strong> Only matching rows in both tables.<br/>
           <strong>LEFT JOIN:</strong> All rows from left table + matching from right (NULLs for no match).
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4285,7 +4288,7 @@ spring.activemq.password: admin
   <span class="kw">SELECT</span> dept, <span class="fn">AVG</span>(salary) avg_sal <span class="kw">FROM</span> employees <span class="kw">GROUP BY</span> dept;
 <span class="kw">REFRESH MATERIALIZED VIEW</span> dept_stats; <span class="cmt">-- manual refresh</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4318,7 +4321,7 @@ spring.activemq.password: admin
   <span class="kw">FROM</span> employees
 ) t <span class="kw">WHERE</span> rnk = <span class="num">1</span>;</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4338,7 +4341,7 @@ spring.activemq.password: admin
           </ul>
           <div class="tip-box warn"><span class="tip-label">Challenge</span>Cross-shard joins are expensive. Choose shard key carefully to minimize cross-shard queries.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -4368,7 +4371,7 @@ spring.activemq.password: admin
             <tr><td>Use</td><td>Event-driven, sporadic</td><td>Always-on APIs</td></tr>
           </table>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4382,7 +4385,7 @@ spring.activemq.password: admin
           </ul>
           <strong>Typical pattern:</strong> Service → SNS → multiple SQS queues → Lambda workers per queue.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4398,7 +4401,7 @@ spring.activemq.password: admin
           </ul>
           <strong>Flow:</strong> User logs in → Cognito issues JWT → Client sends JWT → API Gateway validates → Routes to Lambda → Lambda uses IAM role to access DynamoDB/S3.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -4426,7 +4429,7 @@ spring.activemq.password: admin
           </table>
           <strong>Zero-downtime in K8s:</strong> Use rolling update + readiness probes + PodDisruptionBudget to ensure minimum pods always available.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4441,7 +4444,7 @@ spring.activemq.password: admin
   --min=2 --max=10 --cpu-percent=70</pre>
           <strong>Prerequisites:</strong> metrics-server installed. Pod must have CPU resource requests defined. Also supports KEDA for custom/Kafka-based scaling.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -4471,7 +4474,7 @@ spring.activemq.password: admin
 <span class="kw">if</span> count > <span class="num">100</span> <span class="kw">then return</span> <span class="num">429</span> <span class="kw">end</span></pre>
           <strong>Production:</strong> Use Resilience4j RateLimiter (in-process) or Redis (distributed, consistent across instances).
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4483,7 +4486,7 @@ spring.activemq.password: admin
           <strong>Write-Behind (Async):</strong> Write to cache immediately, async persist to DB. Fast writes. Risk: data loss if cache fails before DB write.<br/><br/>
           <div class="tip-box success"><span class="tip-label">Best Practice</span>Use Cache-Aside for read-heavy. Add TTL for all cached entries. Implement cache invalidation on updates.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4502,7 +4505,7 @@ spring.activemq.password: admin
           </ul>
           <strong>Scale:</strong> Add workers horizontally. Partition by user region for compliance.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -4543,7 +4546,7 @@ spring.activemq.password: admin
 <span class="cls">Animal</span> a = <span class="kw">new</span> <span class="cls">Dog</span>(); <span class="cmt">// runtime polymorphism</span>
 a.<span class="fn">sound</span>(); <span class="cmt">// prints "Bark"</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4566,7 +4569,7 @@ a.<span class="fn">sound</span>(); <span class="cmt">// prints "Bark"</span></pr
   <span class="ann">@Override</span> <span class="kw">void</span> <span class="fn">speak</span>() { <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"Woof"</span>); } <span class="cmt">// overriding</span>
 }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4592,7 +4595,7 @@ a.<span class="fn">sound</span>(); <span class="cmt">// prints "Bark"</span></pr
 <span class="kw">interface</span> <span class="cls">Resizable</span> { <span class="kw">void</span> <span class="fn">resize</span>(<span class="kw">double</span> factor); }
 <span class="kw">class</span> <span class="cls">Circle</span> <span class="kw">extends</span> <span class="cls">Shape</span> <span class="kw">implements</span> <span class="cls">Drawable</span>, <span class="cls">Resizable</span> { ... }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4616,7 +4619,7 @@ a.<span class="fn">sound</span>(); <span class="cmt">// prints "Bark"</span></pr
 <span class="cls">Parent</span> p = <span class="kw">new</span> <span class="cls">Child</span>();
 p.<span class="fn">show</span>(); <span class="cmt">// prints "Parent" — not polymorphic!</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4646,7 +4649,7 @@ p.<span class="fn">show</span>(); <span class="cmt">// prints "Parent" — not p
 <span class="cls">Notification</span> n = <span class="cls">NotificationFactory</span>.<span class="fn">create</span>(<span class="str">"EMAIL"</span>);
 n.<span class="fn">send</span>(<span class="str">"Hello"</span>);</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4672,7 +4675,7 @@ n.<span class="fn">send</span>(<span class="str">"Hello"</span>);</pre>
 <span class="cmt">// Usage — readable, no nulls for optional fields</span>
 <span class="cls">User</span> u = <span class="kw">new</span> <span class="cls">User</span>.<span class="cls">Builder</span>().<span class="fn">name</span>(<span class="str">"Alice"</span>).<span class="fn">email</span>(<span class="str">"a@b.com"</span>).<span class="fn">age</span>(<span class="num">30</span>).<span class="fn">build</span>();</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4700,7 +4703,7 @@ n.<span class="fn">send</span>(<span class="str">"Hello"</span>);</pre>
 ctx.<span class="fn">setStrategy</span>(<span class="kw">new</span> <span class="cls">UpiPayment</span>());
 ctx.<span class="fn">checkout</span>(<span class="num">500</span>);</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -4723,7 +4726,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
 <span class="cmt">// Observer 2 — update inventory</span>
 <span class="ann">@EventListener</span> <span class="kw">void</span> <span class="fn">updateInv</span>(<span class="cls">OrderPlacedEvent</span> e) { inventory.<span class="fn">reduce</span>(e.<span class="fn">getOrder</span>()); }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -5068,7 +5071,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
             <li><code>git bisect</code>: binary search to find bug-introducing commit</li>
           </ul>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -5087,7 +5090,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
           </ul>
           Integrates with Jenkins/GitHub Actions — fail pipeline on quality gate breach.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -5125,7 +5128,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
           </ol>
           <div class="tip-box"><span class="tip-label">Pro tip</span>Use percentile metrics (p99) not averages. Average hides outliers. Check if latency spike correlates with specific user cohort, endpoint, or DB query.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -5142,7 +5145,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
           </ul>
           <strong>Tools:</strong> <code>top -H -p &lt;pid&gt;</code> → find high CPU thread ID → convert to hex → find in jstack output.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -5162,7 +5165,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
           </ul>
           1M rpm = ~16,667 req/sec. With 10 instances each handling 1667 req/s (feasible with async I/O).
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -5188,7 +5191,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
             <li><code>Idempotency</code> — duplicate payment requests must not double-charge</li>
           </ul>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -5212,7 +5215,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
 -XX:MaxMetaspaceSize=256m                 <span class="cmt"># cap metaspace</span></pre>
           <strong>Debug:</strong> Analyze heap dump with Eclipse MAT or VisualVM → find largest retained objects.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -5228,7 +5231,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
           </ul>
           <div class="tip-box warn"><span class="tip-label">Important</span>Always set TTL on distributed locks to avoid deadlocks if service crashes while holding lock. Use try-finally to ensure unlock.</div>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -5294,7 +5297,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
 }
 <span class="cmt">// Output: Thread-1: 1, Thread-2: 2, Thread-3: 3, Thread-1: 4 ...</span></pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -5327,7 +5330,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
 }</pre>
           <strong>Time:</strong> O(n) | <strong>Space:</strong> O(n) — LinkedHashSet preserves insertion order.
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -5358,7 +5361,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
 }</pre>
           <strong>Time:</strong> O(n) — one pass through array | <strong>Space:</strong> O(1). Much better than brute force O(n×k).
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-card" onclick="toggleAnswer(this)">
@@ -5407,7 +5410,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
   <span class="cmt">// resilience4j.retry.instances.extService.exponentialBackoffMultiplier=2</span>
 }</pre>
         </div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-card'))">Mark Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleAnswer(this.closest('.q-card'))">Show Answer</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-card'))">▷ In Progress</button></div>
       </div>
 
     </div>
@@ -5430,7 +5433,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
         <div class="q-answer"><pre>list.<span class="fn">stream</span>()
   .<span class="fn">filter</span>(e -> <span class="cls">Collections</span>.<span class="fn">frequency</span>(list, e) > <span class="num">1</span>)
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toSet</span>());</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5442,7 +5445,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
   .<span class="fn">filter</span>(e -> e.<span class="fn">getValue</span>() == <span class="num">1</span>)
   .<span class="fn">map</span>(<span class="cls">Map</span>.<span class="cls">Entry</span>::getKey)
   .<span class="fn">findFirst</span>().<span class="fn">orElse</span>(<span class="kw">null</span>);</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5450,7 +5453,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
         <div class="q-answer"><pre>employees.<span class="fn">stream</span>()
   .<span class="fn">max</span>(<span class="cls">Comparator</span>.<span class="fn">comparingDouble</span>(<span class="cls">Employee</span>::getSalary))
   .<span class="fn">orElseThrow</span>();</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5458,7 +5461,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
         <div class="q-answer"><pre><span class="cls">Map</span>&lt;<span class="cls">String</span>, <span class="cls">List</span>&lt;<span class="cls">Employee</span>&gt;&gt; byDept =
   employees.<span class="fn">stream</span>()
     .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">groupingBy</span>(<span class="cls">Employee</span>::getDepartment));</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5469,7 +5472,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
       <span class="cls">Employee</span>::getGender,
       <span class="cls">Collectors</span>.<span class="fn">averagingDouble</span>(<span class="cls">Employee</span>::getSalary)
     ));</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5480,7 +5483,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
   .<span class="fn">mapToObj</span>(i -> str.<span class="fn">charAt</span>(str.<span class="fn">length</span>()-<span class="num">1</span>-i))
   .<span class="fn">map</span>(<span class="cls">String</span>::valueOf)
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">joining</span>());</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5489,7 +5492,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
   .<span class="fn">sorted</span>(<span class="cls">Comparator</span>.<span class="fn">comparingDouble</span>(<span class="cls">Employee</span>::getSalary).<span class="fn">reversed</span>())
   .<span class="fn">limit</span>(<span class="num">3</span>)
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>());</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5499,7 +5502,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
     .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">groupingBy</span>(
       <span class="cls">Function</span>::identity, <span class="cls">Collectors</span>.<span class="fn">counting</span>()
     ));</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5507,7 +5510,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
         <div class="q-answer"><pre>list.<span class="fn">stream</span>()
   .<span class="fn">filter</span>(n -> <span class="cls">String</span>.<span class="fn">valueOf</span>(n).<span class="fn">startsWith</span>(<span class="str">"1"</span>))
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>()); <span class="cmt">// [11, 18, 13]</span></pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5518,7 +5521,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
       <span class="cls">Employee</span>::getDepartment,
       <span class="cls">Collectors</span>.<span class="fn">maxBy</span>(<span class="cls">Comparator</span>.<span class="fn">comparingDouble</span>(<span class="cls">Employee</span>::getSalary))
     ));</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5527,7 +5530,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
   numbers.<span class="fn">stream</span>()
     .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">partitioningBy</span>(n -> n % <span class="num">2</span> == <span class="num">0</span>));
 <span class="cmt">// true -> evens, false -> odds</span></pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5540,7 +5543,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
     (e1,e2) -> e1,
     <span class="cls">LinkedHashMap</span>::new
   ));</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5551,7 +5554,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
     <span class="cls">Arrays</span>.<span class="fn">stream</span>(arr2).<span class="fn">sorted</span>().<span class="fn">boxed</span>()
       .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>())
   );</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5562,7 +5565,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
   .<span class="fn">skip</span>(<span class="num">1</span>)
   .<span class="fn">findFirst</span>()
   .<span class="fn">orElseThrow</span>();</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5570,7 +5573,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
         <div class="q-answer"><pre><span class="cls">String</span> joined = list.<span class="fn">stream</span>()
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">joining</span>(<span class="str">", "</span>, <span class="str">"["</span>, <span class="str">"]"</span>));
 <span class="cmt">// Output: [a, b, c]</span></pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5580,7 +5583,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
     .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">groupingBy</span>(
       <span class="cls">Employee</span>::getGender, <span class="cls">Collectors</span>.<span class="fn">counting</span>()
     ));</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5591,7 +5594,7 @@ applicationEventPublisher.<span class="fn">publishEvent</span>(<span class="kw">
 <span class="cmt">// For better performance with large lists:</span>
 <span class="cls">Set</span>&lt;<span class="cls">Integer</span>&gt; set2 = <span class="kw">new</span> <span class="cls">HashSet</span>&lt;&gt;(list2);
 list1.<span class="fn">stream</span>().<span class="fn">filter</span>(set2::contains).<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>());</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5603,7 +5606,7 @@ list1.<span class="fn">stream</span>().<span class="fn">filter</span>(set2::cont
       <span class="cls">Function</span>::identity,
       (e1,e2) -> e1 <span class="cmt">// handle duplicate keys</span>
     ));</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5613,7 +5616,7 @@ list1.<span class="fn">stream</span>().<span class="fn">filter</span>(set2::cont
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toMap</span>(
     n -> n, n -> n * n
   ));</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5624,13 +5627,13 @@ list1.<span class="fn">stream</span>().<span class="fn">filter</span>(set2::cont
       n -> n % <span class="num">2</span> == <span class="num">0</span>,
       <span class="cls">Collectors</span>.<span class="fn">summingInt</span>(<span class="cls">Integer</span>::intValue)
     ));</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
         <div class="q-list-top"><span class="q-list-num">S-21</span><div class="q-list-text">Remove duplicates from a List using Streams</div></div>
         <div class="q-answer"><pre>list.<span class="fn">stream</span>().<span class="fn">distinct</span>().<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>());</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5638,7 +5641,7 @@ list1.<span class="fn">stream</span>().<span class="fn">filter</span>(set2::cont
         <div class="q-answer"><pre>list.<span class="fn">stream</span>()
   .<span class="fn">max</span>(<span class="cls">Comparator</span>.<span class="fn">comparingInt</span>(<span class="cls">String</span>::length))
   .<span class="fn">orElse</span>(<span class="kw">null</span>);</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5647,7 +5650,7 @@ list1.<span class="fn">stream</span>().<span class="fn">filter</span>(set2::cont
 list.<span class="fn">stream</span>().<span class="fn">map</span>(<span class="cls">String</span>::toUpperCase).<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>());
 <span class="cmt">// Lowercase</span>
 list.<span class="fn">stream</span>().<span class="fn">map</span>(<span class="cls">String</span>::toLowerCase).<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>());</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5656,7 +5659,7 @@ list.<span class="fn">stream</span>().<span class="fn">map</span>(<span class="c
 nested.<span class="fn">stream</span>()
   .<span class="fn">flatMap</span>(<span class="cls">Collection</span>::stream)
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>()); <span class="cmt">// [1,2,3,4]</span></pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5665,7 +5668,7 @@ nested.<span class="fn">stream</span>()
   .<span class="fn">mapToObj</span>(i -> <span class="cls">String</span>.<span class="fn">valueOf</span>(str.<span class="fn">charAt</span>(str.<span class="fn">length</span>()-<span class="num">1</span>-i)))
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">joining</span>());
 <span class="kw">boolean</span> isPalindrome = str.<span class="fn">equalsIgnoreCase</span>(rev);</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5674,7 +5677,7 @@ nested.<span class="fn">stream</span>()
 <span class="kw">int</span> expected = n * (n + <span class="num">1</span>) / <span class="num">2</span>;
 <span class="kw">int</span> actual = <span class="cls">Arrays</span>.<span class="fn">stream</span>(arr).<span class="fn">sum</span>();
 <span class="kw">int</span> missing = expected - actual;</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5684,7 +5687,7 @@ nested.<span class="fn">stream</span>()
 <span class="cmt">// Distinct merge</span>
 <span class="cls">Stream</span>.<span class="fn">concat</span>(list1.<span class="fn">stream</span>(), list2.<span class="fn">stream</span>()).<span class="fn">distinct</span>().<span class="fn">sorted</span>()
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>());</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5695,7 +5698,7 @@ nested.<span class="fn">stream</span>()
 stats.<span class="fn">getAverage</span>(); stats.<span class="fn">getSum</span>();
 stats.<span class="fn">getMin</span>();    stats.<span class="fn">getMax</span>();
 stats.<span class="fn">getCount</span>();</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5705,7 +5708,7 @@ stats.<span class="fn">getCount</span>();</pre></div>
     .<span class="fn">thenComparingDouble</span>(<span class="cls">Employee</span>::getSalary).<span class="fn">reversed</span>())
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>());
 <span class="cmt">// Sort by dept ASC, then salary DESC within dept</span></pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5714,7 +5717,7 @@ stats.<span class="fn">getCount</span>();</pre></div>
   .<span class="fn">distinct</span>()
   .<span class="fn">mapToObj</span>(c -> <span class="cls">String</span>.<span class="fn">valueOf</span>((<span class="kw">char</span>)c))
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">joining</span>()); <span class="cmt">// "abc" from "aabbcc"</span></pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5722,7 +5725,7 @@ stats.<span class="fn">getCount</span>();</pre></div>
         <div class="q-answer"><pre><span class="cls">Arrays</span>.<span class="fn">stream</span>(sentence.<span class="fn">split</span>(<span class="str">"\\s+"</span>))
   .<span class="fn">filter</span>(w -> <span class="str">"aeiouAEIOU"</span>.<span class="fn">indexOf</span>(w.<span class="fn">charAt</span>(<span class="num">0</span>)) != -<span class="num">1</span>)
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>());</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5730,7 +5733,7 @@ stats.<span class="fn">getCount</span>();</pre></div>
         <div class="q-answer"><pre>list.<span class="fn">stream</span>()
   .<span class="fn">filter</span>(<span class="cls">Objects</span>::nonNull)
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>());</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5738,7 +5741,7 @@ stats.<span class="fn">getCount</span>();</pre></div>
         <div class="q-answer"><pre>list.<span class="fn">stream</span>()
   .<span class="fn">sorted</span>(<span class="cls">Comparator</span>.<span class="fn">comparingInt</span>(<span class="cls">String</span>::length))
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>());</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5746,7 +5749,7 @@ stats.<span class="fn">getCount</span>();</pre></div>
         <div class="q-answer"><pre><span class="kw">boolean</span> allAdults = list.<span class="fn">stream</span>().<span class="fn">allMatch</span>(e -> e.<span class="fn">getAge</span>() >= <span class="num">18</span>);
 <span class="kw">boolean</span> anyActive = list.<span class="fn">stream</span>().<span class="fn">anyMatch</span>(<span class="cls">Employee</span>::isActive);
 <span class="kw">boolean</span> noneBlocked = list.<span class="fn">stream</span>().<span class="fn">noneMatch</span>(e -> e.<span class="fn">getStatus</span>().<span class="fn">equals</span>(<span class="str">"BLOCKED"</span>));</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5756,7 +5759,7 @@ list.<span class="fn">stream</span>()
   .<span class="fn">skip</span>((long)(page - <span class="num">1</span>) * pageSize) <span class="cmt">// skip first N pages</span>
   .<span class="fn">limit</span>(pageSize)
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>());</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5766,7 +5769,7 @@ list.<span class="fn">stream</span>()
 <span class="cmt">// Using streams</span>
 map.<span class="fn">keySet</span>().<span class="fn">stream</span>().<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>());
 map.<span class="fn">values</span>().<span class="fn">stream</span>().<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>());</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5776,7 +5779,7 @@ map.<span class="fn">values</span>().<span class="fn">stream</span>().<span clas
 map.<span class="fn">entrySet</span>().<span class="fn">stream</span>()
   .<span class="fn">filter</span>(e -> e.<span class="fn">getValue</span>() > <span class="num">1000</span>)
   .<span class="fn">forEach</span>(e -> <span class="cls">System</span>.out.<span class="fn">println</span>(e.<span class="fn">getKey</span>()));</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5788,7 +5791,7 @@ map.<span class="fn">entrySet</span>().<span class="fn">stream</span>()
 <span class="cmt">// WARNING: parallelStream uses ForkJoinPool.commonPool()</span>
 <span class="cmt">// Order is non-deterministic, use with stateless operations only</span>
 <span class="cmt">// Don't use for I/O bound tasks — use CompletableFuture instead</span></pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5799,7 +5802,7 @@ map.<span class="fn">entrySet</span>().<span class="fn">stream</span>()
 
 <span class="cmt">// Random numbers using generate</span>
 <span class="cls">Stream</span>.<span class="fn">generate</span>(<span class="cls">Math</span>::random).<span class="fn">limit</span>(<span class="num">5</span>).<span class="fn">forEach</span>(<span class="cls">System</span>.out::println);</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5809,7 +5812,7 @@ map.<span class="fn">entrySet</span>().<span class="fn">stream</span>()
     .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">partitioningBy</span>(<span class="cls">Employee</span>::isActive));
 <span class="cls">List</span>&lt;<span class="cls">Employee</span>&gt; active   = partitioned.<span class="fn">get</span>(<span class="kw">true</span>);
 <span class="cls">List</span>&lt;<span class="cls">Employee</span>&gt; inactive = partitioned.<span class="fn">get</span>(<span class="kw">false</span>);</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5820,7 +5823,7 @@ map.<span class="fn">entrySet</span>().<span class="fn">stream</span>()
   .<span class="fn">map</span>(i -> <span class="cls">IntStream</span>.<span class="fn">range</span>(i, i + B).<span class="fn">map</span>(j -> A[j]).<span class="fn">sum</span>())
   .<span class="fn">max</span>().<span class="fn">orElse</span>(<span class="num">0</span>);
 <span class="cls">System</span>.out.<span class="fn">println</span>(maxSum); <span class="cmt">// 9</span></pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5833,7 +5836,7 @@ map.<span class="fn">entrySet</span>().<span class="fn">stream</span>()
       (<span class="cls">BinaryOperator</span>&lt;<span class="cls">Employee</span>&gt;) (e1, e2) ->
         e1.<span class="fn">getSalary</span>() >= e2.<span class="fn">getSalary</span>() ? e1 : e2
     ));</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5847,7 +5850,7 @@ map.<span class="fn">entrySet</span>().<span class="fn">stream</span>()
 transactions.<span class="fn">stream</span>()
   .<span class="fn">filter</span>(t -> t.<span class="fn">getTrader</span>().<span class="fn">getCity</span>().<span class="fn">equals</span>(<span class="str">"Mumbai"</span>))
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>());</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5856,7 +5859,7 @@ transactions.<span class="fn">stream</span>()
   .<span class="fn">skip</span>(<span class="num">5</span>)
   .<span class="fn">mapToInt</span>(<span class="cls">Integer</span>::intValue)
   .<span class="fn">sum</span>();</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5865,7 +5868,7 @@ transactions.<span class="fn">stream</span>()
   .<span class="fn">filter</span>(c -> c != <span class="str">'a'</span>)  <span class="cmt">// remove 'a'</span>
   .<span class="fn">mapToObj</span>(c -> <span class="cls">String</span>.<span class="fn">valueOf</span>((<span class="kw">char</span>)c))
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">joining</span>());</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5874,7 +5877,7 @@ transactions.<span class="fn">stream</span>()
   .<span class="fn">mapToObj</span>(c -> (<span class="kw">char</span>)c)
   .<span class="fn">filter</span>(c -> !<span class="cls">Character</span>.<span class="fn">isLetterOrDigit</span>(c))
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>());</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5884,7 +5887,7 @@ transactions.<span class="fn">stream</span>()
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">groupingBy</span>(
     <span class="cls">Function</span>::identity, <span class="cls">Collectors</span>.<span class="fn">counting</span>()
   ));</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5895,7 +5898,7 @@ transactions.<span class="fn">stream</span>()
 <span class="cls">String</span>[] arr2 = list.<span class="fn">stream</span>().<span class="fn">toArray</span>(<span class="cls">String</span>[]::new);
 <span class="cmt">// int[] → List&lt;Integer&gt;</span>
 <span class="cls">List</span>&lt;<span class="cls">Integer</span>&gt; intList = <span class="cls">IntStream</span>.<span class="fn">of</span>(intArr).<span class="fn">boxed</span>().<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toList</span>());</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5906,7 +5909,7 @@ transactions.<span class="fn">stream</span>()
     <span class="cls">System</span>.out.<span class="fn">println</span>(<span class="str">"=== "</span> + dept + <span class="str">" ==="</span>);
     empList.<span class="fn">forEach</span>(e -> <span class="cls">System</span>.out.<span class="fn">println</span>(e.<span class="fn">getName</span>() + <span class="str">": "</span> + e.<span class="fn">getSalary</span>()));
   });</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
       <div class="q-list-item" onclick="toggleListAnswer(this)">
@@ -5924,7 +5927,7 @@ counts.<span class="fn">entrySet</span>().<span class="fn">stream</span>()
   .<span class="fn">filter</span>(e -> e.<span class="fn">getValue</span>() > <span class="num">1</span>)
   .<span class="fn">map</span>(<span class="cls">Map</span>.<span class="cls">Entry</span>::getKey)
   .<span class="fn">collect</span>(<span class="cls">Collectors</span>.<span class="fn">toSet</span>());</pre></div>
-        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();markAnswered(this.closest('.q-list-item'))">Done</button></div>
+        <div class="q-actions"><button class="btn-toggle" onclick="event.stopPropagation();toggleListAnswer(this.closest('.q-list-item'))">Show</button><button class="btn-mark" onclick="event.stopPropagation();cycleStatus(this.closest('.q-list-item'))">▷ In Progress</button></div>
       </div>
 
     </div><!-- end q-list -->
@@ -5985,56 +5988,88 @@ function toggleListAnswer(item) {
   if(btn) btn.textContent = ans.classList.contains('show') ? 'Hide' : 'Show';
 }
 
-// ── MARK ANSWERED ──
+// ── STATUS TRACKING (none → inprogress → done → none) ──
 const JAVA_PREP_KEY = 'java_prep_done_v1';
 
 function _allCards() {
   return Array.from(document.querySelectorAll('.q-card, .q-list-item'));
 }
 
-function markAnswered(card) {
+function _loadStatus() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(JAVA_PREP_KEY) || 'null');
+    if (Array.isArray(raw)) { const o={}; raw.forEach(idx=>o[idx]='done'); return o; }
+    return raw && typeof raw==='object' ? raw : {};
+  } catch { return {}; }
+}
+function _saveStatus(o) { localStorage.setItem(JAVA_PREP_KEY, JSON.stringify(o)); }
+
+function cycleStatus(card) {
   const all = _allCards();
   const idx = all.indexOf(card);
-  const done = new Set(JSON.parse(localStorage.getItem(JAVA_PREP_KEY) || '[]'));
-  if (card.classList.contains('answered')) {
-    card.classList.remove('answered');
-    done.delete(idx);
+  const status = _loadStatus();
+  const btn = card.querySelector('.btn-mark');
+  const cur = status[idx] || 'none';
+  card.classList.remove('answered','in-progress');
+  if (cur==='none') {
+    status[idx]='inprogress'; card.classList.add('in-progress');
+    if(btn){btn.textContent='✓ Mark Done';btn.className='btn-mark state-inprogress';}
+  } else if (cur==='inprogress') {
+    status[idx]='done'; card.classList.add('answered');
+    if(btn){btn.textContent='✕ Reset';btn.className='btn-mark state-done';}
   } else {
-    card.classList.add('answered');
-    done.add(idx);
+    delete status[idx];
+    if(btn){btn.textContent='▷ In Progress';btn.className='btn-mark';}
   }
-  localStorage.setItem(JAVA_PREP_KEY, JSON.stringify([...done]));
+  _saveStatus(status);
   updateProgress();
 }
 
 // ── PROGRESS ──
 function updateProgress() {
+  const status = _loadStatus(); const vals = Object.values(status);
   const all = document.querySelectorAll('.q-card, .q-list-item');
-  const done = document.querySelectorAll('.q-card.answered, .q-list-item.answered');
   const total = all.length;
-  const answered = done.length;
-  document.getElementById('answeredCount').textContent = answered;
+  const done = vals.filter(s=>s==='done').length;
+  const inprog = vals.filter(s=>s==='inprogress').length;
+  document.getElementById('answeredCount').textContent = done;
   document.getElementById('totalCount').textContent = total;
-  const pct = total > 0 ? Math.round((answered/total)*100) : 0;
+  const pct = total > 0 ? Math.round((done/total)*100) : 0;
   document.getElementById('progressFill').style.width = pct + '%';
   document.getElementById('progressPct').textContent = pct + '%';
+  const chip=document.getElementById('inProgressChip'), ipEl=document.getElementById('inProgressCount');
+  if(chip) chip.style.display=inprog>0?'flex':'none';
+  if(ipEl) ipEl.textContent=inprog;
 }
 
 // ── RESTORE SAVED PROGRESS ON LOAD ──
 (function restoreDoneState() {
-  const saved = JSON.parse(localStorage.getItem(JAVA_PREP_KEY) || '[]');
-  if (saved.length) {
-    const all = _allCards();
-    saved.forEach(idx => { if (all[idx]) all[idx].classList.add('answered'); });
-  }
+  const status = _loadStatus();
+  const all = _allCards();
+  Object.entries(status).forEach(([idx, state]) => {
+    const card = all[+idx];
+    if (!card) return;
+    const btn = card.querySelector('.btn-mark');
+    if (state==='done') {
+      card.classList.add('answered');
+      if(btn){btn.textContent='✕ Reset';btn.className='btn-mark state-done';}
+    } else if (state==='inprogress') {
+      card.classList.add('in-progress');
+      if(btn){btn.textContent='✓ Mark Done';btn.className='btn-mark state-inprogress';}
+    }
+  });
   updateProgress();
 })();
 
 // ── CLEAR ALL PROGRESS ──
 function clearAllProgress() {
-  if (!confirm('Clear all marked-done questions? This cannot be undone.')) return;
+  if (!confirm('Clear all progress? This cannot be undone.')) return;
   localStorage.removeItem(JAVA_PREP_KEY);
-  _allCards().forEach(c => c.classList.remove('answered'));
+  _allCards().forEach(c => {
+    c.classList.remove('answered','in-progress');
+    const btn=c.querySelector('.btn-mark');
+    if(btn){btn.textContent='▷ In Progress';btn.className='btn-mark';}
+  });
   updateProgress();
 }
 

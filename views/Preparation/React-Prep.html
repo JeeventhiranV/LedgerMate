@@ -170,13 +170,16 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
 .q-card:hover::before{opacity:1}
 .q-card.answered{border-color:rgba(6,214,160,.3);background:rgba(6,214,160,.025)}
 .q-card.answered::before{opacity:1;background:var(--teal)}
+.q-card.in-progress{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.04)}
+.q-card.in-progress::before{opacity:1;background:var(--gold)}
 .q-card.hidden{display:none}
 
 .card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
 .card-num{font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text3);background:var(--bg4);border:1px solid var(--border);border-radius:6px;padding:2px 7px;flex-shrink:0;margin-top:2px}
 .card-title{font-size:13.5px;font-weight:600;color:var(--text);line-height:1.45;flex:1;letter-spacing:-.01em}
 .card-done-badge{width:20px;height:20px;border-radius:50%;background:var(--teal);display:none;place-items:center;font-size:11px;flex-shrink:0;margin-top:1px;color:#fff}
-.q-card.answered .card-done-badge{display:grid}
+.q-card.answered .card-done-badge{display:grid;background:var(--teal)}
+.q-card.in-progress .card-done-badge{display:grid;background:var(--gold);font-size:10px}
 
 .card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .diff-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;font-family:'JetBrains Mono',monospace}
@@ -224,8 +227,11 @@ pre.code-block{background:#090c12;margin:0;padding:14px 16px;overflow-x:auto;fon
 .btn-code:hover{border-color:var(--cyan);background:rgba(34,211,238,.07)}
 .q-card.code-open .btn-code{border-color:var(--cyan);background:rgba(34,211,238,.07)}
 .btn-mark{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:12px;color:var(--text2);cursor:pointer;transition:all .2s;font-family:'Outfit',sans-serif;margin-left:auto}
-.btn-mark:hover{border-color:var(--teal);color:var(--teal)}
-.q-card.answered .btn-mark{border-color:rgba(6,214,160,.4);color:var(--teal);background:rgba(6,214,160,.07)}
+.btn-mark:hover{border-color:var(--gold);color:var(--gold)}
+.btn-mark.state-inprogress{border-color:rgba(245,158,11,.45);color:var(--gold);background:rgba(245,158,11,.08)}
+.btn-mark.state-inprogress:hover{border-color:var(--teal);color:var(--teal)}
+.btn-mark.state-done{border-color:rgba(6,214,160,.45);color:var(--teal);background:rgba(6,214,160,.08)}
+.btn-mark.state-done:hover{border-color:var(--rose);color:var(--rose)}
 
 /* ── NO RESULTS ── */
 .no-results{text-align:center;padding:64px 24px;display:none}
@@ -299,8 +305,11 @@ pre.code-block{background:#090c12;margin:0;padding:14px 16px;overflow-x:auto;fon
     <a href="../Study-Resources.html" class="back-btn">← Study Resources</a>
     <div class="topbar-right">
       <div class="progress-chip">
-        <span>Progress</span>
+        <span>Done</span>
         <strong id="answeredCount">0</strong>/<strong id="totalCount">0</strong>
+      </div>
+      <div class="progress-chip" id="inProgressChip" style="display:none">
+        <span>⏳</span><strong id="inProgressCount">0</strong>
       </div>
       <button class="clear-btn" onclick="clearAllProgress()">Clear All</button>
       <button class="theme-btn" id="themeBtn">🌙</button>
@@ -367,6 +376,7 @@ pre.code-block{background:#090c12;margin:0;padding:14px 16px;overflow-x:auto;fon
       <button class="filter-btn" data-filter="hard">Hard</button>
       <button class="filter-btn" data-filter="asked">🎯 Asked in Interviews</button>
       <button class="filter-btn" data-filter="done">Done ✓</button>
+      <button class="filter-btn" data-filter="inprogress">⏳ In Progress</button>
       <button class="filter-btn" data-filter="todo">Todo</button>
     </div>
   </div>
@@ -1251,8 +1261,9 @@ DELETE /users/:id      <span class="cmt">// delete</span>
    PERSISTENCE
 ════════════════════════════════════════════════════ */
 const STORE_KEY = 'react_prep_done_v1';
-function loadDone()  { try { return new Set(JSON.parse(localStorage.getItem(STORE_KEY)||'[]')); } catch(e){ return new Set(); } }
-function saveDone(s) { localStorage.setItem(STORE_KEY, JSON.stringify([...s])); }
+function loadStatus(){ try{ const r=JSON.parse(localStorage.getItem(STORE_KEY)||'null'); if(Array.isArray(r)){const o={};r.forEach(id=>o[id]='done');return o;} return r&&typeof r==='object'?r:{}; }catch{return{};} }
+function saveStatus(o){ localStorage.setItem(STORE_KEY,JSON.stringify(o)); }
+function loadDone(){ const s=loadStatus(); return new Set(Object.keys(s).filter(id=>s[id]==='done')); }
 
 /* ════════════════════════════════════════════════════
    STATE
@@ -1324,7 +1335,7 @@ function buildCard(q, color, qi) {
       <div class="card-top">
         <span class="card-num">${q.id.toUpperCase()}</span>
         <div class="card-title">${q.title}</div>
-        <div class="card-done-badge">✓</div>
+        <div class="card-done-badge" id="badge-${q.id}">✓</div>
       </div>
       <div class="card-meta">
         <span class="diff-tag ${q.diff}">${q.diff.charAt(0).toUpperCase()+q.diff.slice(1)}</span>
@@ -1343,7 +1354,7 @@ function buildCard(q, color, qi) {
       <div class="card-actions">
         <button class="btn-hint" onclick="toggleHint('${q.id}')">Hint</button>
         ${hasCode ? `<button class="btn-code" onclick="toggleCode('${q.id}')">Code</button>` : ''}
-        <button class="btn-mark" onclick="markDone('${q.id}')">Mark Done</button>
+        <button class="btn-mark" onclick="cycleStatus('${q.id}')">▷ In Progress</button>
       </div>
     </div>
   `;
@@ -1391,21 +1402,46 @@ function copyCode(id) {
 /* ════════════════════════════════════════════════════
    MARK DONE
 ════════════════════════════════════════════════════ */
-function markDone(id) {
-  const done = loadDone();
+function cycleStatus(id) {
+  const status = loadStatus();
   const card = document.getElementById('card-'+id);
   if (!card) return;
-  done.has(id) ? done.delete(id) : done.add(id);
-  card.classList.toggle('answered', done.has(id));
-  saveDone(done);
-  updateProgress();
-  updateNavDoneIndicators();
+  const btn = card.querySelector('.btn-mark');
+  const badge = document.getElementById('badge-'+id);
+  const cur = status[id] || 'none';
+  card.classList.remove('answered','in-progress');
+  if (cur==='none') {
+    status[id]='inprogress'; card.classList.add('in-progress');
+    if(badge) badge.textContent='⏳';
+    if(btn){btn.textContent='✓ Mark Done';btn.className='btn-mark state-inprogress';}
+  } else if (cur==='inprogress') {
+    status[id]='done'; card.classList.add('answered');
+    if(badge) badge.textContent='✓';
+    if(btn){btn.textContent='✕ Reset';btn.className='btn-mark state-done';}
+  } else {
+    delete status[id];
+    if(badge) badge.textContent='✓';
+    if(btn){btn.textContent='▷ In Progress';btn.className='btn-mark';}
+  }
+  saveStatus(status); updateProgress(); updateNavDoneIndicators();
 }
 
 function restoreMarked() {
-  loadDone().forEach(id => {
+  const status = loadStatus();
+  Object.entries(status).forEach(([id,state]) => {
     const card = document.getElementById('card-'+id);
-    if (card) card.classList.add('answered');
+    if (!card) return;
+    const btn = card.querySelector('.btn-mark');
+    const badge = document.getElementById('badge-'+id);
+    if (state==='done') {
+      card.classList.add('answered');
+      if(badge) badge.textContent='✓';
+      if(btn){btn.textContent='✕ Reset';btn.className='btn-mark state-done';}
+    } else if (state==='inprogress') {
+      card.classList.add('in-progress');
+      if(badge) badge.textContent='⏳';
+      if(btn){btn.textContent='✓ Mark Done';btn.className='btn-mark state-inprogress';}
+    }
   });
   updateNavDoneIndicators();
 }
@@ -1413,16 +1449,21 @@ function restoreMarked() {
 function clearAllProgress() {
   if (!confirm('Clear all progress? This cannot be undone.')) return;
   localStorage.removeItem(STORE_KEY);
-  document.querySelectorAll('.q-card.answered').forEach(c => c.classList.remove('answered'));
+  document.querySelectorAll('.q-card.answered,.q-card.in-progress').forEach(c => {
+    c.classList.remove('answered','in-progress');
+    const btn=c.querySelector('.btn-mark'); const badge=c.querySelector('.card-done-badge');
+    if(btn){btn.textContent='▷ In Progress';btn.className='btn-mark';}
+    if(badge) badge.textContent='✓';
+  });
   updateProgress(); updateNavDoneIndicators();
 }
 
 function updateNavDoneIndicators() {
-  const done = loadDone();
+  const status = loadStatus();
   CATEGORIES.forEach(cat => {
-    const catDone = cat.questions.filter(q => done.has(q.id)).length;
+    const active = cat.questions.filter(q => status[q.id]).length;
     const btn = document.querySelector(`.cat-btn[data-cat="${cat.id}"]`);
-    if (btn) btn.classList.toggle('has-done', catDone > 0);
+    if (btn) btn.classList.toggle('has-done', active > 0);
   });
 }
 
@@ -1430,14 +1471,18 @@ function updateNavDoneIndicators() {
    PROGRESS
 ════════════════════════════════════════════════════ */
 function updateProgress() {
-  const done  = loadDone();
+  const status = loadStatus(); const vals = Object.values(status);
   const total = CATEGORIES.reduce((a,c) => a + c.questions.length, 0);
-  const answered = done.size;
-  document.getElementById('answeredCount').textContent = answered;
-  document.getElementById('totalCount').textContent    = total;
-  const pct = total > 0 ? Math.round((answered / total) * 100) : 0;
-  document.getElementById('progressFill').style.width  = pct + '%';
-  document.getElementById('progressPct').textContent   = pct + '%';
+  const done = vals.filter(s=>s==='done').length;
+  const inprog = vals.filter(s=>s==='inprogress').length;
+  document.getElementById('answeredCount').textContent = done;
+  document.getElementById('totalCount').textContent = total;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+  const chip=document.getElementById('inProgressChip'), ipEl=document.getElementById('inProgressCount');
+  if(chip) chip.style.display=inprog>0?'flex':'none';
+  if(ipEl) ipEl.textContent=inprog;
 }
 
 function updateDiffStats() {
@@ -1472,7 +1517,7 @@ function filterCat(catId) {
 }
 
 function applyFilters() {
-  const done = loadDone();
+  const status = loadStatus();
   const q = activeSearch.toLowerCase().trim();
   let visible = 0;
   CATEGORIES.forEach(cat => {
@@ -1480,14 +1525,15 @@ function applyFilters() {
     cat.questions.forEach(qObj => {
       const card = document.getElementById('card-'+qObj.id);
       if (!card) return;
-      const isDone = done.has(qObj.id);
+      const state = status[qObj.id] || 'none';
       let show = true;
-      if (activeFilter === 'easy'   && qObj.diff !== 'easy')   show = false;
-      if (activeFilter === 'medium' && qObj.diff !== 'medium') show = false;
-      if (activeFilter === 'hard'   && qObj.diff !== 'hard')   show = false;
-      if (activeFilter === 'done'   && !isDone)                show = false;
-      if (activeFilter === 'todo'   && isDone)                 show = false;
-      if (activeFilter === 'asked'  && !qObj.asked)            show = false;
+      if (activeFilter === 'easy'       && qObj.diff !== 'easy')        show = false;
+      if (activeFilter === 'medium'     && qObj.diff !== 'medium')      show = false;
+      if (activeFilter === 'hard'       && qObj.diff !== 'hard')        show = false;
+      if (activeFilter === 'done'       && state !== 'done')            show = false;
+      if (activeFilter === 'inprogress' && state !== 'inprogress')      show = false;
+      if (activeFilter === 'todo'       && state !== 'none')            show = false;
+      if (activeFilter === 'asked'      && !qObj.asked)                 show = false;
       if (q) {
         const text = (qObj.title+' '+qObj.tags.join(' ')+' '+(qObj.hint||'').replace(/<[^>]*>/g,'')).toLowerCase();
         if (!text.includes(q)) show = false;
