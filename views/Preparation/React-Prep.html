@@ -261,6 +261,17 @@ pre.code-block{background:#090c12;margin:0;padding:14px 16px;overflow-x:auto;fon
   .hero h1{font-size:22px}
   .filter-bar{padding:10px 14px}
 }
+
+/* ── FAVORITES & NOTES ── */
+.q-fav-btn{position:absolute;top:10px;right:12px;background:none;border:none;cursor:pointer;font-size:16px;color:#f59e0b;opacity:.3;transition:all .2s;padding:2px;line-height:1;z-index:2}
+.q-fav-btn:hover{opacity:1;transform:scale(1.2)}
+.q-fav-btn.active{opacity:1}
+.q-note-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--text3);transition:all .15s;margin-left:6px}
+.q-note-btn:hover{color:var(--text1);border-color:var(--text2)}
+.q-note-btn.has-note{color:#f59e0b;border-color:rgba(245,158,11,.4)}
+.q-note-area{margin-top:10px;padding:8px;background:var(--bg4);border-radius:6px;border:1px solid var(--border);display:none}
+.q-note-input{width:100%;min-height:56px;background:transparent;border:none;outline:none;color:var(--text1);font-size:12px;resize:vertical;font-family:inherit;line-height:1.5}
+.q-card{position:relative}
 </style>
 </head>
 <body>
@@ -378,6 +389,7 @@ pre.code-block{background:#090c12;margin:0;padding:14px 16px;overflow-x:auto;fon
       <button class="filter-btn" data-filter="done">Done ✓</button>
       <button class="filter-btn" data-filter="inprogress">⏳ In Progress</button>
       <button class="filter-btn" data-filter="todo">Todo</button>
+      <button class="filter-btn" data-filter="fav">⭐ Favorites</button>
     </div>
   </div>
 
@@ -1265,6 +1277,37 @@ function loadStatus(){ try{ const r=JSON.parse(localStorage.getItem(STORE_KEY)||
 function saveStatus(o){ localStorage.setItem(STORE_KEY,JSON.stringify(o)); }
 function loadDone(){ const s=loadStatus(); return new Set(Object.keys(s).filter(id=>s[id]==='done')); }
 
+// ── Favorites ──
+const REACT_FAV_KEY = 'react_favs_v1';
+function loadFavsReact(){try{return new Set(JSON.parse(localStorage.getItem(REACT_FAV_KEY)||'[]'));}catch{return new Set();}}
+function toggleFavReact(id){const f=loadFavsReact();if(f.has(id))f.delete(id);else f.add(id);localStorage.setItem(REACT_FAV_KEY,JSON.stringify([...f]));}
+
+// ── Notes ──
+const REACT_NOTES_KEY = 'react_notes_v1';
+function loadNotesReact(){try{return JSON.parse(localStorage.getItem(REACT_NOTES_KEY)||'{}');}catch{return {};}}
+function saveNoteReact(id,text){const n=loadNotesReact();if(text.trim())n[id]=text;else delete n[id];localStorage.setItem(REACT_NOTES_KEY,JSON.stringify(n));}
+function toggleReactNote(id){
+  const area=document.getElementById('note-area-'+id);
+  if(!area)return;
+  const isOpen=area.style.display!=='none';
+  area.style.display=isOpen?'none':'block';
+  if(!isOpen){const ta=area.querySelector('textarea');if(ta){ta.value=loadNotesReact()[id]||'';ta.focus();}}
+  const btn=document.querySelector('.q-note-btn[data-note-id="'+id+'"]');
+  if(btn)btn.classList.toggle('has-note',!!(loadNotesReact()[id]));
+}
+
+// ── Streak ──
+function updateStudyStreak(){
+  const SK='prep_streak_v1', today=new Date().toISOString().split('T')[0];
+  try{
+    const d=JSON.parse(localStorage.getItem(SK)||'{"date":"","streak":0,"longest":0}');
+    if(d.date===today)return;
+    const prev=new Date(Date.now()-86400000).toISOString().split('T')[0];
+    const s=d.date===prev?d.streak+1:1;
+    localStorage.setItem(SK,JSON.stringify({date:today,streak:s,longest:Math.max(s,d.longest||0)}));
+  }catch{}
+}
+
 /* ════════════════════════════════════════════════════
    STATE
 ════════════════════════════════════════════════════ */
@@ -1281,6 +1324,17 @@ function buildPage() {
   restoreMarked();
   updateProgress();
   updateDiffStats();
+  // Restore note textarea values
+  const notes = loadNotesReact();
+  Object.keys(notes).forEach(id => {
+    const area = document.getElementById('note-area-'+id);
+    if(area){
+      const ta = area.querySelector('textarea');
+      if(ta) ta.value = notes[id];
+      const btn = document.querySelector('.q-note-btn[data-note-id="'+id+'"]');
+      if(btn) btn.classList.add('has-note');
+    }
+  });
 }
 
 function buildCatNav() {
@@ -1329,9 +1383,14 @@ function buildContent() {
 
 function buildCard(q, color, qi) {
   const hasCode = q.code && q.code.src;
+  const favs = loadFavsReact();
+  const notes = loadNotesReact();
+  const isFav = favs.has(q.id);
+  const hasNote = !!notes[q.id];
   return `
     <div class="q-card" id="card-${q.id}" data-id="${q.id}" data-diff="${q.diff}" data-asked="${q.asked||false}"
          style="--card-accent:${color};animation-delay:${qi*25}ms">
+      <button class="q-fav-btn${isFav?' active':''}" data-fav-id="${q.id}" title="Favorite" aria-label="Toggle favorite">${isFav?'⭐':'☆'}</button>
       <div class="card-top">
         <span class="card-num">${q.id.toUpperCase()}</span>
         <div class="card-title">${q.title}</div>
@@ -1355,6 +1414,10 @@ function buildCard(q, color, qi) {
         <button class="btn-hint" onclick="toggleHint('${q.id}')">Hint</button>
         ${hasCode ? `<button class="btn-code" onclick="toggleCode('${q.id}')">Code</button>` : ''}
         <button class="btn-mark" onclick="cycleStatus('${q.id}')">▷ In Progress</button>
+        <button class="q-note-btn${hasNote?' has-note':''}" data-note-id="${q.id}" onclick="toggleReactNote('${q.id}')" title="Notes" aria-label="Add note">📝 Note</button>
+      </div>
+      <div class="q-note-area" id="note-area-${q.id}">
+        <textarea class="q-note-input" placeholder="Add your notes here…" oninput="saveNoteReact('${q.id}',this.value)"></textarea>
       </div>
     </div>
   `;
@@ -1424,6 +1487,7 @@ function cycleStatus(id) {
     if(btn){btn.textContent='▷ In Progress';btn.className='btn-mark';}
   }
   saveStatus(status); updateProgress(); updateNavDoneIndicators();
+  updateStudyStreak();
 }
 
 function restoreMarked() {
@@ -1534,6 +1598,7 @@ function applyFilters() {
       if (activeFilter === 'inprogress' && state !== 'inprogress')      show = false;
       if (activeFilter === 'todo'       && state !== 'none')            show = false;
       if (activeFilter === 'asked'      && !qObj.asked)                 show = false;
+      if (activeFilter === 'fav'        && !loadFavsReact().has(qObj.id)) show = false;
       if (q) {
         const text = (qObj.title+' '+qObj.tags.join(' ')+' '+(qObj.hint||'').replace(/<[^>]*>/g,'')).toLowerCase();
         if (!text.includes(q)) show = false;
@@ -1612,6 +1677,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const total = document.documentElement.scrollHeight - window.innerHeight;
     document.getElementById('scroll-progress').style.width = (total > 0 ? (window.scrollY/total)*100 : 0) + '%';
   });
+});
+
+// ── Fav button event delegation ──
+document.addEventListener('click', function(e){
+  const favBtn = e.target.closest('.q-fav-btn');
+  if(favBtn){
+    e.stopPropagation();
+    const id = favBtn.dataset.favId;
+    toggleFavReact(id);
+    const f = loadFavsReact();
+    favBtn.textContent = f.has(id) ? '⭐' : '☆';
+    favBtn.classList.toggle('active', f.has(id));
+  }
 });
 </script>
 </body>

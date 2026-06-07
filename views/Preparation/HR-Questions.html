@@ -32,6 +32,22 @@
       .q-status-btn:hover{border-color:#f59e0b;color:#f59e0b}
       .q-status-btn.inprogress{border-color:rgba(245,158,11,.5);color:#f59e0b;background:rgba(245,158,11,.09)}
       .q-status-btn.done{border-color:rgba(6,214,160,.5);color:#06d6a0;background:rgba(6,214,160,.09)}
+      .topbar{display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;flex-wrap:wrap}
+      .topbar-title{font-weight:700;font-size:15px;flex:1;white-space:nowrap}
+      .back-btn{font-size:13px;color:var(--text3);text-decoration:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;white-space:nowrap}
+      .back-btn:hover{color:var(--text1);border-color:var(--text3)}
+      .topbar-search{flex:1;min-width:160px;max-width:320px;padding:6px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text1);font-size:13px;outline:none}
+      .topbar-search:focus{border-color:var(--accent1)}
+      .topbar-right{display:flex;align-items:center;gap:8px;margin-left:auto}
+      .theme-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:14px;color:var(--text1)}
+      .fav-filter-btn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:5px 12px;cursor:pointer;font-size:13px;color:#f59e0b;font-weight:600}
+      .fav-filter-btn.active{background:rgba(245,158,11,.2)}
+      .search-count{font-size:12px;color:var(--text3);margin-left:4px;white-space:nowrap}
+      .q-fav-btn{background:none;border:none;cursor:pointer;font-size:16px;color:#f59e0b;opacity:.35;transition:all .15s;padding:2px 4px;line-height:1;border-radius:4px}
+      .q-fav-btn:hover{opacity:1;transform:scale(1.2)}
+      .q-fav-btn.active{opacity:1}
+      details[data-hidden="true"]{display:none}
+      body.light{--bg1:#f8f9fa;--bg2:#ffffff;--bg3:#f1f3f5;--bg4:#e9ecef;--border:#dee2e6;--text1:#111827;--text2:#374151;--text3:#6b7280}
     </style>
 </head>
 <body>
@@ -43,6 +59,16 @@
   </div>
 
   <main>
+    <div class="topbar">
+      <div class="topbar-title">HR Interview Questions</div>
+      <a href="../Study-Resources.html" class="back-btn">← Study Resources</a>
+      <input type="text" class="topbar-search" id="hrSearch" placeholder="Search questions…" autocomplete="off" aria-label="Search questions"/>
+      <div class="topbar-right">
+        <span class="search-count" id="searchCount"></span>
+        <button class="fav-filter-btn" id="favFilterBtn" title="Show favorites only" aria-label="Filter favorites">⭐ Favorites</button>
+        <button class="theme-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle dark/light theme">🌙</button>
+      </div>
+    </div>
     <a class="back" href="../Study-Resources.html">← Back to Study Resources</a>
     <h1>HR Questions & Answers</h1>
     <p class="intro">Collected HR and behavioural interview questions with concise model answers. Use these as preparation notes and customize answers to reflect your experience.</p>
@@ -351,8 +377,62 @@
       delete s[idx];
       if(btn){btn.textContent='▷ In Progress';btn.className='q-status-btn';}
     }
-    saveStatus(s); updateProgress();
+    saveStatus(s); updateProgress(); updateStudyStreak();
   }
+
+  // ── Favorites ──────────────────────────────────
+  const FAV_KEY = 'hr_favs_v1';
+  function loadFavs(){try{return new Set(JSON.parse(localStorage.getItem(FAV_KEY)||'[]'));}catch{return new Set();}}
+  function saveFavs(s){localStorage.setItem(FAV_KEY,JSON.stringify([...s]));}
+  function toggleFavHR(idx){const f=loadFavs();if(f.has(idx))f.delete(idx);else f.add(idx);saveFavs(f);}
+
+  // ── Streak ──────────────────────────────────────
+  function updateStudyStreak(){
+    const SK='prep_streak_v1', today=new Date().toISOString().split('T')[0];
+    try{
+      const d=JSON.parse(localStorage.getItem(SK)||'{"date":"","streak":0,"longest":0}');
+      if(d.date===today)return;
+      const prev=new Date(Date.now()-86400000).toISOString().split('T')[0];
+      const s=d.date===prev?d.streak+1:1;
+      localStorage.setItem(SK,JSON.stringify({date:today,streak:s,longest:Math.max(s,d.longest||0)}));
+    }catch{}
+  }
+
+  // ── Theme ───────────────────────────────────────
+  (function(){
+    const saved=localStorage.getItem('prep_theme')||'dark';
+    document.body.classList.toggle('light',saved==='light');
+    const btn=document.getElementById('themeBtn');
+    if(btn) btn.textContent=saved==='light'?'🌙':'☀️';
+    if(btn) btn.addEventListener('click',()=>{
+      const isLight=document.body.classList.toggle('light');
+      localStorage.setItem('prep_theme',isLight?'light':'dark');
+      btn.textContent=isLight?'🌙':'☀️';
+    });
+  })();
+
+  // ── Search ──────────────────────────────────────
+  let showFavsOnly=false;
+  function applyHRFilters(){
+    const q=(document.getElementById('hrSearch')?.value||'').toLowerCase().trim();
+    const favs=loadFavs();
+    let visible=0;
+    all.forEach((det,idx)=>{
+      const text=(det.querySelector('summary')?.textContent||'').toLowerCase();
+      const matchSearch=!q||text.includes(q);
+      const matchFav=!showFavsOnly||favs.has(idx);
+      det.dataset.hidden=(!matchSearch||!matchFav)?'true':'false';
+      if(!det.dataset.hidden||det.dataset.hidden==='false') visible++;
+    });
+    const countEl=document.getElementById('searchCount');
+    if(countEl) countEl.textContent=q||showFavsOnly?`${visible} shown`:'';
+  }
+  document.getElementById('hrSearch')?.addEventListener('input',applyHRFilters);
+  document.getElementById('favFilterBtn')?.addEventListener('click',function(){
+    showFavsOnly=!showFavsOnly;
+    this.classList.toggle('active',showFavsOnly);
+    applyHRFilters();
+  });
 
   // Inject buttons and restore state
   const status=loadStatus();
@@ -365,6 +445,19 @@
     if(state==='inprogress') det.classList.add('state-inprogress');
     if(state==='done') det.classList.add('state-done');
     det.appendChild(btn);
+    const favBtn=document.createElement('button');
+    favBtn.className='q-fav-btn'+(loadFavs().has(idx)?' active':'');
+    favBtn.textContent=loadFavs().has(idx)?'⭐':'☆';
+    favBtn.title='Favorite';
+    favBtn.setAttribute('aria-label','Toggle favorite');
+    favBtn.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      toggleFavHR(idx);
+      const f=loadFavs();
+      favBtn.textContent=f.has(idx)?'⭐':'☆';
+      favBtn.classList.toggle('active',f.has(idx));
+    });
+    det.appendChild(favBtn);
   });
 
   updateProgress();

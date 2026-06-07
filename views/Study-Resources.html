@@ -181,6 +181,19 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .delay-4{animation-delay:.2s}
 .delay-5{animation-delay:.25s}
 .delay-6{animation-delay:.3s}
+
+/* Streak */
+.streak-pill{border-color:rgba(249,115,22,.35)!important}
+/* Study timer */
+.study-timer{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:10px 18px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,.25);z-index:1000;backdrop-filter:blur(12px);transition:all .3s}
+.study-timer.hidden{transform:translateY(100px);opacity:0;pointer-events:none}
+.timer-display{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--text1);min-width:68px;text-align:center}
+.timer-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text1);transition:all .15s}
+.timer-btn:hover{background:var(--bg4)}
+.timer-btn.active{background:rgba(6,214,160,.12);border-color:rgba(6,214,160,.4);color:var(--accent3)}
+.timer-toggle{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--border);border-radius:50%;width:44px;height:44px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:999;transition:all .3s}
+/* Notes badge */
+.res-notes-badge{font-size:10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:20px;padding:1px 7px;color:#f59e0b;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -195,7 +208,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   <div class="topbar-title">Study Resources Hub</div>
   <div class="topbar-right">
     <a href="../index.html" class="btn-back">← Back to App</a>
-    <button class="btn-theme" id="themeBtn" title="Toggle theme">🌙</button>
+    <button class="btn-theme" id="themeBtn" title="Toggle theme" aria-label="Toggle dark/light theme">🌙</button>
   </div>
 </div>
 
@@ -213,10 +226,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       <div class="stat-pill"><div class="stat-num" id="statCats">20+</div><div class="stat-lbl">Topic Areas</div></div>
       <div class="stat-pill"><div class="stat-num" id="statDone">0</div><div class="stat-lbl">Completed</div></div>
       <div class="stat-pill" id="statInProgressPill" style="display:none;border-color:rgba(245,158,11,.35)"><div class="stat-num" id="statInProgress" style="background:linear-gradient(135deg,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">0</div><div class="stat-lbl">In Progress</div></div>
+      <div class="stat-pill streak-pill" id="streakPill" style="display:none;border-color:rgba(249,115,22,.35)"><div class="stat-num" id="statStreak" style="background:linear-gradient(135deg,#f97316,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">0</div><div class="stat-lbl">🔥 Day Streak</div></div>
     </div>
     <div class="search-wrap">
       <span class="search-icon">🔍</span>
-      <input type="text" id="searchInput" placeholder="Search resources, topics, tags…" autocomplete="off"/>
+      <input type="text" id="searchInput" placeholder="Search resources, topics, tags…" autocomplete="off" aria-label="Search resources"/>
       <kbd class="search-kbd">Ctrl+K</kbd>
     </div>
   </div>
@@ -273,6 +287,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   Part of <a href="../index.html">LedgerMate</a> — Your personal finance + career growth platform.
 </div>
 
+<!-- STUDY TIMER -->
+<button class="timer-toggle" id="timerToggle" title="Study Timer" aria-label="Open study timer">⏱</button>
+<div class="study-timer hidden" id="studyTimer">
+  <div class="timer-display" id="timerDisplay">00:00</div>
+  <button class="timer-btn" id="timerStartStop" aria-label="Start or stop timer">Start</button>
+  <button class="timer-btn" id="timerReset" aria-label="Reset timer">Reset</button>
+  <button class="timer-btn" id="timerClose" aria-label="Close timer">✕</button>
+</div>
+
 <script>
 /* ══════════════════════════════════════════════════════
    RESOURCE DATA
@@ -289,6 +312,7 @@ const RESOURCES = [
     color: '#06d6a0',
     file: 'Preparation/DSA-Prep-Hub.html',
     progressKey: 'dsa_prep_done_v1',
+    notesKey: 'dsa_notes_v1',
     totalQ: 214,
     badge: 'new'
   },
@@ -303,6 +327,7 @@ const RESOURCES = [
     color: '#f59e0b',
     file: 'Preparation/Java-Prep-kit.html',
     progressKey: 'java_prep_done_v1',
+    notesKey: 'java_notes_v1',
     totalQ: 120,
     badge: 'hot'
   },
@@ -317,6 +342,7 @@ const RESOURCES = [
     color: '#4f8ef7',
     file: 'Preparation/React-Prep.html',
     progressKey: 'react_prep_done_v1',
+    notesKey: 'react_notes_v1',
     totalQ: 31,
     badge: 'hot'
   },
@@ -331,6 +357,7 @@ const RESOURCES = [
     color: '#8b5cf6',
     file: 'Preparation/HR-Questions.html',
     progressKey: 'hr_questions_done_v1',
+    notesKey: 'hr_notes_v1',
     totalQ: 48,
     badge: 'new'
   },
@@ -345,6 +372,7 @@ const RESOURCES = [
     color: '#22d3ee',
     file: 'Preparation/Interview-Prep-Kit.html',
     progressKey: 'ipk_completed_v1',
+    notesKey: 'ipk_notes_v1',
     totalQ: 83,
     badge: 'new'
   }
@@ -406,11 +434,26 @@ function totalInProgress() {
   }, 0);
 }
 
+function getStudyStreak(){
+  try{
+    const d=JSON.parse(localStorage.getItem('prep_streak_v1')||'{"streak":0}');
+    return d.streak||0;
+  }catch{return 0;}
+}
+
+function getNotesCount(notesKey){
+  try{
+    const n=JSON.parse(localStorage.getItem(notesKey)||'{}');
+    return Object.values(n).filter(v=>v&&v.trim()).length;
+  }catch{return 0;}
+}
+
 /* ══════════════════════════════════════════════════════
    RENDER
 ══════════════════════════════════════════════════════ */
 function buildCard(r, idx) {
   const p = getProgress(r.progressKey, r.totalQ);
+  const notesCount = r.notesKey ? getNotesCount(r.notesKey) : 0;
   const fillColor = r.color;
   const bgColor = r.color + '18';
   const ipPct = p.total > 0 ? Math.min(Math.round((p.inProgress / p.total) * 100), Math.max(0, 100 - p.pct)) : 0;
@@ -423,7 +466,7 @@ function buildCard(r, idx) {
 
   return `
     <div class="res-card fade-up delay-${Math.min(idx+1,6)}" style="--c-accent:${r.color};--c-bg:${bgColor}" data-id="${r.id}" data-tags="${r.tags.join(' ').toLowerCase()}" data-cat="${r.categoryKey}" data-has-progress="${p.done > 0}" data-has-inprogress="${p.inProgress > 0}" data-fav="${isFav}" data-file="${r.file}">
-      <button class="res-fav${isFav ? ' active' : ''}" data-fav-id="${r.id}" title="${isFav ? 'Remove from favorites' : 'Add to favorites'}" aria-label="Toggle favorite">${isFav ? '⭐' : '☆'}</button>
+      <button class="res-fav${isFav ? ' active' : ''}" data-fav-id="${r.id}" title="${isFav ? 'Remove from favorites' : 'Add to favorites'}" aria-label="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${isFav ? '⭐' : '☆'}</button>
       <div class="res-card-top">
         <div class="res-icon" style="background:${bgColor}">${r.icon}</div>
         <div class="res-info">
@@ -435,6 +478,7 @@ function buildCard(r, idx) {
       <div class="res-desc">${r.desc}</div>
       <div class="res-tags">
         ${r.tags.map(t => `<span class="res-tag">${t}</span>`).join('')}
+        ${notesCount > 0 ? `<span class="res-notes-badge">📝 ${notesCount} note${notesCount>1?'s':''}</span>` : ''}
       </div>
       <div class="res-footer">
         <div class="res-progress-wrap">
@@ -505,6 +549,9 @@ function render() {
   const ip = totalInProgress();
   document.getElementById('statInProgress').textContent = ip;
   document.getElementById('statInProgressPill').style.display = ip > 0 ? '' : 'none';
+  const streak = getStudyStreak();
+  document.getElementById('statStreak').textContent = streak + 'd';
+  document.getElementById('streakPill').style.display = streak > 0 ? '' : 'none';
 }
 
 /* ══════════════════════════════════════════════════════
@@ -588,6 +635,53 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('themeBtn').textContent = next === 'dark' ? '🌙' : '☀️';
   });
 });
+
+/* ── STUDY TIMER ── */
+(function(){
+  let timerInterval=null, timerSeconds=0, timerRunning=false;
+  const display=document.getElementById('timerDisplay');
+  const startStopBtn=document.getElementById('timerStartStop');
+  const resetBtn=document.getElementById('timerReset');
+  const closeBtn=document.getElementById('timerClose');
+  const timerEl=document.getElementById('studyTimer');
+  const toggleBtn=document.getElementById('timerToggle');
+
+  function pad(n){return String(n).padStart(2,'0');}
+  function updateDisplay(){
+    const m=Math.floor(timerSeconds/60), s=timerSeconds%60;
+    display.textContent=pad(m)+':'+pad(s);
+  }
+
+  toggleBtn.addEventListener('click',()=>{
+    timerEl.classList.toggle('hidden');
+    toggleBtn.style.display=timerEl.classList.contains('hidden')?'flex':'none';
+  });
+  closeBtn.addEventListener('click',()=>{
+    timerEl.classList.add('hidden');
+    toggleBtn.style.display='flex';
+  });
+  startStopBtn.addEventListener('click',()=>{
+    if(timerRunning){
+      clearInterval(timerInterval);
+      timerRunning=false;
+      startStopBtn.textContent='Resume';
+      startStopBtn.classList.remove('active');
+    } else {
+      timerInterval=setInterval(()=>{timerSeconds++;updateDisplay();},1000);
+      timerRunning=true;
+      startStopBtn.textContent='Pause';
+      startStopBtn.classList.add('active');
+    }
+  });
+  resetBtn.addEventListener('click',()=>{
+    clearInterval(timerInterval);
+    timerRunning=false;
+    timerSeconds=0;
+    updateDisplay();
+    startStopBtn.textContent='Start';
+    startStopBtn.classList.remove('active');
+  });
+})();
 </script>
 </body>
 </html>

@@ -7,6 +7,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="../../css/Preparation.css">
+<style>
+.q-fav-btn{position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:15px;color:#f59e0b;opacity:.3;transition:all .2s;padding:2px;line-height:1;z-index:3}
+.q-fav-btn:hover{opacity:1;transform:scale(1.15)}
+.q-fav-btn.active{opacity:1}
+.q-note-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:11px;color:var(--text3);transition:all .15s;margin-left:6px}
+.q-note-btn:hover{color:var(--text1);border-color:var(--text2)}
+.q-note-btn.has-note{color:#f59e0b;border-color:rgba(245,158,11,.4)}
+.q-note-area{margin-top:8px;padding:8px;background:var(--bg4);border-radius:6px;border:1px solid var(--border);display:none}
+.q-note-input{width:100%;min-height:52px;background:transparent;border:none;outline:none;color:var(--text1);font-size:12px;resize:vertical;font-family:inherit;line-height:1.5}
+</style>
 </head>
 <body>
 
@@ -6004,6 +6014,32 @@ function _loadStatus() {
 }
 function _saveStatus(o) { localStorage.setItem(JAVA_PREP_KEY, JSON.stringify(o)); }
 
+const JAVA_FAV_KEY = 'java_favs_v1';
+function _loadFavs(){try{return new Set(JSON.parse(localStorage.getItem(JAVA_FAV_KEY)||'[]'));}catch{return new Set();}}
+function _toggleFav(idx){const f=_loadFavs();if(f.has(idx))f.delete(idx);else f.add(idx);localStorage.setItem(JAVA_FAV_KEY,JSON.stringify([...f]));}
+
+const JAVA_NOTES_KEY = 'java_notes_v1';
+function _loadNotes(){try{return JSON.parse(localStorage.getItem(JAVA_NOTES_KEY)||'{}');}catch{return {};}}
+function _saveNote(idx,text){const n=_loadNotes();if(text.trim())n[idx]=text;else delete n[idx];localStorage.setItem(JAVA_NOTES_KEY,JSON.stringify(n));}
+function _toggleNote(idx){
+  const area=document.getElementById('java-note-area-'+idx);
+  if(!area)return;
+  const isOpen=area.style.display!=='none';
+  area.style.display=isOpen?'none':'block';
+  if(!isOpen){const ta=area.querySelector('textarea');if(ta){ta.value=_loadNotes()[idx]||'';ta.focus();}}
+}
+
+function updateStudyStreak(){
+  const SK='prep_streak_v1', today=new Date().toISOString().split('T')[0];
+  try{
+    const d=JSON.parse(localStorage.getItem(SK)||'{"date":"","streak":0,"longest":0}');
+    if(d.date===today)return;
+    const prev=new Date(Date.now()-86400000).toISOString().split('T')[0];
+    const s=d.date===prev?d.streak+1:1;
+    localStorage.setItem(SK,JSON.stringify({date:today,streak:s,longest:Math.max(s,d.longest||0)}));
+  }catch{}
+}
+
 function cycleStatus(card) {
   const all = _allCards();
   const idx = all.indexOf(card);
@@ -6023,6 +6059,7 @@ function cycleStatus(card) {
   }
   _saveStatus(status);
   updateProgress();
+  updateStudyStreak();
 }
 
 // ── PROGRESS ──
@@ -6191,7 +6228,60 @@ function collapseAll(section) {
   sec.querySelectorAll('.btn-toggle').forEach(b => b.textContent = b.textContent.includes('Hide') ? 'Show Answer' : (b.textContent.includes('Show') ? 'Show' : b.textContent));
 }
 
-document.addEventListener('DOMContentLoaded', initCopyButtons);
+document.addEventListener('DOMContentLoaded', function(){
+  initCopyButtons();
+
+  // Inject fav buttons and note areas into each q-card
+  (function(){
+    const cards = document.querySelectorAll('.q-card');
+    const favs = _loadFavs();
+    const notes = _loadNotes();
+    cards.forEach((card, idx) => {
+      // Fav button
+      const fb = document.createElement('button');
+      fb.className = 'q-fav-btn' + (favs.has(idx) ? ' active' : '');
+      fb.textContent = favs.has(idx) ? '⭐' : '☆';
+      fb.title = 'Favorite';
+      fb.setAttribute('aria-label', 'Toggle favorite');
+      fb.addEventListener('click', function(e){
+        e.stopPropagation();
+        _toggleFav(idx);
+        const f = _loadFavs();
+        this.textContent = f.has(idx) ? '⭐' : '☆';
+        this.classList.toggle('active', f.has(idx));
+      });
+      card.appendChild(fb);
+
+      // Note button
+      const nb = document.createElement('button');
+      nb.className = 'q-note-btn' + (notes[idx] ? ' has-note' : '');
+      nb.textContent = '📝 Note';
+      nb.title = 'Notes';
+      nb.setAttribute('aria-label', 'Add note');
+      nb.addEventListener('click', function(e){
+        e.stopPropagation();
+        _toggleNote(idx);
+      });
+      card.appendChild(nb);
+
+      // Note area
+      const na = document.createElement('div');
+      na.className = 'q-note-area';
+      na.id = 'java-note-area-' + idx;
+      na.style.display = 'none';
+      const ta = document.createElement('textarea');
+      ta.className = 'q-note-input';
+      ta.placeholder = 'Add your notes here…';
+      ta.value = notes[idx] || '';
+      ta.addEventListener('input', function(){
+        _saveNote(idx, this.value);
+        nb.classList.toggle('has-note', !!this.value.trim());
+      });
+      na.appendChild(ta);
+      card.appendChild(na);
+    });
+  })();
+});
 </script>
 </body>
 </html>

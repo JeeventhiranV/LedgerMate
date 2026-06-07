@@ -150,7 +150,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .pdf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
 
 /* ── PDF CARD ── */
-.pdf-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;transition:all .2s;position:relative;overflow:hidden}
+.pdf-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:block;transition:all .2s;position:relative;overflow:hidden}
+.pdf-card-row{display:flex;align-items:center;gap:12px}
 .pdf-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c-accent,var(--blue));border-radius:3px 0 0 3px;opacity:.7;transition:opacity .2s}
 .pdf-card:hover{border-color:var(--border2);transform:translateX(2px)}
 .pdf-card:hover::before{opacity:1}
@@ -210,6 +211,16 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .fade-up{opacity:0;transform:translateY(20px);animation:fuAnim .45s forwards}
 @keyframes fuAnim{to{opacity:1;transform:none}}
 .d1{animation-delay:.04s}.d2{animation-delay:.08s}.d3{animation-delay:.12s}.d4{animation-delay:.16s}.d5{animation-delay:.2s}
+
+/* ── FAVORITES & NOTES ── */
+.pdf-fav-btn{position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:16px;color:#f59e0b;opacity:.3;transition:all .2s;padding:2px;line-height:1;z-index:3}
+.pdf-fav-btn:hover{opacity:1;transform:scale(1.2)}
+.pdf-fav-btn.active{opacity:1}
+.pdf-note-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:11px;color:var(--text3);transition:all .15s}
+.pdf-note-btn:hover{color:var(--text1);border-color:var(--text2)}
+.pdf-note-btn.has-note{color:#f59e0b;border-color:rgba(245,158,11,.4)}
+.pdf-note-area{margin-top:8px;padding:8px;background:var(--bg4);border-radius:6px;border:1px solid var(--border);display:none}
+.pdf-note-input{width:100%;min-height:52px;background:transparent;border:none;outline:none;color:var(--text1);font-size:12px;resize:vertical;font-family:inherit;line-height:1.5}
 
 /* ── RESPONSIVE ── */
 @media(max-width:768px){
@@ -327,6 +338,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     </div>
     <div class="filter-row">
       <div class="filter-group">
+        <span class="filter-lbl">Saved</span>
+        <div class="chips" id="favChips">
+          <button class="chip" data-filter-fav="true" id="favFilterBtn" onclick="toggleFavFilter(this)">⭐ Favorites</button>
+        </div>
+      </div>
+      <div class="filter-group">
         <span class="filter-lbl">Level</span>
         <div class="chips" id="expChips">
           <button class="chip active" data-exp="all">All Levels</button>
@@ -431,9 +448,10 @@ function loadProgress() {
       viewed:     new Set(raw.viewed     || []),
       downloaded: new Set(raw.downloaded || []),
       completed:  new Set(raw.completed  || []),
-      inprogress: new Set(raw.inprogress || [])
+      inprogress: new Set(raw.inprogress || []),
+      favorites:  new Set()
     };
-  } catch { return { viewed: new Set(), downloaded: new Set(), completed: new Set(), inprogress: new Set() }; }
+  } catch { return { viewed: new Set(), downloaded: new Set(), completed: new Set(), inprogress: new Set(), favorites: new Set() }; }
 }
 
 function saveProgress(prog) {
@@ -452,6 +470,43 @@ function saveProgress(prog) {
 }
 
 let PROG = loadProgress();
+
+// ── IPK Favorites ──
+const IPK_FAV_KEY = 'ipk_favs_v1';
+function loadIPKFavs(){try{return JSON.parse(localStorage.getItem(IPK_FAV_KEY)||'[]');}catch{return [];}}
+function saveIPKFavs(){localStorage.setItem(IPK_FAV_KEY,JSON.stringify([...PROG.favorites]));}
+function toggleIPKFav(id){
+  if(PROG.favorites.has(id)) PROG.favorites.delete(id);
+  else PROG.favorites.add(id);
+  saveIPKFavs();
+}
+
+// ── IPK Notes ──
+const IPK_NOTES_KEY = 'ipk_notes_v1';
+function loadIPKNotes(){try{return JSON.parse(localStorage.getItem(IPK_NOTES_KEY)||'{}');}catch{return {};}}
+function saveIPKNote(id,text){const n=loadIPKNotes();if(text.trim())n[id]=text;else delete n[id];localStorage.setItem(IPK_NOTES_KEY,JSON.stringify(n));}
+function toggleIPKNote(id){
+  const area=document.getElementById('note-area-'+id);
+  if(!area)return;
+  const isOpen=area.style.display!=='none';
+  area.style.display=isOpen?'none':'block';
+  if(!isOpen){const ta=area.querySelector('textarea');if(ta){ta.value=loadIPKNotes()[id]||'';ta.focus();}}
+}
+
+// ── Streak ──
+function updateStudyStreak(){
+  const SK='prep_streak_v1', today=new Date().toISOString().split('T')[0];
+  try{
+    const d=JSON.parse(localStorage.getItem(SK)||'{"date":"","streak":0,"longest":0}');
+    if(d.date===today)return;
+    const prev=new Date(Date.now()-86400000).toISOString().split('T')[0];
+    const s=d.date===prev?d.streak+1:1;
+    localStorage.setItem(SK,JSON.stringify({date:today,streak:s,longest:Math.max(s,d.longest||0)}));
+  }catch{}
+}
+
+// Load favorites into PROG on startup
+loadIPKFavs().forEach(id => PROG.favorites.add(id));
 
 function markViewed(id) {
   if (PROG.viewed.has(id)) return;
@@ -491,6 +546,7 @@ function toggleCompleted(id) {
   saveProgress(PROG);
   updateCategoryProgress();
   updateStats();
+  updateStudyStreak();
 }
 
 /* ══════════════════════════════════════════════════
@@ -586,31 +642,41 @@ function buildPDFCard(file, catColor) {
   const bgTint = meta.color + '1a';
   const date   = file.lastUpdated ? new Date(file.lastUpdated).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '';
 
+  const isFav = PROG.favorites.has(file.id);
+  const hasNote = !!(loadIPKNotes()[file.id]);
+
   return `
     <div class="pdf-card${viewed ? ' viewed' : ''}${done ? ' completed' : inprog ? ' in-progress' : ''}"
          data-pdf-id="${file.id}"
          data-tech="${file.technology.toLowerCase()}"
          data-name="${file.name.toLowerCase()}"
          style="--c-accent:${meta.color}">
-      <div class="tech-icon" style="background:${bgTint}">${meta.icon}</div>
-      <div class="pdf-main">
-        <div class="pdf-name" title="${file.name}">${file.name}</div>
-        <div class="pdf-meta">
-          <span class="tech-badge" style="background:${bgTint};color:${meta.color}">${file.technology}</span>
-          ${date ? `<span class="updated-txt">${date}</span>` : ''}
-          <span class="viewed-pip" title="Viewed"></span>
+      <button class="pdf-fav-btn${isFav ? ' active' : ''}" data-fav-id="${file.id}" title="Favorite" aria-label="Toggle favorite">${isFav ? '⭐' : '☆'}</button>
+      <div class="pdf-card-row">
+        <div class="tech-icon" style="background:${bgTint}">${meta.icon}</div>
+        <div class="pdf-main">
+          <div class="pdf-name" title="${file.name}">${file.name}</div>
+          <div class="pdf-meta">
+            <span class="tech-badge" style="background:${bgTint};color:${meta.color}">${file.technology}</span>
+            ${date ? `<span class="updated-txt">${date}</span>` : ''}
+            <span class="viewed-pip" title="Viewed"></span>
+          </div>
+        </div>
+        <div class="pdf-actions">
+          <button class="btn-view" style="background:${meta.color}"
+            onclick="viewPDF('${file.path.replace(/'/g,"\\'")}','${file.id}','${file.name.replace(/'/g,"\\'")}')">
+            ↗ View
+          </button>
+          <button class="btn-dl" title="Download PDF"
+            onclick="downloadPDF('${file.path.replace(/'/g,"\\'")}','${file.id}','${file.name.replace(/'/g,"\\'")}')">⬇</button>
+          <button class="btn-done${done ? ' active' : inprog ? ' inprogress' : ''}"
+            title="${done ? 'Mark as not done' : inprog ? 'Mark as done' : 'Mark as in progress'}"
+            onclick="toggleCompleted('${file.id}')">${done ? '✓' : inprog ? '⏳' : '○'}</button>
+          <button class="pdf-note-btn${hasNote ? ' has-note' : ''}" onclick="toggleIPKNote('${file.id}')" title="Notes" aria-label="Add note">📝 Note</button>
         </div>
       </div>
-      <div class="pdf-actions">
-        <button class="btn-view" style="background:${meta.color}"
-          onclick="viewPDF('${file.path.replace(/'/g,"\\'")}','${file.id}','${file.name.replace(/'/g,"\\'")}')">
-          ↗ View
-        </button>
-        <button class="btn-dl" title="Download PDF"
-          onclick="downloadPDF('${file.path.replace(/'/g,"\\'")}','${file.id}','${file.name.replace(/'/g,"\\'")}')">⬇</button>
-        <button class="btn-done${done ? ' active' : inprog ? ' inprogress' : ''}"
-          title="${done ? 'Mark as not done' : inprog ? 'Mark as done' : 'Mark as in progress'}"
-          onclick="toggleCompleted('${file.id}')">${done ? '✓' : inprog ? '⏳' : '○'}</button>
+      <div class="pdf-note-area" id="note-area-${file.id}">
+        <textarea class="pdf-note-input" placeholder="Add your notes here…" oninput="saveIPKNote('${file.id}',this.value)"></textarea>
       </div>
     </div>`;
 }
@@ -660,12 +726,34 @@ function render(data) {
   ALL_DATA = data;
   const container = document.getElementById('categoriesContainer');
   container.innerHTML = data.categories.map((cat, i) => buildCategoryCard(cat, i)).join('');
+  // Restore note textarea values for any open note areas
+  const notes = loadIPKNotes();
+  Object.keys(notes).forEach(id => {
+    const area = document.getElementById('note-area-' + id);
+    if (area) {
+      const ta = area.querySelector('textarea');
+      if (ta) ta.value = notes[id];
+    }
+  });
   updateStats();
   updateCategoryProgress();
   updateVisibleCount();
   document.getElementById('loadingState').style.display = 'none';
   document.getElementById('mainContent').style.display = '';
 }
+
+// ── Fav button event delegation ──
+document.addEventListener('click', function(e){
+  const favBtn = e.target.closest('.pdf-fav-btn');
+  if(favBtn){
+    e.stopPropagation();
+    const id = favBtn.dataset.favId;
+    toggleIPKFav(id);
+    favBtn.textContent = PROG.favorites.has(id) ? '⭐' : '☆';
+    favBtn.classList.toggle('active', PROG.favorites.has(id));
+    if(showFavsIPK) applyFilters();
+  }
+});
 
 /* ══════════════════════════════════════════════════
    CATEGORY TOGGLE
@@ -688,6 +776,13 @@ document.getElementById('btnExpandAll').addEventListener('click', function () {
 let activeExp  = 'all';
 let activeTech = 'all';
 let activeSearch = '';
+let showFavsIPK = false;
+
+function toggleFavFilter(btn){
+  showFavsIPK = !showFavsIPK;
+  btn.classList.toggle('active', showFavsIPK);
+  applyFilters();
+}
 
 function applyFilters() {
   const q = activeSearch.toLowerCase().trim();
@@ -719,6 +814,10 @@ function applyFilters() {
       }
       if (show && q) {
         show = name.includes(q) || tech.includes(q) || catName.includes(q);
+      }
+      if (show && showFavsIPK) {
+        const pdfId = pdfCard.dataset.pdfId;
+        show = PROG.favorites.has(pdfId);
       }
       pdfCard.classList.toggle('pdf-hidden', !show);
       if (show) { visiblePDFs++; catVisible = true; }
@@ -792,12 +891,12 @@ document.addEventListener('keydown', e => {
 ══════════════════════════════════════════════════ */
 document.getElementById('btnReset').addEventListener('click', () => {
   if (!confirm('Reset all progress? This will clear viewed, downloaded, and completed records.')) return;
-  PROG = { viewed: new Set(), downloaded: new Set(), completed: new Set() };
+  PROG = { viewed: new Set(), downloaded: new Set(), completed: new Set(), inprogress: new Set(), favorites: PROG.favorites };
   saveProgress(PROG);
   document.querySelectorAll('.pdf-card').forEach(c => {
-    c.classList.remove('viewed', 'completed');
+    c.classList.remove('viewed', 'completed', 'in-progress');
     const btn = c.querySelector('.btn-done');
-    if (btn) { btn.classList.remove('active'); btn.textContent = '○'; btn.title = 'Mark as done'; }
+    if (btn) { btn.className = 'btn-done'; btn.textContent = '○'; btn.title = 'Mark as done'; }
   });
   updateStats();
   updateCategoryProgress();

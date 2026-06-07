@@ -244,6 +244,15 @@ pre.code-block{background:#0d1117;margin:0;padding:14px 16px;overflow-x:auto;fon
 .btn-code{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:12px;color:var(--cyan);cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif}
 .btn-code:hover{border-color:var(--cyan);background:rgba(34,211,238,.07)}
 .dsa-card.code-open .btn-code{border-color:var(--cyan);background:rgba(34,211,238,.07)}
+.q-fav-btn{position:absolute;top:10px;right:40px;background:none;border:none;cursor:pointer;font-size:16px;color:#f59e0b;opacity:.3;transition:all .2s;padding:2px;line-height:1;z-index:2}
+.q-fav-btn:hover{opacity:1;transform:scale(1.2)}
+.q-fav-btn.active{opacity:1}
+.q-note-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:11px;color:var(--text3);transition:all .15s}
+.q-note-btn:hover{color:var(--text1);border-color:var(--text2)}
+.q-note-btn.has-note{color:#f59e0b;border-color:rgba(245,158,11,.4)}
+.q-note-area{margin-top:10px;padding:8px;background:var(--bg4);border-radius:6px;border:1px solid var(--border)}
+.q-note-input{width:100%;min-height:56px;background:transparent;border:none;outline:none;color:var(--text1);font-size:12px;resize:vertical;font-family:inherit;line-height:1.5}
+.dsa-card{position:relative}
 </style>
 </head>
 <body>
@@ -368,6 +377,7 @@ pre.code-block{background:#0d1117;margin:0;padding:14px 16px;overflow-x:auto;fon
         <button class="filter-btn" data-filter="done">Done ✓</button>
         <button class="filter-btn" data-filter="inprogress">⏳ In Progress</button>
         <button class="filter-btn" data-filter="todo">Todo</button>
+        <button class="filter-btn" data-filter="fav">⭐ Favorites</button>
       </div>
     </div>
 
@@ -2725,6 +2735,28 @@ function loadStatus(){
 function saveStatus(obj){ localStorage.setItem(DSA_KEY, JSON.stringify(obj)); }
 function loadDone(){ const s=loadStatus(); return new Set(Object.keys(s).filter(id=>s[id]==='done')); }
 
+// ── Favorites ──
+const DSA_FAV_KEY = 'dsa_favs_v1';
+function loadFavsDSA(){try{return new Set(JSON.parse(localStorage.getItem(DSA_FAV_KEY)||'[]'));}catch{return new Set();}}
+function toggleFavDSA(id){const f=loadFavsDSA();if(f.has(id))f.delete(id);else f.add(id);localStorage.setItem(DSA_FAV_KEY,JSON.stringify([...f]));}
+
+// ── Notes ──
+const DSA_NOTES_KEY = 'dsa_notes_v1';
+function loadNotesDSA(){try{return JSON.parse(localStorage.getItem(DSA_NOTES_KEY)||'{}');}catch{return {};}}
+function saveNoteDSA(id,text){const n=loadNotesDSA();if(text.trim())n[id]=text;else delete n[id];localStorage.setItem(DSA_NOTES_KEY,JSON.stringify(n));}
+
+// ── Streak ──
+function updateStudyStreak(){
+  const SK='prep_streak_v1', today=new Date().toISOString().split('T')[0];
+  try{
+    const d=JSON.parse(localStorage.getItem(SK)||'{"date":"","streak":0,"longest":0}');
+    if(d.date===today)return;
+    const prev=new Date(Date.now()-86400000).toISOString().split('T')[0];
+    const s=d.date===prev?d.streak+1:1;
+    localStorage.setItem(SK,JSON.stringify({date:today,streak:s,longest:Math.max(s,d.longest||0)}));
+  }catch{}
+}
+
 /* ══════════════════════════════════════════════════════
    RENDER ENGINE
 ══════════════════════════════════════════════════════ */
@@ -2818,6 +2850,7 @@ function buildCard(q, color, qi){
   const hl = rawCode ? hlJava(rawCode.trim()) : null;
   return `
     <div class="dsa-card" id="card-${q.id}" data-id="${q.id}" data-diff="${q.diff}" style="--card-accent:${color};animation-delay:${qi*30}ms">
+      <button class="q-fav-btn${loadFavsDSA().has(q.id)?' active':''}" data-fav-id="${q.id}" title="Favorite" aria-label="Toggle favorite">${loadFavsDSA().has(q.id)?'⭐':'☆'}</button>
       <div class="card-top">
         <span class="card-num">${q.id.toUpperCase()}</span>
         <div class="card-title">${q.title}</div>
@@ -2840,7 +2873,11 @@ function buildCard(q, color, qi){
       <div class="card-actions">
         <button class="btn-hint" onclick="toggleHint('${q.id}')">Hint</button>
         ${hl?`<button class="btn-code" onclick="toggleCode('${q.id}')">View Code</button>`:''}
+        <button class="q-note-btn${loadNotesDSA()[q.id]?' has-note':''}" onclick="toggleDSANote('${q.id}')" title="Notes" aria-label="Add note">📝 Note</button>
         <button class="btn-mark" onclick="cycleStatus('${q.id}')">▷ In Progress</button>
+      </div>
+      <div class="q-note-area" id="note-area-${q.id}" style="display:none">
+        <textarea class="q-note-input" placeholder="Add your notes here…" oninput="saveNoteDSA('${q.id}',this.value)">${loadNotesDSA()[q.id]||''}</textarea>
       </div>
     </div>
   `;
@@ -2895,6 +2932,7 @@ function cycleStatus(id){
   saveStatus(status);
   updateProgress();
   updateNavDoneIndicators();
+  updateStudyStreak();
 }
 
 function restoreMarked(){
@@ -3043,6 +3081,7 @@ function applyFilters(){
       if(activeFilter==='done' && state!=='done') show=false;
       if(activeFilter==='inprogress' && state!=='inprogress') show=false;
       if(activeFilter==='todo' && state!=='none') show=false;
+      if(activeFilter==='fav' && !loadFavsDSA().has(qObj.id)) show=false;
       if(q){
         const text = (qObj.title+' '+qObj.tags.join(' ')+' '+qObj.hint+' '+qObj.approach).toLowerCase();
         if(!text.includes(q)) show=false;
@@ -3084,6 +3123,31 @@ function handleSideSearch(val){
 /* ══════════════════════════════════════════════════════
    MOBILE SIDEBAR
 ══════════════════════════════════════════════════════ */
+function toggleDSANote(id){
+  const area = document.getElementById('note-area-'+id);
+  if(!area) return;
+  const isOpen = area.style.display !== 'none';
+  area.style.display = isOpen ? 'none' : 'block';
+  if(!isOpen){
+    const ta = area.querySelector('textarea');
+    if(ta){ ta.value = loadNotesDSA()[id]||''; ta.focus(); }
+  }
+  const btn = document.querySelector(`.q-note-btn[onclick*="${id}"]`);
+  if(btn) btn.classList.toggle('has-note', !!(loadNotesDSA()[id]));
+}
+
+document.addEventListener('click', function(e){
+  const favBtn = e.target.closest('.q-fav-btn');
+  if(favBtn){
+    e.stopPropagation();
+    const id = favBtn.dataset.favId;
+    toggleFavDSA(id);
+    const f = loadFavsDSA();
+    favBtn.textContent = f.has(id) ? '⭐' : '☆';
+    favBtn.classList.toggle('active', f.has(id));
+  }
+});
+
 document.addEventListener('DOMContentLoaded', ()=>{
   buildPage();
 
