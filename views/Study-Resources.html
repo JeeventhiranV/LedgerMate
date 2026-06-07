@@ -201,8 +201,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <p class="hero-sub">Your complete interview preparation toolkit — DSA, Java, System Design, and more. Built for engineers targeting Product Companies, FAANG, MNCs, and Startups.</p>
     <div class="hero-stats">
       <div class="stat-pill"><div class="stat-num" id="statTotal">2</div><div class="stat-lbl">Resources</div></div>
-      <div class="stat-pill"><div class="stat-num" id="statQ">700+</div><div class="stat-lbl">Questions</div></div>
-      <div class="stat-pill"><div class="stat-num" id="statCats">15+</div><div class="stat-lbl">Topic Areas</div></div>
+      <div class="stat-pill"><div class="stat-num" id="statQ">800+</div><div class="stat-lbl">Questions</div></div>
+      <div class="stat-pill"><div class="stat-num" id="statCats">20+</div><div class="stat-lbl">Topic Areas</div></div>
       <div class="stat-pill"><div class="stat-num" id="statDone">0</div><div class="stat-lbl">Completed</div></div>
     </div>
     <div class="search-wrap">
@@ -222,6 +222,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <button class="chip" data-filter="java">Java</button>
     <button class="chip" data-filter="system">System Design</button>
     <button class="chip" data-filter="frontend">Frontend</button>
+    <button class="chip" data-filter="pdf">PDF Library</button>
     <button class="chip" data-filter="done">Has Progress</button>
   </div>
 </div>
@@ -321,16 +322,28 @@ const RESOURCES = [
     progressKey: 'hr_questions_done_v1',
     totalQ: 48,
     badge: 'new'
+  },
+  {
+    id: 'interview-prep-kit',
+    title: 'Interview Preparation Kit',
+    category: 'PDF Library',
+    categoryKey: 'pdf',
+    icon: '📚',
+    desc: 'Complete level-wise PDF library — 83 curated PDFs across 6 experience tracks (0–3, 3–5, 5–8, 8+ yrs). Covers Java, Spring, DSA, Microservices, Kafka, SQL, System Design, DevOps and more. Loaded dynamically from JSON — just drop a PDF and update data/pdfs.json.',
+    tags: ['Java','Spring Boot','DSA','Microservices','Kafka','SQL','System Design','PDF Library','All Levels'],
+    color: '#22d3ee',
+    file: 'Preparation/Interview-Prep-Kit.html',
+    progressKey: 'ipk_completed_v1',
+    totalQ: 83,
+    badge: 'new'
   }
 ];
 
 const COMING_SOON = [
   { icon:'⚙️', title:'System Design Masterclass', desc:'Scalable architecture patterns: Load Balancers, Caching, Databases, Microservices, Event-driven systems.', tag:'System Design' },
   { icon:'🐍', title:'Python DSA Prep Kit', desc:'Data Structures & Algorithms in Python — LeetCode patterns with clean Pythonic solutions.', tag:'Python' },
-  { icon:'🌐', title:'Frontend Interview Hub', desc:'React, JavaScript fundamentals, HTML/CSS, Web performance, and browser internals.', tag:'Frontend' },
   { icon:'☁️', title:'AWS / Cloud Architect Prep', desc:'Cloud computing concepts, AWS services, architecture patterns, certifications prep.', tag:'Cloud' },
   { icon:'🗄️', title:'SQL & Database Deep Dive', desc:'Complex queries, indexing, normalization, transactions, NoSQL vs SQL decision guide.', tag:'Databases' },
-  { icon:'🧩', title:'Behavioural & HR Interview Kit', desc:'STAR method answers, common behavioural questions, leadership principles, Amazon LP.', tag:'Soft Skills' },
 ];
 
 /* ══════════════════════════════════════════════════════

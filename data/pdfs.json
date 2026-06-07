@@ -1,0 +1,659 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-01-15",
+  "categories": [
+    {
+      "id": "preliminary",
+      "title": "Preliminary",
+      "subtitle": "Review these before every interview — essential cheat sheets",
+      "icon": "🎯",
+      "color": "#22d3ee",
+      "gradientFrom": "#22d3ee",
+      "gradientTo": "#4f8ef7",
+      "experienceLevel": "all",
+      "files": [
+        {
+          "id": "pre-1",
+          "name": "How to Use This Kit",
+          "technology": "General",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/1. Preliminary/1. How to use this kit (for better results).pdf"
+        },
+        {
+          "id": "pre-2",
+          "name": "Core Java Cheat Sheet",
+          "technology": "Java",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/1. Preliminary/2. Core Java Cheat sheet (before interview).pdf"
+        },
+        {
+          "id": "pre-3",
+          "name": "Java 8 Cheat Sheet",
+          "technology": "Java 8",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/1. Preliminary/3. Java 8 Cheat Sheet (before interview).pdf"
+        },
+        {
+          "id": "pre-4",
+          "name": "Spring Boot Cheat Sheet",
+          "technology": "Spring Boot",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/1. Preliminary/4. Spring Boot Cheat Sheet.pdf"
+        },
+        {
+          "id": "pre-5",
+          "name": "Microservices Cheat Sheet",
+          "technology": "Microservices",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/1. Preliminary/5. Microservices Cheat Sheet.pdf"
+        },
+        {
+          "id": "pre-6",
+          "name": "How to Explain Your Project",
+          "technology": "Interview Tips",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/1. Preliminary/6. How to explain your project (Template).pdf"
+        }
+      ]
+    },
+    {
+      "id": "0-3-years",
+      "title": "0 to 3 Years",
+      "subtitle": "Beginner to junior level — foundational concepts",
+      "icon": "🌱",
+      "color": "#06d6a0",
+      "gradientFrom": "#06d6a0",
+      "gradientTo": "#22c55e",
+      "experienceLevel": "0-3",
+      "files": [
+        {
+          "id": "b-1",
+          "name": "Core Java – Beginner Level",
+          "technology": "Java",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/2. 0 to 3 years/1. Core Java - Beginner Level.pdf"
+        },
+        {
+          "id": "b-2",
+          "name": "Core Java Fundamentals – Beginner Level",
+          "technology": "Java",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/2. 0 to 3 years/2. Core Java Fundamentals - Beginner Level.pdf"
+        },
+        {
+          "id": "b-3",
+          "name": "Number-Based Coding – Beginner Level",
+          "technology": "DSA",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/2. 0 to 3 years/3. Number-Based Coding – Beginner Level.pdf"
+        },
+        {
+          "id": "b-4",
+          "name": "Array Coding – Beginner Level",
+          "technology": "DSA",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/2. 0 to 3 years/4. Array Coding - Beginner Level.pdf"
+        },
+        {
+          "id": "b-5",
+          "name": "HashMap & HashSet Coding – Beginner Level",
+          "technology": "DSA",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/2. 0 to 3 years/5. HashMap HashSet Based Coding - Beginner Level.pdf"
+        },
+        {
+          "id": "b-6",
+          "name": "String-Based Coding – Beginner Level",
+          "technology": "DSA",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/2. 0 to 3 years/6. String Based Coding Questions – Beginner Level.pdf"
+        },
+        {
+          "id": "b-7",
+          "name": "Stream API Coding – Beginner Level",
+          "technology": "Java Streams",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/2. 0 to 3 years/7. Stream API Coding Questions – Beginner Level.pdf"
+        },
+        {
+          "id": "b-8",
+          "name": "Spring Framework – Beginner Level",
+          "technology": "Spring",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/2. 0 to 3 years/8. Spring Framework - Beginner Level.pdf"
+        },
+        {
+          "id": "b-9",
+          "name": "Spring Boot – Beginner Level",
+          "technology": "Spring Boot",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/2. 0 to 3 years/9. Spring Boot - Beginner Level.pdf"
+        },
+        {
+          "id": "b-10",
+          "name": "Spring Security – Beginner Level",
+          "technology": "Spring Security",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/2. 0 to 3 years/10. Spring Security - Beginner Level.pdf"
+        },
+        {
+          "id": "b-11",
+          "name": "Git – Beginner Level",
+          "technology": "Git",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/2. 0 to 3 years/11. Git - Beginner Level.pdf"
+        },
+        {
+          "id": "b-12",
+          "name": "Maven – Beginner Level",
+          "technology": "Maven",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/2. 0 to 3 years/12. Maven - Beginner Level.pdf"
+        },
+        {
+          "id": "b-13",
+          "name": "SQL Basics",
+          "technology": "SQL",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/2. 0 to 3 years/13. SQL Basics.pdf"
+        },
+        {
+          "id": "b-14",
+          "name": "SQL Queries – Easy",
+          "technology": "SQL",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/2. 0 to 3 years/14. SQL Queries – Easy.pdf"
+        },
+        {
+          "id": "b-15",
+          "name": "Non-Tech Questions – Beginner Level",
+          "technology": "Soft Skills",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/2. 0 to 3 years/15. Non-Tech Questions – Beginner Level.pdf"
+        }
+      ]
+    },
+    {
+      "id": "3-5-years",
+      "title": "3 to 5 Years",
+      "subtitle": "Intermediate level — depth in Spring ecosystem & patterns",
+      "icon": "🔵",
+      "color": "#4f8ef7",
+      "gradientFrom": "#4f8ef7",
+      "gradientTo": "#6366f1",
+      "experienceLevel": "3-5",
+      "files": [
+        {
+          "id": "i-1",
+          "name": "Core Java – Intermediate Level",
+          "technology": "Java",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/1. Core Java - Intermediate Level.pdf"
+        },
+        {
+          "id": "i-2",
+          "name": "Array-Based Coding – Intermediate Level",
+          "technology": "DSA",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/2. Array-Based Coding - Intermediate Level.pdf"
+        },
+        {
+          "id": "i-3",
+          "name": "HashMap & HashSet Coding – Intermediate Level",
+          "technology": "DSA",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/3. HashMap HashSet Based Coding - Intermediate Level.pdf"
+        },
+        {
+          "id": "i-4",
+          "name": "String-Based Coding – Intermediate Level",
+          "technology": "DSA",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/4. String Based Coding – Intermediate Level.pdf"
+        },
+        {
+          "id": "i-5",
+          "name": "Sliding Window Coding – Intermediate Level",
+          "technology": "DSA",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/5. Sliding Window Coding – Intermediate Level.pdf"
+        },
+        {
+          "id": "i-6",
+          "name": "Stream API Coding – Intermediate Level",
+          "technology": "Java Streams",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/6. Stream API Coding Questions – Intermediate Level.pdf"
+        },
+        {
+          "id": "i-7",
+          "name": "Spring Framework – Intermediate Level",
+          "technology": "Spring",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/7. Spring Framework - Intermediate Level.pdf"
+        },
+        {
+          "id": "i-8",
+          "name": "Spring Boot – Intermediate Level",
+          "technology": "Spring Boot",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/8. Spring Boot - Intermediate Level.pdf"
+        },
+        {
+          "id": "i-9",
+          "name": "Spring Data JPA – Intermediate Level",
+          "technology": "Spring Data JPA",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/9. Spring Data JPA - Intermediate Level.pdf"
+        },
+        {
+          "id": "i-10",
+          "name": "Spring Security – Intermediate Level",
+          "technology": "Spring Security",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/10. Spring Security - Intermediate Level.pdf"
+        },
+        {
+          "id": "i-11",
+          "name": "Microservices – Intermediate Level",
+          "technology": "Microservices",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/11. Microservices - Intermediate Level.pdf"
+        },
+        {
+          "id": "i-12",
+          "name": "Hibernate – Intermediate Level",
+          "technology": "Hibernate",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/12. Hibernate - Intermediate Level.pdf"
+        },
+        {
+          "id": "i-13",
+          "name": "Spring MVC – Intermediate Level",
+          "technology": "Spring MVC",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/13. Spring MVC - Intermediate Level.pdf"
+        },
+        {
+          "id": "i-14",
+          "name": "Deployment – Intermediate Level",
+          "technology": "DevOps",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/14. Deployment - Intermediate Level.pdf"
+        },
+        {
+          "id": "i-15",
+          "name": "Testing – Intermediate Level",
+          "technology": "Testing",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/15. Testing - Intermediate Level.pdf"
+        },
+        {
+          "id": "i-16",
+          "name": "Git – Intermediate Level",
+          "technology": "Git",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/16. Git – Intermediate Level.pdf"
+        },
+        {
+          "id": "i-17",
+          "name": "Maven – Intermediate Level",
+          "technology": "Maven",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/17. Maven - Intermediate Level.pdf"
+        },
+        {
+          "id": "i-18",
+          "name": "Kafka – Intermediate Level",
+          "technology": "Kafka",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/18. Kafka - Intermediate Level.pdf"
+        },
+        {
+          "id": "i-19",
+          "name": "Non-Tech Questions – Intermediate Level",
+          "technology": "Soft Skills",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/3. 3 to 5 years/19. Non-Tech Questions – Intermediate Level.pdf"
+        }
+      ]
+    },
+    {
+      "id": "5-8-years",
+      "title": "5 to 8 Years",
+      "subtitle": "Senior level — architecture, design patterns & leadership",
+      "icon": "🟣",
+      "color": "#8b5cf6",
+      "gradientFrom": "#8b5cf6",
+      "gradientTo": "#ec4899",
+      "experienceLevel": "5-8",
+      "files": [
+        {
+          "id": "s-1",
+          "name": "Core Java – Senior Level",
+          "technology": "Java",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/1. Core Java - Senior Level.pdf"
+        },
+        {
+          "id": "s-2",
+          "name": "Array Coding – Senior Level",
+          "technology": "DSA",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/2. Array Coding - Senior Level.pdf"
+        },
+        {
+          "id": "s-3",
+          "name": "String-Based Coding – Senior Level",
+          "technology": "DSA",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/3. String Based Coding Questions – Senior Level.pdf"
+        },
+        {
+          "id": "s-4",
+          "name": "Sliding Window Coding – Senior Level",
+          "technology": "DSA",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/4. Sliding Window Coding Questions – Senior Level.pdf"
+        },
+        {
+          "id": "s-5",
+          "name": "Stream API Coding – Senior Level",
+          "technology": "Java Streams",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/5. Stream API Coding Questions – Senior Level.pdf"
+        },
+        {
+          "id": "s-6",
+          "name": "Spring Framework – Senior Level",
+          "technology": "Spring",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/6. Spring Framework - Senior Level.pdf"
+        },
+        {
+          "id": "s-7",
+          "name": "Spring Boot – Senior Level",
+          "technology": "Spring Boot",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/7. Spring Boot - Senior Level.pdf"
+        },
+        {
+          "id": "s-8",
+          "name": "Spring Data JPA – Senior Level",
+          "technology": "Spring Data JPA",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/8. Spring Data JPA - Senior Level.pdf"
+        },
+        {
+          "id": "s-9",
+          "name": "Spring Security – Senior Level",
+          "technology": "Spring Security",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/9. Spring Security - Senior Level.pdf"
+        },
+        {
+          "id": "s-10",
+          "name": "Microservices – Senior Level",
+          "technology": "Microservices",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/10. Microservices - Senior Level.pdf"
+        },
+        {
+          "id": "s-11",
+          "name": "Design Patterns – Senior Level",
+          "technology": "Design Patterns",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/11. Design Patterns – Senior Level.pdf"
+        },
+        {
+          "id": "s-12",
+          "name": "Spring MVC – Senior Level",
+          "technology": "Spring MVC",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/12. Spring MVC - Senior Level.pdf"
+        },
+        {
+          "id": "s-13",
+          "name": "Hibernate – Senior Level",
+          "technology": "Hibernate",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/13. Hibernate - Senior Level.pdf"
+        },
+        {
+          "id": "s-14",
+          "name": "Deployment – Senior Level",
+          "technology": "DevOps",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/14. Deployment - Senior Level.pdf"
+        },
+        {
+          "id": "s-15",
+          "name": "Testing – Senior Level",
+          "technology": "Testing",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/15. Testing - Senior Level.pdf"
+        },
+        {
+          "id": "s-16",
+          "name": "Git – Senior Level",
+          "technology": "Git",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/16. Git – Senior Level.pdf"
+        },
+        {
+          "id": "s-17",
+          "name": "Kafka – Senior Level",
+          "technology": "Kafka",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/17. Kafka - Senior Level.pdf"
+        },
+        {
+          "id": "s-18",
+          "name": "Maven – Senior Level",
+          "technology": "Maven",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/18. Maven - Senior Level.pdf"
+        },
+        {
+          "id": "s-19",
+          "name": "Non-Tech Questions – Senior Level",
+          "technology": "Soft Skills",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/4. 5 to 8 years/19. Non-Tech Questions – Senior Level.pdf"
+        }
+      ]
+    },
+    {
+      "id": "8-plus-years",
+      "title": "8+ Years",
+      "subtitle": "Lead / Principal level — system design & strategic thinking",
+      "icon": "🏆",
+      "color": "#f59e0b",
+      "gradientFrom": "#f59e0b",
+      "gradientTo": "#fb923c",
+      "experienceLevel": "8+",
+      "files": [
+        {
+          "id": "l-1",
+          "name": "Core Java – Lead Level",
+          "technology": "Java",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/5. 8+ Years/1. Core Java - Lead Level.pdf"
+        },
+        {
+          "id": "l-2",
+          "name": "Stream API Coding – Lead Level",
+          "technology": "Java Streams",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/5. 8+ Years/2. Stream API Coding Questions – Lead Level.pdf"
+        },
+        {
+          "id": "l-3",
+          "name": "Spring Framework – Lead Level",
+          "technology": "Spring",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/5. 8+ Years/3. Spring Framework - Lead Level.pdf"
+        },
+        {
+          "id": "l-4",
+          "name": "Spring Boot – Lead Level",
+          "technology": "Spring Boot",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/5. 8+ Years/4. Spring Boot - Lead Level.pdf"
+        },
+        {
+          "id": "l-5",
+          "name": "Spring Data JPA – Lead Level",
+          "technology": "Spring Data JPA",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/5. 8+ Years/5. Spring Data JPA - Lead Level.pdf"
+        },
+        {
+          "id": "l-6",
+          "name": "Spring Security – Lead Level",
+          "technology": "Spring Security",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/5. 8+ Years/6. Spring Security - Lead Level.pdf"
+        },
+        {
+          "id": "l-7",
+          "name": "Microservices – Lead Level",
+          "technology": "Microservices",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/5. 8+ Years/7. Microservices - Lead Level.pdf"
+        },
+        {
+          "id": "l-8",
+          "name": "Deployment – Lead Level",
+          "technology": "DevOps",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/5. 8+ Years/8. Deployment - Lead Level.pdf"
+        },
+        {
+          "id": "l-9",
+          "name": "System Design Scenario-Based Questions – Lead Level",
+          "technology": "System Design",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/5. 8+ Years/9. System Design Scenario-Based Questions – Lead Level.pdf"
+        },
+        {
+          "id": "l-10",
+          "name": "Spring MVC – Lead Level",
+          "technology": "Spring MVC",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/5. 8+ Years/10. Spring MVC - Lead Level.pdf"
+        },
+        {
+          "id": "l-11",
+          "name": "Hibernate – Lead Level",
+          "technology": "Hibernate",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/5. 8+ Years/11. Hibernate - Lead Level.pdf"
+        },
+        {
+          "id": "l-12",
+          "name": "Testing – Lead Level",
+          "technology": "Testing",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/5. 8+ Years/12. Testing - Lead Level.pdf"
+        },
+        {
+          "id": "l-13",
+          "name": "Git – Lead Level",
+          "technology": "Git",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/5. 8+ Years/13. Git – Lead Level.pdf"
+        },
+        {
+          "id": "l-14",
+          "name": "Kafka – Lead Level",
+          "technology": "Kafka",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/5. 8+ Years/14. Kafka - Lead Level.pdf"
+        },
+        {
+          "id": "l-15",
+          "name": "Maven – Lead Level",
+          "technology": "Maven",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/5. 8+ Years/15. Maven - Lead Level.pdf"
+        },
+        {
+          "id": "l-16",
+          "name": "Non-Tech Questions – Lead Level",
+          "technology": "Soft Skills",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/5. 8+ Years/16. Non-Tech Questions – Lead Level.pdf"
+        }
+      ]
+    },
+    {
+      "id": "bonus",
+      "title": "Bonus",
+      "subtitle": "Cloud, SQL deep-dives, resume, HR & career resources",
+      "icon": "🎁",
+      "color": "#f43f5e",
+      "gradientFrom": "#f43f5e",
+      "gradientTo": "#fb923c",
+      "experienceLevel": "all",
+      "files": [
+        {
+          "id": "bon-1",
+          "name": "AWS Basics",
+          "technology": "AWS",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/6. Bonus/1. AWS Basics.pdf"
+        },
+        {
+          "id": "bon-2",
+          "name": "Azure Basics",
+          "technology": "Azure",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/6. Bonus/2. Azure Basics.pdf"
+        },
+        {
+          "id": "bon-3",
+          "name": "How to Explain Your Project (Template)",
+          "technology": "Interview Tips",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/6. Bonus/3. How to explain your project (Template).pdf"
+        },
+        {
+          "id": "bon-4",
+          "name": "Resume Template",
+          "technology": "Career",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/6. Bonus/4. Resume Template.pdf"
+        },
+        {
+          "id": "bon-5",
+          "name": "HR Questions",
+          "technology": "Soft Skills",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/6. Bonus/5. HR Questions.pdf"
+        },
+        {
+          "id": "bon-6",
+          "name": "SQL Queries – Medium",
+          "technology": "SQL",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/6. Bonus/6. SQL Queries – Medium.pdf"
+        },
+        {
+          "id": "bon-7",
+          "name": "SQL Queries – Hard",
+          "technology": "SQL",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/6. Bonus/7. SQL Queries – Hard.pdf"
+        },
+        {
+          "id": "bon-8",
+          "name": "SQL Queries – Very Hard",
+          "technology": "SQL",
+          "lastUpdated": "2026-01-15",
+          "path": "StudyResources/6. Bonus/8. SQL Queries – Very Hard.pdf"
+        }
+      ]
+    }
+  ]
+}
