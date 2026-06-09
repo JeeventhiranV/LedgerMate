@@ -103,6 +103,22 @@ function getTotalLiabilities() {
 function getNetWorth() {
   return getTotalAssets() - getTotalLiabilities();
 }
+
+// ─── Animated counter: smoothly counts from 0 to target ──
+function wealthAnimateValue(el, target, dur = 700) {
+  if (!el) return;
+  const sign = target < 0 ? -1 : 1;
+  const abs  = Math.abs(target);
+  const fmt  = v => (v < 0 ? '-' : '') + '₹' + Math.round(Math.abs(v)).toLocaleString('en-IN');
+  const start = performance.now();
+  (function step(now) {
+    const t    = Math.min((now - start) / dur, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    el.textContent = fmt(sign * abs * ease);
+    if (t < 1) requestAnimationFrame(step);
+    else el.textContent = fmt(target);
+  })(start);
+}
 /* ─────────────────────────────────────────────────────────────
    LOAN ANALYTICS HELPERS (reads state.loans from Common.js)
 ───────────────────────────────────────────────────────────── */
@@ -141,6 +157,15 @@ function showWealthPage() {
   if (!page) return;
   const currentTab = page.dataset.activeTab || 'assets';
 
+  const nw        = getNetWorth();
+  const assets    = getTotalAssets();
+  const liabs     = getTotalLiabilities();
+  const invested  = (state.investments||[]).reduce((s,a)=>s+getAssetInvestedAmount(a),0);
+  const curVal    = (state.investments||[]).reduce((s,a)=>s+getAssetCurrentValue(a),0);
+  const pnl       = curVal - invested;
+  const pnlColor  = pnl >= 0 ? 'var(--emerald)' : 'var(--rose)';
+  const nwColor   = nw  >= 0 ? 'var(--teal)'    : 'var(--rose)';
+
   page.innerHTML = `
     <div class="page-header fade-up fade-up-1">
       <div>
@@ -155,22 +180,52 @@ function showWealthPage() {
       </div>
     </div>
 
-    <div class="wealth-tabs fade-up fade-up-2">
+    <!-- Live KPI strip -->
+    <div class="wealth-kpi-strip fade-up fade-up-2">
+      <div class="wkpi stagger-1" onclick="switchWealthTab('networth')" style="cursor:pointer;">
+        <div class="wkpi-label">Net Worth</div>
+        <div class="wkpi-val" id="wkpi-nw" style="color:${nwColor};">${fmtINR(nw)}</div>
+        <div class="wkpi-sub">Assets − Liabilities</div>
+      </div>
+      <div class="wkpi stagger-2" onclick="switchWealthTab('assets')" style="cursor:pointer;">
+        <div class="wkpi-label">Total Assets</div>
+        <div class="wkpi-val" style="color:var(--teal);" id="wkpi-assets">${fmtINR(assets)}</div>
+        <div class="wkpi-sub">${(state.investments||[]).length} holdings</div>
+      </div>
+      <div class="wkpi stagger-3" onclick="switchWealthTab('liabilities')" style="cursor:pointer;">
+        <div class="wkpi-label">Liabilities</div>
+        <div class="wkpi-val" style="color:${liabs>0?'var(--rose)':'var(--text-3)'};" id="wkpi-liabs">${fmtINR(liabs)}</div>
+        <div class="wkpi-sub">${(state.emi_loans||[]).length} active loans</div>
+      </div>
+      <div class="wkpi stagger-4" onclick="switchWealthTab('allocation')" style="cursor:pointer;">
+        <div class="wkpi-label">P&amp;L</div>
+        <div class="wkpi-val" style="color:${pnlColor};" id="wkpi-pnl">${pnl>=0?'+':''}${fmtINR(pnl)}</div>
+        <div class="wkpi-sub">Unrealised</div>
+      </div>
+    </div>
+
+    <div class="wealth-tabs fade-up fade-up-3">
       <button class="wealth-tab" onclick="switchWealthTab('assets')">Assets</button>
       <button class="wealth-tab" onclick="switchWealthTab('liabilities')">Liabilities</button>
-      
       <button class="wealth-tab" onclick="switchWealthTab('networth')">Net Worth</button>
       <button class="wealth-tab" onclick="switchWealthTab('allocation')">Allocation</button>
     </div>
 
-    <div id="wealth-tab-content" class="fade-up fade-up-3"></div>
+    <div id="wealth-tab-content" class="fade-up fade-up-4"></div>
     <div id="wealthModals"></div>`;
+
+  // Animate the KPI strip counters
+  setTimeout(() => {
+    wealthAnimateValue(document.getElementById('wkpi-nw'),     nw,     600);
+    wealthAnimateValue(document.getElementById('wkpi-assets'), assets, 700);
+    wealthAnimateValue(document.getElementById('wkpi-liabs'),  liabs,  800);
+    wealthAnimateValue(document.getElementById('wkpi-pnl'),    pnl,    750);
+  }, 80);
 
   switchWealthTab(currentTab);
 }
 
 function switchWealthTab(tab) {
-  
   const page = document.getElementById('page-wealth');
   if (!page) return;
   page.dataset.activeTab = tab;
@@ -182,6 +237,12 @@ function switchWealthTab(tab) {
 
   const content = document.getElementById('wealth-tab-content');
   if (!content) return;
+
+  // Slide-in animation on every tab switch
+  content.classList.remove('tab-slide-in');
+  void content.offsetWidth;
+  content.classList.add('tab-slide-in');
+
   if (tab === 'assets')       renderWealthAssets(content);
   if (tab === 'liabilities')  renderWealthLiabilities(content);
   if (tab === 'loans')        renderWealthLoans(content);
@@ -297,8 +358,82 @@ const emiLiabilities = (state.emi_loans || []).reduce((s,l)=>s+toNum(l.outstandi
       </tr>`;
   }).join('');
 
+  // Category composition bar data
+  const catTotals = {};
+  assets.forEach(a => {
+    const c = getAssetCategory(a);
+    catTotals[c] = (catTotals[c] || 0) + getAssetCurrentValue(a);
+  });
+  const compSegs = Object.entries(catTotals)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([c, v]) => {
+      const pct = totalCurrent > 0 ? ((v/totalCurrent)*100).toFixed(1) : 0;
+      const col = (ASSET_CATEGORIES[c]||{color:'#888'}).color;
+      return `<div class="cat-comp-seg" title="${c}: ${pct}%" style="width:${pct}%;background:${col};"></div>`;
+    }).join('');
+
+  const compLegend = Object.entries(catTotals)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([c, v]) => {
+      const pct = totalCurrent > 0 ? ((v/totalCurrent)*100).toFixed(1) : 0;
+      const col = (ASSET_CATEGORIES[c]||{color:'#888'}).color;
+      const ic  = (ASSET_CATEGORIES[c]||{icon:'💼'}).icon;
+      return `<div style="display:flex;align-items:center;gap:5px;font-size:11px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:${col};display:inline-block;flex-shrink:0;"></span>
+        <span style="color:var(--text-2);">${ic} ${c}</span>
+        <span style="font-family:var(--font-m);color:var(--text-3);">${pct}%</span>
+      </div>`;
+    }).join('');
+
+  // Mobile card view
+  const mobileCards = assets.map((a, i) => {
+    const cat      = getAssetCategory(a);
+    const catInfo  = ASSET_CATEGORIES[cat] || { icon: '💼', color: 'var(--teal)' };
+    const invested = getAssetInvestedAmount(a);
+    const curVal   = getAssetCurrentValue(a);
+    const pnl      = curVal - invested;
+    const pct      = totalCurrent > 0 ? ((curVal/totalCurrent)*100).toFixed(1) : 0;
+    const pnlInvPct = invested > 0 ? ((pnl/invested)*100).toFixed(1) : 0;
+    const staggerCls = `s${Math.min(i+1,5)}`;
+    return `
+      <div class="wealth-mob-card ${staggerCls}" data-id="${a.id}" data-cat="${cat}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:22px;line-height:1;">${catInfo.icon}</span>
+            <div>
+              <div class="list-item-name" style="margin:0;">${a.name||'Asset'}</div>
+              <div class="list-item-sub" style="margin:0;">${a.subType||cat}</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:var(--font-m);font-size:14px;font-weight:700;color:var(--teal);">${fmtINR(curVal)}</div>
+            <div style="font-size:11px;color:${pnl>=0?'var(--emerald)':'var(--rose)'};">${pnl>=0?'+':''}${fmtINR(pnl)} (${pnl>=0?'+':''}${pnlInvPct}%)</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3);">
+          <span>Invested: <b style="color:var(--text-2);">${fmtINR(invested)}</b></span>
+          <span>Alloc: <b style="color:var(--text-2);">${pct}%</b></span>
+          <div style="display:flex;gap:4px;">
+            <button class="section-action" onclick="openEditAssetModal('${a.id}')" style="padding:4px 8px;" title="Edit">✏️</button>
+            <button class="section-action" onclick="deleteAsset('${a.id}')" style="padding:4px 8px;color:var(--rose);" title="Delete">🗑️</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
   container.innerHTML = summaryBar + `
-    <div class="tx-card" style="overflow-x:auto;">
+    <!-- Category composition bar -->
+    <div class="chart-card" style="margin-bottom:16px;padding:14px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.8px;">Portfolio Composition</span>
+        <span style="font-size:11px;font-family:var(--font-m);color:var(--text-3);">${assets.length} holdings · ${fmtINR(totalCurrent)}</span>
+      </div>
+      <div class="cat-comp-bar" id="catCompBar">${compSegs}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:4px;">${compLegend}</div>
+    </div>
+
+    <!-- Desktop table -->
+    <div class="tx-card wealth-table-scroll" style="overflow-x:auto;">
       <div class="section-heading">
         <div class="section-title"><span class="dot"></span>Holdings</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -322,6 +457,15 @@ const emiLiabilities = (state.emi_loans || []).reduce((s,l)=>s+toNum(l.outstandi
       </table>
       <div style="text-align:right;padding:10px 0 0;font-size:12px;color:var(--text-3);
                   font-family:var(--font-m);">${assets.length} asset${assets.length!==1?'s':''}</div>
+    </div>
+
+    <!-- Mobile card view -->
+    <div class="wealth-mob-cards" style="display:none;">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+        <input id="assetSearchMob" class="form-input" style="flex:1;min-width:120px;padding:7px 10px;font-size:12px;"
+               placeholder="🔍 Search..." oninput="filterWealthAssetsMob()">
+      </div>
+      <div id="assetsMobList">${mobileCards}</div>
     </div>`;
 }
 
@@ -334,6 +478,14 @@ function filterWealthAssets() {
     const catOk   = cat === 'all' || rowCat === cat;
     const srchOk  = !search || rowName.includes(search);
     row.style.display = (catOk && srchOk) ? '' : 'none';
+  });
+}
+
+function filterWealthAssetsMob() {
+  const search = (document.getElementById('assetSearchMob')?.value||'').toLowerCase();
+  document.querySelectorAll('#assetsMobList .wealth-mob-card').forEach(card => {
+    const name = card.querySelector('.list-item-name')?.textContent.toLowerCase() || '';
+    card.style.display = (!search || name.includes(search)) ? '' : 'none';
   });
 }
 
@@ -1086,26 +1238,53 @@ function renderWealthNetWorth(container) {
         }).join('')
       + `</div>`;
 
+  // Net worth as % of FI target (25× annual expense) for ring
+  const annualExp = (DataEngine?.getTransactionAverages?.()?.avgExpense || 0) * 12;
+  const fiTarget  = annualExp > 0 ? annualExp * 25 : 0;
+  const fiPct     = fiTarget > 0 ? Math.min(100, (nw / fiTarget) * 100) : 0;
+  const ringR     = 42, ringC = 50, ringCirc = 2 * Math.PI * ringR;
+  const ringOffset = ringCirc * (1 - fiPct / 100);
+  const ringColor  = nw >= 0 ? 'var(--teal)' : 'var(--rose)';
+
   container.innerHTML = `
-    <div class="chart-card" style="margin-bottom:16px;text-align:center;">
-      <div class="kpi-label" style="margin-bottom:8px;">YOUR CURRENT NET WORTH</div>
-      <div style="font-family:var(--font-m);font-size:clamp(24px,4vw,36px);font-weight:700;
-                  color:${nw>=0?'var(--teal)':'var(--rose)'};">${fmtINR(nw)}</div>
-      ${change!==0?`<div style="margin-top:6px;font-size:13px;color:${change>=0?'var(--emerald)':'var(--rose)'};">
-        ${change>=0?'↑':'↓'} ${fmtINR(Math.abs(change))} from last snapshot</div>`:''}
+    <div class="chart-card" style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:center;">
+        <!-- Animated SVG ring -->
+        <div style="position:relative;flex-shrink:0;">
+          <svg class="nw-ring" width="100" height="100" viewBox="0 0 100 100">
+            <circle class="nw-ring-track" cx="${ringC}" cy="${ringC}" r="${ringR}" stroke-width="8"/>
+            <circle class="nw-ring-fill" id="nwRingFill"
+              cx="${ringC}" cy="${ringC}" r="${ringR}" stroke-width="8"
+              stroke="${ringColor}"
+              stroke-dasharray="${ringCirc}"
+              stroke-dashoffset="${ringCirc}"/>
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <span style="font-family:var(--font-m);font-size:13px;font-weight:700;color:${ringColor};">${fiPct.toFixed(0)}%</span>
+            <span style="font-size:9px;color:var(--text-3);">to FI</span>
+          </div>
+        </div>
+        <div style="text-align:center;flex:1;min-width:160px;">
+          <div class="kpi-label" style="margin-bottom:6px;">YOUR CURRENT NET WORTH</div>
+          <div class="score-reveal" style="font-family:var(--font-m);font-size:clamp(24px,4vw,36px);font-weight:700;color:${nw>=0?'var(--teal)':'var(--rose)'};" id="nwBigVal">${fmtINR(nw)}</div>
+          ${change!==0?`<div style="margin-top:6px;font-size:13px;color:${change>=0?'var(--emerald)':'var(--rose)'};">
+            ${change>=0?'↑':'↓'} ${fmtINR(Math.abs(change))} from last snapshot</div>`:''}
+          ${fiTarget>0?`<div style="font-size:11px;color:var(--text-3);margin-top:4px;">FI Target: ${fmtINR(fiTarget)}</div>`:''}
+        </div>
+      </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;
                   padding-top:16px;border-top:1px solid var(--border);">
-        <div>
+        <div class="card-enter ce-1">
           <div class="kpi-label">ASSETS</div>
-          <div style="font-family:var(--font-m);font-size:16px;font-weight:600;color:var(--emerald);">${fmtINR(assets)}</div>
+          <div style="font-family:var(--font-m);font-size:16px;font-weight:600;color:var(--emerald);" id="nwAssetVal">${fmtINR(assets)}</div>
         </div>
-        <div>
+        <div class="card-enter ce-2">
           <div class="kpi-label">LIABILITIES</div>
-          <div style="font-family:var(--font-m);font-size:16px;font-weight:600;color:${liabilities>0?'var(--rose)':'var(--text-3)'};">${fmtINR(liabilities)}</div>
+          <div style="font-family:var(--font-m);font-size:16px;font-weight:600;color:${liabilities>0?'var(--rose)':'var(--text-3)'};" id="nwLiabVal">${fmtINR(liabilities)}</div>
         </div>
-        <div>
+        <div class="card-enter ce-3">
           <div class="kpi-label">PERSONAL LOANS NET</div>
-          <div style="font-family:var(--font-m);font-size:16px;font-weight:600;color:${personalNet>=0?'var(--emerald)':'var(--rose)'};">
+          <div style="font-family:var(--font-m);font-size:16px;font-weight:600;color:${personalNet>=0?'var(--emerald)':'var(--rose)'};" id="nwLoanVal">
             ${personalNet>=0?'+':''}${fmtINR(personalNet)}
           </div>
         </div>
@@ -1124,6 +1303,16 @@ function renderWealthNetWorth(container) {
               onclick="takeNetWorthSnapshot()">📸 Take Snapshot</button>
     </div>
     <div class="tx-card">${snapshotList}</div>`;
+
+  // Animate ring + counters
+  setTimeout(() => {
+    const ring = document.getElementById('nwRingFill');
+    if (ring) ring.style.strokeDashoffset = String(ringOffset);
+    wealthAnimateValue(document.getElementById('nwBigVal'),  nw,          900);
+    wealthAnimateValue(document.getElementById('nwAssetVal'), assets,     700);
+    wealthAnimateValue(document.getElementById('nwLiabVal'),  liabilities, 800);
+    wealthAnimateValue(document.getElementById('nwLoanVal'),  personalNet, 750);
+  }, 60);
 
   if (snapshots.length > 1) {
     setTimeout(() => {

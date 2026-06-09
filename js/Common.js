@@ -1821,11 +1821,44 @@ if (!q) {
         return;
     }
 
-  // Category color palette for dots
+  // Category color palette
   const CAT_COLORS = {
-    Food:'#f59e0b', Transport:'#3b82f6', Bills:'#8b5cf6', Shopping:'#ec4899',
-    Salary:'#10b981', Healthcare:'#06b6d4', Entertainment:'#f97316',
-    Education:'#6366f1', Housing:'#84cc16', Loan:'#ef4444', Snacks:'#fb923c', Other:'#94a3b8'
+    Food:'#f59e0b', Groceries:'#f59e0b', Snacks:'#fb923c', Dining:'#f97316',
+    Transport:'#3b82f6', Fuel:'#60a5fa', Travel:'#0ea5e9',
+    Bills:'#8b5cf6', Utilities:'#7c3aed', Subscription:'#a78bfa',
+    Shopping:'#ec4899', Clothing:'#f472b6',
+    Salary:'#10b981', Freelance:'#34d399', Investment:'#14b8a6',
+    Healthcare:'#06b6d4', Medical:'#22d3ee', Insurance:'#0891b2',
+    Entertainment:'#f97316', Education:'#6366f1',
+    Housing:'#84cc16', Rent:'#65a30d',
+    Loan:'#ef4444', Tax:'#dc2626', EMI:'#ef4444',
+    Gift:'#a855f7', Charity:'#9333ea',
+    Gym:'#fb923c', Sports:'#3b82f6', Petrol:'#60a5fa',
+    Other:'#94a3b8'
+  };
+  // Consistent hex color for any custom category not in CAT_COLORS
+  const _catColor = cat => {
+    if (CAT_COLORS[cat]) return CAT_COLORS[cat];
+    const pal = ['#f59e0b','#3b82f6','#10b981','#8b5cf6','#ec4899','#06b6d4',
+                 '#f97316','#6366f1','#84cc16','#ef4444','#a855f7','#14b8a6',
+                 '#fb923c','#0ea5e9','#65a30d','#e11d48','#7c3aed','#059669'];
+    let h = 0; for (let i = 0; i < (cat||'').length; i++) h = (h * 31 + cat.charCodeAt(i)) >>> 0;
+    return pal[h % pal.length];
+  };
+  // Icon map (defined once, not per-item)
+  const CAT_ICONS = {
+    Food:'🍽️', Groceries:'🛒', Snacks:'🧆', Dining:'🍴',
+    Transport:'🚗', Fuel:'⛽', Travel:'✈️',
+    Bills:'💡', Utilities:'🔌', Subscription:'📱',
+    Shopping:'🛍️', Clothing:'👕',
+    Salary:'💼', Freelance:'💻', Investment:'📈',
+    Healthcare:'🏥', Medical:'💊', Insurance:'🛡️',
+    Entertainment:'🎬', Education:'📚',
+    Housing:'🏠', Rent:'🏢',
+    Loan:'💸', Tax:'🏛️', EMI:'🏦',
+    Gift:'🎁', Charity:'❤️',
+    Gym:'🏋️', Sports:'⚽', Petrol:'⛽',
+    Other:'💳'
   };
 
   // Highlight search term in text
@@ -1839,11 +1872,11 @@ if (!q) {
     const row = document.createElement('div');
     row.className = 'tx-item';
 
-    // Category icon map
-    const iconMap = { Food:'🍽️', Transport:'🚗', Bills:'💡', Shopping:'🛍️', Salary:'💼', Healthcare:'🏥', Entertainment:'🎬', Education:'📚', Housing:'🏠', Loan:'💸', Snacks:'🧆', Other:'💳' };
-    const icon = iconMap[t.category] || '💳';
-    const typeCls = t.type === 'in' ? 'income' : 'expense';
-    const catDotColor = CAT_COLORS[t.category] || 'var(--text-3)';
+    const normCat     = (t.category || '').trim();
+    const iconKey     = Object.keys(CAT_ICONS).find(k => k.toLowerCase() === normCat.toLowerCase());
+    const icon        = iconKey ? CAT_ICONS[iconKey] : (normCat ? normCat.charAt(0).toUpperCase() : '💳');
+    const typeCls     = t.type === 'in' ? 'income' : 'expense';
+    const catDotColor = _catColor(normCat);
     const simpleQ = (q && !q.includes(':') && !q.match(/^amount/)) ? q : '';
 
     // Badges
@@ -1861,8 +1894,8 @@ if (!q) {
       <div class="tx-row">
 
         <div class="tx-left">
-          <!-- Icon dot with category color ring -->
-          <div class="tx-icon-dot ${typeCls}" style="box-shadow:0 0 0 2px ${catDotColor}44;">${icon}</div>
+          <!-- Icon dot filled with category color -->
+          <div class="tx-icon-dot" style="background:${catDotColor}22;border:1.5px solid ${catDotColor}66;">${icon}</div>
 
           <!-- Text block -->
           <div class="tx-text">
@@ -2082,6 +2115,22 @@ function openAddTransactionModal(prefill = {}) {
   const id = uid('tx');
   const today = prefill.date || nowISO();
 
+  // Auto-apply default template when opening with no explicit prefill
+  const hasPrefill = !!(prefill.type || prefill.amount || prefill.category);
+  if (!hasPrefill) {
+    const defTplId = state.settings?.defaultTemplateId;
+    if (defTplId) {
+      const defTpl = (state.tx_templates || []).find(t => Number(t.id) === Number(defTplId));
+      if (defTpl) {
+        prefill.type      = defTpl.type;
+        prefill.amount    = defTpl.amount;
+        prefill.category  = defTpl.category;
+        prefill.account   = defTpl.account;
+        prefill.note      = defTpl.note || '';
+      }
+    }
+  }
+
   // Apply dropdown defaults when not prefilling
   const defAcct = getDropdownDefault('accounts');
   const defCat  = getDropdownDefault('categories');
@@ -2094,6 +2143,7 @@ function openAddTransactionModal(prefill = {}) {
   const recurrences = state.dropdowns.recurrences || ['None','Daily','Weekly','Monthly','Yearly'];
   const accounts    = state.dropdowns.accounts    || ['Cash'];
   const categories  = state.dropdowns.categories  || ['Food','Other'];
+  const templates   = state.tx_templates || [];
 
   // Quick-amount chips
   const amtChips = [100, 500, 1000, 2000, 5000, 10000];
@@ -2109,29 +2159,27 @@ function openAddTransactionModal(prefill = {}) {
   const modalHTML = `
     <div class="modal-overlay" id="addTxOverlay">
       <div class="modal atx-modal">
-        <div class="modal-header" style="padding:16px 20px;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:34px;height:34px;background:linear-gradient(135deg,var(--teal),var(--violet));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;">➕</div>
+        <div class="modal-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:30px;height:30px;background:linear-gradient(135deg,var(--teal),var(--violet));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">➕</div>
             <div>
-              <div class="modal-title" style="font-size:15px;">New Transaction</div>
-              <div style="font-size:11px;color:var(--text-3);font-family:var(--font-m);">Press Esc to cancel</div>
+              <div class="modal-title" style="font-size:14px;">New Transaction</div>
+              <div style="font-size:10px;color:var(--text-3);font-family:var(--font-m);">Esc to cancel</div>
             </div>
           </div>
           <button id="cancelTx" class="modal-close">×</button>
         </div>
-        <div class="modal-body" style="padding:16px 20px 20px;">
+        <div class="modal-body">
           <form id="txForm" autocomplete="off">
 
-            <!-- TEMPLATE QUICK-PICK -->
-            ${(state.tx_templates || []).length ? `
-            <div class="atx-tpl-bar">
-              <span class="atx-tpl-bar-label">📋 Templates</span>
-              <div class="atx-tpl-chips">
-                ${(state.tx_templates || []).map(t => `
-                  <button type="button" class="atx-tpl-chip" onclick="applyTplToForm(${t.id})">
-                    ${t.type==='in'?'📈':'💸'} ${t.name}
-                  </button>`).join('')}
-              </div>
+            <!-- TEMPLATE SELECTOR -->
+            ${templates.length ? `
+            <div class="atx-tpl-select-wrap">
+              <label>📋 Template</label>
+              <select class="atx-tpl-select" id="atxTplSelect" onchange="if(this.value) applyTplToForm(Number(this.value))">
+                <option value="">— select to apply —</option>
+                ${templates.map(t => `<option value="${t.id}">${t.type==='in'?'📈':'💸'} ${t.name}${Number(t.id)===Number(state.settings?.defaultTemplateId)?' ⭐':''}</option>`).join('')}
+              </select>
             </div>` : ''}
 
             <!-- TYPE TOGGLE -->
@@ -2211,8 +2259,8 @@ function openAddTransactionModal(prefill = {}) {
             </div>
 
             <!-- SAVE -->
-            <button type="submit" class="btn-submit" style="margin-top:8px;">
-              Save Transaction
+            <button type="submit" class="btn-submit" style="margin-top:6px;">
+              💾 Save Transaction
             </button>
           </form>
         </div>
@@ -2302,8 +2350,12 @@ function openAddTransactionModal(prefill = {}) {
     try {
       await put('transactions', txObj);
       state.transactions.push(txObj);
-      renderAll();
       closeModal();
+      // Targeted refresh — avoids full chart redraw / page-scroll side-effects
+      try { renderKPIs(); } catch(e) {}
+      try { refreshRecentList(); } catch(e) {}
+      try { renderBudgetOverview(); } catch(e) {}
+      try { renderHeatmap(); } catch(e) {}
       autoBackup();
       const amtStr = fmtINR(amount);
       showToast(`${txObj.type === 'in' ? '💰 Income' : '💸 Expense'} ${amtStr} saved`, 'success');
@@ -3855,6 +3907,18 @@ function renderKPIs() {
   const balanceColor    = k.balance    >= 0 ? 'var(--teal)'    : 'var(--rose)';
   const profitColor     = k.profitLoss >= 0 ? 'var(--emerald)' : 'var(--rose)';
 
+  // Live indicator bar above KPIs
+  const liveBar = document.getElementById("dashLiveBar");
+  if (liveBar) {
+    const now = new Date();
+    const ts  = now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+    liveBar.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;padding:6px 10px;background:var(--bg2);border-radius:10px;border:1px solid var(--border);">
+        <div class="rt-live"><div class="rt-dot"></div><span>Real-time dashboard</span></div>
+        <span style="font-size:11px;color:var(--text-3);font-family:var(--font-m);">Updated ${ts} · ${k.days}d window · ${(state.transactions||[]).length} txns</span>
+      </div>`;
+  }
+
   row.innerHTML = `
   ${kpiCard("Balance",     fmtINR(k.balance),            "All accounts",          "blue",   balanceColor)}
   ${kpiCard("Income",      fmtINR(k.income),             k.days + " days",        "green",  'var(--emerald)')}
@@ -3865,7 +3929,6 @@ function renderKPIs() {
 
 
   /* Top Categories */
- 
 const topCatEl = document.getElementById("topCategories");
 const colors = [
   "#3b82f6", // blue
@@ -3879,14 +3942,14 @@ let index = 0;
 
 topCatEl.innerHTML = k.topCategories
   .map(cat => {
-    const color = colors[index++ % colors.length];
-    const amount = cat.amount;
+    const color   = colors[index++ % colors.length];
+    const amount  = cat.amount;
     const percent = ((amount / k.expense) * 100).toFixed(1);
 
     return `
       <div class="glass rounded-md p-2 mb-2"
            style="background:linear-gradient(135deg, ${color}22, ${color}15); border:1px solid ${color}33">
-        
+
         <div class="flex justify-between mb-1">
           <span style="color: var(--text); font-weight:600; font-size:14px;">
             ${cat.category}
@@ -3902,14 +3965,22 @@ topCatEl.innerHTML = k.topCategories
         </div>
 
         <div class="w-full bg-gray-300 dark:bg-gray-700 h-2 rounded overflow-hidden">
-          <div class="h-2 rounded"
-               style="width:${percent}%; background:${color};">
+          <div class="anim-bar h-2 rounded"
+               data-bar-pct="${percent}"
+               style="width:0%; background:${color};">
           </div>
         </div>
 
       </div>
     `;
   }).join("");
+
+// Animate category bars after paint
+setTimeout(() => {
+  topCatEl.querySelectorAll('[data-bar-pct]').forEach(b => {
+    b.style.width = b.dataset.barPct + '%';
+  });
+}, 80);
 
 
   /* Forecast */
@@ -6480,12 +6551,14 @@ function renderTemplatesPage() {
   const el = document.getElementById('templatesContent');
   if (!el) return;
   const tpls = state.tx_templates || [];
+  const defId = Number(state.settings?.defaultTemplateId || 0);
 
   el.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div style="font-size:13px;color:var(--text-3);">${tpls.length} template${tpls.length!==1?'s':''} · Tap to use</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:13px;color:var(--text-3);">${tpls.length} template${tpls.length!==1?'s':''} · Tap to use instantly</div>
       <button class="btn-submit" style="padding:9px 20px;font-size:13px;" onclick="openTemplateModal()">+ New Template</button>
     </div>
+    ${defId ? `<div style="font-size:12px;color:var(--gold);margin-bottom:12px;">⭐ Default template auto-fills the Add Transaction form on open</div>` : `<div style="font-size:12px;color:var(--text-3);margin-bottom:12px;">⭐ Set a default template to auto-fill the Add Transaction form when you open it</div>`}
     ${!tpls.length ? `<div style="text-align:center;padding:48px;color:var(--text-3);">
       <div style="font-size:40px;margin-bottom:12px;">📋</div>
       <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;">No templates yet</div>
@@ -6493,13 +6566,17 @@ function renderTemplatesPage() {
     </div>` : `
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;">
       ${tpls.map(t => {
-        const typeCls = t.type === 'in' ? 'income' : 'expense';
-        const sign    = t.type === 'in' ? '+' : '−';
-        return `<div class="tpl-card" onclick="useTemplate(${t.id})">
+        const typeCls  = t.type === 'in' ? 'income' : 'expense';
+        const sign     = t.type === 'in' ? '+' : '−';
+        const isDefTpl = Number(t.id) === defId;
+        return `<div class="tpl-card${isDefTpl?' is-default':''}" onclick="useTemplate(${t.id})">
           <div class="tpl-card-top">
             <div class="tpl-icon ${typeCls}">${t.type==='in'?'📈':'💸'}</div>
             <div style="flex:1;min-width:0;">
-              <div class="tpl-name">${t.name}</div>
+              <div class="tpl-name" style="display:flex;align-items:center;gap:5px;">
+                ${t.name}
+                ${isDefTpl ? `<span class="tpl-default-badge">⭐ Default</span>` : ''}
+              </div>
               <div class="tpl-meta">${t.category||'—'} · ${t.account||'—'}</div>
             </div>
             <div class="tpl-amount ${typeCls}">${sign}${fmtINR(t.amount)}</div>
@@ -6507,6 +6584,7 @@ function renderTemplatesPage() {
           ${t.note ? `<div class="tpl-note">${t.note}</div>` : ''}
           <div class="tpl-actions">
             <button onclick="event.stopPropagation();openTemplateModal(${t.id})" class="tpl-btn">✏️ Edit</button>
+            <button onclick="event.stopPropagation();setDefaultTemplate(${t.id})" class="tpl-btn${isDefTpl?' default-btn':''}">${isDefTpl?'★ Default':'☆ Set Default'}</button>
             <button onclick="event.stopPropagation();deleteTemplate(${t.id})" class="tpl-btn" style="color:var(--rose);">🗑️ Delete</button>
           </div>
         </div>`;
@@ -6539,7 +6617,7 @@ function openTemplateModal(id) {
       </div>
       <div><label class="form-label">Default Note</label>
         <input id="tplNote" class="form-input" placeholder="Optional note" value="${ex?.note||''}"></div>
-      <button class="btn-submit" onclick="saveTemplate(${ex?.id||'null'})" style="margin-top:4px;">${ex?'Update':'Save'} Template</button>
+      <button class="btn-submit" onclick="saveTemplate(${ex?.id??'null'})" style="margin-top:4px;">${ex?'Update':'Save'} Template</button>
     </div>`);
 }
 
@@ -6553,14 +6631,20 @@ async function saveTemplate(id) {
     note:     document.getElementById('tplNote')?.value?.trim()
   };
   if (!tpl.name) { showToast('Enter a template name', 'error'); return; }
-  if (id && id !== 'null') {
-    tpl.id = id;
-    await put('tx_templates', tpl);
-    state.tx_templates = state.tx_templates.map(x => x.id === id ? { ...x, ...tpl } : x);
-  } else {
-    const sid = await put('tx_templates', tpl);
-    tpl.id = sid;
-    state.tx_templates.push(tpl);
+  try {
+    if (id != null && id !== 'null') {
+      tpl.id = id;
+      await put('tx_templates', tpl);
+      state.tx_templates = state.tx_templates.map(x => x.id === id ? { ...x, ...tpl } : x);
+    } else {
+      const sid = await put('tx_templates', tpl);
+      tpl.id = sid;
+      state.tx_templates.push(tpl);
+    }
+  } catch (e) {
+    console.error('[saveTemplate]', e);
+    showToast('Failed to save template', 'error');
+    return;
   }
   autoBackup(); closeSimpleModal(); renderTemplatesPage();
   showToast('Template saved!', 'success');
@@ -6573,29 +6657,49 @@ function useTemplate(id) {
 }
 
 function applyTplToForm(id) {
-  const tpl = (state.tx_templates || []).find(t => t.id === id);
-  if (!tpl) return;
-  // type
+  // Normalize: IDs from onclick are numbers; IDB may return numbers too — force match
+  const numId = Number(id);
+  const tpl = (state.tx_templates || []).find(t => Number(t.id) === numId);
+  if (!tpl) { showToast('Template not found', 'error'); return; }
+
+  // type toggle
   document.querySelectorAll('#atxTypeToggle .atx-type-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.val === tpl.type);
   });
   const txTypeEl = document.getElementById('tx_type');
-  if (txTypeEl) txTypeEl.value = tpl.type;
+  if (txTypeEl) txTypeEl.value = tpl.type || 'out';
+
   // amount
   const amtEl = document.getElementById('tx_amount');
-  if (amtEl) { amtEl.value = tpl.amount; amtEl.dispatchEvent(new Event('input')); }
+  if (amtEl) {
+    amtEl.value = tpl.amount || '';
+    amtEl.classList.remove('input-error');
+    amtEl.dispatchEvent(new Event('input'));
+  }
+
   // account
   const accEl = document.getElementById('tx_account');
-  if (accEl) accEl.value = tpl.account;
-  // category
+  if (accEl && tpl.account) accEl.value = tpl.account;
+
+  // category chips
   document.querySelectorAll('#atxCatGrid .atx-cat-chip').forEach(c => {
-    c.classList.toggle('active', c.dataset.cat === tpl.category);
+    const matches = c.dataset.cat === tpl.category;
+    c.classList.toggle('active', matches);
   });
   const catEl = document.getElementById('tx_category');
-  if (catEl) catEl.value = tpl.category;
+  if (catEl) catEl.value = tpl.category || '';
+
   // note
   const noteEl = document.getElementById('tx_note');
   if (noteEl) noteEl.value = tpl.note || '';
+
+  // reset the selector back to placeholder so user sees it was applied
+  const selEl = document.getElementById('atxTplSelect');
+  if (selEl) selEl.value = '';
+
+  // focus amount for quick editing
+  if (amtEl) amtEl.focus();
+
   showToast(`"${tpl.name}" applied`, 'success');
 }
 
@@ -6605,8 +6709,25 @@ async function deleteTemplate(id) {
   if (!confirm('Delete this template?')) return;
   await del('tx_templates', id);
   state.tx_templates = state.tx_templates.filter(x => x.id !== id);
+  // clear default if it was this template
+  if (Number(state.settings?.defaultTemplateId) === Number(id)) {
+    state.settings.defaultTemplateId = null;
+    saveSettingsToStore();
+  }
   renderTemplatesPage();
   showToast('Deleted', 'success');
+}
+
+function setDefaultTemplate(id) {
+  const numId  = Number(id);
+  const curDef = Number(state.settings?.defaultTemplateId || 0);
+  // toggle off if clicking the current default
+  const newDef = curDef === numId ? null : numId;
+  state.settings = { ...(state.settings || {}), defaultTemplateId: newDef };
+  saveSettingsToStore();
+  renderTemplatesPage();
+  const tpl = (state.tx_templates || []).find(t => Number(t.id) === numId);
+  showToast(newDef ? `"${tpl?.name}" set as default template` : 'Default template cleared', 'success');
 }
 
 /* ══════════════════════════════════════════════════════════════

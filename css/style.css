@@ -446,19 +446,19 @@ body::before {
   overflow: hidden;
 }
 
-/* Small icon dot */
+/* Category icon — background + border set inline per category color */
 .tx-icon-dot {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 16px;
   flex-shrink: 0;
+  transition: transform 0.15s;
 }
-.tx-icon-dot.income  { background: rgba(52,211,153,0.12); }
-.tx-icon-dot.expense { background: rgba(251,113,133,0.12); }
+.tx-item:hover .tx-icon-dot { transform: scale(1.08); }
 
 /* Text block */
 .tx-text { min-width: 0; flex: 1; overflow: hidden; }
@@ -1079,52 +1079,69 @@ footer span { color: var(--teal); font-weight: 600; }
 .toast-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; }
 .toast-sub   { font-size: 11px; color: var(--text-3); margin-top: 2px; font-family: var(--font-m); }
 
-/* ── Add Transaction Modal — premium ── */
-.atx-modal { max-width: 520px !important; }
+/* ── Add Transaction Modal — compact & responsive ── */
+.atx-modal { max-width: 460px !important; }
+.atx-modal .modal-header { padding: 12px 16px !important; }
+.atx-modal .modal-body   { padding: 12px 16px 16px !important; }
+
+/* Keep Add Transaction modal always centered — never bottom-sheet */
+#addTxOverlay.modal-overlay { align-items: center !important; padding: 12px !important; }
+@media (max-width: 520px) {
+  #addTxOverlay .modal {
+    border-radius: 16px !important;
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    max-height: 90vh !important;
+  }
+}
 
 .atx-type-toggle {
-  display: grid; grid-template-columns: repeat(3,1fr); gap: 6px;
-  margin-bottom: 16px;
-  background: var(--bg3); border-radius: 14px; padding: 4px;
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 4px;
+  margin-bottom: 10px;
+  background: var(--bg3); border-radius: 12px; padding: 3px;
 }
 .atx-type-btn {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 10px 8px; border-radius: 10px; border: none;
-  background: none; color: var(--text-3); font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 8px 6px; border-radius: 9px; border: none;
+  background: none; color: var(--text-3); font-size: 12px; font-weight: 600;
   cursor: pointer; transition: all var(--transition-fast); font-family: var(--font-b);
 }
 .atx-type-btn.expense.active { background: rgba(251,113,133,0.15); color: var(--rose); }
 .atx-type-btn.income.active  { background: rgba(52,211,153,0.15);  color: var(--emerald); }
 .atx-type-btn.transfer.active{ background: rgba(96,165,250,0.15);  color: var(--blue); }
 .atx-type-btn:hover:not(.active){ background: var(--surface-h); color: var(--text-2); }
-.atx-type-icon { font-size: 16px; }
+.atx-type-icon { font-size: 14px; }
 
 .atx-amount-wrap {
   display: flex; align-items: center; gap: 8px;
   background: var(--bg3); border: 2px solid var(--border);
-  border-radius: 16px; padding: 0 16px; margin-bottom: 10px;
+  border-radius: 14px; padding: 0 14px; margin-bottom: 8px;
   transition: border-color var(--transition-fast);
 }
 .atx-amount-wrap:focus-within { border-color: var(--teal); box-shadow: var(--input-focus-shadow); }
 .atx-currency-symbol {
-  font-family: var(--font-m); font-size: 22px; font-weight: 700;
+  font-family: var(--font-m); font-size: 20px; font-weight: 700;
   color: var(--text-3); flex-shrink: 0;
 }
 .atx-amount-input {
   flex: 1; background: none; border: none; outline: none;
-  font-family: var(--font-m); font-size: 28px; font-weight: 700;
-  color: var(--text); padding: 14px 0; width: 100%;
+  font-family: var(--font-m); font-size: 24px; font-weight: 700;
+  color: var(--text); padding: 10px 0; width: 100%;
   letter-spacing: -0.5px;
 }
 .atx-amount-input::placeholder { color: var(--border); }
 
 .atx-chips {
-  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;
+  display: flex; flex-wrap: nowrap; gap: 5px; margin-bottom: 12px;
+  overflow-x: auto; padding-bottom: 2px; -webkit-overflow-scrolling: touch;
 }
+.atx-chips::-webkit-scrollbar { display: none; }
 .atx-chip {
-  padding: 5px 12px; border-radius: 20px;
+  padding: 4px 10px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;
   background: var(--bg3); border: 1px solid var(--border);
-  color: var(--text-2); font-size: 12px; font-weight: 600;
+  color: var(--text-2); font-size: 11px; font-weight: 600;
   cursor: pointer; transition: all var(--transition-fast); font-family: var(--font-m);
 }
 .atx-chip:hover { background: rgba(0,212,180,0.12); color: var(--teal); border-color: var(--teal); }
@@ -1132,26 +1149,42 @@ footer span { color: var(--teal); font-weight: 600; }
 .atx-chip-clear { color: var(--text-3); }
 
 .atx-row {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;
 }
-@media (max-width: 420px) { .atx-row { grid-template-columns: 1fr; } }
-.atx-field { display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 380px) { .atx-row { grid-template-columns: 1fr; } }
+.atx-field { display: flex; flex-direction: column; gap: 5px; }
 
 .atx-cat-grid {
-  display: grid; grid-template-columns: repeat(4,1fr); gap: 6px;
-  max-height: 160px; overflow-y: auto; padding: 2px;
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 5px;
+  max-height: 130px; overflow-y: auto; padding: 2px;
 }
-@media (min-width: 480px) { .atx-cat-grid { grid-template-columns: repeat(5,1fr); } }
+@media (min-width: 420px) { .atx-cat-grid { grid-template-columns: repeat(5,1fr); } }
+@media (min-width: 600px) { .atx-cat-grid { grid-template-columns: repeat(6,1fr); } }
 .atx-cat-chip {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 8px 4px; border-radius: 10px; border: 1.5px solid var(--border);
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 3px; border-radius: 9px; border: 1.5px solid var(--border);
   background: var(--bg3); cursor: pointer; transition: all var(--transition-fast);
-  font-size: 11px; color: var(--text-3); font-family: var(--font-b);
+  font-size: 10px; color: var(--text-3); font-family: var(--font-b);
 }
-.atx-cat-chip span:first-child { font-size: 20px; }
+.atx-cat-chip span:first-child { font-size: 18px; }
 .atx-cat-chip:hover { background: var(--surface-h); border-color: var(--border-h); color: var(--text); }
 .atx-cat-chip.active { background: rgba(0,212,180,0.12); border-color: var(--teal); color: var(--teal); }
-.atx-cat-label { font-size: 10px; text-align: center; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.atx-cat-label { font-size: 9px; text-align: center; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+/* Tablet adjustments */
+@media (min-width: 521px) and (max-width: 768px) {
+  .atx-modal { max-width: 96vw !important; }
+}
+/* Mobile adjustments */
+@media (max-width: 520px) {
+  .atx-modal { max-width: 100% !important; }
+  .atx-amount-input { font-size: 22px !important; padding: 9px 0 !important; }
+  .atx-currency-symbol { font-size: 18px !important; }
+  .atx-cat-grid { max-height: 110px !important; }
+  .atx-modal .form-input { padding: 8px 10px !important; font-size: 13px !important; }
+  .atx-modal .form-label { font-size: 10px !important; }
+  .atx-modal .btn-submit { padding: 11px !important; font-size: 13px !important; }
+}
 
 /* ── Dropdown Manager ── */
 .dd-manager { padding: 4px 0; }
@@ -2133,6 +2166,32 @@ footer span { color: var(--teal); font-weight: 600; }
   transition: background 0.15s, color 0.15s;
 }
 .tpl-btn:hover { background: var(--bg3); color: var(--text); }
+.tpl-btn.default-btn { color: var(--gold); }
+.tpl-btn.default-btn:hover { color: var(--gold); background: rgba(251,191,36,0.1); }
+.tpl-default-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.3);
+  color: var(--gold); border-radius: 20px; font-size: 10px; font-weight: 700;
+  padding: 2px 7px; font-family: var(--font-m); flex-shrink: 0;
+}
+.tpl-card.is-default { border-color: rgba(251,191,36,0.4); }
+
+/* Template select dropdown inside add-tx modal */
+.atx-tpl-select-wrap {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px;
+}
+.atx-tpl-select-wrap label {
+  font-size: 11px; font-weight: 600; color: var(--text-3);
+  white-space: nowrap; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.atx-tpl-select {
+  flex: 1; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 10px; font-size: 12px; color: var(--text);
+  font-family: var(--font-b); outline: none; cursor: pointer;
+  transition: border-color 0.2s;
+}
+.atx-tpl-select:focus { border-color: var(--teal); }
 
 /* ═══════════════════════════════════════════════════════════════
    MONTH vs MONTH COMPARISON
@@ -2939,4 +2998,159 @@ footer span { color: var(--teal); font-weight: 600; }
   .kpi-value { font-size: 22px; }
   .admin-module-grid { grid-template-columns: 1fr 1fr; }
   .admin-table td > div[style*="display:flex"] { flex-wrap: wrap; gap: 4px; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   WEALTH & HEALTH — REAL-TIME ENHANCEMENTS + ANIMATIONS
+════════════════════════════════════════════════════════════ */
+
+/* ── Live / Real-time indicator ─────────────────────────── */
+.rt-live { display:inline-flex; align-items:center; gap:5px; font-family:var(--font-m); font-size:10px; color:var(--text-3); }
+.rt-dot  { width:6px; height:6px; border-radius:50%; background:var(--emerald); flex-shrink:0; }
+.rt-dot  { animation: rtPulse 2s infinite; }
+@keyframes rtPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(52,211,153,0.5); }
+  60%      { box-shadow: 0 0 0 5px rgba(52,211,153,0); }
+}
+.dash-live-bar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:4px 0 10px; flex-wrap:wrap; gap:6px;
+}
+.dash-rt-info { display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text-3); }
+
+/* ── Wealth live KPI strip ──────────────────────────────── */
+.wealth-kpi-strip {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:16px;
+}
+@media (max-width:600px) { .wealth-kpi-strip { grid-template-columns:repeat(2,1fr); gap:8px; } }
+
+.wkpi {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; padding:12px 14px;
+  transition:border-color 0.2s, transform 0.2s;
+  animation: wkpiIn 0.35s cubic-bezier(.4,0,.2,1) both;
+}
+.wkpi:hover { border-color:var(--border-h); transform:translateY(-2px); }
+.wkpi.stagger-1{animation-delay:.04s} .wkpi.stagger-2{animation-delay:.09s}
+.wkpi.stagger-3{animation-delay:.14s} .wkpi.stagger-4{animation-delay:.19s}
+@keyframes wkpiIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.wkpi-label { font-size:10px; font-weight:600; letter-spacing:.8px; text-transform:uppercase; color:var(--text-3); margin-bottom:4px; }
+.wkpi-val   { font-family:var(--font-m); font-size:15px; font-weight:700; margin-bottom:2px; }
+.wkpi-sub   { font-size:10px; color:var(--text-3); }
+
+/* ── Category composition bar ───────────────────────────── */
+.cat-comp-bar { display:flex; height:7px; border-radius:99px; overflow:hidden; gap:2px; margin:8px 0 14px; }
+.cat-comp-seg {
+  height:100%; border-radius:99px;
+  transition: width 0.7s cubic-bezier(.4,0,.2,1);
+  min-width:3px;
+}
+
+/* ── Mobile asset cards ─────────────────────────────────── */
+@media (max-width:640px) {
+  .wealth-table-scroll { display:none !important; }
+  .wealth-mob-cards    { display:block !important; }
+}
+@media (min-width:641px) {
+  .wealth-mob-cards { display:none !important; }
+}
+.wealth-mob-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; padding:13px; margin-bottom:10px;
+  transition:border-color 0.2s, transform 0.2s;
+  animation: cardSlideIn 0.3s ease both;
+}
+.wealth-mob-card:hover { border-color:var(--border-h); transform:translateY(-1px); }
+@keyframes cardSlideIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.wealth-mob-card.s1{animation-delay:.03s} .wealth-mob-card.s2{animation-delay:.07s}
+.wealth-mob-card.s3{animation-delay:.11s} .wealth-mob-card.s4{animation-delay:.15s}
+.wealth-mob-card.s5{animation-delay:.19s}
+
+/* ── Tab slide-in animation ─────────────────────────────── */
+.tab-slide-in { animation: tabSlide 0.22s cubic-bezier(.4,0,.2,1) both; }
+@keyframes tabSlide { from{opacity:0;transform:translateX(12px)} to{opacity:1;transform:translateX(0)} }
+
+/* ── Wealth tab active underline ────────────────────────── */
+.wealth-tabs { position:relative; }
+.wealth-tab { position:relative; }
+.wealth-tab.active::after {
+  content:''; position:absolute; bottom:0; left:50%; transform:translateX(-50%);
+  width:50%; height:2px; background:var(--teal); border-radius:99px;
+  animation: tabLine 0.25s ease both;
+}
+@keyframes tabLine { from{width:0;opacity:0} to{width:50%;opacity:1} }
+
+/* ── Health pulse strip ─────────────────────────────────── */
+.health-pulse-strip { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+@media (max-width:480px) { .health-pulse-strip { gap:7px; } }
+.hps-item {
+  background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  padding:12px; text-align:center; cursor:pointer;
+  transition:all 0.2s; animation:wkpiIn 0.35s both;
+}
+.hps-item:hover { border-color:var(--border-h); transform:translateY(-2px); }
+.hps-item.s1{animation-delay:.04s} .hps-item.s2{animation-delay:.09s} .hps-item.s3{animation-delay:.14s}
+.hps-icon  { font-size:20px; margin-bottom:5px; line-height:1; }
+.hps-score { font-family:var(--font-m); font-size:18px; font-weight:700; line-height:1; }
+.hps-label { font-size:9px; color:var(--text-3); text-transform:uppercase; letter-spacing:.7px; margin-top:3px; }
+
+/* ── Health score animated reveal ───────────────────────── */
+@keyframes scoreReveal {
+  0%  { opacity:0; transform:scale(0.5) rotate(-8deg); }
+  70% { transform:scale(1.12) rotate(1deg); }
+  100%{ opacity:1; transform:scale(1) rotate(0deg); }
+}
+.score-reveal { animation: scoreReveal 0.6s cubic-bezier(0.34,1.56,0.64,1) both; }
+
+/* ── Animated progress bars (set to 0 then transition in) ─ */
+.anim-bar { transition: width 0.8s cubic-bezier(.4,0,.2,1) !important; }
+
+/* ── Net worth animated counter ─────────────────────────── */
+@keyframes numIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+.num-in { animation: numIn 0.35s ease both; }
+
+/* ── Card stagger entry ─────────────────────────────────── */
+.card-enter { opacity:0; transform:translateY(8px); animation:cardEnter 0.32s ease forwards; }
+@keyframes cardEnter { to{opacity:1;transform:translateY(0)} }
+.ce-1{animation-delay:.04s}.ce-2{animation-delay:.09s}.ce-3{animation-delay:.14s}
+.ce-4{animation-delay:.19s}.ce-5{animation-delay:.24s}
+
+/* ── Allocation fill animated ───────────────────────────── */
+.alloc-fill { height:100%; border-radius:99px; transition:width 0.7s cubic-bezier(.4,0,.2,1); }
+
+/* ── Mobile compact dashboard ───────────────────────────── */
+@media (max-width:480px) {
+  .kpi-card  { padding:11px 12px; }
+  .kpi-value { font-size:15px !important; }
+  .kpi-label { font-size:9px; }
+  .kpi-sub   { font-size:9px; }
+  .kpi-icon  { width:26px; height:26px; font-size:13px; margin-bottom:6px; }
+  .chart-card { padding:14px; }
+  .page-title { font-size:clamp(20px,5vw,28px); }
+  .wealth-tabs { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .wealth-tab  { padding:7px 10px; font-size:11px; white-space:nowrap; }
+  .two-col  { gap:10px; }
+  .kpi-grid { gap:8px; }
+}
+
+/* ── Metric bar fill from zero (JS sets data-bar) ──────── */
+[data-bar-pct] { width:0%; transition:width 0.8s cubic-bezier(.4,0,.2,1); }
+
+/* ── Net worth progress ring ────────────────────────────── */
+.nw-ring { overflow:visible; }
+.nw-ring-track { fill:none; stroke:rgba(255,255,255,0.07); }
+.nw-ring-fill  { fill:none; stroke-linecap:round; transition:stroke-dashoffset 0.9s cubic-bezier(.4,0,.2,1); transform:rotate(-90deg); transform-origin:50% 50%; }
+
+/* ── Forecast stats compact mobile ─────────────────────── */
+@media (max-width:480px) {
+  .forecast-stats-grid { grid-template-columns:repeat(2,1fr) !important; gap:8px !important; }
+}
+
+/* ── Swipe-hint for mobile tabs ─────────────────────────── */
+@media (max-width:640px) {
+  .wealth-tabs::after {
+    content:''; position:absolute; right:0; top:0; bottom:0; width:24px;
+    background:linear-gradient(90deg,transparent,var(--bg2));
+    pointer-events:none; border-radius:0 8px 8px 0;
+  }
 }

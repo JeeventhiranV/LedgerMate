@@ -279,21 +279,54 @@ function showEssentialsPage() {
   const page = document.getElementById('page-essentials');
   if (!page) return;
   const activeTab = page.dataset.activeTab || 'health';
+
+  // Quick pulse strip data from cached score
+  const { score, metrics } = calcHealthScore();
+  const scoreColor  = score >= 7 ? 'var(--emerald)' : score >= 4 ? 'var(--gold)' : 'var(--rose)';
+  const scoreLabel  = score >= 7 ? 'Excellent' : score >= 4 ? 'Good' : 'Needs Work';
+  const srPct       = parseFloat(metrics?.savingsRate?.value || 0).toFixed(0);
+  const srColor     = parseFloat(srPct) >= 20 ? 'var(--emerald)' : parseFloat(srPct) >= 10 ? 'var(--gold)' : 'var(--rose)';
+  const efVal       = parseFloat(metrics?.emergencyFund?.value || 0).toFixed(1);
+  const efColor     = parseFloat(efVal) >= 6 ? 'var(--emerald)' : parseFloat(efVal) >= 3 ? 'var(--gold)' : 'var(--rose)';
+  const drVal       = parseFloat(metrics?.debtRatio?.value || 0).toFixed(0);
+  const drColor     = parseFloat(drVal) < 10 ? 'var(--emerald)' : parseFloat(drVal) < 30 ? 'var(--gold)' : 'var(--rose)';
+
   page.innerHTML = `
     <div class="page-header fade-up fade-up-1">
       <div>
         <div class="page-greeting">Your financial health check</div>
         <h1 class="page-title">Essentials <em>&amp; Goals</em></h1>
       </div>
+      <div class="rt-live"><div class="rt-dot"></div><span>Live</span></div>
     </div>
-    <div class="wealth-tabs fade-up fade-up-2">
+
+    <!-- Financial Pulse Strip -->
+    <div class="health-pulse-strip fade-up fade-up-2">
+      <div class="hps-item s1" onclick="switchEssentialsTab('health')" title="Health Score">
+        <div class="hps-icon">❤️</div>
+        <div class="hps-score score-reveal" style="color:${scoreColor};">${score}/10</div>
+        <div class="hps-label">${scoreLabel}</div>
+      </div>
+      <div class="hps-item s2" onclick="switchEssentialsTab('health')" title="Savings Rate">
+        <div class="hps-icon">💰</div>
+        <div class="hps-score" style="color:${srColor};">${srPct}%</div>
+        <div class="hps-label">Savings Rate</div>
+      </div>
+      <div class="hps-item s3" onclick="switchEssentialsTab('health')" title="Emergency Fund">
+        <div class="hps-icon">🛡️</div>
+        <div class="hps-score" style="color:${efColor};">${efVal}mo</div>
+        <div class="hps-label">Emergency Fund</div>
+      </div>
+    </div>
+
+    <div class="wealth-tabs fade-up fade-up-3">
       <button class="wealth-tab ${activeTab==='health'     ?'active':''}" onclick="switchEssentialsTab('health')">Health</button>
       <button class="wealth-tab ${activeTab==='goals'      ?'active':''}" onclick="switchEssentialsTab('goals')">Goals</button>
       <button class="wealth-tab ${activeTab==='predictions'?'active':''}" onclick="switchEssentialsTab('predictions')">Predictions</button>
       <button class="wealth-tab ${activeTab==='retirement' ?'active':''}" onclick="switchEssentialsTab('retirement')">Retirement</button>
       <button class="wealth-tab ${activeTab==='debt'       ?'active':''}" onclick="switchEssentialsTab('debt')">Debt Payoff</button>
     </div>
-    <div id="essentials-tab-content" class="fade-up fade-up-3"></div>
+    <div id="essentials-tab-content" class="fade-up fade-up-4"></div>
     <div id="essentialModals"></div>`;
   switchEssentialsTab(activeTab);
 }
@@ -307,6 +340,11 @@ function switchEssentialsTab(tab) {
     b.classList.toggle('active', (b.getAttribute('onclick')||'').includes(`'${tab}'`)));
   const content = document.getElementById('essentials-tab-content');
   if (!content) return;
+
+  content.classList.remove('tab-slide-in');
+  void content.offsetWidth;
+  content.classList.add('tab-slide-in');
+
   if (tab === 'health')      renderHealthTab(content);
   if (tab === 'goals')       renderGoalsTab(content);
   if (tab === 'predictions') renderPredictionsTab(content);
@@ -370,43 +408,49 @@ async function renderHealthTab(container) {
     </div>
 
     <!-- Overall Health Score -->
-    <div class="chart-card" style="margin-bottom:16px;">
+    <div class="chart-card card-enter ce-1" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-        <div>
-          <canvas id="healthGauge" width="80" height="80" style="width:80px;height:80px;"></canvas>
+        <div style="flex-shrink:0;">
+          <canvas id="healthGauge" width="90" height="90" style="width:90px;height:90px;"></canvas>
         </div>
-        <div style="flex:1;">
+        <div style="flex:1;min-width:160px;">
           <div class="kpi-label">OVERALL HEALTH SCORE</div>
           <div style="display:flex;align-items:baseline;gap:4px;margin:4px 0;">
-            <span style="font-family:var(--font-m);font-size:36px;font-weight:700;color:${statusColor};">${score}</span>
-            <span style="font-size:16px;color:var(--text-3);">/10</span>
+            <span id="healthScoreNum" class="score-reveal"
+                  style="font-family:var(--font-m);font-size:40px;font-weight:700;color:${statusColor};">${score}</span>
+            <span style="font-size:18px;color:var(--text-3);">/10</span>
+            <span style="font-size:13px;color:${statusColor};margin-left:6px;">${statusLabel}</span>
           </div>
-          <div style="font-size:13px;color:${statusColor};margin-bottom:8px;">${statusLabel}</div>
-          <div style="background:var(--bg3);border-radius:99px;height:10px;overflow:hidden;">
-            <div style="width:${pct}%;height:100%;border-radius:99px;
-                        background:linear-gradient(90deg,var(--rose),var(--gold) 50%,var(--emerald));
-                        transition:width 0.6s;"></div>
+          <!-- Score bar animates from 0 via JS -->
+          <div style="background:var(--bg3);border-radius:99px;height:10px;overflow:hidden;margin-top:8px;">
+            <div id="healthScoreBar" class="anim-bar" style="width:0%;height:100%;border-radius:99px;
+                        background:linear-gradient(90deg,var(--rose),var(--gold) 50%,var(--emerald));"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-3);margin-top:3px;font-family:var(--font-m);">
+            <span>0</span><span>5</span><span>10</span>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
-          <div style="font-size:12px;color:var(--text-3);">Data sources:</div>
-          <div style="font-size:11px;color:var(--teal);">✅ ${(state.transactions||[]).length} transactions</div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div class="rt-live"><div class="rt-dot"></div><span>Auto-calculated</span></div>
+          <div style="font-size:11px;color:var(--teal);">✅ ${(state.transactions||[]).length} txns</div>
           <div style="font-size:11px;color:var(--teal);">✅ ${(state.investments||[]).length} investments</div>
           <div style="font-size:11px;color:var(--teal);">✅ ${(state.emi_loans||[]).length + (state.loans||[]).length} loans</div>
+          <button class="section-action" style="margin-top:4px;font-size:11px;"
+                  onclick="cachedHealthScore=null;switchEssentialsTab('health')">🔄 Refresh</button>
         </div>
       </div>
     </div>
 
-    <!-- Metric Cards -->
+    <!-- Metric Cards with stagger -->
     <div class="two-col">
-      ${buildEmergencyCard(metrics.emergencyFund)}
-      ${buildSavingsCard(metrics.savingsRate, avgIncome, avgExpense)}
+      <div class="card-enter ce-2">${buildEmergencyCard(metrics.emergencyFund)}</div>
+      <div class="card-enter ce-3">${buildSavingsCard(metrics.savingsRate, avgIncome, avgExpense)}</div>
     </div>
     <div class="two-col">
-      ${buildTermCard(metrics.termInsurance)}
-      ${buildHealthCard(metrics.healthInsurance)}
+      <div class="card-enter ce-4">${buildTermCard(metrics.termInsurance)}</div>
+      <div class="card-enter ce-5">${buildHealthCard(metrics.healthInsurance)}</div>
     </div>
-    ${buildDebtCard(metrics.debtRatio)}
+    <div class="card-enter ce-5">${buildDebtCard(metrics.debtRatio)}</div>
 
     <!-- Spending Insights -->
     ${topCats.length ? `
@@ -414,7 +458,7 @@ async function renderHealthTab(container) {
       <div class="section-title"><span class="dot" style="background:var(--violet)"></span>Spending Insights (3-month)</div>
       <button class="section-action" onclick="switchEssentialsTab('predictions')">Full Analysis →</button>
     </div>
-    <div class="chart-card">
+    <div class="chart-card card-enter ce-5">
       ${topCats.map(([cat, data]) => {
         const months = Object.keys(data.months);
         const curMo = new Date().toISOString().slice(0,7);
@@ -423,8 +467,9 @@ async function renderHealthTab(container) {
         const prevAvg= prev.length ? prev.reduce((s,m) => s + data.months[m], 0) / prev.length : 0;
         const delta  = prevAvg > 0 ? ((curAmt - prevAvg) / prevAvg * 100) : 0;
         const maxAmt = Math.max(...Object.values(data.months), 1);
+        const barPct = (data.total / 3 / maxAmt * 100).toFixed(0);
         return `
-          <div style="margin-bottom:12px;">
+          <div style="margin-bottom:14px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
               <span style="font-size:13px;font-weight:600;">${cat}</span>
               <div style="display:flex;align-items:center;gap:8px;">
@@ -433,7 +478,7 @@ async function renderHealthTab(container) {
               </div>
             </div>
             <div style="background:var(--bg3);border-radius:99px;height:6px;overflow:hidden;">
-              <div style="width:${(data.total / 3 / maxAmt * 100).toFixed(0)}%;height:100%;background:var(--violet);border-radius:99px;"></div>
+              <div class="anim-bar" data-bar-pct="${barPct}" style="width:0%;height:100%;background:var(--violet);border-radius:99px;"></div>
             </div>
           </div>`;
       }).join('')}
@@ -446,23 +491,60 @@ async function renderHealthTab(container) {
       </div>` : ''}
     </div>` : ''}`;
 
-  // Draw gauge
+  // Animate gauge with requestAnimationFrame (progressive arc draw)
   setTimeout(() => {
     const canvas = document.getElementById('healthGauge');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const cx = 40, cy = 40, r = 32;
-    const startAngle = Math.PI * 0.75, endAngle = Math.PI * 2.25;
-    const scoreAngle = startAngle + (endAngle - startAngle) * (score / 10);
+    const cx = 45, cy = 45, r = 36;
+    const startAngle = Math.PI * 0.75;
+    const endAngle   = Math.PI * 2.25;
+    const targetAngle = startAngle + (endAngle - startAngle) * (score / 10);
     const col = score >= 7 ? '#34d399' : score >= 4 ? '#fbbf24' : '#f87171';
-    ctx.clearRect(0, 0, 80, 80);
-    ctx.beginPath(); ctx.arc(cx, cy, r, startAngle, endAngle);
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 8; ctx.lineCap = 'round'; ctx.stroke();
-    ctx.beginPath(); ctx.arc(cx, cy, r, startAngle, scoreAngle);
-    ctx.strokeStyle = col; ctx.lineWidth = 8; ctx.lineCap = 'round'; ctx.stroke();
-    ctx.fillStyle = col; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(score, cx, cy);
-  }, 50);
+
+    const DRAW_DUR = 900;
+    const drawStart = performance.now();
+
+    function drawFrame(now) {
+      const t       = Math.min((now - drawStart) / DRAW_DUR, 1);
+      const ease    = 1 - Math.pow(1 - t, 3);
+      const curAngle = startAngle + (targetAngle - startAngle) * ease;
+
+      ctx.clearRect(0, 0, 90, 90);
+
+      // Track
+      ctx.beginPath(); ctx.arc(cx, cy, r, startAngle, endAngle);
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 9; ctx.lineCap = 'round'; ctx.stroke();
+
+      // Colored arc
+      ctx.beginPath(); ctx.arc(cx, cy, r, startAngle, curAngle);
+      ctx.strokeStyle = col; ctx.lineWidth = 9; ctx.lineCap = 'round'; ctx.stroke();
+
+      // Center label (fade in at end)
+      const alpha = Math.max(0, (t - 0.6) / 0.4);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = col; ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(score, cx, cy - 4);
+      ctx.font = '9px sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillText('/10', cx, cy + 10);
+      ctx.globalAlpha = 1;
+
+      if (t < 1) requestAnimationFrame(drawFrame);
+    }
+    requestAnimationFrame(drawFrame);
+
+    // Animate score bar
+    const bar = document.getElementById('healthScoreBar');
+    if (bar) bar.style.width = `${pct}%`;
+
+    // Animate spending insight bars
+    setTimeout(() => {
+      document.querySelectorAll('[data-bar-pct]').forEach(b => {
+        b.style.width = b.dataset.barPct + '%';
+      });
+    }, 200);
+  }, 60);
 }
 
 /* ── Metric Card Builders ── */
@@ -487,7 +569,7 @@ function buildEmergencyCard(m) {
       <div style="font-family:var(--font-m);font-size:18px;margin:2px 0 8px;">${fmtINR(m.liquidAssets)}</div>
       <div class="kpi-label">RUNWAY — ${m.value} months</div>
       <div style="background:var(--bg3);border-radius:99px;height:8px;overflow:hidden;margin:6px 0;">
-        <div style="width:${runwayPct}%;height:100%;border-radius:99px;background:${col};transition:width 0.5s;"></div>
+        <div class="anim-bar" data-bar-pct="${runwayPct}" style="width:0%;height:100%;border-radius:99px;background:${col};"></div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-3);font-family:var(--font-m);">
         <span>0</span><span>3m</span><span>6m</span><span>12m+</span>
@@ -517,7 +599,7 @@ function buildSavingsCard(m, income, expense) {
       <div style="font-family:var(--font-m);font-size:28px;font-weight:700;color:${col};">${m.value}%</div>
       <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">of income saved (3-mo avg ${m.incomeSource==='manual'?'· manual income':'· from transactions'})</div>
       <div style="background:var(--bg3);border-radius:99px;height:8px;overflow:hidden;margin:8px 0;">
-        <div style="width:${pct}%;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--rose),var(--gold),var(--emerald));"></div>
+        <div class="anim-bar" data-bar-pct="${pct}" style="width:0%;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--rose),var(--gold),var(--emerald));"></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
         <div><div class="kpi-label">AVG INCOME</div><div style="font-family:var(--font-m);font-size:13px;color:var(--emerald);">${fmtINR(income)}/mo</div></div>
@@ -526,7 +608,7 @@ function buildSavingsCard(m, income, expense) {
       <div style="margin-top:10px;padding:8px;background:var(--bg3);border-radius:8px;">
         <div style="font-size:11px;color:var(--text-3);margin-bottom:4px;">FI PROGRESS</div>
         <div style="background:var(--border);border-radius:99px;height:5px;overflow:hidden;margin-bottom:4px;">
-          <div style="width:${fiPct}%;height:100%;background:var(--teal);border-radius:99px;"></div>
+          <div class="anim-bar" data-bar-pct="${fiPct}" style="width:0%;height:100%;background:var(--teal);border-radius:99px;"></div>
         </div>
         <div style="font-size:11px;color:var(--text-2);">${fiPct}% to FI target (${fmtINR(fiTarget)})</div>
       </div>
@@ -597,7 +679,7 @@ function buildDebtCard(m) {
       <div style="font-family:var(--font-m);font-size:28px;font-weight:700;color:${col};">${m.value}%</div>
       <div style="font-size:12px;color:var(--text-3);margin-bottom:8px;">of assets are debt-funded (EMI + personal loans you owe)</div>
       <div style="background:var(--bg3);border-radius:99px;height:8px;overflow:hidden;margin:8px 0;">
-        <div style="width:${pct}%;height:100%;border-radius:99px;background:${col};transition:width 0.5s;"></div>
+        <div class="anim-bar" data-bar-pct="${pct}" style="width:0%;height:100%;border-radius:99px;background:${col};"></div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
         <div><div class="kpi-label">TOTAL ASSETS</div><div style="font-family:var(--font-m);font-size:12px;">${fmtINR(m.totalAssets)}</div></div>
