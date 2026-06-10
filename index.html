@@ -43,22 +43,25 @@
 </script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="./css/common.css">
-<link rel="stylesheet" href="./css/auth.css">
+<link rel="stylesheet" href="./src/styles/common.css">
+<link rel="stylesheet" href="./src/styles/auth.css">
 
-<script src="./libs/chart.umd.min.js"></script> 
-  <link rel="stylesheet" href="./css/style.css">
-  <link rel="stylesheet" href="./css/Notes.css"> 
-  <script src="./libs/tailwind.min.js"></script>
+<script src="./assets/vendor/chart.umd.min.js"></script> 
+  <link rel="stylesheet" href="./src/styles/style.css">
+  <link rel="stylesheet" href="./src/styles/Notes.css"> 
+  <script src="./assets/vendor/tailwind.min.js"></script>
+  <!-- Cloud auth + sync – MUST load before AuthManager -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="./auth/supabase-config.js"></script>
   <!-- AppBus FIRST – event bus used by all modules -->
-  <script src="./js/Core/AppBus.js"></script>
+  <script src="./src/scripts/Core/AppBus.js"></script>
   <!-- Auth layer – MUST load before Common.js -->
-  <script src="./js/Auth/AuthManager.js"></script>
-  <script src="./js/Auth/UserStore.js"></script>
-  <script src="./libs/chart.min.js"></script>
-  <script src="./libs/jspdf.umd.min.js"></script>
-  <script src="./libs/html2canvas.min.js"></script>
-  <script src="./libs/drive.min.js" async defer></script>
+  <script src="./src/scripts/Auth/AuthManager.js"></script>
+  <script src="./src/scripts/Auth/UserStore.js"></script>
+  <!-- chart.umd.min.js already loaded above -->
+  <script src="./assets/vendor/jspdf.umd.min.js"></script>
+  <script src="./assets/vendor/html2canvas.min.js"></script>
+  <script src="./assets/vendor/drive.min.js" async defer></script>
   <link rel="manifest" href="./manifest.json">
   
 <script>
@@ -83,7 +86,7 @@
     <div class="login-header">
       <div class="login-logo-wrap">📒</div>
       <div class="login-app-name">Ledger<em>Mate</em></div>
-      <div class="login-tagline">Personal Finance · Offline First</div>
+      <div class="login-tagline">Personal Finance · Cloud Sync</div>
     </div>
 
     <!-- Body -->
@@ -97,10 +100,10 @@
       <!-- Form -->
       <form id="loginForm" autocomplete="on">
         <div class="login-field">
-          <label class="login-label" for="loginUsername">Username</label>
-          <input id="loginUsername" class="form-input" type="text"
-            placeholder="Enter your username"
-            autocomplete="username" spellcheck="false">
+          <label class="login-label" for="loginUsername">Email</label>
+          <input id="loginUsername" class="form-input" type="email"
+            placeholder="you@example.com"
+            autocomplete="email" spellcheck="false">
         </div>
         <div class="login-field">
           <label class="login-label" for="loginPassword">Password</label>
@@ -113,16 +116,11 @@
         </div>
         <button type="submit" id="btnLogin" class="btn-submit">Sign In →</button>
       </form>
-
-      <!-- First-run hint -->
-      <div class="login-hint" id="loginDefaultHint">
-        🔑 Default: <strong>admin</strong> / <strong>admin123</strong>
-      </div>
     </div>
 
     <!-- Footer -->
     <div class="login-footer">
-      🔒 All data stored offline on this device
+      🔒 All data encrypted &amp; synced to cloud
     </div>
   </div>
 </div>
@@ -246,7 +244,7 @@
       <button class="sidebar-nav-item" onclick="showCredentialsVault()" data-module="credentials">
         <span class="nav-icon">🔐</span> Credentials Vault
       </button>
-      <button onclick="window.open('views/Study-Resources.html','_self')" class="sidebar-nav-item"  data-module="views-browser">
+      <button onclick="window.open('./study/index.html','_self')" class="sidebar-nav-item"  data-module="views-browser">
         <span class="nav-icon">📚</span> Study Resources
       </button>
       <button class="sidebar-nav-item" onclick="openWidgetPage()" data-module="widget">
@@ -1365,25 +1363,27 @@ function setGreeting() {
 }
 
 </script>
-  <script  src="./js/Common/Drive.js"></script>  
-  <script  src="./js/Common.js"></script>
+  <script  src="./src/scripts/Common/Drive.js"></script>  
+  <script  src="./src/scripts/Common.js"></script>
+  <!-- CloudSync: cloud save/load — after Common.js so FinalJson is available -->
+  <script src="./src/scripts/CloudSync.js"></script>
   <!-- StorePatch MUST come right after Common.js to wrap put/getAll -->
-  <script src="./js/Auth/StorePatch.js"></script>
-  <script src="./js/Wealth/Wealth.js"></script>
-  <script src="./js/Wealth/Essentials.js"></script>
-  <script src="./js/Investments.js"></script>
-  <script src="./js/Charts/Doughnut.js"></script> 
-  <script src="./js/SpeechText/VoiceText.js"></script>
-  <script src="./js/Common/Notifications.js"></script>
-  <script src="./js/Common/GoldRateFetch.js"></script>
-  <script src="./js/Common/TripPlanner.js"></script>
-  <script src="./js/Common/Dropdown.js"></script>
-  <script src="./js/Common/MonthlySummary.js"></script>
-  <script src="./js/Common/Cred.js"></script>
-  <script src="./js/Common/Notes.js"></script>
+  <script src="./src/scripts/Auth/StorePatch.js"></script>
+  <script src="./src/scripts/Wealth/Wealth.js"></script>
+  <script src="./src/scripts/Wealth/Essentials.js"></script>
+  <script src="./src/scripts/Investments.js"></script>
+  <script src="./src/scripts/Charts/Doughnut.js"></script> 
+  <script src="./src/scripts/SpeechText/VoiceText.js"></script>
+  <script src="./src/scripts/Common/Notifications.js"></script>
+  <script src="./src/scripts/Common/GoldRateFetch.js"></script>
+  <script src="./src/scripts/Common/TripPlanner.js"></script>
+  <script src="./src/scripts/Common/Dropdown.js"></script>
+  <script src="./src/scripts/Common/MonthlySummary.js"></script>
+  <script src="./src/scripts/Common/Cred.js"></script>
+  <script src="./src/scripts/Common/Notes.js"></script>
   <!-- Admin Panel -->
-  <script src="./js/Admin/AdminPanel.js"></script>
-  <script src="./js/Common/Search.js"></script>
+  <script src="./src/scripts/Admin/AdminPanel.js"></script>
+  <script src="./src/scripts/Common/Search.js"></script>
 
 <!-- Modals / Hidden UI -->
       <div id="modals"></div>

@@ -6,7 +6,7 @@
 <title>React Interview Prep Hub 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="../../css/Preparation.css">
+<link rel="stylesheet" href="../styles/Preparation.css">
 <style>
 /* ════════════════════════════════════════════════════
    REACT INTERVIEW PREP HUB — DESIGN SYSTEM
@@ -273,6 +273,11 @@ pre.code-block{background:#090c12;margin:0;padding:14px 16px;overflow-x:auto;fon
 .q-note-input{width:100%;min-height:56px;background:transparent;border:none;outline:none;color:var(--text1);font-size:12px;resize:vertical;font-family:inherit;line-height:1.5}
 .q-card{position:relative}
 </style>
+<!-- Auth: Supabase SDK → config → guard (order matters) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../auth/supabase-config.js"></script>
+<script src="../../auth/auth-guard.js"></script>
+<script src="../js/StudySync.js"></script>
 </head>
 <body>
 
@@ -312,8 +317,8 @@ pre.code-block{background:#090c12;margin:0;padding:14px 16px;overflow-x:auto;fon
   <!-- TOPBAR -->
   <div class="topbar">
     <button class="menu-btn" id="menuBtn">☰</button>
-    <div class="topbar-title">React Interview Prep Hub</div>
-    <a href="../Study-Resources.html" class="back-btn">← Study Resources</a>
+    <a href="../index.html" class="back-btn">← Study Hub</a>
+    <!-- <div class="topbar-title">React Interview Prep Hub</div> -->
     <div class="topbar-right">
       <div class="progress-chip">
         <span>Done</span>
@@ -1280,12 +1285,12 @@ function loadDone(){ const s=loadStatus(); return new Set(Object.keys(s).filter(
 // ── Favorites ──
 const REACT_FAV_KEY = 'react_favs_v1';
 function loadFavsReact(){try{return new Set(JSON.parse(localStorage.getItem(REACT_FAV_KEY)||'[]'));}catch{return new Set();}}
-function toggleFavReact(id){const f=loadFavsReact();if(f.has(id))f.delete(id);else f.add(id);localStorage.setItem(REACT_FAV_KEY,JSON.stringify([...f]));}
+function toggleFavReact(id){const f=loadFavsReact();if(f.has(id))f.delete(id);else f.add(id);localStorage.setItem(REACT_FAV_KEY,JSON.stringify([...f]));StudySync.saveFav('react',id,f.has(id));}
 
 // ── Notes ──
 const REACT_NOTES_KEY = 'react_notes_v1';
 function loadNotesReact(){try{return JSON.parse(localStorage.getItem(REACT_NOTES_KEY)||'{}');}catch{return {};}}
-function saveNoteReact(id,text){const n=loadNotesReact();if(text.trim())n[id]=text;else delete n[id];localStorage.setItem(REACT_NOTES_KEY,JSON.stringify(n));}
+function saveNoteReact(id,text){const n=loadNotesReact();if(text.trim())n[id]=text;else delete n[id];localStorage.setItem(REACT_NOTES_KEY,JSON.stringify(n));StudySync.saveNote('react',id,text);}
 function toggleReactNote(id){
   const area=document.getElementById('note-area-'+id);
   if(!area)return;
@@ -1304,7 +1309,9 @@ function updateStudyStreak(){
     if(d.date===today)return;
     const prev=new Date(Date.now()-86400000).toISOString().split('T')[0];
     const s=d.date===prev?d.streak+1:1;
-    localStorage.setItem(SK,JSON.stringify({date:today,streak:s,longest:Math.max(s,d.longest||0)}));
+    const longest=Math.max(s,d.longest||0);
+    localStorage.setItem(SK,JSON.stringify({date:today,streak:s,longest:longest}));
+    StudySync.saveStreak(today,s,longest);
   }catch{}
 }
 
@@ -1486,7 +1493,17 @@ function cycleStatus(id) {
     if(badge) badge.textContent='✓';
     if(btn){btn.textContent='▷ In Progress';btn.className='btn-mark';}
   }
-  saveStatus(status); updateProgress(); updateNavDoneIndicators();
+  saveStatus(status);
+  StudySync.saveStatus('react', id, status[id] || null);
+  // update TAT label live
+  if (card) {
+    var _lbl = card.querySelector('.tat-lbl');
+    if (status[id]) {
+      if (!_lbl) { _lbl = document.createElement('span'); _lbl.className = 'tat-lbl'; if (btn) btn.parentNode.appendChild(_lbl); }
+      _lbl.textContent = 'just now';
+    } else if (_lbl) { _lbl.remove(); }
+  }
+  updateProgress(); updateNavDoneIndicators();
   updateStudyStreak();
 }
 
@@ -1619,6 +1636,26 @@ function applyFilters() {
 ════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
   buildPage();
+
+  // DB sync: pull from Supabase and rebuild page
+  StudySync.load('react').then(function(db) {
+    if (!db) return;
+    localStorage.setItem(STORE_KEY, JSON.stringify(db.status));
+    localStorage.setItem(REACT_FAV_KEY, JSON.stringify([...db.favs]));
+    localStorage.setItem(REACT_NOTES_KEY, JSON.stringify(db.notes));
+    buildPage();
+    // inject TAT labels
+    if (db.timestamps) {
+      Object.keys(db.timestamps).forEach(function(id) {
+        if (!db.status[id]) return;
+        var card = document.getElementById('card-'+id);
+        if (!card) return;
+        var lbl = card.querySelector('.tat-lbl');
+        if (!lbl) { lbl = document.createElement('span'); lbl.className = 'tat-lbl'; var btn = card.querySelector('.btn-mark'); if (btn) btn.parentNode.appendChild(lbl); }
+        lbl.textContent = StudySync.ago(db.timestamps[id]);
+      });
+    }
+  }).catch(function(){});
 
   // Sidebar toggle
   document.getElementById('menuBtn').addEventListener('click', () => {

@@ -7,7 +7,7 @@
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v6';
+const CACHE_VERSION = 'lm-v7';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
@@ -16,35 +16,35 @@ const STATIC_ASSETS = [
   './manifest.json',
 
   /* Stylesheets */
-  './css/style.css',
-  './css/common.css',
-  './css/Notes.css',
-  './css/auth.css',
+  './src/styles/style.css',
+  './src/styles/common.css',
+  './src/styles/Notes.css',
+  './src/styles/auth.css',
 
   /* Third-party libs */
-  './libs/chart.umd.min.js',
-  './libs/tailwind.min.js',
+  './assets/vendor/chart.umd.min.js',
+  './assets/vendor/tailwind.min.js',
 
   /* Core JS – load order matters at runtime but not in cache */
-  './js/Core/AppBus.js',
-  './js/Auth/AuthManager.js',
-  './js/Auth/UserStore.js',
-  './js/Auth/StorePatch.js',
-  './js/Admin/AdminPanel.js',
-  './js/Common/Drive.js',
-  './js/Common.js',
-  './js/Wealth/Wealth.js',
-  './js/Wealth/Essentials.js',
-  './js/Investments.js',
-  './js/Charts/Doughnut.js',
-  './js/SpeechText/VoiceText.js',
-  './js/Common/Notifications.js',
-  './js/Common/GoldRateFetch.js',
-  './js/Common/TripPlanner.js',
-  './js/Common/Dropdown.js',
-  './js/Common/MonthlySummary.js',
-  './js/Common/Cred.js',
-  './js/Common/Notes.js',
+  './src/scripts/Core/AppBus.js',
+  './src/scripts/Auth/AuthManager.js',
+  './src/scripts/Auth/UserStore.js',
+  './src/scripts/Auth/StorePatch.js',
+  './src/scripts/Admin/AdminPanel.js',
+  './src/scripts/Common/Drive.js',
+  './src/scripts/Common.js',
+  './src/scripts/Wealth/Wealth.js',
+  './src/scripts/Wealth/Essentials.js',
+  './src/scripts/Investments.js',
+  './src/scripts/Charts/Doughnut.js',
+  './src/scripts/SpeechText/VoiceText.js',
+  './src/scripts/Common/Notifications.js',
+  './src/scripts/Common/GoldRateFetch.js',
+  './src/scripts/Common/TripPlanner.js',
+  './src/scripts/Common/Dropdown.js',
+  './src/scripts/Common/MonthlySummary.js',
+  './src/scripts/Common/Cred.js',
+  './src/scripts/Common/Notes.js',
 ];
 
 /* ── Install: pre-cache all static assets ─────────────── */

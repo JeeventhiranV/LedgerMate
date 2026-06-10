@@ -3,10 +3,10 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>HR Questions & Answers — LedgerMate</title>
+    <title>HR Questions & Answers</title>
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="../../css/Preparation.css">
+    <link rel="stylesheet" href="../styles/Preparation.css">
     <style>
       main{max-width:900px;margin:36px auto;padding:0 20px}
       h1{font-family:'Syne',sans-serif;margin-bottom:8px}
@@ -47,30 +47,50 @@
       .q-fav-btn:hover{opacity:1;transform:scale(1.2)}
       .q-fav-btn.active{opacity:1}
       details[data-hidden="true"]{display:none}
-      body.light{--bg1:#f8f9fa;--bg2:#ffffff;--bg3:#f1f3f5;--bg4:#e9ecef;--border:#dee2e6;--text1:#111827;--text2:#374151;--text3:#6b7280}
+      body.light{--bg1:#f8f9fa;--bg2:#ffffff;--bg3:#f1f3f5;--bg4:#e9ecef;--border:#dee2e6;--text1:#111827;--text2:#374151;--text3:#6b7280;--blue:#2563eb;--accent1:#2563eb}
+      :root[data-theme="dark"]{--blue:#4f8ef7;--accent1:#4f8ef7}
+      /* progress chips — mirrors Java topbar */
+      .progress-chip{display:inline-flex;align-items:center;gap:4px;background:var(--bg3,#141820);border:1px solid var(--border,#1e2436);border-radius:8px;padding:4px 10px;font-size:12px;white-space:nowrap}
+      .progress-chip span{color:var(--text3,#6b7280)}
+      .progress-chip strong{color:var(--blue,#4f8ef7);font-family:'JetBrains Mono',monospace}
+      .clear-progress-btn{background:none;border:1px solid var(--border,#1e2436);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px;color:var(--text3,#6b7280);transition:all .15s;font-family:inherit;white-space:nowrap}
+      .clear-progress-btn:hover{color:#ff6b6b;border-color:rgba(255,107,107,.5);background:rgba(255,107,107,.08)}
+      /* notes */
+      .q-note-btn{background:none;border:1px solid var(--border,#1e2436);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--text3,#6b7280);transition:all .15s;margin-left:6px;font-family:inherit}
+      .q-note-btn:hover{color:var(--text1,#e2e8f8);border-color:var(--text3,#6b7280)}
+      .q-note-btn.has-note{color:#f59e0b;border-color:rgba(245,158,11,.4)}
+      .q-note-area{margin-top:10px;padding:8px 10px;background:var(--bg4,#1a1f2e);border-radius:8px;border:1px solid var(--border,#1e2436)}
+      .q-note-input{width:100%;min-height:54px;background:transparent;border:none;outline:none;color:var(--text1,#e2e8f8);font-size:12px;resize:vertical;font-family:inherit;line-height:1.5}
     </style>
+<!-- Auth: Supabase SDK → config → guard (order matters) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../auth/supabase-config.js"></script>
+<script src="../../auth/auth-guard.js"></script>
+<script src="../js/StudySync.js"></script>
 </head>
 <body>
-  <div class="topbar">
-    <a href="../../views/index.html" class="topbar-logo" style="text-decoration:none;color:inherit">
-      <div class="sidebar-logo-icon">HR</div>
-    </a>
-    <div class="topbar-title">HR Questions & Answers</div>
-  </div>
 
-  <main>
-    <div class="topbar">
-      <div class="topbar-title">HR Interview Questions</div>
-      <a href="../Study-Resources.html" class="back-btn">← Study Resources</a>
-      <input type="text" class="topbar-search" id="hrSearch" placeholder="Search questions…" autocomplete="off" aria-label="Search questions"/>
-      <div class="topbar-right">
-        <span class="search-count" id="searchCount"></span>
-        <button class="fav-filter-btn" id="favFilterBtn" title="Show favorites only" aria-label="Filter favorites">⭐ Favorites</button>
-        <button class="theme-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle dark/light theme">🌙</button>
-      </div>
+<div class="topbar">
+  <a href="../index.html" class="back-btn">← Study Hub</a>
+  <!-- <div class="topbar-title">HR Interview Q&A 2026</div> -->
+  <input type="text" class="topbar-search" id="hrSearch" placeholder="Search questions…" autocomplete="off" aria-label="Search questions"/>
+  <div class="topbar-right">
+    <div class="progress-chip">
+      <span>Done</span>
+      <strong id="answeredCount">0</strong>/<strong id="totalCount">0</strong>
     </div>
-    <a class="back" href="../Study-Resources.html">← Back to Study Resources</a>
-    <h1>HR Questions & Answers</h1>
+    <div class="progress-chip" id="inProgressChip" style="display:none">
+      <span>⏳</span><strong id="inProgressCount">0</strong>
+    </div>
+    <span class="search-count" id="searchCount"></span>
+    <button class="fav-filter-btn" id="favFilterBtn" title="Show favorites only" aria-label="Filter favorites">⭐ Favs</button>
+    <button class="clear-progress-btn" onclick="clearAllProgress()">Clear</button>
+    <button class="theme-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle dark/light theme">🌙</button>
+  </div>
+</div>
+
+<main>
+  <h1>HR Questions & Answers</h1>
     <p class="intro">Collected HR and behavioural interview questions with concise model answers. Use these as preparation notes and customize answers to reflect your experience.</p>
     <div class="hr-progress">
       <span class="hr-progress-label">Progress</span>
@@ -355,12 +375,22 @@
     const done=vals.filter(v=>v==='done').length;
     const inprog=vals.filter(v=>v==='inprogress').length;
     const pct=total>0?Math.round((done/total)*100):0;
+    // progress bar section
     document.getElementById('hrProgressFill').style.width=pct+'%';
     document.getElementById('hrProgressPct').textContent=pct+'%';
     const ipEl=document.getElementById('hrInprogChip');
     const dEl=document.getElementById('hrDoneChip');
     if(ipEl){ipEl.style.display=inprog>0?'':'none';ipEl.textContent='⏳ '+inprog+' in progress';}
     if(dEl) dEl.textContent='✓ '+done+'/'+total+' done';
+    // topbar chips
+    const acEl=document.getElementById('answeredCount');
+    const tcEl=document.getElementById('totalCount');
+    const icEl=document.getElementById('inProgressCount');
+    const ipChip=document.getElementById('inProgressChip');
+    if(acEl) acEl.textContent=done;
+    if(tcEl) tcEl.textContent=total;
+    if(icEl) icEl.textContent=inprog;
+    if(ipChip) ipChip.style.display=inprog>0?'':'none';
   }
 
   function cycleDetail(idx){
@@ -377,14 +407,21 @@
       delete s[idx];
       if(btn){btn.textContent='▷ In Progress';btn.className='q-status-btn';}
     }
-    saveStatus(s); updateProgress(); updateStudyStreak();
+    saveStatus(s); StudySync.saveStatus('hr',idx,s[idx]||null);
+    // update TAT label live
+    var _lbl = det.querySelector('.tat-lbl');
+    if (s[idx]) {
+      if (!_lbl) { _lbl = document.createElement('span'); _lbl.className = 'tat-lbl'; if (btn) btn.parentNode.appendChild(_lbl); }
+      _lbl.textContent = 'just now';
+    } else if (_lbl) { _lbl.remove(); }
+    updateProgress(); updateStudyStreak();
   }
 
   // ── Favorites ──────────────────────────────────
   const FAV_KEY = 'hr_favs_v1';
   function loadFavs(){try{return new Set(JSON.parse(localStorage.getItem(FAV_KEY)||'[]'));}catch{return new Set();}}
   function saveFavs(s){localStorage.setItem(FAV_KEY,JSON.stringify([...s]));}
-  function toggleFavHR(idx){const f=loadFavs();if(f.has(idx))f.delete(idx);else f.add(idx);saveFavs(f);}
+  function toggleFavHR(idx){const f=loadFavs();if(f.has(idx))f.delete(idx);else f.add(idx);saveFavs(f);StudySync.saveFav('hr',idx,f.has(idx));}
 
   // ── Streak ──────────────────────────────────────
   function updateStudyStreak(){
@@ -394,9 +431,70 @@
       if(d.date===today)return;
       const prev=new Date(Date.now()-86400000).toISOString().split('T')[0];
       const s=d.date===prev?d.streak+1:1;
-      localStorage.setItem(SK,JSON.stringify({date:today,streak:s,longest:Math.max(s,d.longest||0)}));
+      const longest=Math.max(s,d.longest||0);
+      localStorage.setItem(SK,JSON.stringify({date:today,streak:s,longest:longest}));
+      StudySync.saveStreak(today,s,longest);
     }catch{}
   }
+
+  // ── Clear all progress ──────────────────────────
+  function clearAllProgress(){
+    if(!confirm('Clear all HR progress? This cannot be undone.')) return;
+    localStorage.removeItem(KEY);
+    localStorage.removeItem(FAV_KEY);
+    localStorage.removeItem(NOTES_KEY);
+    all.forEach(function(det,idx){
+      det.classList.remove('state-inprogress','state-done');
+      const btn=det.querySelector('.q-status-btn');
+      if(btn){btn.textContent='▷ In Progress';btn.className='q-status-btn';}
+      const fb=det.querySelector('.q-fav-btn');
+      if(fb){fb.textContent='☆';fb.classList.remove('active');}
+      const ta=det.querySelector('.q-note-input');
+      if(ta){ta.value='';const nb=det.querySelector('.q-note-btn');if(nb)nb.classList.remove('has-note');}
+      const lbl=det.querySelector('.tat-lbl');
+      if(lbl)lbl.remove();
+    });
+    updateProgress();
+  }
+
+  // ── Notes ────────────────────────────────────────
+  const NOTES_KEY='hr_notes_v1';
+  function loadNotes(){try{return JSON.parse(localStorage.getItem(NOTES_KEY)||'{}');}catch{return{};}}
+  function saveNoteHR(idx,text){
+    const n=loadNotes();
+    if(text&&text.trim())n[idx]=text;else delete n[idx];
+    localStorage.setItem(NOTES_KEY,JSON.stringify(n));
+    StudySync.saveNote('hr',idx,text);
+  }
+
+  // DB sync: pull from Supabase and re-apply to DOM
+  StudySync.load('hr').then(function(db) {
+    if (!db) return;
+    localStorage.setItem(KEY, JSON.stringify(db.status));
+    localStorage.setItem(FAV_KEY, JSON.stringify([...db.favs]));
+    localStorage.setItem(NOTES_KEY, JSON.stringify(db.notes || {}));
+    all.forEach(function(det, idx) {
+      var sid = String(idx);
+      const s=db.status[idx]; const btn=det.querySelector('.q-status-btn');
+      det.classList.remove('state-inprogress','state-done');
+      if(s==='inprogress'){det.classList.add('state-inprogress');if(btn){btn.textContent='✓ Mark Done';btn.className='q-status-btn inprogress';}}
+      else if(s==='done'){det.classList.add('state-done');if(btn){btn.textContent='✕ Reset';btn.className='q-status-btn done';}}
+      else{if(btn){btn.textContent='▷ In Progress';btn.className='q-status-btn';}}
+      const fb=det.querySelector('.q-fav-btn');
+      if(fb){const f=db.favs.has(String(idx));fb.textContent=f?'⭐':'☆';fb.classList.toggle('active',f);}
+      // notes
+      const ta=det.querySelector('.q-note-input');
+      if(ta){const noteVal=(db.notes&&(db.notes[String(idx)]||db.notes[idx]))||'';ta.value=noteVal;const nb=det.querySelector('.q-note-btn');if(nb)nb.classList.toggle('has-note',!!noteVal);}
+      // TAT label
+      var ts = db.timestamps && db.timestamps[sid];
+      var lbl = det.querySelector('.tat-lbl');
+      if (ts && s) {
+        if (!lbl) { lbl = document.createElement('span'); lbl.className = 'tat-lbl'; if (btn) btn.parentNode.appendChild(lbl); }
+        lbl.textContent = StudySync.ago(ts);
+      } else if (lbl) { lbl.remove(); }
+    });
+    updateProgress();
+  }).catch(function(){});
 
   // ── Theme ───────────────────────────────────────
   (function(){
@@ -458,9 +556,27 @@
       favBtn.classList.toggle('active',f.has(idx));
     });
     det.appendChild(favBtn);
+    // Note button + area
+    const notes=loadNotes();
+    const noteArea=document.createElement('div');
+    noteArea.className='q-note-area';
+    noteArea.style.display='none';
+    const noteInput=document.createElement('textarea');
+    noteInput.className='q-note-input';
+    noteInput.placeholder='Add your notes here…';
+    noteInput.value=notes[idx]||'';
+    noteInput.addEventListener('input',function(){saveNoteHR(idx,this.value);const nb=det.querySelector('.q-note-btn');if(nb)nb.classList.toggle('has-note',!!this.value.trim());});
+    noteArea.appendChild(noteInput);
+    det.appendChild(noteArea);
+    const noteBtn=document.createElement('button');
+    noteBtn.className='q-note-btn'+(notes[idx]?' has-note':'');
+    noteBtn.textContent='📝 Note';
+    noteBtn.addEventListener('click',function(e){e.stopPropagation();noteArea.style.display=noteArea.style.display==='none'?'':'none';});
+    det.appendChild(noteBtn);
   });
 
   updateProgress();
+  window.clearAllProgress = clearAllProgress;
 })();
 </script>
 </body>

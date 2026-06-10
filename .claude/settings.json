@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell \"\\(Get-Content -Path 'c:\\\\Jeeva_Workspace\\\\VsProjectSpace\\\\LedgerMate\\\\study\\\\prep\\\\Java-Prep-kit.html' | Measure-Object -Line\\).Lines; \\(Get-Content -Path 'c:\\\\Jeeva_Workspace\\\\VsProjectSpace\\\\LedgerMate\\\\study\\\\prep\\\\HR-Questions.html' | Measure-Object -Line\\).Lines; \\(Get-Content -Path 'c:\\\\Jeeva_Workspace\\\\VsProjectSpace\\\\LedgerMate\\\\study\\\\prep\\\\React-Prep.html' | Measure-Object -Line\\).Lines; \\(Get-Content -Path 'c:\\\\Jeeva_Workspace\\\\VsProjectSpace\\\\LedgerMate\\\\study\\\\prep\\\\DSA-Prep-Hub.html' | Measure-Object -Line\\).Lines; \\(Get-Content -Path 'c:\\\\Jeeva_Workspace\\\\VsProjectSpace\\\\LedgerMate\\\\study\\\\prep\\\\Interview-Prep-Kit.html' | Measure-Object -Line\\).Lines\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Jeeva_Workspace\\\\VsProjectSpace\\\\LedgerMate\" -Force)",
+      "Bash(Select-Object Name, Mode)"
+    ]
+  }
+}

@@ -55,11 +55,12 @@
 
   function setSession(user) {
     const session = {
-      userId      : user.id,
-      username    : user.username,
-      displayName : user.displayName || user.username,
-      role        : user.role,
-      loginAt     : Date.now()
+      userId         : user.id,
+      username       : user.username,
+      displayName    : user.displayName || user.username,
+      role           : user.role,
+      allowedModules : user.allowedModules || [],
+      loginAt        : Date.now()
     };
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     return session;
@@ -106,28 +107,45 @@
   /* ══════════════════════════════════════════════════════
      LOGIN / LOGOUT
   ══════════════════════════════════════════════════════ */
-  async function login(username, password) {
-    const users = window.LM_UserStore.getUsers();
-    const user  = users.find(u => u.username.toLowerCase() === username.toLowerCase().trim());
+  async function login(email, password) {
+    /* ── Supabase authentication ─────────────────────────── */
+    const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
 
-    if (!user)         throw new Error('User not found.');
-    if (!user.active)  throw new Error('Account is deactivated. Contact admin.');
+    const sbUser = data.user;
 
-    const valid = await verifyPassword(password, user.passwordHash, user.passwordSalt);
-    if (!valid)        throw new Error('Incorrect password.');
+    /* ── Fetch actual profile (role + active status) ─────── */
+    const { data: profile, error: profErr } = await _supabase
+      .from('user_profiles')
+      .select('role, active, display_name, allowed_modules')
+      .eq('id', sbUser.id)
+      .single();
 
-    /* Update meta */
-    user.lastLogin  = new Date().toISOString();
-    user.loginCount = (user.loginCount || 0) + 1;
-    window.LM_UserStore.saveUsers(users);
-    window.LM_UserStore.logActivity(user.id, 'login', 'Logged in');
+    if (profErr || !profile) {
+      await _supabase.auth.signOut();
+      throw new Error('Account profile not found. Contact your administrator.');
+    }
+
+    if (!profile.active) {
+      await _supabase.auth.signOut();
+      throw new Error('Your account is pending approval by an administrator.');
+    }
+
+    const user = {
+      id             : sbUser.id,
+      username       : sbUser.email,
+      displayName    : profile.display_name || sbUser.email.split('@')[0],
+      role           : profile.role || 'user',
+      email          : sbUser.email,
+      active         : profile.active,
+      allowedModules : profile.allowed_modules || []
+    };
 
     const session = setSession(user);
     hideLoginScreen();
     updateUIForUser(session);
     startInactivityWatcher();
 
-    /* Boot application */
     if (typeof window.LM_StartApp === 'function') {
       await window.LM_StartApp();
     }
@@ -135,10 +153,21 @@
     return session;
   }
 
-  function logout() {
+  async function logout() {
     stopInactivityWatcher();
+
+    /* ── Save to cloud BEFORE wiping state ──────────────── */
+    if (window.LM_CloudSync) {
+      try { await window.LM_CloudSync.saveOnLogout(); } catch (e) {}
+    }
+
+    /* ── Supabase sign out (fire and forget) ─────────────── */
+    try { _supabase.auth.signOut(); } catch (e) {}
+
     const session = getSession();
-    if (session) window.LM_UserStore.logActivity(session.userId, 'logout', 'Logged out');
+    if (session) {
+      try { window.LM_UserStore.logActivity(session.userId, 'logout', 'Logged out'); } catch {}
+    }
 
     /* Emit logout event before wiping state */
     if (window.LM_Bus) LM_Bus.emit('lm:auth:logout', { userId: session?.userId });
@@ -203,22 +232,21 @@
   }
 
   function _applyModuleAccess(user) {
+    const ALL_MODULES = ['transactions','analytics','gold','wealth','essentials','loans','investments','budgets','trips','notes','credentials'];
+
     if (user.role === 'admin') {
-      /* Restore all hidden items for admin */
-      document.querySelectorAll('.sidebar-nav-item[data-module]').forEach(el => {
-        el.style.display = '';
-      });
+      document.querySelectorAll('.sidebar-nav-item[data-module]').forEach(el => { el.style.display = ''; });
       return;
     }
-    const users  = window.LM_UserStore.getUsers();
-    const dbUser = users.find(u => u.id === user.userId);
-    if (!dbUser || !dbUser.allowedModules || dbUser.allowedModules.length === 0) return;
 
-    const ALL_MODULES = ['analytics','gold','wealth','essentials','loans','investments','budgets'];
+    /* allowedModules comes from session (set during login from user_profiles) */
+    const allowed = user.allowedModules || getSession()?.allowedModules || [];
+    if (!allowed || allowed.length === 0) return; /* empty = all modules allowed */
+
     ALL_MODULES.forEach(mod => {
       const el = document.querySelector(`.sidebar-nav-item[data-module="${mod}"]`);
       if (!el) return;
-      el.style.display = dbUser.allowedModules.includes(mod) ? '' : 'none';
+      el.style.display = allowed.includes(mod) ? '' : 'none';
     });
   }
 
@@ -485,30 +513,63 @@
      BOOTSTRAP
   ══════════════════════════════════════════════════════ */
   async function init() {
-    /* Ensure a default admin exists on first launch */
-    await window.LM_UserStore.ensureDefaultAdmin();
+    /* ── Check Supabase session ──────────────────────────── */
+    let sbSession = null;
+    try {
+      const { data } = await _supabase.auth.getSession();
+      sbSession = data && data.session ? data.session : null;
+    } catch (e) {
+      console.warn('[Auth] Supabase session check failed:', e.message);
+    }
 
-    if (isLoggedIn()) {
-      const session = getCurrentUser();
-      /* Validate session still exists and is active */
-      const users  = window.LM_UserStore.getUsers();
-      const dbUser = users.find(u => u.id === session.userId);
-      if (!dbUser || !dbUser.active) {
+    if (sbSession) {
+      const sbUser = sbSession.user;
+
+      /* Fetch actual role + active status */
+      let profile = null;
+      try {
+        const { data } = await _supabase
+          .from('user_profiles')
+          .select('role, active, display_name, allowed_modules')
+          .eq('id', sbUser.id)
+          .single();
+        profile = data;
+      } catch {}
+
+      if (!profile || !profile.active) {
+        /* Profile missing or inactive — sign out and show login */
+        await _supabase.auth.signOut();
         clearSession();
         showLoginScreen();
         _bindLoginForm();
-        return;
-      }
-      hideLoginScreen();
-      updateUIForUser(session);
-      startInactivityWatcher();
-      if (typeof window.LM_StartApp === 'function') {
-        await window.LM_StartApp();
+      } else {
+        const user = {
+          id             : sbUser.id,
+          username       : sbUser.email,
+          displayName    : profile.display_name || sbUser.email.split('@')[0],
+          role           : profile.role || 'user',
+          email          : sbUser.email,
+          active         : profile.active,
+          allowedModules : profile.allowed_modules || []
+        };
+        const session = setSession(user);
+        hideLoginScreen();
+        updateUIForUser(session);
+        startInactivityWatcher();
+        if (typeof window.LM_StartApp === 'function') {
+          await window.LM_StartApp();
+        }
       }
     } else {
+      clearSession();
       showLoginScreen();
       _bindLoginForm();
     }
+
+    /* ── Cross-tab sign-out sync ─────────────────────────── */
+    _supabase.auth.onAuthStateChange(function (event) {
+      if (event === 'SIGNED_OUT' && isLoggedIn()) logout();
+    });
   }
 
   /* ══════════════════════════════════════════════════════

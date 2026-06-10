@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Interview Preparation Kit — LedgerMate</title>
+<title>Interview Preparation Kit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
@@ -48,8 +48,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .topbar-logo-icon{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--purple));display:grid;place-items:center;font-size:14px;flex-shrink:0}
 .topbar-logo-text{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .topbar-div{width:1px;height:18px;background:var(--border2)}
+.topbar-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text);flex:1}
 .topbar-crumb{font-size:12px;color:var(--text3)}
 .topbar-crumb span{color:var(--text2)}
+.topbar-prog{display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:12px;font-family:'JetBrains Mono',monospace}
+.topbar-prog span{color:var(--text3)}
+.topbar-prog strong{color:var(--gold)}
 .topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
 .btn-back{display:flex;align-items:center;gap:5px;background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;text-decoration:none;transition:all .2s}
 .btn-back:hover{border-color:var(--blue);color:var(--blue);background:var(--glow-blue)}
@@ -251,19 +255,23 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   .btn-view{padding:6px 9px}
 }
 </style>
+<!-- Auth: Supabase SDK → config → guard (order matters) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../auth/supabase-config.js"></script>
+<script src="../../auth/auth-guard.js"></script>
+<script src="../js/StudySync.js"></script>
 </head>
 <body>
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <a href="../../index.html" class="topbar-logo">
-    <div class="topbar-logo-icon">💰</div>
-    <div class="topbar-logo-text">LedgerMate</div>
-  </a>
-  <div class="topbar-div"></div>
-  <div class="topbar-crumb"><span>Study Resources</span> / Interview Prep Kit</div>
+  <a href="../index.html" class="btn-back">← Study Hub</a>
+  <!-- <div class="topbar-title">Interview Prep Kit</div> -->
   <div class="topbar-right">
-    <a href="../Study-Resources.html" class="btn-back">← Resources</a>
+    <div class="topbar-prog" id="topbarProgChip" style="display:none">
+      <span>Done</span>
+      <strong id="topbarDoneCount">0</strong>/<strong id="topbarTotalCount">—</strong>
+    </div>
     <button class="btn-icon" id="themeBtn" title="Toggle theme">🌙</button>
   </div>
 </div>
@@ -313,14 +321,14 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <div id="loadingState" class="state-screen">
   <div class="spinner"></div>
   <div class="state-title">Loading PDF Library…</div>
-  <div class="state-txt">Fetching resources from <code>data/pdfs.json</code></div>
+  <div class="state-txt">Fetching resources from <code>study/data/pdfs.json</code></div>
 </div>
 
 <!-- ERROR STATE -->
 <div id="errorState" class="state-screen" style="display:none">
   <div class="state-icon">⚠️</div>
   <div class="state-title">Could not load PDF data</div>
-  <div class="state-txt" id="errorMsg">Make sure <code>data/pdfs.json</code> exists and the page is served from a local server or GitHub Pages. Opening from <code>file://</code> blocks fetch requests.</div>
+  <div class="state-txt" id="errorMsg">Make sure <code>study/data/pdfs.json</code> exists and the page is served from a local server or GitHub Pages. Opening from <code>file://</code> blocks fetch requests.</div>
 </div>
 
 <!-- MAIN CONTENT (hidden until loaded) -->
@@ -391,7 +399,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 
 <!-- FOOTER -->
 <!-- <div class="footer">
-  Part of <a href="../Study-Resources.html">Study Resources</a> · <a href="../../index.html">LedgerMate</a> — Add PDFs by updating <code>data/pdfs.json</code> only.
+  Part of <a href="../index.html">Study Resources</a> · <a href="../../index.html">LedgerMate</a> — Add PDFs by updating <code>study/data/pdfs.json</code> only.
 </div> -->
 
 <!-- TOAST CONTAINER -->
@@ -401,8 +409,16 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 /* ══════════════════════════════════════════════════
    CONSTANTS & STATE
 ══════════════════════════════════════════════════ */
-const PDF_BASE      = '../../';
-const JSON_PATH     = '../../data/pdfs.json';
+const PDF_BASE = (function () {
+  var p = window.location.pathname.split('/');
+  var i = p.lastIndexOf('study');
+  return i >= 0 ? p.slice(0, i).join('/') + '/' : '../../resources/';
+}());
+const JSON_PATH = (function () {
+  var p = window.location.pathname.split('/');
+  var i = p.lastIndexOf('study');
+  return i >= 0 ? p.slice(0, i + 1).join('/') + '/data/pdfs.json' : '../data/pdfs.json';
+}());
 const STORE_KEY     = 'ipk_progress_v1';
 const COMPLETED_KEY = 'ipk_completed_v1'; // compatible key for Study-Resources.html progress reader
 
@@ -479,12 +495,13 @@ function toggleIPKFav(id){
   if(PROG.favorites.has(id)) PROG.favorites.delete(id);
   else PROG.favorites.add(id);
   saveIPKFavs();
+  StudySync.saveFav('ipk', id, PROG.favorites.has(id));
 }
 
 // ── IPK Notes ──
 const IPK_NOTES_KEY = 'ipk_notes_v1';
 function loadIPKNotes(){try{return JSON.parse(localStorage.getItem(IPK_NOTES_KEY)||'{}');}catch{return {};}}
-function saveIPKNote(id,text){const n=loadIPKNotes();if(text.trim())n[id]=text;else delete n[id];localStorage.setItem(IPK_NOTES_KEY,JSON.stringify(n));}
+function saveIPKNote(id,text){const n=loadIPKNotes();if(text.trim())n[id]=text;else delete n[id];localStorage.setItem(IPK_NOTES_KEY,JSON.stringify(n));StudySync.saveNote('ipk',id,text);}
 function toggleIPKNote(id){
   const area=document.getElementById('note-area-'+id);
   if(!area)return;
@@ -501,7 +518,9 @@ function updateStudyStreak(){
     if(d.date===today)return;
     const prev=new Date(Date.now()-86400000).toISOString().split('T')[0];
     const s=d.date===prev?d.streak+1:1;
-    localStorage.setItem(SK,JSON.stringify({date:today,streak:s,longest:Math.max(s,d.longest||0)}));
+    const longest=Math.max(s,d.longest||0);
+    localStorage.setItem(SK,JSON.stringify({date:today,streak:s,longest:longest}));
+    StudySync.saveStreak(today,s,longest);
   }catch{}
 }
 
@@ -544,6 +563,16 @@ function toggleCompleted(id) {
     toast('○ Marked as not done');
   }
   saveProgress(PROG);
+  const newState = PROG.completed.has(id)?'done':PROG.inprogress.has(id)?'inprogress':null;
+  StudySync.saveStatus('ipk', id, newState);
+  // update TAT label live
+  if (card) {
+    var _lbl = card.querySelector('.tat-lbl');
+    if (newState) {
+      if (!_lbl) { _lbl = document.createElement('span'); _lbl.className = 'tat-lbl'; if (btn) btn.parentNode.appendChild(_lbl); }
+      _lbl.textContent = 'just now';
+    } else if (_lbl) { _lbl.remove(); }
+  }
   updateCategoryProgress();
   updateStats();
   updateStudyStreak();
@@ -608,6 +637,14 @@ function updateStats() {
 
   const bar = document.getElementById('progBarFill');
   if (bar) bar.style.width = pct + '%';
+
+  // Topbar progress chip
+  const chip = document.getElementById('topbarProgChip');
+  if (chip) {
+    setText('topbarDoneCount',  done);
+    setText('topbarTotalCount', total);
+    chip.style.display = total > 0 ? '' : 'none';
+  }
 }
 
 function setText(id, val) {
@@ -939,12 +976,39 @@ document.getElementById('themeBtn').addEventListener('click', () => {
 /* ══════════════════════════════════════════════════
    FETCH & INIT
 ══════════════════════════════════════════════════ */
+var _ipkData = null;
 async function init() {
   try {
     const res = await fetch(JSON_PATH);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
+    _ipkData = data;
     render(data);
+    // DB sync: pull from Supabase after initial render
+    StudySync.load('ipk').then(function(db) {
+      if (!db || !_ipkData) return;
+      Object.keys(db.status).forEach(function(id) {
+        const s = db.status[id];
+        PROG.completed.delete(id); PROG.inprogress.delete(id);
+        if (s === 'done') PROG.completed.add(id);
+        else if (s === 'inprogress') PROG.inprogress.add(id);
+      });
+      db.favs.forEach(function(id) { PROG.favorites.add(id); });
+      localStorage.setItem(IPK_NOTES_KEY, JSON.stringify(db.notes));
+      saveProgress(PROG); saveIPKFavs();
+      render(_ipkData);
+      // inject TAT labels after render
+      if (db.timestamps) {
+        Object.keys(db.timestamps).forEach(function(id) {
+          if (!db.status[id]) return;
+          var card = document.querySelector('[data-pdf-id="'+id+'"]');
+          if (!card) return;
+          var lbl = card.querySelector('.tat-lbl');
+          if (!lbl) { lbl = document.createElement('span'); lbl.className = 'tat-lbl'; var btn = card.querySelector('.btn-done'); if (btn) btn.parentNode.appendChild(lbl); }
+          lbl.textContent = StudySync.ago(db.timestamps[id]);
+        });
+      }
+    }).catch(function(){});
   } catch (err) {
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('errorState').style.display = '';

@@ -6,7 +6,7 @@
 <title>Java Interview Prep Kit 2026 — Senior Backend Developer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="../../css/Preparation.css">
+<link rel="stylesheet" href="../styles/Preparation.css">
 <style>
 .q-fav-btn{position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:15px;color:#f59e0b;opacity:.3;transition:all .2s;padding:2px;line-height:1;z-index:3}
 .q-fav-btn:hover{opacity:1;transform:scale(1.15)}
@@ -17,6 +17,11 @@
 .q-note-area{margin-top:8px;padding:8px;background:var(--bg4);border-radius:6px;border:1px solid var(--border);display:none}
 .q-note-input{width:100%;min-height:52px;background:transparent;border:none;outline:none;color:var(--text1);font-size:12px;resize:vertical;font-family:inherit;line-height:1.5}
 </style>
+<!-- Auth: Supabase SDK → config → guard (order matters) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../auth/supabase-config.js"></script>
+<script src="../../auth/auth-guard.js"></script>
+<script src="../js/StudySync.js"></script>
 </head>
 <body>
 
@@ -86,8 +91,8 @@
   <!-- TOPBAR -->
   <div class="topbar">
     <button class="menu-btn" id="menuBtn">☰</button>
-    <a href="../Study-Resources.html" class="back-btn">← Study Resources</a>
-    <div class="topbar-title">Java Interview Prep 2026</div>
+    <a href="../index.html" class="back-btn">← Study Hub</a>
+    <!-- <div class="topbar-title">Java Interview Prep 2026</div> -->
   
     
     <div class="topbar-right">
@@ -6016,11 +6021,11 @@ function _saveStatus(o) { localStorage.setItem(JAVA_PREP_KEY, JSON.stringify(o))
 
 const JAVA_FAV_KEY = 'java_favs_v1';
 function _loadFavs(){try{return new Set(JSON.parse(localStorage.getItem(JAVA_FAV_KEY)||'[]'));}catch{return new Set();}}
-function _toggleFav(idx){const f=_loadFavs();if(f.has(idx))f.delete(idx);else f.add(idx);localStorage.setItem(JAVA_FAV_KEY,JSON.stringify([...f]));}
+function _toggleFav(idx){const f=_loadFavs();if(f.has(idx))f.delete(idx);else f.add(idx);localStorage.setItem(JAVA_FAV_KEY,JSON.stringify([...f]));StudySync.saveFav('java',idx,f.has(idx));}
 
 const JAVA_NOTES_KEY = 'java_notes_v1';
 function _loadNotes(){try{return JSON.parse(localStorage.getItem(JAVA_NOTES_KEY)||'{}');}catch{return {};}}
-function _saveNote(idx,text){const n=_loadNotes();if(text.trim())n[idx]=text;else delete n[idx];localStorage.setItem(JAVA_NOTES_KEY,JSON.stringify(n));}
+function _saveNote(idx,text){const n=_loadNotes();if(text.trim())n[idx]=text;else delete n[idx];localStorage.setItem(JAVA_NOTES_KEY,JSON.stringify(n));StudySync.saveNote('java',idx,text);}
 function _toggleNote(idx){
   const area=document.getElementById('java-note-area-'+idx);
   if(!area)return;
@@ -6036,7 +6041,9 @@ function updateStudyStreak(){
     if(d.date===today)return;
     const prev=new Date(Date.now()-86400000).toISOString().split('T')[0];
     const s=d.date===prev?d.streak+1:1;
-    localStorage.setItem(SK,JSON.stringify({date:today,streak:s,longest:Math.max(s,d.longest||0)}));
+    const longest=Math.max(s,d.longest||0);
+    localStorage.setItem(SK,JSON.stringify({date:today,streak:s,longest:longest}));
+    StudySync.saveStreak(today,s,longest);
   }catch{}
 }
 
@@ -6058,6 +6065,13 @@ function cycleStatus(card) {
     if(btn){btn.textContent='▷ In Progress';btn.className='btn-mark';}
   }
   _saveStatus(status);
+  StudySync.saveStatus('java', idx, status[idx] || null);
+  // update TAT label inline (shows "just now" until next DB sync)
+  var _lbl = card.querySelector('.tat-lbl');
+  if (status[idx]) {
+    if (!_lbl) { _lbl = document.createElement('span'); _lbl.className = 'tat-lbl'; if (btn) btn.parentNode.appendChild(_lbl); }
+    _lbl.textContent = 'just now';
+  } else if (_lbl) { _lbl.remove(); }
   updateProgress();
   updateStudyStreak();
 }
@@ -6080,23 +6094,26 @@ function updateProgress() {
 }
 
 // ── RESTORE SAVED PROGRESS ON LOAD ──
-(function restoreDoneState() {
+function _restoreAllState() {
   const status = _loadStatus();
   const all = _allCards();
-  Object.entries(status).forEach(([idx, state]) => {
-    const card = all[+idx];
-    if (!card) return;
+  all.forEach((card, idx) => {
+    card.classList.remove('answered','in-progress');
     const btn = card.querySelector('.btn-mark');
+    const state = status[idx];
     if (state==='done') {
       card.classList.add('answered');
       if(btn){btn.textContent='✕ Reset';btn.className='btn-mark state-done';}
     } else if (state==='inprogress') {
       card.classList.add('in-progress');
       if(btn){btn.textContent='✓ Mark Done';btn.className='btn-mark state-inprogress';}
+    } else {
+      if(btn){btn.textContent='▷ In Progress';btn.className='btn-mark';}
     }
   });
   updateProgress();
-})();
+}
+_restoreAllState();
 
 // ── CLEAR ALL PROGRESS ──
 function clearAllProgress() {
@@ -6281,6 +6298,29 @@ document.addEventListener('DOMContentLoaded', function(){
       card.appendChild(na);
     });
   })();
+
+  // ── DB sync: pull from Supabase and re-apply ──
+  StudySync.load('java').then(function(db) {
+    if (!db) return;
+    localStorage.setItem(JAVA_PREP_KEY, JSON.stringify(db.status));
+    localStorage.setItem(JAVA_FAV_KEY, JSON.stringify([...db.favs]));
+    localStorage.setItem(JAVA_NOTES_KEY, JSON.stringify(db.notes));
+    _restoreAllState();
+    document.querySelectorAll('.q-card').forEach(function(card, idx) {
+      var sid = String(idx);
+      const fb = card.querySelector('.q-fav-btn');
+      if (fb) { const f=db.favs.has(idx); fb.textContent=f?'⭐':'☆'; fb.classList.toggle('active',f); }
+      const ta = card.querySelector('.q-note-input');
+      if (ta) { ta.value=db.notes[idx]||''; const nb=card.querySelector('.q-note-btn'); if(nb) nb.classList.toggle('has-note',!!db.notes[idx]); }
+      // TAT label
+      var ts = db.timestamps && db.timestamps[sid];
+      var lbl = card.querySelector('.tat-lbl');
+      if (ts && db.status[sid]) {
+        if (!lbl) { lbl = document.createElement('span'); lbl.className = 'tat-lbl'; var btn = card.querySelector('.btn-mark'); if (btn) btn.parentNode.appendChild(lbl); }
+        lbl.textContent = StudySync.ago(ts);
+      } else if (lbl) { lbl.remove(); }
+    });
+  }).catch(function(){});
 });
 </script>
 </body>

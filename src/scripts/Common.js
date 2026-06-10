@@ -3596,16 +3596,27 @@ window.LM_StartApp = async function LM_StartApp() {
     console.error("❌ Failed to open IndexedDB:", err);
     return;
   }
+
+  /* ── Supabase cloud load (replaces IndexedDB as truth source) ── */
+  if (window.LM_CloudSync) {
+    try {
+      const loaded = await window.LM_CloudSync.load();
+      if (loaded) console.log("☁️ Data loaded from Supabase cloud");
+    } catch (e) {
+      console.warn("⚠️ Cloud load failed, using local IndexedDB:", e);
+    }
+  }
+
   try {
   try {
     // Step 1: Check if Drive auto-load is enabled
     const isDriveEnabled = DriveSync.isAutoLoadEnabled();
-    const isConnected = DriveSync.isConnected(); 
+    const isConnected = DriveSync.isConnected();
     if (isDriveEnabled && isConnected) {
       console.log("☁️ Drive auto-load enabled, loading from Drive...");
       await loadFromDrive();
     } else {
-      console.log("💾 Loading from IndexedDB..."); 
+      console.log("💾 Loading from IndexedDB...");
     }
 
     //console.log("✅ App initialized successfully");
@@ -3647,6 +3658,11 @@ window.LM_StartApp = async function LM_StartApp() {
     if (window.LM_Bus) {
       LM_Bus.emit('lm:app:ready', { user: window.LM_Auth?.getCurrentUser() });
       LM_Bus.emit('lm:auth:login', { user: window.LM_Auth?.getCurrentUser() });
+    }
+
+    /* ── Start Supabase cloud auto-save ──────────────── */
+    if (window.LM_CloudSync) {
+      window.LM_CloudSync.startAutoSave(60000);
     }
     /* Kick off notification polling after DB is ready */
     if (typeof window.checkAllNotifications === 'function') {

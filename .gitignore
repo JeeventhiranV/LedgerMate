@@ -1,0 +1,8 @@
+# ── Supabase credentials — never commit the real config ──────────────────────
+auth/supabase-config.js
+
+# ── OS / editor junk ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/settings.json
+*.log
