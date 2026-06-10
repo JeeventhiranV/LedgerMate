@@ -25,12 +25,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Inject secrets into the config file from the example template
+      # Write the Supabase config directly from GitHub Secrets
       - name: Create Supabase config from secrets
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON: ${{ secrets.SUPABASE_ANON }}
         run: |
-          cp auth/supabase-config.example.js auth/supabase-config.js
-          sed -i "s|YOUR_PROJECT_REF.supabase.co|${{ secrets.SUPABASE_URL }}|g" auth/supabase-config.js
-          sed -i "s|YOUR_ANON_PUBLIC_KEY|${{ secrets.SUPABASE_ANON }}|g" auth/supabase-config.js
+          cat > auth/supabase-config.js << EOF
+          var SUPABASE_URL  = '${SUPABASE_URL}';
+          var SUPABASE_ANON = '${SUPABASE_ANON}';
+          var _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+            auth: {
+              persistSession    : true,
+              autoRefreshToken  : true,
+              detectSessionInUrl: true
+            }
+          });
+          EOF
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
