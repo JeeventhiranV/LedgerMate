@@ -168,3 +168,23 @@
   --  3. All subsequent accounts are pending until approved in Admin Panel.
   --  4. In Auth → Settings: optionally disable public signups for invite-only.
   -- ═══════════════════════════════════════════════════════════════════════════
+CREATE OR REPLACE FUNCTION public.delete_user(user_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Access denied: admin only';
+  END IF;
+
+  IF user_id = auth.uid() THEN
+    RAISE EXCEPTION 'You cannot delete your own account';
+  END IF;
+
+  DELETE FROM auth.users WHERE id = user_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.delete_user(uuid) TO authenticated;

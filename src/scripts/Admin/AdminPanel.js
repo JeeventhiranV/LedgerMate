@@ -149,7 +149,7 @@
       <button class="admin-btn admin-btn-sm" onclick="window.LM_Admin.toggleRole('${u.id}','${u.role === 'admin' ? 'user' : 'admin'}','${_esc(u.display_name || u.email)}')">
         ${u.role === 'admin' ? '👤 Make User' : '⭐ Make Admin'}
       </button>
-      ${u.id !== currentUid ? `<button class="admin-btn admin-btn-danger admin-btn-sm" onclick="window.LM_Admin.removeUser('${u.id}','${_esc(u.display_name || u.email)}')">🗑 Remove</button>` : ''}
+      ${u.id !== currentUid ? `<button class="admin-btn admin-btn-danger admin-btn-sm" onclick="window.LM_Admin.deleteUser('${u.id}','${_esc(u.display_name || u.email)}')">🗑 Delete</button>` : ''}
     </div>
   </td>
 </tr>`;
@@ -313,12 +313,16 @@
     await _updateProfile(id, { role: newRole, updated_at: new Date().toISOString() }, `Role set to ${newRole}`);
   }
 
-  async function _removeUser(id, name) {
-    if (!confirm(`Remove "${name}"? They will lose access and their profile will be deleted.`)) return;
+  async function _deleteUser(id, name) {
+    if (!confirm(`Delete "${name}" permanently?\n\nThis will erase their account and ALL their data (transactions, budgets, loans, notes, etc). This cannot be undone.`)) return;
+    if (!confirm(`Final confirmation: permanently delete "${name}" and all their data?`)) return;
+
     try {
-      const { error } = await _supabase.from('user_profiles').delete().eq('id', id);
+      /* delete_user() is a SECURITY DEFINER SQL function that deletes from
+         auth.users — cascading to user_profiles and ledger_data automatically */
+      const { error } = await _supabase.rpc('delete_user', { user_id: id });
       if (error) throw error;
-      if (typeof showToast === 'function') showToast('🗑 User removed', 'success');
+      if (typeof showToast === 'function') showToast('🗑 User and all their data deleted', 'success');
       await _refreshUserList();
     } catch (e) {
       if (typeof showToast === 'function') showToast('❌ ' + (e.message || String(e)), 'error');
@@ -608,7 +612,7 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
     approveUser       : _approveUser,
     deactivateUser    : _deactivateUser,
     toggleRole        : _toggleRole,
-    removeUser        : _removeUser,
+    deleteUser        : _deleteUser,
     saveAppSettings   : _saveAppSettings,
     exportBackup      : _exportBackup,
     syncToCloud       : _syncToCloud,

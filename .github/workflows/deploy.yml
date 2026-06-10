@@ -34,17 +34,29 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON: ${{ secrets.SUPABASE_ANON }}
         run: |
-          cat > auth/supabase-config.js << EOF
-          var SUPABASE_URL  = '${SUPABASE_URL}';
-          var SUPABASE_ANON = '${SUPABASE_ANON}';
-          var _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-            auth: {
-              persistSession    : true,
-              autoRefreshToken  : true,
-              detectSessionInUrl: true
-            }
-          });
-          EOF
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON" ]; then
+            echo "ERROR: SUPABASE_URL or SUPABASE_ANON secret is not set in GitHub repository secrets."
+            exit 1
+          fi
+          python3 - <<'PYEOF'
+          import os
+          url  = os.environ['SUPABASE_URL']
+          anon = os.environ['SUPABASE_ANON']
+          content = (
+            "var SUPABASE_URL  = '" + url  + "';\n"
+            "var SUPABASE_ANON = '" + anon + "';\n"
+            "var _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {\n"
+            "  auth: {\n"
+            "    persistSession    : true,\n"
+            "    autoRefreshToken  : true,\n"
+            "    detectSessionInUrl: true\n"
+            "  }\n"
+            "});\n"
+          )
+          with open('auth/supabase-config.js', 'w') as f:
+              f.write(content)
+          print('Created auth/supabase-config.js (' + str(len(content)) + ' bytes)')
+          PYEOF
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
