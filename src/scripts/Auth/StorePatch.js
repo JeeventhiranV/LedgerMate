@@ -85,13 +85,17 @@
 
     /* ─── Patched put ────────────────────────────────── */
     window.put = async function patchedPut(storeName, obj) {
-      /* Profile injection only – null-db guard is in the original _origPut */
       if (USER_DATA_STORES.has(storeName) && obj && typeof obj === 'object') {
         if (!obj.profile) {
           obj = { ...obj, profile: getCurrentProfile() };
         }
       }
-      return _origPut(storeName, obj);
+      const result = await _origPut(storeName, obj);
+      /* Notify CloudSync that data changed so it queues a debounced save */
+      if (USER_DATA_STORES.has(storeName) && window.LM_Bus) {
+        LM_Bus.emit('lm:data:changed', { store: storeName });
+      }
+      return result;
     };
 
     /* ─── Patched del (expose global) ─────────────────

@@ -183,8 +183,54 @@ BEGIN
     RAISE EXCEPTION 'You cannot delete your own account';
   END IF;
 
-  DELETE FROM auth.users WHERE id = user_id;
+  -- Explicitly delete cloud sync data (also cascades, but being explicit)
+  DELETE FROM public.ledger_data   WHERE ledger_data.user_id   = delete_user.user_id;
+  DELETE FROM public.user_profiles WHERE user_profiles.id      = delete_user.user_id;
+
+  -- Delete auth user (cascades any remaining FK references)
+  DELETE FROM auth.users WHERE id = delete_user.user_id;
 END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.delete_user(uuid) TO authenticated;
+
+
+
+-- Backfill missing user_profiles for any auth.users with no profile
+INSERT INTO public.user_profiles (id, email, display_name, role, active)
+SELECT
+  u.id,
+  u.email,
+  COALESCE(u.raw_user_meta_data->>'full_name', split_part(u.email, '@', 1)),
+  'user',
+  false   -- pending admin approval
+FROM auth.users u
+LEFT JOIN public.user_profiles p ON p.id = u.id
+WHERE p.id IS NULL;
+
+
+
+-- Recreate the trigger cleanly
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE existing_count integer;
+BEGIN
+  SELECT COUNT(*) INTO existing_count FROM public.user_profiles;
+  INSERT INTO public.user_profiles (id, email, display_name, role, active)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(COALESCE(NEW.email,''), '@', 1)),
+    CASE WHEN existing_count = 0 THEN 'admin' ELSE 'user' END,
+    CASE WHEN existing_count = 0 THEN true    ELSE false  END
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

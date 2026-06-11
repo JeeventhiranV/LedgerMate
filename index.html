@@ -61,7 +61,6 @@
   <!-- chart.umd.min.js already loaded above -->
   <script src="./assets/vendor/jspdf.umd.min.js"></script>
   <script src="./assets/vendor/html2canvas.min.js"></script>
-  <script src="./assets/vendor/drive.min.js" async defer></script>
   <link rel="manifest" href="./manifest.json">
   
 <script>
@@ -324,8 +323,8 @@
           <span id="notifCount" class="notif-count-badge">0</span>
         </button>
 
-        <!-- ☁️ Drive sync -->
-        <button id="openDriveManagerBtn" class="icon-btn" title="Google Drive Sync" style="background:linear-gradient(135deg,#4285F4 0%,#4285F4 30%,transparent 30%),linear-gradient(225deg,#34A853 0%,#34A853 30%,transparent 30%),linear-gradient(315deg,#FBBC05 0%,#FBBC05 30%,transparent 30%),#EA4335;background-size:cover;box-shadow:0 2px 6px rgba(0,0,0,0.25);">☁️</button>
+        <!-- ☁️ Cloud Sync -->
+        <button id="cloudSyncBtn" class="icon-btn" title="Sync to cloud" onclick="LM_manualSync()">☁️</button>
 
         <!-- 🌙 Theme toggle -->
         <button class="icon-btn" onclick="toggleTheme()" id="themeIcon" title="Toggle Theme">🌙</button>
@@ -1363,8 +1362,7 @@ function setGreeting() {
 }
 
 </script>
-  <script  src="./src/scripts/Common/Drive.js"></script>  
-  <script  src="./src/scripts/Common.js"></script>
+  <script src="./src/scripts/Common.js"></script>
   <!-- CloudSync: cloud save/load — after Common.js so FinalJson is available -->
   <script src="./src/scripts/CloudSync.js"></script>
   <!-- StorePatch MUST come right after Common.js to wrap put/getAll -->
@@ -1411,6 +1409,32 @@ function setGreeting() {
     const menu = document.getElementById('userDropdownMenu');
     if (menu && chip && !chip.contains(e.target)) menu.classList.remove('open');
   });
+
+  /* ── Cloud Sync button ──────────────────────────────── */
+  var _syncLastSaved = null;
+  var _syncBusy = false;
+
+  window.LM_manualSync = async function () {
+    if (_syncBusy || !window.LM_CloudSync) return;
+    const btn = document.getElementById('cloudSyncBtn');
+    _syncBusy = true;
+    if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+    try {
+      await LM_CloudSync.save();
+    } catch(e) {}
+    _syncBusy = false;
+    if (btn) { btn.textContent = '✅'; btn.disabled = false; }
+    setTimeout(() => { const b = document.getElementById('cloudSyncBtn'); if (b) b.textContent = '☁️'; }, 2000);
+  };
+
+  /* Update button tooltip with last-saved time */
+  if (window.LM_Bus) {
+    LM_Bus.on('lm:cloud:saved', function () {
+      _syncLastSaved = new Date();
+      const btn = document.getElementById('cloudSyncBtn');
+      if (btn) btn.title = 'Cloud Sync · Last saved ' + _syncLastSaved.toLocaleTimeString();
+    });
+  }
 
   /* ── Hide default-credentials hint post first login */
   const users = window.LM_UserStore?.getUsers() || [];

@@ -20,8 +20,9 @@
   function _getLoginUrl() {
     var parts = window.location.pathname.split('/');
     var idx   = parts.lastIndexOf('study');
-    if (idx >= 0) return parts.slice(0, idx + 1).join('/') + '/login.html';
-    return '/study/login.html';
+    /* Go UP to root (not into study/) where login.html lives */
+    if (idx >= 0) return parts.slice(0, idx).join('/') + '/login.html?action=logout';
+    return '/login.html?action=logout';
   }
 
   function _getHubUrl() {

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sign In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="./auth/supabase-config.js"></script>
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg:      #0a0c12;
+  --surface: #111420;
+  --card:    #151922;
+  --border:  #1f2535;
+  --border-h:#2d3650;
+  --text:    #e8eaf6;
+  --text2:   #7c87a8;
+  --text3:   #454d6a;
+  --blue:    #4f8ef7;
+  --purple:  #8b5cf6;
+  --teal:    #00d4b4;
+  --rose:    #f43f5e;
+  --shadow:  0 24px 60px rgba(0,0,0,.7);
+}
+[data-theme="light"] {
+  --bg:      #f0f2fa;
+  --surface: #ffffff;
+  --card:    #ffffff;
+  --border:  #e2e6f3;
+  --border-h:#c8cfeb;
+  --text:    #1a1e35;
+  --text2:   #5260a0;
+  --text3:   #9099c2;
+  --shadow:  0 12px 40px rgba(0,0,0,.12);
+}
+
+html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+
+body {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 20px;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(79,142,247,.07), transparent),
+    radial-gradient(ellipse 60% 50% at 80% 90%, rgba(139,92,246,.07), transparent);
+}
+
+.theme-btn {
+  position: fixed; top: 16px; right: 16px;
+  width: 36px; height: 36px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color .2s; z-index: 10;
+}
+.theme-btn:hover { border-color: var(--border-h); }
+
+.card {
+  width: 100%; max-width: 400px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 20px; box-shadow: var(--shadow); overflow: hidden;
+}
+
+/* ── App Switcher ── */
+.app-switcher {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 1px; background: var(--border); border-bottom: 1px solid var(--border);
+}
+.app-switch {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 13px 10px; background: var(--surface); border: none; cursor: pointer;
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
+  color: var(--text2); transition: background .2s, color .2s;
+}
+.app-switch:hover { background: var(--card); color: var(--text); }
+.app-switch.active-ledger { background: var(--card); color: var(--teal); font-weight: 600; box-shadow: inset 0 -2px 0 var(--teal); }
+.app-switch.active-study  { background: var(--card); color: var(--purple); font-weight: 600; box-shadow: inset 0 -2px 0 var(--purple); }
+.app-switch-icon { width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+.icon-l { background: linear-gradient(135deg, #00d4b4, #4f8ef7); }
+.icon-s { background: linear-gradient(135deg, #8b5cf6, #4f8ef7); }
+
+/* ── Header ── */
+.card-header { padding: 28px 28px 20px; text-align: center; border-bottom: 1px solid var(--border); }
+.app-logo { width: 56px; height: 56px; border-radius: 16px; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; transition: background .3s; }
+.logo-ledger { background: linear-gradient(135deg, #00d4b4, #4f8ef7); box-shadow: 0 8px 24px rgba(0,212,180,.3); }
+.logo-study  { background: linear-gradient(135deg, #8b5cf6, #4f8ef7); box-shadow: 0 8px 24px rgba(139,92,246,.3); }
+.app-name { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -.3px; }
+.app-name.ledger { color: var(--teal); }
+.app-name.study  { color: var(--purple); }
+.app-tagline { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+/* ── Body ── */
+.card-body { padding: 24px 28px 28px; }
+
+.mode-tabs { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 3px; gap: 3px; margin-bottom: 22px; }
+.mode-tab { flex: 1; padding: 8px; border: none; background: transparent; border-radius: 7px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; color: var(--text3); cursor: pointer; transition: all .18s; }
+.mode-tab.active { background: var(--card); color: var(--text); box-shadow: 0 1px 6px rgba(0,0,0,.25); }
+
+.section { display: none; }
+.section.active { display: block; }
+
+.field { margin-bottom: 16px; }
+.field-label { display: block; font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 7px; }
+.field-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; font-size: 14px; color: var(--text); font-family: 'Inter', sans-serif; outline: none; transition: border-color .2s, box-shadow .2s; }
+.field-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(79,142,247,.12); }
+.field-input::placeholder { color: var(--text3); }
+.field-input.area { min-height: 70px; resize: vertical; }
+
+.pw-wrap { position: relative; }
+.pw-wrap .field-input { padding-right: 44px; }
+.pw-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 15px; color: var(--text3); padding: 4px; line-height: 1; }
+.pw-toggle:hover { color: var(--text2); }
+
+.forgot-row { text-align: right; margin: -6px 0 16px; }
+.btn-link { background: none; border: none; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px; color: var(--blue); text-decoration: underline; text-underline-offset: 2px; }
+.btn-link:hover { color: var(--purple); }
+
+.btn-primary { width: 100%; padding: 12px; border: none; border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: #fff; cursor: pointer; transition: opacity .2s, transform .1s; }
+.btn-primary:hover    { opacity: .9; }
+.btn-primary:active   { transform: scale(.98); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.btn-ledger { background: linear-gradient(135deg, #00d4b4, #4f8ef7); }
+.btn-study  { background: linear-gradient(135deg, #8b5cf6, #4f8ef7); }
+
+.divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--text3); font-size: 12px; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+.btn-google { width: 100%; padding: 11px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; color: var(--text2); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: border-color .2s, background .2s, color .2s; }
+.btn-google:hover { border-color: var(--border-h); background: var(--card); color: var(--text); }
+.btn-google svg { width: 17px; height: 17px; flex-shrink: 0; }
+
+.msg { border-radius: 9px; padding: 10px 13px; font-size: 13px; line-height: 1.5; margin-bottom: 14px; display: none; }
+.msg.error   { background: rgba(244,63,94,.08);  border: 1px solid rgba(244,63,94,.2);  color: #f87171; }
+.msg.success { background: rgba(0,212,180,.08);  border: 1px solid rgba(0,212,180,.2);  color: var(--teal); }
+.msg.warning { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.25); color: #fbbf24; }
+.msg.show    { display: block; }
+
+.note-box { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--blue); border-radius: 10px; padding: 12px 14px; font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 18px; }
+.note-box strong { color: var(--text); }
+.field-optional { color: var(--text3); font-weight: 400; }
+
+.card-footer { padding: 14px 28px; text-align: center; font-size: 11px; color: var(--text3); border-top: 1px solid var(--border); background: var(--surface); }
+</style>
+</head>
+<body>
+
+<button class="theme-btn" id="themeBtn" title="Toggle theme">🌙</button>
+
+<div class="card">
+
+  <div class="app-switcher">
+    <button class="app-switch" id="switchLedger">
+      <span class="app-switch-icon icon-l">📒</span> LedgerMate
+    </button>
+    <button class="app-switch" id="switchStudy">
+      <span class="app-switch-icon icon-s">📚</span> Study Resources
+    </button>
+  </div>
+
+  <div class="card-header">
+    <div class="app-logo logo-ledger" id="appLogo">📒</div>
+    <div class="app-name ledger" id="appName">LedgerMate</div>
+    <div class="app-tagline" id="appTagline">Personal Finance · Cloud Sync</div>
+  </div>
+
+  <div class="card-body">
+
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="tabSignin">Sign In</button>
+      <button class="mode-tab" id="tabRequest">Request Access</button>
+    </div>
+
+    <!-- Sign In -->
+    <div class="section active" id="sectionSignin">
+      <div class="msg" id="signinMsg"></div>
+      <div class="field">
+        <label class="field-label" for="email">Email</label>
+        <input class="field-input" type="email" id="email" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="field">
+        <label class="field-label" for="password">Password</label>
+        <div class="pw-wrap">
+          <input class="field-input" type="password" id="password" placeholder="Your password" autocomplete="current-password"/>
+          <button type="button" class="pw-toggle" id="pwToggle">👁</button>
+        </div>
+      </div>
+      <div class="forgot-row">
+        <button class="btn-link" id="forgotBtn">Forgot password?</button>
+      </div>
+      <button class="btn-primary btn-ledger" id="signinBtn">Sign In →</button>
+      <div class="divider">or</div>
+      <button class="btn-google" id="googleBtn">
+        <svg viewBox="0 0 24 24">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+    </div>
+
+    <!-- Request Access -->
+    <div class="section" id="sectionRequest">
+      <div class="note-box">
+        <strong>Access is by invitation only.</strong><br>
+        Submit your details — the admin will review and send an invite if approved.
+      </div>
+      <div class="msg" id="reqMsg"></div>
+      <div class="field">
+        <label class="field-label" for="reqName">Full Name</label>
+        <input class="field-input" type="text" id="reqName" placeholder="Your name"/>
+      </div>
+      <div class="field">
+        <label class="field-label" for="reqEmail">Email</label>
+        <input class="field-input" type="email" id="reqEmail" placeholder="you@example.com"/>
+      </div>
+      <div class="field">
+        <label class="field-label" for="reqNote">Reason <span class="field-optional">(optional)</span></label>
+        <textarea class="field-input area" id="reqNote" placeholder="Brief note…"></textarea>
+      </div>
+      <button class="btn-primary btn-ledger" id="reqBtn">Submit Request</button>
+    </div>
+
+  </div>
+
+  <div class="card-footer">
+    🔒 All data encrypted &amp; synced to cloud · Admin-approved access
+  </div>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var APPS = {
+    ledger: {
+      icon: '📒', logoClass: 'logo-ledger', nameClass: 'ledger',
+      name: 'LedgerMate', tagline: 'Personal Finance · Cloud Sync', btnClass: 'btn-ledger',
+      redirectUrl: function () {
+        return window.location.href.split('/').slice(0, -1).join('/') + '/index.html';
+      }
+    },
+    study: {
+      icon: '📚', logoClass: 'logo-study', nameClass: 'study',
+      name: 'Study Resources', tagline: 'Prep Materials & Progress Tracking', btnClass: 'btn-study',
+      redirectUrl: function () {
+        return window.location.href.split('/').slice(0, -1).join('/') + '/study/index.html';
+      }
+    }
+  };
+
+  var _app = 'ledger';
+
+  function selectApp(key) {
+    _app = key;
+    var cfg = APPS[key];
+    document.getElementById('switchLedger').className = 'app-switch' + (key === 'ledger' ? ' active-ledger' : '');
+    document.getElementById('switchStudy').className  = 'app-switch' + (key === 'study'  ? ' active-study'  : '');
+    var logo = document.getElementById('appLogo');
+    logo.textContent = cfg.icon; logo.className = 'app-logo ' + cfg.logoClass;
+    var name = document.getElementById('appName');
+    name.textContent = cfg.name; name.className = 'app-name ' + cfg.nameClass;
+    document.getElementById('appTagline').textContent = cfg.tagline;
+    document.getElementById('signinBtn').className = 'btn-primary ' + cfg.btnClass;
+    document.getElementById('reqBtn').className    = 'btn-primary ' + cfg.btnClass;
+  }
+
+  function setTab(tab) {
+    var s = tab === 'signin';
+    document.getElementById('tabSignin').className       = 'mode-tab' + (s  ? ' active' : '');
+    document.getElementById('tabRequest').className      = 'mode-tab' + (!s ? ' active' : '');
+    document.getElementById('sectionSignin').className   = 'section'  + (s  ? ' active' : '');
+    document.getElementById('sectionRequest').className  = 'section'  + (!s ? ' active' : '');
+  }
+
+  document.getElementById('tabSignin').addEventListener('click',  function () { setTab('signin'); });
+  document.getElementById('tabRequest').addEventListener('click', function () { setTab('request'); });
+  document.getElementById('switchLedger').addEventListener('click', function () { selectApp('ledger'); });
+  document.getElementById('switchStudy').addEventListener('click',  function () { selectApp('study');  });
+
+  function showMsg(id, text, type) {
+    var el = document.getElementById(id); el.textContent = text; el.className = 'msg ' + type + ' show';
+  }
+  function clearMsg(id) {
+    var el = document.getElementById(id); el.textContent = ''; el.className = 'msg';
+  }
+  function setLoading(btn, loading, label) { btn.disabled = loading; btn.textContent = loading ? '…' : label; }
+
+  var _params   = new URLSearchParams(window.location.search);
+  var _isLogout = _params.get('action') === 'logout';
+  var _msgParam = _params.get('msg');
+  var urlApp    = _params.get('app') || localStorage.getItem('lm_oauth_app');
+  selectApp(urlApp === 'study' ? 'study' : 'ledger');
+
+  /* Show pending-approval message when redirected back from AuthManager */
+  if (_msgParam === 'pending') {
+    showMsg('signinMsg', '⏳ Account pending approval — once the admin approves you, you can sign in.', 'warning');
+  } else if (_msgParam === 'noprofile') {
+    showMsg('signinMsg', 'Account setup incomplete. Please contact the administrator.', 'error');
+  }
+
+  /* Clean ?action, ?msg from URL bar without reloading */
+  if (_isLogout || _msgParam) history.replaceState(null, '', window.location.pathname);
+
+  function redirect() {
+    localStorage.removeItem('lm_oauth_app');
+    window.location.replace(APPS[_app].redirectUrl());
+  }
+
+  /* Check user_profiles.active before redirecting — catches inactive accounts for
+     both email/password and Google OAuth logins at the login page itself. */
+  async function checkProfileAndRedirect(userId) {
+    try {
+      var r = await _supabase.from('user_profiles').select('active').eq('id', userId).single();
+      var prof = r.data;
+      if (!prof || !prof.active) {
+        await _supabase.auth.signOut();
+        showMsg('signinMsg', '⏳ Account pending approval — once the admin approves you, you can sign in.', 'warning');
+        setLoading(document.getElementById('signinBtn'), false, 'Sign In →');
+        return;
+      }
+    } catch (e) { /* network/db error — fall through and allow redirect */ }
+    redirect();
+  }
+
+  /* Only auto-redirect if NOT coming from a logout */
+  _supabase.auth.getSession().then(function (r) {
+    if (!_isLogout && r.data && r.data.session) redirect();
+  });
+
+  /* Only redirect on genuine SIGNED_IN (OAuth callback / explicit sign-in).
+     TOKEN_REFRESHED must NOT trigger redirect — it fires on background token
+     refresh and would immediately loop after a logout. */
+  _supabase.auth.onAuthStateChange(function (event, session) {
+    if (event === 'SIGNED_IN' && session) checkProfileAndRedirect(session.user.id);
+  });
+
+  document.getElementById('pwToggle').addEventListener('click', function () {
+    var inp = document.getElementById('password'), isText = inp.type === 'text';
+    inp.type = isText ? 'password' : 'text'; this.textContent = isText ? '👁' : '🙈';
+  });
+
+  document.getElementById('signinBtn').addEventListener('click', async function () {
+    clearMsg('signinMsg');
+    var email = document.getElementById('email').value.trim();
+    var pass  = document.getElementById('password').value;
+    if (!email) { showMsg('signinMsg', 'Please enter your email.', 'error'); return; }
+    if (!pass)  { showMsg('signinMsg', 'Please enter your password.', 'error'); return; }
+    setLoading(this, true, 'Sign In →');
+    var res = await _supabase.auth.signInWithPassword({ email: email, password: pass });
+    if (res.error) {
+      var m = res.error.message || 'Sign in failed.';
+      if (m.toLowerCase().includes('invalid')) m = 'Incorrect email or password.';
+      if (m.toLowerCase().includes('confirm')) m = 'Please verify your email first.';
+      showMsg('signinMsg', m, 'error');
+      setLoading(this, false, 'Sign In →');
+    }
+  });
+
+  ['email', 'password'].forEach(function (id) {
+    document.getElementById(id).addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') document.getElementById('signinBtn').click();
+    });
+  });
+
+  document.getElementById('googleBtn').addEventListener('click', async function () {
+    clearMsg('signinMsg');
+    /* Save selected app so we can redirect correctly after OAuth callback */
+    localStorage.setItem('lm_oauth_app', _app);
+    var res = await _supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + window.location.pathname }
+    });
+    if (res.error) showMsg('signinMsg', res.error.message || 'Google sign-in failed.', 'error');
+  });
+
+  document.getElementById('forgotBtn').addEventListener('click', async function () {
+    var email = document.getElementById('email').value.trim();
+    if (!email) { showMsg('signinMsg', 'Enter your email above first.', 'error'); return; }
+    clearMsg('signinMsg');
+    var res = await _supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname
+    });
+    if (res.error) showMsg('signinMsg', res.error.message, 'error');
+    else showMsg('signinMsg', 'Reset link sent — check your inbox.', 'success');
+  });
+
+  document.getElementById('reqBtn').addEventListener('click', async function () {
+    clearMsg('reqMsg');
+    var name  = document.getElementById('reqName').value.trim();
+    var email = document.getElementById('reqEmail').value.trim();
+    var note  = document.getElementById('reqNote').value.trim();
+    if (!name)  { showMsg('reqMsg', 'Please enter your name.', 'error'); return; }
+    if (!email) { showMsg('reqMsg', 'Please enter your email.', 'error'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showMsg('reqMsg', 'Please enter a valid email.', 'error'); return; }
+    setLoading(this, true, 'Submit Request');
+    var res = await _supabase.from('access_requests').insert({ name: name, email: email, message: note || null, status: 'pending' });
+    if (res.error) {
+      var err = res.error.message || 'Failed to submit.';
+      if (err.includes('unique') || err.includes('duplicate')) err = 'A request from this email already exists.';
+      showMsg('reqMsg', err, 'error');
+    } else {
+      showMsg('reqMsg', '✅ Request submitted! Admin will review and send an invite if approved.', 'success');
+      document.getElementById('reqName').value = document.getElementById('reqEmail').value = document.getElementById('reqNote').value = '';
+    }
+    setLoading(this, false, 'Submit Request');
+  });
+
+  var theme = localStorage.getItem('lm_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeBtn').textContent = theme === 'dark' ? '🌙' : '☀️';
+  document.getElementById('themeBtn').addEventListener('click', function () {
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('lm_theme', next);
+    this.textContent = next === 'dark' ? '🌙' : '☀️';
+  });
+
+}());
+</script>
+</body>
+</html>

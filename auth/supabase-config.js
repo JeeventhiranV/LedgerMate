@@ -5,7 +5,6 @@
 
 var SUPABASE_URL1  = 'SUPABASE_URL';
 var SUPABASE_ANON1 = 'SUPABASE_ANON';
-
 var _supabase = supabase.createClient(SUPABASE_URL1, SUPABASE_ANON1, {
   auth: {
     persistSession   : true,

@@ -89,12 +89,10 @@
      UI GATING
   ══════════════════════════════════════════════════════ */
   function showLoginScreen() {
-    const ls = document.getElementById('loginScreen');
-    const ap = document.getElementById('app');
-    if (ls) { ls.style.display = 'flex'; requestAnimationFrame(() => ls.classList.add('show')); }
-    if (ap) ap.style.display = 'none';
-    /* Reset app-ready flag on logout */
     window.LM_DB_READY = false;
+    /* Redirect to the unified login page */
+    var base = window.location.href.split('/').slice(0, -1).join('/');
+    window.location.replace(base + '/login.html?action=logout');
   }
 
   function hideLoginScreen() {
@@ -161,8 +159,8 @@
       try { await window.LM_CloudSync.saveOnLogout(); } catch (e) {}
     }
 
-    /* ── Supabase sign out (fire and forget) ─────────────── */
-    try { _supabase.auth.signOut(); } catch (e) {}
+    /* ── Supabase sign out (must complete before redirect) ── */
+    try { await _supabase.auth.signOut(); } catch (e) {}
 
     const session = getSession();
     if (session) {
@@ -543,10 +541,12 @@
       } catch {}
 
       if (!profile || !profile.active) {
-        /* Profile missing or inactive — sign out and show login */
+        /* Profile missing or inactive — sign out and redirect with reason */
         await _supabase.auth.signOut();
         clearSession();
-        showLoginScreen();
+        var _msgCode   = profile ? 'pending' : 'noprofile';
+        var _loginBase = window.location.href.split('/').slice(0, -1).join('/');
+        window.location.replace(_loginBase + '/login.html?action=logout&msg=' + _msgCode);
         _bindLoginForm();
       } else {
         const user = {

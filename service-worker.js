@@ -7,12 +7,13 @@
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v9';
+const CACHE_VERSION = 'lm-v2.0.2';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
   './',
   './index.html',
+  './login.html',
   './widget.html',
   './manifest.json',
 
@@ -32,7 +33,6 @@ const STATIC_ASSETS = [
   './assets/vendor/tailwind.min.js',
   './assets/vendor/jspdf.umd.min.js',
   './assets/vendor/html2canvas.min.js',
-  './assets/vendor/drive.min.js',
 
   /* Core JS */
   './src/scripts/Core/AppBus.js',
@@ -41,7 +41,6 @@ const STATIC_ASSETS = [
   './src/scripts/Auth/StorePatch.js',
   './src/scripts/Admin/AdminPanel.js',
   './src/scripts/CloudSync.js',
-  './src/scripts/Common/Drive.js',
   './src/scripts/Common.js',
   './src/scripts/Wealth/Wealth.js',
   './src/scripts/Wealth/Essentials.js',
@@ -98,7 +97,7 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   if (url.origin !== self.location.origin) return;
 
-  /* External API calls (gold rates, Drive) → network only */
+  /* External API calls (gold rates, Supabase) → network only */
   if (url.pathname.startsWith('/api/') ||
       url.hostname.includes('googleapis') ||
       url.hostname.includes('gold')) {

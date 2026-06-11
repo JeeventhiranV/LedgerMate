@@ -79,6 +79,46 @@
   font-family: var(--font-m);
 }
 
+/* ── App Switcher (inside login header) ─────── */
+.login-app-switcher {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+}
+.login-app-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-m);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.login-app-switch-btn:hover {
+  border-color: var(--border-h);
+  background: rgba(0,212,180,0.06);
+  color: var(--text);
+}
+.login-app-switch-btn.active {
+  border-color: rgba(0,212,180,0.4);
+  background: rgba(0,212,180,0.1);
+  color: var(--teal);
+  cursor: default;
+}
+.login-app-switch-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
 /* ── Login Body ─────────────────────────────── */
 .login-body {
   padding: 28px 32px 32px;

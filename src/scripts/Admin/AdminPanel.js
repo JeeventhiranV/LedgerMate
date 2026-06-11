@@ -316,20 +316,100 @@
     await _updateProfile(id, { role: newRole, updated_at: new Date().toISOString() }, `Role set to ${newRole}`);
   }
 
-  async function _deleteUser(id, name) {
-    if (!confirm(`Delete "${name}" permanently?\n\nThis will erase their account and ALL their data (transactions, budgets, loans, notes, etc). This cannot be undone.`)) return;
-    if (!confirm(`Final confirmation: permanently delete "${name}" and all their data?`)) return;
+  function _deleteUser(id, name) {
+    _showDeleteModal(id, name);
+  }
 
+  function _showDeleteModal(id, name) {
+    document.getElementById('lm-del-modal')?.remove();
+    const modal = document.createElement('div');
+    modal.id = 'lm-del-modal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);padding:20px;';
+    modal.innerHTML = `
+      <div style="background:var(--card,#151922);border:1px solid rgba(244,63,94,.3);border-radius:16px;padding:28px 26px;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.9);">
+        <div style="font-size:32px;text-align:center;margin-bottom:10px;">⚠️</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text,#e8eaf6);text-align:center;margin-bottom:6px;">Delete User Permanently</div>
+        <div style="font-size:13px;color:var(--text-2,#7c87a8);text-align:center;margin-bottom:18px;">
+          Deleting <strong style="color:#f87171;">${_esc(name)}</strong>
+        </div>
+        <div style="background:rgba(244,63,94,.06);border:1px solid rgba(244,63,94,.15);border-radius:10px;padding:14px;margin-bottom:20px;font-size:12px;color:var(--text-2,#7c87a8);line-height:2;">
+          <div>✗ &nbsp;LedgerMate — transactions, budgets, loans, savings</div>
+          <div>✗ &nbsp;Notes, credentials vault, investments, trips</div>
+          <div>✗ &nbsp;Reminders, subscriptions, FD/RD, templates</div>
+          <div>✗ &nbsp;Study Resources — account access</div>
+          <div>✗ &nbsp;Cloud-synced data (Supabase ledger_data)</div>
+          <div>✗ &nbsp;User profile &amp; authentication account</div>
+          <div style="margin-top:8px;color:#fb7185;font-weight:600;">⚠️ This cannot be undone.</div>
+        </div>
+        <div id="lm-del-progress" style="display:none;font-size:12px;color:var(--text-2,#7c87a8);margin-bottom:14px;line-height:1.9;padding:10px 12px;background:var(--surface,#111420);border-radius:8px;border:1px solid var(--border,#1f2535);"></div>
+        <div style="display:flex;gap:10px;">
+          <button id="lm-del-cancel"
+                  onclick="document.getElementById('lm-del-modal').remove()"
+                  style="flex:1;padding:11px;background:var(--surface,#111420);border:1px solid var(--border,#1f2535);border-radius:10px;color:var(--text-2,#7c87a8);cursor:pointer;font-size:14px;font-family:inherit;">
+            Cancel
+          </button>
+          <button id="lm-del-confirm-btn"
+                  onclick="window.LM_Admin.executeDelete('${id}','${_esc(name)}')"
+                  style="flex:1;padding:11px;background:linear-gradient(135deg,#f43f5e,#b91c1c);border:none;border-radius:10px;color:#fff;cursor:pointer;font-size:14px;font-weight:600;font-family:inherit;">
+            🗑 Delete Permanently
+          </button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  async function _executeDelete(id, name) {
+    const btn       = document.getElementById('lm-del-confirm-btn');
+    const cancelBtn = document.getElementById('lm-del-cancel');
+    const progress  = document.getElementById('lm-del-progress');
+
+    if (btn)       { btn.disabled = true; btn.textContent = '⏳ Deleting…'; }
+    if (cancelBtn) { cancelBtn.disabled = true; }
+    if (progress)  { progress.style.display = 'block'; progress.textContent = ''; }
+
+    const log = (line) => { if (progress) progress.innerHTML += line + '<br>'; };
+
+    const USER_DATA_STORES = [
+      'transactions','budgets','loans','reminders','savings','investments',
+      'recurringTransactions','audit_logs','auditLog','trips','trip_routes',
+      'credentials','notes','note_versions','note_attachments','note_folders',
+      'emi_loans','net_worth_snapshots','allocation_targets','sip_plan',
+      'essentials_settings','savings_goals','subscriptions','fd_rd','tx_templates'
+    ];
+
+    let allOk = true;
+
+    /* Step 1: wipe local IndexedDB records tagged with this user's profile ID */
+    if (typeof window.LM_delByProfile === 'function') {
+      let failCount = 0;
+      for (const store of USER_DATA_STORES) {
+        try { await window.LM_delByProfile(store, id); } catch { failCount++; }
+      }
+      log(failCount === 0 ? '✅ Local cached data cleared' : `⚠️ Local cache: ${failCount} stores skipped`);
+    } else {
+      log('ℹ️ Local cache: skipped (StorePatch not loaded)');
+    }
+
+    /* Step 2: delete cloud account — SECURITY DEFINER RPC cascades to
+       user_profiles and ledger_data via FK ON DELETE CASCADE */
     try {
-      /* delete_user() is a SECURITY DEFINER SQL function that deletes from
-         auth.users — cascading to user_profiles and ledger_data automatically */
       const { error } = await _supabase.rpc('delete_user', { user_id: id });
       if (error) throw error;
-      if (typeof showToast === 'function') showToast('🗑 User and all their data deleted', 'success');
-      await _refreshUserList();
+      log('✅ Cloud data &amp; account deleted');
     } catch (e) {
-      if (typeof showToast === 'function') showToast('❌ ' + (e.message || String(e)), 'error');
+      log('❌ Account deletion: ' + _esc(e.message || String(e)));
+      allOk = false;
     }
+
+    await new Promise(r => setTimeout(r, 900));
+    document.getElementById('lm-del-modal')?.remove();
+
+    if (allOk) {
+      if (typeof showToast === 'function') showToast(`🗑 "${name}" and all their data deleted`, 'success');
+    } else {
+      if (typeof showToast === 'function') showToast('⚠️ Deletion may be incomplete — check Supabase logs', 'error');
+    }
+    await _refreshUserList();
   }
 
   async function _updateProfile(id, patch, successMsg) {
@@ -618,6 +698,7 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
     deactivateUser    : _deactivateUser,
     toggleRole        : _toggleRole,
     deleteUser        : _deleteUser,
+    executeDelete     : _executeDelete,
     saveAppSettings   : _saveAppSettings,
     exportBackup      : _exportBackup,
     syncToCloud       : _syncToCloud,
