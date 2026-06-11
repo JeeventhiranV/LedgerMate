@@ -43,6 +43,9 @@
 
     const overlay = document.createElement('div');
     overlay.id = 'adminPanelOverlay';
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeAdminPanel();
+    });
     overlay.innerHTML = `
 <div id="adminPanel">
   <div class="admin-header">
@@ -495,7 +498,7 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
   <div class="admin-section-title" style="font-size:13px;margin-bottom:12px;">📥 Restore / Import</div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
     <input type="file" id="restoreFile" accept=".json" class="form-input" style="max-width:320px;">
-    <button class="btn-submit" onclick="window.LM_Admin.importBackup()">📥 Restore</button>
+    <button id="adminImportBtn" class="btn-submit" onclick="window.LM_Admin.importBackup()">📥 Restore</button>
   </div>
   <div style="font-size:11px;color:var(--text-3);margin-top:8px;">Merges backup into current database. Existing records are preserved.</div>
 </div>
@@ -525,8 +528,10 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
     const a    = document.createElement('a');
     a.href     = url;
     a.download = `ledgermate_backup_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     if (typeof showToast === 'function') showToast('✅ Backup downloaded!', 'success');
   }
 
@@ -549,7 +554,7 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
       if (typeof showToast === 'function') showToast('Please select a backup file first.', 'error');
       return;
     }
-    const btn = document.querySelector('[onclick="window.LM_Admin.importBackup()"]');
+    const btn = document.getElementById('adminImportBtn');
     if (btn) { btn.disabled = true; btn.textContent = '⏳ Restoring…'; }
     try {
       const text = await file.text();

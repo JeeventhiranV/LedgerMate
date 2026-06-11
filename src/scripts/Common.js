@@ -1663,8 +1663,9 @@ function renderHeatmap() {
     d.setDate(today.getDate() - i);
 
     const total = state.transactions
-      .filter(t => new Date(t.date).toDateString() === d.toDateString())
-      .reduce((sum, t) => sum + Number(t.amount), 0);
+      .filter(t => (t.type === 'out' || t.type === 'expense') &&
+                   new Date(t.date).toDateString() === d.toDateString())
+      .reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
 
     const intensity = Math.min(1, total / 1000);
     const bg = `rgba(99, 102, 241, ${0.1 + intensity * 0.7})`;
@@ -1723,12 +1724,13 @@ if (!q) {
         const amountMatch = token.match(/^amount([<>]=?|=)(\d+(?:\.\d+)?)$/);
         if (amountMatch) {
           const [, operator, valueStr] = amountMatch;
-          const value = parseFloat(valueStr);
-          if (operator === '>' && !(t.amount > value)) match = false;
-          if (operator === '>=' && !(t.amount >= value)) match = false;
-          if (operator === '<' && !(t.amount < value)) match = false;
-          if (operator === '<=' && !(t.amount <= value)) match = false;
-          if (operator === '=' && !(t.amount === value)) match = false;
+          const value   = parseFloat(valueStr);
+          const tAmount = parseFloat(t.amount);
+          if (operator === '>'  && !(tAmount >  value)) match = false;
+          if (operator === '>=' && !(tAmount >= value)) match = false;
+          if (operator === '<'  && !(tAmount <  value)) match = false;
+          if (operator === '<=' && !(tAmount <= value)) match = false;
+          if (operator === '='  && !(tAmount === value)) match = false;
           continue;
         }
 
@@ -3742,7 +3744,10 @@ function daysAgoISO(n) {
    SUM, GROUP, FILTER
    ========================= */
 function sumBy(arr, key) {
-  return arr.reduce((s, x) => s + Number(x[key] || 0), 0);
+  return (arr || []).reduce((s, x) => {
+    const v = parseFloat(x[key]);
+    return s + (Number.isFinite(v) ? v : 0);
+  }, 0);
 }
 
 function groupBy(arr, key) {
@@ -3771,14 +3776,21 @@ function filterByRange(transactions, startDate, endDate) {
    ========================= */
 
 function calcMonthlyForecast(expenseList) {
-  if (!expenseList.length) return 0;
+  if (!expenseList || !expenseList.length) return 0;
 
-  // Use last 30 transactions or all if less
+  // Use last 90 days of expenses
   const sorted = [...expenseList].sort((a, b) => new Date(a.date) - new Date(b.date));
-  const recent = sorted.slice(-30);
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 90);
+  const recent = sorted.filter(t => new Date(t.date) >= cutoff);
+  if (!recent.length) return 0;
 
-  const total = sumBy(recent, "amount");
-  const avgDaily = total / recent.length;
+  const total = sumBy(recent, 'amount');
+  // Divide by actual day span, not transaction count
+  const firstDay = new Date(recent[0].date);
+  const lastDay  = new Date(recent[recent.length - 1].date);
+  const spanDays = Math.max(1, Math.floor((lastDay - firstDay) / 86400000) + 1);
+  const avgDaily = total / spanDays;
 
   return Math.round(avgDaily * 30);
 }
@@ -3803,13 +3815,16 @@ function calculateKPIs() {
 
   const rangeTx = filterByRange([...state.transactions], startDate, endDate);
 
-  const income = sumBy(rangeTx.filter((t) => t.type === "in"), "amount");
-  const expense = sumBy(rangeTx.filter((t) => t.type === "out"), "amount");
+  const isIn  = (t) => t.type === 'in'  || t.type === 'income';
+  const isOut = (t) => t.type === 'out' || t.type === 'expense';
 
-  const balance = state.transactions.reduce((s, t) =>
-    s + (t.type === "in" ? +t.amount : -t.amount),
-    0
-  );
+  const income  = sumBy(rangeTx.filter(isIn),  'amount');
+  const expense = sumBy(rangeTx.filter(isOut), 'amount');
+
+  const balance = state.transactions.reduce((s, t) => {
+    const amt = parseFloat(t.amount) || 0;
+    return s + (isIn(t) ? amt : isOut(t) ? -amt : 0);
+  }, 0);
 
   const profitLoss = income - expense;
 
@@ -3822,14 +3837,14 @@ function calculateKPIs() {
 
   const prevTx = filterByRange([...state.transactions], prevStart, prevEnd);
 
-  const prevIncome = sumBy(prevTx.filter((t) => t.type === "in"), "amount");
-  const prevExpense = sumBy(prevTx.filter((t) => t.type === "out"), "amount");
+  const prevIncome  = sumBy(prevTx.filter(isIn),  'amount');
+  const prevExpense = sumBy(prevTx.filter(isOut), 'amount');
 
   const incomeGrowth = calcGrowthRate(income, prevIncome);
   const expenseGrowth = calcGrowthRate(expense, prevExpense);
 
   /* Categories */
-  const catGroup = groupBy(rangeTx.filter((t) => t.type === "out"), "category");
+  const catGroup = groupBy(rangeTx.filter(isOut), 'category');
   const topCategories = Object.entries(catGroup)
     .map(([k, v]) => ({ category: k, amount: sumBy(v, "amount") }))
     .sort((a, b) => b.amount - a.amount)

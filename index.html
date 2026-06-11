@@ -201,7 +201,7 @@
     <!-- ── REPORTS ────────────────────────────────────────── -->
     <div class="sidebar-section">
       <div class="sidebar-section-label">Reports</div>
-      <button class="sidebar-nav-item" id="openMonthlySummary">
+      <button class="sidebar-nav-item" id="openMonthlySummary" data-module="analytics">
         <span class="nav-icon">📅</span> Monthly Summary
       </button>
       <button class="sidebar-nav-item" onclick="showPage('fy-summary')" data-module="fy-summary">
@@ -221,10 +221,10 @@
     <!-- ── CALCULATORS ───────────────────────────────────── -->
     <div class="sidebar-section">
       <div class="sidebar-section-label">Calculators</div>
-      <button class="sidebar-nav-item" onclick="openEMIModal()">
+      <button class="sidebar-nav-item" onclick="openEMIModal()" data-module="loans">
         <span class="nav-icon">🧮</span> EMI Calculator
       </button>
-      <button class="sidebar-nav-item" onclick="openWhatIfModal()">
+      <button class="sidebar-nav-item" onclick="openWhatIfModal()" data-module="analytics">
         <span class="nav-icon">🔮</span> What-If Simulator
       </button>
     </div>
@@ -258,7 +258,7 @@
       <button class="sidebar-nav-item" onclick="openDashboardCustomizer()" data-module="dashboard-config">
         <span class="nav-icon">🎛️</span> Customize Dashboard
       </button>
-      <button class="sidebar-nav-item" id="openDropdownManagerBtn">
+      <button class="sidebar-nav-item" id="openDropdownManagerBtn" data-module="transactions">
         <span class="nav-icon">🔽</span> Dropdown Manager
       </button>
       <button class="sidebar-nav-item" onclick="openPinSetupModal()" data-module="pin-lock">

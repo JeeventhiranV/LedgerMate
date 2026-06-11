@@ -98,8 +98,38 @@
     return save();
   }
 
+  // ── Data stores to wipe before a fresh cloud load ───────────
+  var DATA_STORES = [
+    'transactions','budgets','loans','reminders','investments','savings',
+    'trips','trip_routes','credentials','notes','note_folders',
+    'note_attachments','note_versions','audit_logs','emi_loans',
+    'net_worth_snapshots','allocation_targets','sip_plan',
+    'essentials_settings','savings_goals','subscriptions',
+    'fd_rd','tx_templates','users','dropdowns'
+  ];
+
+  // Clear all user-data stores so cloud import is always a full replace
+  function _clearDataStores() {
+    return new Promise(function (resolve) {
+      if (!window.db) { resolve(); return; }
+      var present = DATA_STORES.filter(function (s) {
+        return window.db.objectStoreNames.contains(s);
+      });
+      if (!present.length) { resolve(); return; }
+      try {
+        var tx = window.db.transaction(present, 'readwrite');
+        present.forEach(function (s) { tx.objectStore(s).clear(); });
+        tx.oncomplete = function () { resolve(); };
+        tx.onerror    = function () { resolve(); };
+      } catch (e) {
+        console.warn('[CloudSync] clearDataStores failed:', e && e.message || e);
+        resolve();
+      }
+    });
+  }
+
   // ── Public: fetch cloud data and import into IndexedDB ──────
-  // Called from LM_StartApp() AFTER openDB() completes.
+  // Clears stale local data FIRST so cloud is always the source of truth.
   function load() {
     return _uid().then(function (uid) {
       if (!uid) return false;
@@ -119,14 +149,19 @@
           console.log('[CloudSync] 📥 loading from cloud (saved ' + ts + ')');
 
           var payload = r.data.data;
-          if (typeof window.fullImportJSONText === 'function') {
-            return window.fullImportJSONText(JSON.stringify(payload), 'CloudSync')
-              .then(function () { return true; });
-          }
-          if (typeof window.mergeRestore === 'function') {
-            return window.mergeRestore(payload).then(function () { return true; });
-          }
-          return false;
+          var jsonStr = JSON.stringify(payload);
+
+          // Wipe IndexedDB first — guarantees no stale local rows survive
+          return _clearDataStores().then(function () {
+            if (typeof window.fullImportJSONText === 'function') {
+              return window.fullImportJSONText(jsonStr, 'CloudSync')
+                .then(function () { return true; });
+            }
+            if (typeof window.mergeRestore === 'function') {
+              return window.mergeRestore(payload).then(function () { return true; });
+            }
+            return false;
+          });
         });
     }).catch(function (e) {
       console.warn('[CloudSync] load exception:', e && e.message || e);

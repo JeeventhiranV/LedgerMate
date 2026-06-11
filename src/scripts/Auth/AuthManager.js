@@ -232,7 +232,13 @@
   }
 
   function _applyModuleAccess(user) {
-    const ALL_MODULES = ['transactions','analytics','gold','wealth','essentials','loans','investments','budgets','trips','notes','credentials'];
+    const ALL_MODULES = [
+      'transactions','analytics','gold','wealth','essentials','loans','investments',
+      'budgets','trips','notes','credentials',
+      'subscriptions','savings-goals','emergency-fund','debt-payoff','wealth-goals',
+      'tax-planner','fy-summary','month-comparison','spending-heatmap',
+      'cash-flow-calendar','templates','dashboard-config'
+    ];
 
     if (user.role === 'admin') {
       document.querySelectorAll('.sidebar-nav-item[data-module]').forEach(el => { el.style.display = ''; });
