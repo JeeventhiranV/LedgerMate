@@ -260,6 +260,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <script src="../../auth/supabase-config.js"></script>
 <script src="../../auth/auth-guard.js"></script>
 <script src="../js/StudySync.js"></script>
+<script src="../js/study-features.js"></script>
+<script src="../js/community-hub.js"></script>
 </head>
 <body>
 
@@ -1008,7 +1010,44 @@ async function init() {
           lbl.textContent = StudySync.ago(db.timestamps[id]);
         });
       }
+      window._ipkTimestamps = db.timestamps || {};
     }).catch(function(){});
+
+    // ── StudyFeatures integration (init after data loaded) ──
+    function _ipkSetStatus(id, status) {
+      PROG.completed.delete(id); PROG.inprogress.delete(id);
+      if (status === 'done') PROG.completed.add(id);
+      else if (status === 'inprogress') PROG.inprogress.add(id);
+      saveProgress(PROG);
+      StudySync.saveStatus('ipk', id, status || null);
+      render(_ipkData);
+    }
+
+    StudyFeatures.init({
+      module      : 'ipk',
+      getQuestions: function() {
+        if (!_ipkData) return [];
+        return (_ipkData.files || _ipkData || []).map(function(f) {
+          return { id: f.id || f.name, title: f.title || f.name || f.id, category: f.category || f.tech || 'General', diff: null, tags: [f.tech || ''].filter(Boolean) };
+        });
+      },
+      getStatus: function(id) {
+        if (PROG.completed.has(id)) return 'done';
+        if (PROG.inprogress.has(id)) return 'inprogress';
+        return null;
+      },
+      setStatus   : _ipkSetStatus,
+      getFavIds   : function() { return PROG.favorites; },
+      setFav      : function(id, bool) { if (bool) PROG.favorites.add(id); else PROG.favorites.delete(id); saveIPKFavs(); StudySync.saveFav('ipk', id, bool); },
+      getNotes    : loadIPKNotes,
+      setNote     : saveIPKNote,
+      getTimestamps: function() { return window._ipkTimestamps || {}; },
+      cardSelector: '[data-pdf-id]',
+      cardIdAttr  : 'data-pdf-id',
+      refreshUI   : function() { if (_ipkData) render(_ipkData); StudyFeatures.refreshGoal(); StudyFeatures.refreshSR(); }
+    });
+
+    CommunityHub.init({ module: 'ipk', moduleName: 'Interview Prep Kit' });
   } catch (err) {
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('errorState').style.display = '';

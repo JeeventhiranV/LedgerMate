@@ -259,6 +259,8 @@ pre.code-block{background:#0d1117;margin:0;padding:14px 16px;overflow-x:auto;fon
 <script src="../../auth/supabase-config.js"></script>
 <script src="../../auth/auth-guard.js"></script>
 <script src="../js/StudySync.js"></script>
+<script src="../js/study-features.js"></script>
+<script src="../js/community-hub.js"></script>
 </head>
 <body>
 
@@ -3176,6 +3178,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     localStorage.setItem(DSA_NOTES_KEY, JSON.stringify(db.notes));
     buildPage();
     // inject TAT labels
+    window._dsaTimestamps = db.timestamps || {};
     if (db.timestamps) {
       Object.keys(db.timestamps).forEach(function(id) {
         if (!db.status[id]) return;
@@ -3186,7 +3189,42 @@ document.addEventListener('DOMContentLoaded', ()=>{
         lbl.textContent = StudySync.ago(db.timestamps[id]);
       });
     }
+    window._dsaTimestamps = db.timestamps || {};
   }).catch(function(){});
+
+  /* ── StudyFeatures integration ── */
+  function setStatusDirect(id, status) {
+    var s = loadStatus();
+    if (status) s[id] = status; else delete s[id];
+    saveStatus(s);
+    StudySync.saveStatus('dsa', id, status || null);
+    restoreMarked();
+    updateProgress();
+    updateNavDoneIndicators();
+  }
+
+  StudyFeatures.init({
+    module      : 'dsa',
+    getQuestions: function() {
+      return CATEGORIES.flatMap(function(c) {
+        return c.questions.map(function(q) {
+          return { id: q.id, title: q.title, diff: q.diff, tags: q.tags || [], hint: q.hint || '', approach: q.approach || '', category: c.label };
+        });
+      });
+    },
+    getStatus   : function(id) { return loadStatus()[id] || null; },
+    setStatus   : setStatusDirect,
+    getFavIds   : loadFavsDSA,
+    setFav      : function(id, bool) { var f = loadFavsDSA(); if (bool) f.add(id); else f.delete(id); localStorage.setItem(DSA_FAV_KEY, JSON.stringify([...f])); StudySync.saveFav('dsa', id, bool); },
+    getNotes    : loadNotesDSA,
+    setNote     : saveNoteDSA,
+    getTimestamps: function() { return window._dsaTimestamps || {}; },
+    cardSelector: '.dsa-card',
+    cardIdAttr  : 'data-id',
+    refreshUI   : function() { restoreMarked(); updateProgress(); updateNavDoneIndicators(); StudyFeatures.refreshGoal(); StudyFeatures.refreshSR(); }
+  });
+
+  CommunityHub.init({ module: 'dsa', moduleName: 'DSA & Algorithms' });
 
   document.getElementById('menuBtn').addEventListener('click', ()=>{
     document.getElementById('sidebar').classList.toggle('open');

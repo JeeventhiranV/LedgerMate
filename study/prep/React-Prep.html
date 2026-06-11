@@ -278,6 +278,8 @@ pre.code-block{background:#090c12;margin:0;padding:14px 16px;overflow-x:auto;fon
 <script src="../../auth/supabase-config.js"></script>
 <script src="../../auth/auth-guard.js"></script>
 <script src="../js/StudySync.js"></script>
+<script src="../js/study-features.js"></script>
+<script src="../js/community-hub.js"></script>
 </head>
 <body>
 
@@ -1655,7 +1657,40 @@ document.addEventListener('DOMContentLoaded', () => {
         lbl.textContent = StudySync.ago(db.timestamps[id]);
       });
     }
+    window._reactTimestamps = db.timestamps || {};
   }).catch(function(){});
+
+  // ── StudyFeatures integration ──
+  function setStatusDirect(id, status) {
+    const s = loadStatus();
+    if (status) s[id] = status; else delete s[id];
+    saveStatus(s);
+    StudySync.saveStatus('react', id, status || null);
+    restoreMarked();
+    updateProgress();
+    updateNavDoneIndicators();
+  }
+
+  StudyFeatures.init({
+    module      : 'react',
+    getQuestions: function() {
+      return CATEGORIES.flatMap(c => c.questions.map(q => ({
+        id: q.id, title: q.title, diff: q.diff || null, tags: q.tags || [], hint: q.hint || '', approach: q.approach || '', category: c.label
+      })));
+    },
+    getStatus   : (id) => loadStatus()[id] || null,
+    setStatus   : setStatusDirect,
+    getFavIds   : loadFavsReact,
+    setFav      : (id, bool) => { const f=loadFavsReact(); if(bool) f.add(id); else f.delete(id); localStorage.setItem(REACT_FAV_KEY,JSON.stringify([...f])); StudySync.saveFav('react',id,bool); },
+    getNotes    : loadNotesReact,
+    setNote     : saveNoteReact,
+    getTimestamps: () => window._reactTimestamps || {},
+    cardSelector: '[id^="card-"]',
+    cardIdAttr  : 'data-id',
+    refreshUI   : () => { restoreMarked(); updateProgress(); updateNavDoneIndicators(); StudyFeatures.refreshGoal(); StudyFeatures.refreshSR(); }
+  });
+
+  CommunityHub.init({ module: 'react', moduleName: 'React Interviews' });
 
   // Sidebar toggle
   document.getElementById('menuBtn').addEventListener('click', () => {

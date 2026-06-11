@@ -221,14 +221,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .res-open-btn.disabled{background:var(--bg4);color:var(--text3);cursor:not-allowed}
 .res-open-btn.disabled:hover{transform:none;opacity:1}
 
-/* ── COMING SOON CARD ── */
-.cs-card{background:var(--bg2);border:1px dashed var(--border);border-radius:16px;padding:24px;display:flex;align-items:center;gap:16px;opacity:.7;transition:opacity .2s}
-.cs-card:hover{opacity:.9}
-.cs-icon{width:48px;height:48px;border-radius:12px;background:var(--bg3);border:1px dashed var(--border2);display:grid;place-items:center;font-size:22px;flex-shrink:0;filter:grayscale(.5)}
-.cs-info{flex:1}
-.cs-title{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:4px}
-.cs-desc{font-size:12px;color:var(--text3);line-height:1.5}
-.cs-soon{font-size:10px;background:var(--bg4);border:1px solid var(--border);border-radius:20px;padding:3px 10px;color:var(--text3);font-family:'JetBrains Mono',monospace;white-space:nowrap}
 
 /* ── FAVORITE BTN ── */
 .res-fav{position:absolute;top:12px;right:12px;background:none;border:none;font-size:18px;cursor:pointer;line-height:1;padding:4px;border-radius:8px;transition:transform .2s,background .2s;z-index:2;opacity:.45}
@@ -280,6 +272,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <script src="../auth/supabase-config.js"></script>
 <script src="../auth/auth-guard.js"></script>
 <script src="js/StudySync.js"></script>
+<script src="js/community-hub.js"></script>
 </head>
 <body>
 
@@ -426,11 +419,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   </div>
   <div class="resource-grid" id="resourceGrid"></div>
 
-  <div class="section-header" style="margin-top:48px">
-    <div class="section-title" style="color:var(--text3)">Coming Soon</div>
-    <div class="section-line"></div>
-  </div>
-  <div class="resource-grid" id="comingSoonGrid"></div>
 </div>
 
 <div class="footer">Study Resources — Admin-approved access only.</div>
@@ -486,12 +474,7 @@ const RESOURCES = [
   }
 ];
 
-const COMING_SOON = [
-  { icon:'⚙️', title:'System Design Masterclass', desc:'Scalable architecture patterns: Load Balancers, Caching, Databases, Microservices, Event-driven systems.', tag:'System Design' },
-  { icon:'🐍', title:'Python DSA Prep Kit', desc:'Data Structures & Algorithms in Python — LeetCode patterns with clean Pythonic solutions.', tag:'Python' },
-  { icon:'☁️', title:'AWS / Cloud Architect Prep', desc:'Cloud computing concepts, AWS services, architecture patterns, certifications prep.', tag:'Cloud' },
-  { icon:'🗄️', title:'SQL & Database Deep Dive', desc:'Complex queries, indexing, normalization, transactions, NoSQL vs SQL decision guide.', tag:'Databases' },
-];
+
 
 /* ── Module config for dashboard rings ── */
 const MOD_CONFIG = [
@@ -613,25 +596,12 @@ function buildCard(r, idx) {
     </div>`;
 }
 
-function buildComingSoon(cs, idx) {
-  return `
-    <div class="cs-card fade-up delay-${Math.min(idx+1,6)}">
-      <div class="cs-icon">${cs.icon}</div>
-      <div class="cs-info">
-        <div class="cs-title">${cs.title}</div>
-        <div class="cs-desc">${cs.desc}</div>
-      </div>
-      <span class="cs-soon">${cs.tag}</span>
-    </div>`;
-}
 
 function renderResourceGrid() {
   const grid = document.getElementById('resourceGrid');
-  const csGrid = document.getElementById('comingSoonGrid');
   const favs = getFavs();
   const sorted = [...RESOURCES].sort(function(a,b){return (favs.has(a.id)?0:1)-(favs.has(b.id)?0:1);});
   grid.innerHTML = sorted.map(function(r,i){return buildCard(r,i);}).join('');
-  csGrid.innerHTML = COMING_SOON.map(function(cs,i){return buildComingSoon(cs,i);}).join('');
 
   grid.querySelectorAll('.res-card').forEach(function(card){
     card.addEventListener('click', function(){ window.location.href = this.dataset.file; });
@@ -1031,6 +1001,8 @@ document.addEventListener('DOMContentLoaded', function() {
     startStopBtn.classList.remove('active');
   });
 })();
+
+CommunityHub.init({ module: 'general', moduleName: 'Interview Prep Community' });
 </script>
 </body>
 </html>

@@ -22,6 +22,8 @@
 <script src="../../auth/supabase-config.js"></script>
 <script src="../../auth/auth-guard.js"></script>
 <script src="../js/StudySync.js"></script>
+<script src="../js/study-features.js"></script>
+<script src="../js/community-hub.js"></script>
 </head>
 <body>
 
@@ -6320,7 +6322,52 @@ document.addEventListener('DOMContentLoaded', function(){
         lbl.textContent = StudySync.ago(ts);
       } else if (lbl) { lbl.remove(); }
     });
+    window._javaTimestamps = db.timestamps || {};
   }).catch(function(){});
+
+  // ── StudyFeatures integration ──
+  function _setStatusDirect(id, status) {
+    var s = _loadStatus();
+    if (status) s[id] = status; else delete s[id];
+    _saveStatus(s);
+    StudySync.saveStatus('java', id, status || null);
+    _restoreAllState();
+  }
+
+  function _javaGetQuestions() {
+    var out = [];
+    _allCards().forEach(function(card, idx) {
+      // .q-text is the actual question text in .q-card-top; fall back to broader selectors
+      var titleEl = card.querySelector('.q-text, .q-card-top .q-text, h3, h4, .q-title, .q-name, p');
+      var title = titleEl ? titleEl.textContent.trim() : '';
+      // Extract difficulty from tag if present
+      var diffEl = card.querySelector('.q-tag');
+      var diffText = diffEl ? diffEl.textContent.toLowerCase().trim() : null;
+      var diff = diffText && (diffText.includes('easy') ? 'easy' : diffText.includes('hard') ? 'hard' : diffText.includes('med') ? 'medium' : null);
+      // Category from section heading above the card
+      var section = card.closest('.q-section, .section, [data-section]');
+      var catEl = section ? section.querySelector('h2, h3, .section-title') : null;
+      out.push({ id: String(idx), title: title || ('Question ' + (idx+1)), category: catEl ? catEl.textContent.trim() : 'Java', diff: diff, tags: [] });
+    });
+    return out;
+  }
+
+  StudyFeatures.init({
+    module      : 'java',
+    getQuestions: _javaGetQuestions,
+    getStatus   : function(id) { return _loadStatus()[id] || null; },
+    setStatus   : _setStatusDirect,
+    getFavIds   : _loadFavs,
+    setFav      : function(id, bool) { var f=_loadFavs(); if(bool) f.add(id); else f.delete(id); localStorage.setItem(JAVA_FAV_KEY,JSON.stringify([...f])); StudySync.saveFav('java',id,bool); },
+    getNotes    : _loadNotes,
+    setNote     : _saveNote,
+    getTimestamps: function() { return window._javaTimestamps || {}; },
+    cardSelector: '.q-card',
+    cardIdAttr  : null,
+    refreshUI   : function() { _restoreAllState(); StudyFeatures.refreshGoal(); StudyFeatures.refreshSR(); }
+  });
+
+  CommunityHub.init({ module: 'java', moduleName: 'Java Interview Prep' });
 });
 </script>
 </body>

@@ -67,6 +67,8 @@
 <script src="../../auth/supabase-config.js"></script>
 <script src="../../auth/auth-guard.js"></script>
 <script src="../js/StudySync.js"></script>
+<script src="../js/study-features.js"></script>
+<script src="../js/community-hub.js"></script>
 </head>
 <body>
 
@@ -493,8 +495,48 @@
         lbl.textContent = StudySync.ago(ts);
       } else if (lbl) { lbl.remove(); }
     });
+    window._hrTimestamps = db.timestamps || {};
     updateProgress();
   }).catch(function(){});
+
+  // ── StudyFeatures integration ──
+  function setStatusDirectHR(id, status) {
+    const s = loadStatus();
+    const idx = Number(id);
+    if (status) s[idx] = status; else delete s[idx];
+    saveStatus(s);
+    StudySync.saveStatus('hr', idx, status || null);
+    const det = all[idx];
+    if (!det) return;
+    const btn = det.querySelector('.q-status-btn');
+    det.classList.remove('state-inprogress','state-done');
+    if (status === 'inprogress') { det.classList.add('state-inprogress'); if(btn){btn.textContent='✓ Mark Done';btn.className='q-status-btn inprogress';} }
+    else if (status === 'done') { det.classList.add('state-done'); if(btn){btn.textContent='✕ Reset';btn.className='q-status-btn done';} }
+    else { if(btn){btn.textContent='▷ In Progress';btn.className='q-status-btn';} }
+    updateProgress();
+  }
+
+  StudyFeatures.init({
+    module      : 'hr',
+    getQuestions: function() {
+      return all.map(function(det, idx) {
+        const summary = det.querySelector('summary');
+        return { id: String(idx), title: summary ? summary.textContent.trim() : ('HR Question ' + (idx+1)), category: 'HR Questions', diff: null, tags: [] };
+      });
+    },
+    getStatus   : function(id) { return loadStatus()[Number(id)] || null; },
+    setStatus   : setStatusDirectHR,
+    getFavIds   : function() { return new Set(Array.from(loadFavs()).map(String)); },
+    setFav      : function(id, bool) { const f=loadFavs(); const idx=Number(id); if(bool) f.add(idx); else f.delete(idx); saveFavs(f); StudySync.saveFav('hr',idx,bool); },
+    getNotes    : function() { const n=loadNotes(); const out={}; Object.keys(n).forEach(k=>out[k]=n[k]); return out; },
+    setNote     : function(id, text) { saveNoteHR(Number(id), text); },
+    getTimestamps: function() { return window._hrTimestamps || {}; },
+    cardSelector: 'details',
+    cardIdAttr  : null,
+    refreshUI   : function() { updateProgress(); StudyFeatures.refreshGoal(); StudyFeatures.refreshSR(); }
+  });
+
+  CommunityHub.init({ module: 'hr', moduleName: 'HR & Behavioral' });
 
   // ── Theme ───────────────────────────────────────
   (function(){
