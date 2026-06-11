@@ -6,8 +6,8 @@
 //   secrets SUPABASE_URL and SUPABASE_ANON — do not commit real credentials.
 // ──────────────────────────────────────────────────────────────────────────────
 
-var SUPABASE_URL1  = 'https://tjpxkzpqauffyzcpfvyi.supabase.co';
-var SUPABASE_ANON1 = 'YOUR_ANON_KEY_HERE'; // ← paste your anon/public key from Supabase Dashboard → Settings → API
+var SUPABASE_URL1  = 'SUPABASE_URL';
+var SUPABASE_ANON1 = 'SUPABASE_ANON'; // ← paste your anon/public key from Supabase Dashboard → Settings → API
  
 var _supabase = (function () {
   if (!SUPABASE_URL1.startsWith('https://') || SUPABASE_ANON1.length < 20) {
