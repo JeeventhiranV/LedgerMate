@@ -237,6 +237,26 @@ body {
 (function () {
   'use strict';
 
+  /* Guard: supabase-config.js must have loaded and created _supabase.
+     If credentials are still placeholder values, createClient is skipped
+     and _supabase is undefined — show a clear setup error instead of crashing. */
+  if (typeof _supabase === 'undefined' || !_supabase) {
+    document.body.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;' +
+      'font-family:Inter,sans-serif;background:#0a0c12;color:#e8eaf6;padding:24px;">' +
+      '<div style="max-width:440px;background:#151922;border:1px solid rgba(244,63,94,.35);' +
+      'border-radius:16px;padding:32px;text-align:center;">' +
+      '<div style="font-size:36px;margin-bottom:12px;">⚙️</div>' +
+      '<div style="font-size:17px;font-weight:700;margin-bottom:10px;">Supabase Not Configured</div>' +
+      '<div style="font-size:13px;color:#7c87a8;line-height:1.7;">' +
+      'Open <code style="background:#0a0c12;padding:2px 6px;border-radius:5px;color:#00d4b4;">auth/supabase-config.js</code>' +
+      ' and replace the placeholder values with your real<br>' +
+      '<strong style="color:#e8eaf6;">Project URL</strong> and <strong style="color:#e8eaf6;">anon public key</strong>' +
+      ' from Supabase Dashboard → Settings → API.' +
+      '</div></div></div>';
+    return;
+  }
+
   var APPS = {
     ledger: {
       icon: '📒', logoClass: 'logo-ledger', nameClass: 'ledger',
