@@ -7,7 +7,7 @@
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v2.1.0';
+const CACHE_VERSION = 'lm-v2.1.1';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
@@ -85,6 +85,9 @@ const STATIC_ASSETS = [
      it contains credentials and is generated fresh on each deploy.
      community-hub.js realtime channels are network-only by design. */
 ];
+
+
+
 
 /* ── Install: pre-cache all static assets ─────────────── */
 self.addEventListener('install', event => {
