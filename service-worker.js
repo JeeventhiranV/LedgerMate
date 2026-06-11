@@ -7,7 +7,7 @@
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v2.0.6';
+const CACHE_VERSION = 'lm-v2.1.0';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
@@ -56,8 +56,34 @@ const STATIC_ASSETS = [
   './src/scripts/Common/Notes.js',
   './src/scripts/Common/Search.js',
 
+  /* Auth (config excluded — see note below) */
+  './auth/auth-guard.js',
+
+  /* ── Study Module ─────────────────────────────────── */
+  './study/index.html',
+  './study/login.html',
+
+  /* Study prep pages */
+  './study/prep/DSA-Prep-Hub.html',
+  './study/prep/Java-Prep-kit.html',
+  './study/prep/React-Prep.html',
+  './study/prep/HR-Questions.html',
+  './study/prep/Interview-Prep-Kit.html',
+
+  /* Study JS */
+  './study/js/StudySync.js',
+  './study/js/study-features.js',
+  './study/js/community-hub.js',
+
+  /* Study styles */
+  './study/styles/Preparation.css',
+
+  /* Study data */
+  './study/data/pdfs.json',
+
   /* NOTE: auth/supabase-config.js is intentionally excluded —
-     it contains credentials and is generated fresh on each deploy. */
+     it contains credentials and is generated fresh on each deploy.
+     community-hub.js realtime channels are network-only by design. */
 ];
 
 /* ── Install: pre-cache all static assets ─────────────── */
@@ -102,11 +128,18 @@ self.addEventListener('fetch', event => {
      new deploy is picked up immediately without a SW update cycle. */
   if (url.pathname.endsWith('/auth/supabase-config.js')) return;
 
-  /* External API calls (gold rates, Supabase) → network only */
-  if (url.pathname.startsWith('/api/') ||
-      url.hostname.includes('googleapis') ||
-      url.hostname.includes('gold')) {
-    return; /* Let browser handle natively */
+  /* External / network-only origins — never cache */
+  const NETWORK_ONLY_HOSTS = [
+    'supabase.co',       // Supabase REST + Realtime
+    'googleapis.com',    // Google fonts / APIs
+    'jsdelivr.net',      // CDN libs (always fresh)
+    'fonts.gstatic.com', // Google font files
+  ];
+  if (NETWORK_ONLY_HOSTS.some(h => url.hostname.includes(h))) return;
+
+  /* External API calls (gold rates, etc.) → network only */
+  if (url.pathname.startsWith('/api/') || url.hostname.includes('gold')) {
+    return;
   }
 
   /* Static assets → Cache-First with network fallback */
