@@ -171,9 +171,10 @@
 
   // ── Public: start AppBus hook + periodic + beforeunload ─────
   function startAutoSave(intervalMs) {
-    // React to every data-changed event
+    // React to every data-changed event (1.5 s debounce — fast enough to
+    // complete before most reloads, slow enough to batch rapid edits)
     if (window.LM_Bus) {
-      LM_Bus.on('lm:data:changed', function () { queueSave(3000); });
+      LM_Bus.on('lm:data:changed', function () { queueSave(1500); });
     }
 
     // Periodic fallback (catches mutations that don't emit the event)
@@ -181,16 +182,17 @@
       if (window.LM_DB_READY && _dirty) save();
     }, intervalMs || 60000);
 
-    // Best-effort save on tab close / navigation away
-    window.addEventListener('beforeunload', function () {
-      if (window.LM_DB_READY && _dirty) save();
-    });
-
-    // Save when tab becomes hidden (e.g. user switches tabs)
+    // Save when tab becomes hidden (switch tabs, reload, close).
+    // visibilitychange fires BEFORE beforeunload and gives more time for async ops.
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'hidden' && window.LM_DB_READY && _dirty) {
         save();
       }
+    });
+
+    // Additional best-effort on actual unload (browser may or may not wait)
+    window.addEventListener('beforeunload', function () {
+      if (window.LM_DB_READY && _dirty) save();
     });
 
     console.log('[CloudSync] 🔄 auto-save active');

@@ -396,7 +396,7 @@ function bindUI(){
 
   document.getElementById('clearData').addEventListener('click', clearAllData);
   document.getElementById("openTripPlannerBtn").onclick = () => openTripPlanner();
-  document.getElementById("openDriveManagerBtn").onclick = () => DriveSync.showDriveSyncModal();
+  /* Drive sync removed — button no longer in DOM, skip binding */
   //document.getElementById('openNotes').onclick = showNotesModal;
   // file import input
   const fi = document.createElement('input'); fi.type='file'; fi.accept='.csv,.json'; fi.id='fileImport'; fi.style.display='none';
@@ -2893,8 +2893,7 @@ async function performBackup() {
     console.log('✅ Backup complete', { folder: r1, idb: r3 });
   } else {
     console.warn('❌ Backup failed: no location succeeded');
-  } 
-  autoBackupToDrive();
+  }
 }
 
 // keep your existing call sites working
@@ -3486,52 +3485,6 @@ async function syncDriveToIndexedDB(driveData) {
     console.error("❌ Sync failed:", err);
   }
 }
-async function loadFromDrive() {
-  try {
-    // 1. Check if auto-load is enabled
-    if (!DriveSync.isAutoLoadEnabled()) {
-      console.log("⏭️ Auto-load disabled, skipping Drive load");
-      return;
-    }
-
-    // 2. Ensure connected
-    if (!DriveSync.isConnected()) {
-      console.log("⏭️ Not connected to Drive, skipping auto load");
-      return;
-    }
-
-    // 3. Determine mode (latest / pinned)
-    const mode = DriveSync.getAutoLoadMode();
-    let fileId = null;
-
-    if (mode === "pinned") {
-      fileId = DriveSync.getAutoLoadFileId();
-      if (!fileId) {
-        console.log("⏭️ No pinned file set, falling back to latest");
-      }
-    }
-
-    // 4. Get latest file (fallback or mode=latest)
-    if (!fileId) {
-      const latest = await DriveSync.getLatestBackupFile();
-      if (!latest) {
-        console.log("⏭️ No backups found on Drive");
-        return;
-      }
-      fileId = latest.id;
-    }
-
-  //  console.log("📥 Loading from Drive File:", fileId);
-
-    // 5. Download backup
-    DriveSync.restoreBackup(fileId,"Drive");
-  } catch (err) {
-    console.error("❌ Drive load failed:", err);
-    console.log("⏭️ Falling back to IndexedDB");
-  }
-}
-
-
 async function FinalJson(){
   const userId = window.LM_Auth?.getCurrentUserId?.() || 'default';
   const payload = {
@@ -3568,21 +3521,6 @@ async function FinalJson(){
   return JSON.stringify(payload, null, 2);
 }
 
-// ====================== STEP 9: Auto Backup to Drive ======================
-async function autoBackupToDrive() {
-  try {
-    if (!DriveSync.isConnected()) {
-      console.log("⏭️ Drive not connected, skipping backup");
-      return;
-    } 
-    console.log("📤 Auto-backing up to Drive...");
-    const txt = await FinalJson();
-    await DriveSync.autoBackupIfDue(txt);
-
-  } catch (err) {
-    console.warn("⚠️ Auto backup failed:", err);
-  }
-}
 // ----------------------------
 // Start
 // ----------------------------
@@ -3610,24 +3548,6 @@ window.LM_StartApp = async function LM_StartApp() {
   }
 
   try {
-  try {
-    // Step 1: Check if Drive auto-load is enabled
-    const isDriveEnabled = DriveSync.isAutoLoadEnabled();
-    const isConnected = DriveSync.isConnected();
-    if (isDriveEnabled && isConnected) {
-      console.log("☁️ Drive auto-load enabled, loading from Drive...");
-      await loadFromDrive();
-    } else {
-      console.log("💾 Loading from IndexedDB...");
-    }
-
-    //console.log("✅ App initialized successfully");
-   // console.log("📊 Current state:", state);
-
-  } catch (err) {
-    console.error("❌ Initialization error:", err);
-    // Fallback to IndexedDB if Drive fails 
-  }
       await loadAllFromDB();
 
     // const isFresh =
