@@ -7,13 +7,19 @@
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v7';
+const CACHE_VERSION = 'lm-v9';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
   './',
   './index.html',
+  './widget.html',
   './manifest.json',
+
+  /* Icons / PWA */
+  './assets/icons/favicon.ico',
+  './assets/icons/icon-192.png',
+  './assets/icons/icon-512.png',
 
   /* Stylesheets */
   './src/styles/style.css',
@@ -24,13 +30,17 @@ const STATIC_ASSETS = [
   /* Third-party libs */
   './assets/vendor/chart.umd.min.js',
   './assets/vendor/tailwind.min.js',
+  './assets/vendor/jspdf.umd.min.js',
+  './assets/vendor/html2canvas.min.js',
+  './assets/vendor/drive.min.js',
 
-  /* Core JS – load order matters at runtime but not in cache */
+  /* Core JS */
   './src/scripts/Core/AppBus.js',
   './src/scripts/Auth/AuthManager.js',
   './src/scripts/Auth/UserStore.js',
   './src/scripts/Auth/StorePatch.js',
   './src/scripts/Admin/AdminPanel.js',
+  './src/scripts/CloudSync.js',
   './src/scripts/Common/Drive.js',
   './src/scripts/Common.js',
   './src/scripts/Wealth/Wealth.js',
@@ -45,6 +55,10 @@ const STATIC_ASSETS = [
   './src/scripts/Common/MonthlySummary.js',
   './src/scripts/Common/Cred.js',
   './src/scripts/Common/Notes.js',
+  './src/scripts/Common/Search.js',
+
+  /* NOTE: auth/supabase-config.js is intentionally excluded —
+     it contains credentials and is generated fresh on each deploy. */
 ];
 
 /* ── Install: pre-cache all static assets ─────────────── */
