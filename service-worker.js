@@ -1,195 +1,22 @@
 /**
- * LedgerMate Service Worker – Offline-First PWA
+ * LedgerMate Service Worker – Network-First (No Caching)
  * ─────────────────────────────────────────────────────────────
- * Strategy:
- *  • Static shell (HTML/CSS/JS/libs) → Cache-First
- *  • API / network requests           → Network-First  
- *  • Unmatched offline fallback       → cached index.html
+ * All requests pass through to the network.
+ * Nothing is cached. Always loads the latest version.
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v2.1.1';
-const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
-const STATIC_ASSETS = [
-  './',
-  './index.html',
-  './login.html',
-  './widget.html',
-  './manifest.json',
+/* ── Install: skip waiting immediately ───────────────────── */
+self.addEventListener('install', () => self.skipWaiting());
 
-  /* Icons / PWA */
-  './assets/icons/favicon.ico',
-  './assets/icons/icon-192.png',
-  './assets/icons/icon-512.png',
-
-  /* Stylesheets */
-  './src/styles/style.css',
-  './src/styles/common.css',
-  './src/styles/Notes.css',
-  './src/styles/auth.css',
-
-  /* Third-party libs */
-  './assets/vendor/chart.umd.min.js',
-  './assets/vendor/tailwind.min.js',
-  './assets/vendor/jspdf.umd.min.js',
-  './assets/vendor/html2canvas.min.js',
-
-  /* Core JS */
-  './src/scripts/Core/AppBus.js',
-  './src/scripts/Auth/AuthManager.js',
-  './src/scripts/Auth/UserStore.js',
-  './src/scripts/Auth/StorePatch.js',
-  './src/scripts/Admin/AdminPanel.js',
-  './src/scripts/CloudSync.js',
-  './src/scripts/Common.js',
-  './src/scripts/Wealth/Wealth.js',
-  './src/scripts/Wealth/Essentials.js',
-  './src/scripts/Investments.js',
-  './src/scripts/Charts/Doughnut.js',
-  './src/scripts/SpeechText/VoiceText.js',
-  './src/scripts/Common/Notifications.js',
-  './src/scripts/Common/GoldRateFetch.js',
-  './src/scripts/Common/TripPlanner.js',
-  './src/scripts/Common/Dropdown.js',
-  './src/scripts/Common/MonthlySummary.js',
-  './src/scripts/Common/Cred.js',
-  './src/scripts/Common/Notes.js',
-  './src/scripts/Common/Search.js',
-
-  /* Auth (config excluded — see note below) */
-  './auth/auth-guard.js',
-
-  /* ── Study Module ─────────────────────────────────── */
-  './study/index.html',
-  './study/login.html',
-
-  /* Study prep pages */
-  './study/prep/DSA-Prep-Hub.html',
-  './study/prep/Java-Prep-kit.html',
-  './study/prep/React-Prep.html',
-  './study/prep/HR-Questions.html',
-  './study/prep/Interview-Prep-Kit.html',
-
-  /* Study JS */
-  './study/js/StudySync.js',
-  './study/js/study-features.js',
-  './study/js/community-hub.js',
-
-  /* Study styles */
-  './study/styles/Preparation.css',
-
-  /* Study data */
-  './study/data/pdfs.json',
-
-  /* NOTE: auth/supabase-config.js is intentionally excluded —
-     it contains credentials and is generated fresh on each deploy.
-     community-hub.js realtime channels are network-only by design. */
-];
-
-
-
-
-/* ── Install: pre-cache all static assets ─────────────── */
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_STATIC)
-      .then(cache => cache.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting())
-      .catch(err => {
-        console.warn('[SW] Pre-cache failed (some assets may be missing):', err);
-        return self.skipWaiting();
-      })
-  );
-});
-
-/* ── Activate: purge stale caches ─────────────────────── */
+/* ── Activate: delete ALL existing caches ────────────────── */
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(
-        keys
-          .filter(k => k.startsWith('lm-') && k !== CACHE_STATIC)
-          .map(k => {
-            console.log('[SW] Deleting old cache:', k);
-            return caches.delete(k);
-          })
-      ))
+      .then(keys => Promise.all(keys.map(k => caches.delete(k))))
       .then(() => clients.claim())
   );
 });
 
-/* ── Fetch: cache-first for static, network-first for rest ── */
-self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url);
-
-  /* Only handle same-origin GET requests */
-  if (event.request.method !== 'GET') return;
-  if (url.origin !== self.location.origin) return;
-
-  /* supabase-config.js contains live credentials generated at deploy time.
-     Never serve it from cache — always let the browser fetch it fresh so a
-     new deploy is picked up immediately without a SW update cycle. */
-  if (url.pathname.endsWith('/auth/supabase-config.js')) return;
-
-  /* External / network-only origins — never cache */
-  const NETWORK_ONLY_HOSTS = [
-    'supabase.co',       // Supabase REST + Realtime
-    'googleapis.com',    // Google fonts / APIs
-    'jsdelivr.net',      // CDN libs (always fresh)
-    'fonts.gstatic.com', // Google font files
-  ];
-  if (NETWORK_ONLY_HOSTS.some(h => url.hostname.includes(h))) return;
-
-  /* External API calls (gold rates, etc.) → network only */
-  if (url.pathname.startsWith('/api/') || url.hostname.includes('gold')) {
-    return;
-  }
-
-  /* Static assets → Cache-First with network fallback */
-  const isStaticAsset = STATIC_ASSETS.some(a => url.pathname.endsWith(a.replace('./', '/')));
-
-  if (isStaticAsset || url.pathname === '/' || url.pathname.endsWith('.html')) {
-    event.respondWith(
-      caches.match(event.request)
-        .then(cached => {
-          /* Return cached version immediately if available */
-          if (cached) {
-            /* Background-revalidate in parallel */
-            fetch(event.request, { cache: 'no-store' })
-              .then(fresh => {
-                if (fresh && fresh.ok) {
-                  caches.open(CACHE_STATIC).then(c => c.put(event.request, fresh.clone()));
-                }
-              })
-              .catch(() => {});
-            return cached;
-          }
-          /* Not cached → fetch from network and cache */
-          return fetch(event.request, { cache: 'no-store' })
-            .then(response => {
-              if (!response || !response.ok) return response;
-              const toCache = response.clone();
-              caches.open(CACHE_STATIC).then(c => c.put(event.request, toCache));
-              return response;
-            })
-            .catch(() => caches.match('./index.html'));
-        })
-    );
-    return;
-  }
-
-  /* Everything else → Network-First with cache fallback */
-  event.respondWith(
-    fetch(event.request, { cache: 'no-store' })
-      .then(response => {
-        if (response && response.ok) {
-          const toCache = response.clone();
-          caches.open(CACHE_STATIC).then(c => c.put(event.request, toCache));
-        }
-        return response;
-      })
-      .catch(() =>
-        caches.match(event.request).then(c => c || caches.match('./index.html'))
-      )
-  );
-});
+/* ── Fetch: always go to network, never cache ────────────── */
+self.addEventListener('fetch', () => { /* no-op — browser handles natively */ });
