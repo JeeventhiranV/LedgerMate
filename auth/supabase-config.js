@@ -3,8 +3,8 @@
 //   Dashboard → Settings → API → Project URL & anon/public key
 // ──────────────────────────────────────────────────────────────────────────────
 
-var SUPABASE_URL  = 'https://tjpxkzpqauffyzcpfvyi.supabase.co';
-var SUPABASE_ANON = 'YOUR_ACTUAL_ANON_KEY';
+var SUPABASE_URL  = 'SUPABASE_URL';
+var SUPABASE_ANON = 'SUPABASE_ANON';
 
 var _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
   auth: {
