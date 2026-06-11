@@ -14,49 +14,22 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
+  # ── Job 1: Generate config + upload artifact ──────────────────────────────
+  # No `environment:` here — repository-level secrets are always available
+  # in jobs without an environment, even when github-pages has protection rules.
+  build:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Write the Supabase config directly from GitHub Secrets
-      - name: Create Supabase config from secrets
+      - name: Generate Supabase config
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON: ${{ secrets.SUPABASE_ANON }}
-        run: |
-          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON" ]; then
-            echo "ERROR: SUPABASE_URL or SUPABASE_ANON secret is not set in GitHub repository secrets."
-            exit 1
-          fi
-          python3 - <<'PYEOF'
-          import os
-          url  = os.environ['SUPABASE_URL']
-          anon = os.environ['SUPABASE_ANON']
-          content = (
-            "var SUPABASE_URL  = '" + url  + "';\n"
-            "var SUPABASE_ANON = '" + anon + "';\n"
-            "var _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {\n"
-            "  auth: {\n"
-            "    persistSession    : true,\n"
-            "    autoRefreshToken  : true,\n"
-            "    detectSessionInUrl: true\n"
-            "  }\n"
-            "});\n"
-          )
-          with open('auth/supabase-config.js', 'w') as f:
-              f.write(content)
-          print('Created auth/supabase-config.js (' + str(len(content)) + ' bytes)')
-          PYEOF
+        run: python3 .github/scripts/gen_config.py
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -66,6 +39,16 @@ jobs:
         with:
           path: '.'
 
+  # ── Job 2: Deploy artifact to GitHub Pages ────────────────────────────────
+  # Only this job needs the github-pages environment (for the deploy token).
+  # Secrets are NOT used here — config was already baked into the artifact.
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

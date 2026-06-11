@@ -7,7 +7,7 @@
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v2.0.4';
+const CACHE_VERSION = 'lm-v2.0.5';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
@@ -96,6 +96,11 @@ self.addEventListener('fetch', event => {
   /* Only handle same-origin GET requests */
   if (event.request.method !== 'GET') return;
   if (url.origin !== self.location.origin) return;
+
+  /* supabase-config.js contains live credentials generated at deploy time.
+     Never serve it from cache — always let the browser fetch it fresh so a
+     new deploy is picked up immediately without a SW update cycle. */
+  if (url.pathname.endsWith('/auth/supabase-config.js')) return;
 
   /* External API calls (gold rates, Supabase) → network only */
   if (url.pathname.startsWith('/api/') ||
