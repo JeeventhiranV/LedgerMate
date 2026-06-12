@@ -1027,9 +1027,13 @@ async function init() {
       module      : 'ipk',
       getQuestions: function() {
         if (!_ipkData) return [];
-        return (_ipkData.files || _ipkData || []).map(function(f) {
-          return { id: f.id || f.name, title: f.title || f.name || f.id, category: f.category || f.tech || 'General', diff: null, tags: [f.tech || ''].filter(Boolean) };
+        var items = [];
+        (_ipkData.categories || []).forEach(function(cat) {
+          (cat.files || []).forEach(function(f) {
+            items.push({ id: f.id || f.name, title: f.title || f.name || f.id, category: cat.title || cat.id || 'General', diff: null, tags: [f.technology || f.tech || ''].filter(Boolean) });
+          });
         });
+        return items;
       },
       getStatus: function(id) {
         if (PROG.completed.has(id)) return 'done';
