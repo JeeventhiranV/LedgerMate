@@ -224,8 +224,9 @@
 .ch-typing{font-size:11px;color:var(--text3,#535d7e);padding:4px 12px;font-style:italic;min-height:20px;flex-shrink:0}
 .ch-chat-input-row{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--border,#1e2436);flex-shrink:0;align-items:flex-end}
 .ch-chat-reply-banner{background:var(--bg3,#141820);border-left:3px solid var(--blue,#4f8ef7);padding:5px 10px;font-size:11px;color:var(--text2,#8a95b8);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
-.ch-emoji-btn{background:none;border:none;cursor:pointer;font-size:18px;padding:4px;line-height:1;color:var(--text3,#535d7e);transition:transform .12s;flex-shrink:0}
-.ch-emoji-btn:hover{transform:scale(1.2)}
+.ch-emoji-btn{background:none;border:none;cursor:pointer;font-size:18px;padding:4px;line-height:1;color:var(--text3,#535d7e);transition:transform .12s,opacity .12s;flex-shrink:0;width:28px;text-align:center}
+.ch-emoji-btn:hover{transform:scale(1.15)}
+.ch-emoji-btn.open{font-size:14px;color:var(--rose,#f43f5e)}
 .ch-chat-inp{flex:1;background:var(--bg3,#141820);border:1px solid var(--border,#1e2436);border-radius:20px;padding:7px 14px;font-size:12px;color:var(--text,#e2e8f8);outline:none;font-family:'Inter',sans-serif;resize:none;max-height:80px;overflow-y:auto;line-height:1.5;transition:border .14s}
 .ch-chat-inp:focus{border-color:var(--blue,#4f8ef7)}
 .ch-send-btn{background:linear-gradient(135deg,var(--blue,#4f8ef7),var(--purple,#8b5cf6));border:none;border-radius:50%;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;flex-shrink:0;transition:opacity .14s}
@@ -233,7 +234,7 @@
 .ch-send-btn:disabled{opacity:.4;cursor:default}
 
 /* ── Emoji picker ── */
-.ch-emoji-picker{position:absolute;bottom:60px;left:10px;background:var(--bg3,#141820);border:1px solid var(--border2,#2a3148);border-radius:10px;padding:8px;display:flex;flex-wrap:wrap;gap:4px;z-index:100;width:200px}
+.ch-emoji-picker{position:absolute;bottom:52px;left:0;background:var(--bg3,#141820);border:1px solid var(--border2,#2a3148);border-radius:10px;padding:8px;display:flex;flex-wrap:wrap;gap:4px;z-index:9999;max-width:calc(100% - 50px);width:220px}
 .ch-emoji-item{background:none;border:none;cursor:pointer;font-size:20px;padding:3px;border-radius:5px;transition:background .1s;line-height:1}
 .ch-emoji-item:hover{background:var(--bg4,#1a1f2e)}
 
@@ -374,10 +375,21 @@
     _initDrag();
   }
 
+  function _setWidgetVisible(visible) {
+    var w = document.getElementById('ch-widget');
+    if (!w) return;
+    // On mobile (panel is full-width bottom sheet), hide FAB while panel is open
+    // so it doesn't float over the chat input / send button
+    if (window.innerWidth <= 640) {
+      w.style.display = visible ? '' : 'none';
+    }
+  }
+
   function _togglePanel() {
     _expanded = !_expanded;
     var panel = document.getElementById('ch-panel');
     panel.classList.toggle('hidden', !_expanded);
+    _setWidgetVisible(!_expanded);
     if (_expanded) {
       _switchTab(_activeTab);
       _refreshUnread();
@@ -388,6 +400,7 @@
     _expanded = false;
     var panel = document.getElementById('ch-panel');
     if (panel) panel.classList.add('hidden');
+    _setWidgetVisible(true);
   }
 
   function _resetPosition() {
@@ -765,16 +778,43 @@
     _supabase.from('community_messages').update({ reactions: reactions }).eq('id', msgId).then(function() {}).catch(function(){});
   }
 
+  function _closeEmoji() {
+    var picker = document.getElementById('ch-emoji-picker');
+    var btn    = document.getElementById('ch-emoji-toggle');
+    if (picker) picker.style.display = 'none';
+    if (btn)  { btn.textContent = '😊'; btn.classList.remove('open'); }
+    document.removeEventListener('click', _emojiClickOutside, true);
+  }
+
+  function _emojiClickOutside(e) {
+    var picker = document.getElementById('ch-emoji-picker');
+    var btn    = document.getElementById('ch-emoji-toggle');
+    if (picker && !picker.contains(e.target) && btn && !btn.contains(e.target)) {
+      _closeEmoji();
+    }
+  }
+
   function _toggleEmoji() {
     var picker = document.getElementById('ch-emoji-picker');
-    if (picker) picker.style.display = picker.style.display === 'none' ? 'flex' : 'none';
+    var btn    = document.getElementById('ch-emoji-toggle');
+    if (!picker) return;
+    var isOpen = picker.style.display !== 'none';
+    if (isOpen) {
+      _closeEmoji();
+    } else {
+      picker.style.display = 'flex';
+      if (btn) { btn.textContent = '✕'; btn.classList.add('open'); }
+      // close on next outside tap (use capture so it fires before bubbling)
+      setTimeout(function() {
+        document.addEventListener('click', _emojiClickOutside, true);
+      }, 0);
+    }
   }
 
   function _insertEmoji(emoji) {
     var inp = document.getElementById('ch-chat-inp');
     if (inp) inp.textContent += emoji;
-    var picker = document.getElementById('ch-emoji-picker');
-    if (picker) picker.style.display = 'none';
+    _closeEmoji();
     if (inp) inp.focus();
   }
 
