@@ -20,9 +20,15 @@
   function _getLoginUrl() {
     var parts = window.location.pathname.split('/');
     var idx   = parts.lastIndexOf('study');
-    /* Go UP to root (not into study/) where login.html lives */
-    if (idx >= 0) return parts.slice(0, idx).join('/') + '/login.html?action=logout';
-    return '/login.html?action=logout';
+    var base  = idx >= 0 ? parts.slice(0, idx).join('/') : '';
+    return (base || '') + '/login.html?action=logout&app=study';
+  }
+
+  function _getPendingUrl() {
+    var parts = window.location.pathname.split('/');
+    var idx   = parts.lastIndexOf('study');
+    var base  = idx >= 0 ? parts.slice(0, idx).join('/') : '';
+    return (base || '') + '/login.html?msg=pending&app=study';
   }
 
   function _getHubUrl() {
@@ -275,7 +281,28 @@
     }
   }
 
-  // ── 6. Main guard logic ──────────────────────────────────────────────────────
+  // ── 6. Study module key detection ───────────────────────────────────────────
+  var _PAGE_MOD = {
+    'java-prep-kit.html':      'java',
+    'dsa-prep-hub.html':       'dsa',
+    'react-prep.html':         'react',
+    'hr-questions.html':       'hr',
+    'interview-prep-kit.html': 'ipk',
+    'interview-tracker.html':  'tracker'
+  };
+
+  function _currentModule() {
+    return _PAGE_MOD[window.location.pathname.split('/').pop().toLowerCase()] || null;
+  }
+
+  function _canAccess(study_modules, modKey) {
+    if (!modKey) return true;                                         // hub page — no check
+    if (study_modules === null || study_modules === undefined) return true; // null = all allowed
+    if (study_modules.length === 0) return false;                     // [] = no access
+    return study_modules.indexOf(modKey) !== -1;
+  }
+
+  // ── 7. Main guard logic ──────────────────────────────────────────────────────
   _supabase.auth.getSession().then(function (res) {
     var session = res && res.data && res.data.session;
 
@@ -284,23 +311,67 @@
       return;
     }
 
-    function _reveal() {
+    function _doReveal() {
+      // Dispatch before showing so hub page can lock cards without a flash
+      document.dispatchEvent(new CustomEvent('studyAccessReady', {
+        detail: { profile: window._studyProfile || null }
+      }));
       _hideStyle.textContent = '';
       document.body.style.visibility = 'visible';
       _injectChip(session);
     }
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', _reveal);
-    } else {
-      _reveal();
+    function _revealWhenReady() {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _doReveal);
+      } else {
+        _doReveal();
+      }
     }
+
+    // Check active status + study module access on every page load
+    _supabase.from('user_profiles')
+      .select('active,role,study_modules')
+      .eq('id', session.user.id)
+      .single()
+      .then(function (profRes) {
+        var profile = profRes.data;
+
+        // Inactive or missing profile → sign out + pending message
+        if (!profile || !profile.active) {
+          _supabase.auth.signOut().then(function () {
+            _redirect(_getPendingUrl());
+          });
+          return;
+        }
+
+        // Module-level access check (admins always bypass)
+        var modKey = _currentModule();
+        if (profile.role !== 'admin' && !_canAccess(profile.study_modules, modKey)) {
+          _redirect(_getHubUrl() + '?msg=noaccess');
+          return;
+        }
+
+        // Expose profile so hub page can lock inaccessible resource cards
+        window._studyProfile = {
+          active:        profile.active,
+          role:          profile.role,
+          study_modules: profile.study_modules
+        };
+
+        _revealWhenReady();
+      })
+      .catch(function () {
+        // Network error loading profile — fail-open so pages still work offline
+        window._studyProfile = { active: true, role: 'user', study_modules: null };
+        _revealWhenReady();
+      });
 
   }).catch(function () {
     _redirect(_getLoginUrl());
   });
 
-  // ── 7. Cross-tab sign-out sync ────────────────────────────────────────────
+  // ── 8. Cross-tab sign-out sync ────────────────────────────────────────────
   _supabase.auth.onAuthStateChange(function (event) {
     if (event === 'SIGNED_OUT') {
       _redirect(_getLoginUrl());

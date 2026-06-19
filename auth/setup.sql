@@ -195,6 +195,21 @@ $$;
 GRANT EXECUTE ON FUNCTION public.delete_user(uuid) TO authenticated;
 
 
+-- ─── Study Hub Phase 2: per-user module access ─────────────────────────────
+-- Run this block in Supabase SQL Editor when upgrading from initial setup:
+
+-- study_modules controls which Study Hub sections each user can access.
+-- NULL  = all study modules accessible (backward-compatible default)
+-- '[]'  = no study access at all
+-- '["java","dsa"]' = only those specific modules allowed
+ALTER TABLE public.user_profiles
+  ADD COLUMN IF NOT EXISTS study_modules jsonb DEFAULT NULL;
+
+-- Track which app (ledger vs study) an access request came from.
+ALTER TABLE public.access_requests
+  ADD COLUMN IF NOT EXISTS app text NOT NULL DEFAULT 'ledger';
+
+
 
 -- Backfill missing user_profiles for any auth.users with no profile
 INSERT INTO public.user_profiles (id, email, display_name, role, active)

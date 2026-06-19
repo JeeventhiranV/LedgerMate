@@ -12,7 +12,9 @@
       "Bash(Find c:\\\\Jeeva_Workspace\\\\VsProjectSpace\\\\LedgerMate -type d -name \"auth\")",
       "Bash(Find c:\\\\Jeeva_Workspace\\\\VsProjectSpace\\\\LedgerMate -type f \\\\\\( -name \"*chat*\" -o -name \"*community*\" -o -name \"*notification*\" \\\\\\))",
       "PowerShell(Get-ChildItem \"c:\\\\Jeeva_Workspace\\\\VsProjectSpace\\\\LedgerMate\" -Recurse -File | Where-Object {$_.Name -match \"\\(chat|community|notification\\)\" } | Select-Object FullName)",
-      "PowerShell(Get-ChildItem \"c:\\\\Jeeva_Workspace\\\\VsProjectSpace\\\\LedgerMate\" -Recurse -File | Where-Object {$_.DirectoryName -match \"\\(chat|community|discuss|message|social\\)\" } | Select-Object FullName)"
+      "PowerShell(Get-ChildItem \"c:\\\\Jeeva_Workspace\\\\VsProjectSpace\\\\LedgerMate\" -Recurse -File | Where-Object {$_.DirectoryName -match \"\\(chat|community|discuss|message|social\\)\" } | Select-Object FullName)",
+      "PowerShell(\\(Get-Content \"c:\\\\Jeeva_Workspace\\\\VsProjectSpace\\\\LedgerMate\\\\study\\\\prep\\\\Interview-Tracker.html\"\\).Count; \\(Get-Content \"c:\\\\Jeeva_Workspace\\\\VsProjectSpace\\\\LedgerMate\\\\auth\\\\interview-tracker.sql\"\\).Count)",
+      "Bash(node -e ' *)"
     ]
   }
 }

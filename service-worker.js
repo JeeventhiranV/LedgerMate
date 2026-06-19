@@ -2,12 +2,13 @@
  * LedgerMate Service Worker – Offline-First PWA
  * ─────────────────────────────────────────────────────────────
  * Strategy:
- *  • Static shell (HTML/CSS/JS/libs) → Cache-First
- *  • API / network requests           → Network-First  
+ *  • HTML pages                        → Network-First (always fresh; cache = offline fallback)
+ *  • Static assets (CSS/JS/fonts)     → Cache-First with background revalidate
+ *  • API / network requests           → Network-First
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v2.1.5';
+const CACHE_VERSION = 'lm-v2.3.2';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
@@ -69,6 +70,7 @@ const STATIC_ASSETS = [
   './study/prep/React-Prep.html',
   './study/prep/HR-Questions.html',
   './study/prep/Interview-Prep-Kit.html',
+  './study/prep/Interview-Tracker.html',
 
   /* Study JS */
   './study/js/StudySync.js',
@@ -145,26 +147,42 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  /* Static assets → Cache-First with network fallback */
+  /* HTML pages → Network-First (always fetch fresh; cache = offline fallback only) */
+  if (url.pathname === '/' || url.pathname.endsWith('.html')) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' })
+        .then(response => {
+          if (response && response.ok) {
+            const toCache = response.clone(); // clone synchronously before body is consumed
+            caches.open(CACHE_STATIC).then(c => c.put(event.request, toCache));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(event.request).then(c => c || caches.match('./index.html'))
+        )
+    );
+    return;
+  }
+
+  /* Static assets (CSS/JS/fonts) → Cache-First with background revalidate */
   const isStaticAsset = STATIC_ASSETS.some(a => url.pathname.endsWith(a.replace('./', '/')));
 
-  if (isStaticAsset || url.pathname === '/' || url.pathname.endsWith('.html')) {
+  if (isStaticAsset) {
     event.respondWith(
       caches.match(event.request)
         .then(cached => {
-          /* Return cached version immediately if available */
           if (cached) {
-            /* Background-revalidate in parallel */
             fetch(event.request, { cache: 'no-store' })
               .then(fresh => {
                 if (fresh && fresh.ok) {
-                  caches.open(CACHE_STATIC).then(c => c.put(event.request, fresh.clone()));
+                  const toCache = fresh.clone();
+                  caches.open(CACHE_STATIC).then(c => c.put(event.request, toCache));
                 }
               })
               .catch(() => {});
             return cached;
           }
-          /* Not cached → fetch from network and cache */
           return fetch(event.request, { cache: 'no-store' })
             .then(response => {
               if (!response || !response.ok) return response;

@@ -20,6 +20,15 @@
     { key: 'credentials',  label: '🔐 Vault'        },
   ];
 
+  const STUDY_MODULES = [
+    { key: 'java',    label: '☕ Java Prep Kit'      },
+    { key: 'dsa',     label: '🧠 DSA Master Hub'     },
+    { key: 'react',   label: '⚛️ React Prep Hub'     },
+    { key: 'hr',      label: '🤝 HR Questions'        },
+    { key: 'ipk',     label: '📚 Interview Prep Kit'  },
+    { key: 'tracker', label: '🎯 Interview Tracker'   },
+  ];
+
   /* ══════════════════════════════════════════════════════
      ENTRY / EXIT
   ══════════════════════════════════════════════════════ */
@@ -152,6 +161,7 @@
       <button class="admin-btn admin-btn-sm" onclick="window.LM_Admin.toggleRole('${u.id}','${u.role === 'admin' ? 'user' : 'admin'}','${_esc(u.display_name || u.email)}')">
         ${u.role === 'admin' ? '👤 Make User' : '⭐ Make Admin'}
       </button>
+      <button class="admin-btn admin-btn-sm" style="border-color:rgba(139,92,246,.4);color:#8b5cf6;" onclick="window.LM_Admin.showStudyAccess('${u.id}','${_esc(u.display_name || u.email)}','${JSON.stringify(u.study_modules !== undefined ? u.study_modules : null)}')">📚 Study</button>
       ${u.id !== currentUid ? `<button class="admin-btn admin-btn-danger admin-btn-sm" onclick="window.LM_Admin.deleteUser('${u.id}','${_esc(u.display_name || u.email)}')">🗑 Delete</button>` : ''}
     </div>
   </td>
@@ -314,6 +324,88 @@
   async function _toggleRole(id, newRole, name) {
     if (!confirm(`Change ${name}'s role to "${newRole}"?`)) return;
     await _updateProfile(id, { role: newRole, updated_at: new Date().toISOString() }, `Role set to ${newRole}`);
+  }
+
+  /* ── Study Module Access ───────────────────────────────── */
+  function _showStudyAccess(userId, userName, modulesJson) {
+    document.getElementById('lm-study-modal')?.remove();
+
+    var currentModules;
+    try { currentModules = JSON.parse(modulesJson); } catch { currentModules = null; }
+
+    // null = all allowed; [] = no access; [...] = specific modules
+    var hasAccess = currentModules === null || (Array.isArray(currentModules) && currentModules.length > 0);
+    var allowedKeys = currentModules === null
+      ? STUDY_MODULES.map(function(m){ return m.key; })
+      : (Array.isArray(currentModules) ? currentModules : []);
+
+    var moduleCheckboxes = STUDY_MODULES.map(function(m) {
+      var checked = currentModules === null || allowedKeys.indexOf(m.key) !== -1;
+      return '<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:5px 0;">' +
+        '<input type="checkbox" id="study_mod_' + m.key + '" value="' + m.key + '"' + (checked ? ' checked' : '') +
+        ' style="width:15px;height:15px;cursor:pointer;accent-color:#8b5cf6;"> ' + m.label +
+      '</label>';
+    }).join('');
+
+    var modal = document.createElement('div');
+    modal.id = 'lm-study-modal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);padding:20px;';
+    modal.innerHTML = `
+      <div style="background:var(--card,#151922);border:1px solid rgba(139,92,246,.3);border-radius:16px;padding:28px 26px;max-width:460px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.9);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <div style="font-size:16px;font-weight:700;color:var(--text,#e8eaf6);">📚 Study Module Access</div>
+          <button onclick="document.getElementById('lm-study-modal').remove()" style="background:none;border:none;color:var(--text-2,#7c87a8);cursor:pointer;font-size:20px;line-height:1;padding:0 2px;">✕</button>
+        </div>
+        <div style="font-size:12px;color:var(--text-2,#7c87a8);margin-bottom:14px;">${_esc(userName)}</div>
+        <p style="font-size:13px;color:var(--text-2,#7c87a8);line-height:1.55;margin-bottom:18px;">
+          Choose which Study Hub modules this user can open. Admins always have full access regardless of this setting.
+        </p>
+
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:12px 14px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.2);border-radius:10px;margin-bottom:16px;">
+          <input type="checkbox" id="study_access_enabled" ${hasAccess ? 'checked' : ''} style="width:17px;height:17px;cursor:pointer;accent-color:#8b5cf6;flex-shrink:0;">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text,#e8eaf6);">Enable Study Hub access</div>
+            <div style="font-size:11px;color:var(--text-2,#7c87a8);">Uncheck to block all study modules for this user</div>
+          </div>
+        </label>
+
+        <div id="study_module_section" style="transition:opacity .2s;${hasAccess ? '' : 'opacity:.35;pointer-events:none'}">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3,#454d6a);margin-bottom:10px;">Module Permissions</div>
+          <div class="admin-module-grid">${moduleCheckboxes}</div>
+          <div style="font-size:11px;color:var(--text-3,#454d6a);margin-top:6px;">All modules checked = full access. Uncheck specific modules to restrict.</div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:22px;">
+          <button class="btn-submit" onclick="window.LM_Admin.saveStudyAccess('${userId}')">💾 Save Access</button>
+          <button class="admin-btn" onclick="document.getElementById('lm-study-modal').remove()">Cancel</button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(modal);
+
+    document.getElementById('study_access_enabled').addEventListener('change', function() {
+      var sec = document.getElementById('study_module_section');
+      if (sec) { sec.style.opacity = this.checked ? '1' : '.35'; sec.style.pointerEvents = this.checked ? '' : 'none'; }
+    });
+  }
+
+  async function _saveStudyAccess(userId) {
+    var enabledEl = document.getElementById('study_access_enabled');
+    var enabled   = enabledEl && enabledEl.checked;
+
+    var studyModules;
+    if (!enabled) {
+      studyModules = [];   // empty array = no access
+    } else {
+      var checked = STUDY_MODULES
+        .filter(function(m){ return document.getElementById('study_mod_' + m.key)?.checked; })
+        .map(function(m){ return m.key; });
+      // All checked → null (all modules, forward-compat); subset → specific keys
+      studyModules = checked.length === STUDY_MODULES.length ? null : checked;
+    }
+
+    document.getElementById('lm-study-modal')?.remove();
+    await _updateProfile(userId, { study_modules: studyModules, updated_at: new Date().toISOString() }, 'Study access updated');
   }
 
   function _deleteUser(id, name) {
@@ -697,6 +789,8 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
     approveUser       : _approveUser,
     deactivateUser    : _deactivateUser,
     toggleRole        : _toggleRole,
+    showStudyAccess   : _showStudyAccess,
+    saveStudyAccess   : _saveStudyAccess,
     deleteUser        : _deleteUser,
     executeDelete     : _executeDelete,
     saveAppSettings   : _saveAppSettings,

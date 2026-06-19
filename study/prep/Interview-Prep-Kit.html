@@ -1023,35 +1023,39 @@ async function init() {
       render(_ipkData);
     }
 
-    StudyFeatures.init({
-      module      : 'ipk',
-      getQuestions: function() {
-        if (!_ipkData) return [];
-        var items = [];
-        (_ipkData.categories || []).forEach(function(cat) {
-          (cat.files || []).forEach(function(f) {
-            items.push({ id: f.id || f.name, title: f.title || f.name || f.id, category: cat.title || cat.id || 'General', diff: null, tags: [f.technology || f.tech || ''].filter(Boolean) });
+    try {
+      StudyFeatures.init({
+        module      : 'ipk',
+        getQuestions: function() {
+          if (!_ipkData) return [];
+          var items = [];
+          (_ipkData.categories || []).forEach(function(cat) {
+            (cat.files || []).forEach(function(f) {
+              items.push({ id: f.id || f.name, title: f.title || f.name || f.id, category: cat.title || cat.id || 'General', diff: null, tags: [f.technology || f.tech || ''].filter(Boolean) });
+            });
           });
-        });
-        return items;
-      },
-      getStatus: function(id) {
-        if (PROG.completed.has(id)) return 'done';
-        if (PROG.inprogress.has(id)) return 'inprogress';
-        return null;
-      },
-      setStatus   : _ipkSetStatus,
-      getFavIds   : function() { return PROG.favorites; },
-      setFav      : function(id, bool) { if (bool) PROG.favorites.add(id); else PROG.favorites.delete(id); saveIPKFavs(); StudySync.saveFav('ipk', id, bool); },
-      getNotes    : loadIPKNotes,
-      setNote     : saveIPKNote,
-      getTimestamps: function() { return window._ipkTimestamps || {}; },
-      cardSelector: '[data-pdf-id]',
-      cardIdAttr  : 'data-pdf-id',
-      refreshUI   : function() { if (_ipkData) render(_ipkData); StudyFeatures.refreshGoal(); StudyFeatures.refreshSR(); }
-    });
+          return items;
+        },
+        getStatus: function(id) {
+          if (PROG.completed.has(id)) return 'done';
+          if (PROG.inprogress.has(id)) return 'inprogress';
+          return null;
+        },
+        setStatus   : _ipkSetStatus,
+        getFavIds   : function() { return PROG.favorites; },
+        setFav      : function(id, bool) { if (bool) PROG.favorites.add(id); else PROG.favorites.delete(id); saveIPKFavs(); StudySync.saveFav('ipk', id, bool); },
+        getNotes    : loadIPKNotes,
+        setNote     : saveIPKNote,
+        getTimestamps: function() { return window._ipkTimestamps || {}; },
+        cardSelector: '[data-pdf-id]',
+        cardIdAttr  : 'data-pdf-id',
+        refreshUI   : function() { if (_ipkData) render(_ipkData); StudyFeatures.refreshGoal(); StudyFeatures.refreshSR(); }
+      });
+    } catch (sfErr) {
+      console.warn('[IPK] StudyFeatures.init failed (non-fatal):', sfErr);
+    }
 
-    CommunityHub.init({ module: 'ipk', moduleName: 'Interview Prep Kit' });
+    try { CommunityHub.init({ module: 'ipk', moduleName: 'Interview Prep Kit' }); } catch(e) {}
   } catch (err) {
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('errorState').style.display = '';

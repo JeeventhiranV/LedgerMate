@@ -419,13 +419,16 @@ body {
     if (!email) { showMsg('reqMsg', 'Please enter your email.', 'error'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showMsg('reqMsg', 'Please enter a valid email.', 'error'); return; }
     setLoading(this, true, 'Submit Request');
-    var res = await _supabase.from('access_requests').insert({ name: name, email: email, message: note || null, status: 'pending' });
+    var res = await _supabase.from('access_requests').insert({ name: name, email: email, message: note || null, status: 'pending', app: _app });
     if (res.error) {
       var err = res.error.message || 'Failed to submit.';
       if (err.includes('unique') || err.includes('duplicate')) err = 'A request from this email already exists.';
       showMsg('reqMsg', err, 'error');
     } else {
-      showMsg('reqMsg', '✅ Request submitted! Admin will review and send an invite if approved.', 'success');
+      var reqOkMsg = _app === 'study'
+        ? '✅ Study access request submitted! The admin will review and grant study access if approved.'
+        : '✅ Request submitted! Admin will review and send an invite if approved.';
+      showMsg('reqMsg', reqOkMsg, 'success');
       document.getElementById('reqName').value = document.getElementById('reqEmail').value = document.getElementById('reqNote').value = '';
     }
     setLoading(this, false, 'Submit Request');

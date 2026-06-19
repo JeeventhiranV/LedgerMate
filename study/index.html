@@ -227,6 +227,23 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .res-fav:hover{transform:scale(1.25);background:var(--bg3);opacity:1}
 .res-fav.active{opacity:1}
 
+/* ── LOCKED RESOURCE CARD ── */
+.res-card--locked{cursor:default;opacity:0.62;pointer-events:none}
+.res-card--locked:hover{transform:none;box-shadow:none;border-color:var(--card-border)}
+.res-lock-overlay{position:absolute;inset:0;border-radius:16px;background:rgba(7,9,15,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;z-index:5}
+.res-lock-badge{background:rgba(244,63,94,.15);border:1px solid rgba(244,63,94,.35);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700;color:#f43f5e;white-space:nowrap}
+.res-lock-hint{font-size:11px;color:var(--text3)}
+
+/* ── LOCKED MODULE RING ── */
+.mod-card--locked{opacity:0.55;cursor:not-allowed;pointer-events:none}
+.mod-card--locked:hover{transform:none;box-shadow:none}
+
+/* ── NO-ACCESS BANNER ── */
+.noaccess-banner{display:none;align-items:center;gap:12px;padding:12px 24px;background:rgba(244,63,94,.08);border-bottom:1px solid rgba(244,63,94,.25);font-size:13px;color:#f43f5e}
+.noaccess-banner.show{display:flex}
+.noaccess-banner button{margin-left:auto;background:none;border:none;color:#f43f5e;cursor:pointer;font-size:16px;opacity:.7;flex-shrink:0}
+.noaccess-banner button:hover{opacity:1}
+
 /* ── NO RESULTS ── */
 .no-results{text-align:center;padding:64px 24px;display:none}
 .no-results-icon{font-size:48px;margin-bottom:12px;filter:grayscale(.3)}
@@ -236,6 +253,26 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .footer{text-align:center;padding:32px 24px;font-size:12px;color:var(--text3);border-top:1px solid var(--border)}
 .footer a{color:var(--blue);text-decoration:none}
 .footer a:hover{text-decoration:underline}
+
+/* ── TRACKER BANNER ── */
+.tracker-banner{max-width:1200px;margin:0 auto 0;padding:0 24px}
+.tracker-banner-inner{background:var(--card);border:1px solid rgba(6,214,160,.3);border-radius:16px;padding:18px 24px;display:flex;align-items:center;gap:20px;position:relative;overflow:hidden;cursor:pointer;transition:all .22s;text-decoration:none;color:inherit}
+.tracker-banner-inner::before{content:'';position:absolute;top:0;left:0;bottom:0;width:4px;background:#06d6a0;border-radius:16px 0 0 16px}
+.tracker-banner-inner::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 0% 50%,rgba(6,214,160,.06),transparent);pointer-events:none}
+.tracker-banner-inner:hover{border-color:rgba(6,214,160,.6);transform:translateY(-2px);box-shadow:0 8px 28px rgba(6,214,160,.12)}
+.tracker-banner-icon{width:52px;height:52px;border-radius:14px;background:rgba(6,214,160,.12);display:grid;place-items:center;font-size:26px;flex-shrink:0}
+.tracker-banner-body{flex:1;min-width:0}
+.tracker-banner-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#06d6a0;font-family:'JetBrains Mono',monospace;margin-bottom:3px}
+.tracker-banner-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);margin-bottom:2px}
+.tracker-banner-sub{font-size:12px;color:var(--text2)}
+.tracker-banner-stats{display:flex;gap:10px;flex-shrink:0}
+.tracker-stat{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:8px 14px;text-align:center;min-width:58px}
+.tracker-stat-num{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:#06d6a0;line-height:1}
+.tracker-stat-lbl{font-size:9px;color:var(--text3);margin-top:2px}
+.tracker-banner-cta{flex-shrink:0;background:#06d6a0;color:#0a1a14;border:none;border-radius:11px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:'Inter',sans-serif;white-space:nowrap;transition:all .2s}
+.tracker-banner-cta:hover{opacity:.88;transform:scale(1.03)}
+@media(max-width:720px){.tracker-banner-stats{display:none}}
+@media(max-width:560px){.tracker-banner-inner{padding:14px 16px 14px 20px;gap:12px}.tracker-banner-title{font-size:14px}.tracker-banner-sub{display:none}}
 
 /* ── MOBILE ── */
 @media(max-width:640px){
@@ -266,6 +303,29 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .timer-btn.active{background:rgba(6,214,160,.12);border-color:rgba(6,214,160,.4);color:var(--teal)}
 .timer-toggle{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--border);border-radius:50%;width:44px;height:44px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:999;transition:all .3s}
 .res-notes-badge{font-size:10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:20px;padding:1px 7px;color:#f59e0b;white-space:nowrap}
+
+/* ── WEEKLY GOAL WIDGET ── */
+.weekly-goal-wrap{max-width:1200px;margin:0 auto;padding:0 24px 12px}
+.weekly-goal-inner{background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:14px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.weekly-goal-left{flex-shrink:0}
+.weekly-goal-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-bottom:3px}
+.weekly-goal-nums{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;line-height:1}
+.weekly-goal-nums .wg-done{background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.weekly-goal-nums .wg-sep{font-size:13px;color:var(--text3);margin:0 2px}
+.weekly-goal-nums .wg-goal{color:var(--text3);font-size:14px}
+.weekly-goal-suffix{font-size:10px;color:var(--text3);margin-top:2px}
+.weekly-goal-prog{flex:1;min-width:160px}
+.wg-bar-header{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:5px}
+.wg-bar-pct{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--blue)}
+.wg-bar{height:6px;background:var(--bg4);border-radius:6px;overflow:hidden}
+.wg-bar-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:6px;transition:width .7s cubic-bezier(.4,0,.2,1)}
+.wg-bar-fill.done{background:linear-gradient(90deg,var(--teal),var(--blue))}
+.weekly-goal-days{display:flex;gap:4px;flex-shrink:0}
+.wg-day{width:26px;height:26px;border-radius:7px;border:1px solid var(--border);background:var(--bg4);font-size:9px;font-weight:700;color:var(--text3);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;transition:all .2s;cursor:default;position:relative}
+.wg-day.has-activity{background:linear-gradient(135deg,var(--blue),var(--purple));border-color:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(79,142,247,.3)}
+.wg-day.is-today{border-color:var(--gold)}
+.wg-day.is-today:not(.has-activity){color:var(--gold)}
+@media(max-width:640px){.weekly-goal-wrap{padding:0 16px 10px}.weekly-goal-inner{padding:12px 16px;gap:12px}.weekly-goal-days{gap:3px}.wg-day{width:22px;height:22px;border-radius:5px;font-size:8px}}
 </style>
 <!-- Auth: Supabase SDK → config → guard → StudySync (order matters) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -284,6 +344,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   <div class="topbar-right">
     <button class="btn-theme" id="themeBtn" title="Toggle theme" aria-label="Toggle dark/light theme">🌙</button>
   </div>
+</div>
+
+<!-- NO-ACCESS BANNER (shown when redirected with ?msg=noaccess) -->
+<div class="noaccess-banner" id="noAccessBanner">
+  🔒 You don't have access to that module. Contact your admin to request access.
+  <button onclick="document.getElementById('noAccessBanner').classList.remove('show')" aria-label="Dismiss">✕</button>
 </div>
 
 <!-- HERO -->
@@ -311,8 +377,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <div class="hero-stats">
       <div class="stat-pill"><div class="stat-num" id="statDone">0</div><div class="stat-lbl">Questions Done</div></div>
       <div class="stat-pill" id="statInProgressPill" style="display:none;border-color:rgba(245,158,11,.35)"><div class="stat-num" id="statInProgress" style="background:linear-gradient(135deg,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">0</div><div class="stat-lbl">In Progress</div></div>
-      <div class="stat-pill"><div class="stat-num" id="statTotal">5</div><div class="stat-lbl">Modules</div></div>
-      <div class="stat-pill"><div class="stat-num" id="statQ">680</div><div class="stat-lbl">Total Questions</div></div>
+      <div class="stat-pill"><div class="stat-num" id="statTotal">5</div><div class="stat-lbl">Resources</div></div>
+      <div class="stat-pill"><div class="stat-num" id="statQ">496</div><div class="stat-lbl">Questions</div></div>
     </div>
 
     <div class="search-wrap">
@@ -392,6 +458,50 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 </div>
 <!-- ═══ END DASHBOARD ═══ -->
 
+<!-- INTERVIEW TRACKER SHORTCUT -->
+<div class="tracker-banner" style="padding-top:20px;padding-bottom:4px">
+  <div class="tracker-banner-inner" role="link" tabindex="0"
+       onclick="window.location.href='prep/Interview-Tracker.html'"
+       onkeydown="if(event.key==='Enter')window.location.href='prep/Interview-Tracker.html'"
+       style="cursor:pointer">
+    <div class="tracker-banner-icon">🎯</div>
+    <div class="tracker-banner-body">
+      <div class="tracker-banner-label">Job Search · Quick Access</div>
+      <div class="tracker-banner-title">Interview Tracker</div>
+      <div class="tracker-banner-sub">Kanban board · Interview rounds · CTC tracking · CSV export</div>
+    </div>
+    <div class="tracker-banner-stats" id="trackerBannerStats">
+      <div class="tracker-stat"><div class="tracker-stat-num" id="tbTotal">—</div><div class="tracker-stat-lbl">Applied</div></div>
+      <div class="tracker-stat"><div class="tracker-stat-num" id="tbActive">—</div><div class="tracker-stat-lbl">Active</div></div>
+      <div class="tracker-stat"><div class="tracker-stat-num" id="tbOffers">—</div><div class="tracker-stat-lbl">Offers</div></div>
+    </div>
+    <button class="tracker-banner-cta" onclick="event.stopPropagation();window.location.href='prep/Interview-Tracker.html'">Open Tracker ↗</button>
+  </div>
+</div>
+
+<!-- WEEKLY STUDY GOAL -->
+<div class="weekly-goal-wrap">
+  <div class="weekly-goal-inner">
+    <div class="weekly-goal-left">
+      <div class="weekly-goal-label">This Week</div>
+      <div class="weekly-goal-nums">
+        <span class="wg-done" id="wkDone">0</span><span class="wg-sep">/</span><span class="wg-goal" id="wkGoal">20</span>
+      </div>
+      <div class="weekly-goal-suffix">questions solved</div>
+    </div>
+    <div class="weekly-goal-prog">
+      <div class="wg-bar-header">
+        <span>Weekly Goal</span><span class="wg-bar-pct" id="wkPct">0%</span>
+      </div>
+      <div class="wg-bar"><div class="wg-bar-fill" id="wkBar" style="width:0%"></div></div>
+    </div>
+    <div class="weekly-goal-days" id="wkDays">
+      <div class="wg-day">M</div><div class="wg-day">T</div><div class="wg-day">W</div>
+      <div class="wg-day">T</div><div class="wg-day">F</div><div class="wg-day">S</div><div class="wg-day">S</div>
+    </div>
+  </div>
+</div>
+
 <!-- FILTER BAR -->
 <div class="filter-bar">
   <span class="filter-label">Filter:</span>
@@ -399,7 +509,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <button class="chip active" data-filter="all">All</button>
     <button class="chip" data-filter="dsa">DSA & Algorithms</button>
     <button class="chip" data-filter="java">Java</button>
-    <button class="chip" data-filter="system">System Design</button>
     <button class="chip" data-filter="frontend">Frontend</button>
     <button class="chip" data-filter="pdf">PDF Library</button>
     <button class="chip" data-filter="done">Has Progress</button>
@@ -441,39 +550,39 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 const RESOURCES = [
   {
     id: 'dsa-hub', title: 'DSA Master Preparation Hub', category: 'DSA & Algorithms',
-    categoryKey: 'dsa', icon: '🧠',
+    categoryKey: 'dsa', moduleKey: 'dsa', icon: '🧠',
     desc: '200+ curated DSA questions across 15 categories — Arrays, Graphs, DP, Trees, Tries, and more. Each question ships with a full Java solution, complexity analysis, and persistent progress tracking.',
     tags: ['Arrays','Linked Lists','Trees','Graphs','DP','Backtracking','Heaps','Tries','Binary Search','FAANG','MNC'],
     color: '#06d6a0', file: 'prep/DSA-Prep-Hub.html', progressKey: 'dsa_prep_done_v1', notesKey: 'dsa_notes_v1', totalQ: 214, badge: 'new'
   },
   {
     id: 'java-kit', title: 'Java Interview Prep Kit', category: 'Java & Spring',
-    categoryKey: 'java', icon: '☕',
+    categoryKey: 'java', moduleKey: 'java', icon: '☕',
     desc: 'Senior-level Java prep covering Core Java, OOP, Collections, Streams, Multithreading, JVM internals, Spring Boot, Microservices, Kafka, JPA, Resilience4j, and real SOLID code examples.',
     tags: ['Core Java','Spring Boot','Kafka','JPA','Microservices','Multithreading','SOLID','Design Patterns'],
     color: '#f59e0b', file: 'prep/Java-Prep-kit.html', progressKey: 'java_prep_done_v1', notesKey: 'java_notes_v1', totalQ: 120, badge: 'hot'
   },
   {
     id: 'react-hub', title: 'Frontend & React Interview Hub', category: 'Frontend',
-    categoryKey: 'frontend', icon: '⚛️',
+    categoryKey: 'frontend', moduleKey: 'react', icon: '⚛️',
     desc: 'End-to-end frontend interview prep: React hooks, context, concurrent mode, state management, component patterns, performance optimizations, SSR/CSR (Next.js), testing, accessibility, and browser internals.',
     tags: ['React','JavaScript','HTML','CSS','Next.js','Performance','Testing','Accessibility','Web Vitals'],
     color: '#4f8ef7', file: 'prep/React-Prep.html', progressKey: 'react_prep_done_v1', notesKey: 'react_notes_v1', totalQ: 31, badge: 'hot'
   },
   {
     id: 'hr-kit', title: 'HR Questions & Answers', category: 'Behavioural & HR',
-    categoryKey: 'hr', icon: '🤝',
+    categoryKey: 'hr', moduleKey: 'hr', icon: '🤝',
     desc: 'Common HR and behavioural interview questions with concise, model answers you can adapt for interviews.',
     tags: ['HR','Behavioural','Interview','Soft Skills','Answers'],
     color: '#8b5cf6', file: 'prep/HR-Questions.html', progressKey: 'hr_questions_done_v1', notesKey: 'hr_notes_v1', totalQ: 48, badge: 'new'
   },
   {
     id: 'interview-prep-kit', title: 'Interview Preparation Kit', category: 'PDF Library',
-    categoryKey: 'pdf', icon: '📚',
+    categoryKey: 'pdf', moduleKey: 'ipk', icon: '📚',
     desc: 'Complete level-wise PDF library — 83 curated PDFs across 6 experience tracks (0–3, 3–5, 5–8, 8+ yrs). Covers Java, Spring, DSA, Microservices, Kafka, SQL, System Design, DevOps and more.',
     tags: ['Java','Spring Boot','DSA','Microservices','Kafka','SQL','System Design','PDF Library','All Levels'],
     color: '#22d3ee', file: 'prep/Interview-Prep-Kit.html', progressKey: 'ipk_completed_v1', notesKey: 'ipk_notes_v1', totalQ: 83, badge: 'new'
-  }
+  },
 ];
 
 
@@ -583,6 +692,7 @@ function buildCard(r, idx) {
         ${notesCount > 0 ? `<span class="res-notes-badge">📝 ${notesCount} note${notesCount>1?'s':''}</span>` : ''}
       </div>
       <div class="res-footer">
+        ${r.totalQ > 0 ? `
         <div class="res-progress-wrap">
           <div class="res-progress-label">
             <span class="res-progress-text">${p.done}/${r.totalQ} done${p.inProgress > 0 ? `<span class="res-progress-ip-text">· ⏳ ${p.inProgress}</span>` : ''}</span>
@@ -592,7 +702,7 @@ function buildCard(r, idx) {
             <div class="res-progress-fill" style="width:${p.pct}%;background:${fillColor}"></div>
             ${p.inProgress > 0 ? `<div class="res-progress-fill-ip" style="width:${ipPct}%"></div>` : ''}
           </div>
-        </div>
+        </div>` : `<div class="res-progress-wrap" style="align-self:center"><span style="font-size:11px;color:var(--text3)">Kanban · Rounds · Analytics · Export</span></div>`}
         <a class="res-open-btn" href="${r.file}" style="background:${r.color}" onclick="event.stopPropagation()">Open ↗</a>
       </div>
     </div>`;
@@ -630,6 +740,7 @@ function updateHeroStats() {
   });
   document.getElementById('statDone').textContent = totalDone;
   document.getElementById('statTotal').textContent = RESOURCES.length;
+  document.getElementById('statQ').textContent = TOTAL_Q;
   if (totalIP > 0) {
     document.getElementById('statInProgress').textContent = totalIP;
     document.getElementById('statInProgressPill').style.display = '';
@@ -833,15 +944,13 @@ function loadDashboard() {
     // Heatmap
     renderHeatmap(raw);
 
-    // Also refresh resource cards with DB data
-    RESOURCES.forEach(function(r) {
-      var modId = r.categoryKey === 'pdf' ? 'ipk' : (r.categoryKey === 'behavioural' ? 'hr' : r.categoryKey === 'java & spring' ? 'java' : r.categoryKey);
-      // Use id from MOD_CONFIG mapping
-    });
+    // Weekly goal
+    renderWeeklyGoal(raw);
 
   }).catch(function() {
-    // On error: render heatmap with local data (empty), achievements with local stats
+    // On error: render with empty/local data
     renderHeatmap([]);
+    renderWeeklyGoal([]);
     var localStats = { totalDone: 0, streak: 0, java: 0, dsa: 0, react: 0, hr: 0, ipk: 0 };
     RESOURCES.forEach(function(r) {
       var p = getProgress(r.progressKey, r.totalQ);
@@ -901,9 +1010,138 @@ function applyFilters() {
 }
 
 /* ══════════════════════════════════════════════════════
+   WEEKLY GOAL TRACKER
+══════════════════════════════════════════════════════ */
+var WK_GOAL = 20;
+
+function renderWeeklyGoal(rawProgress) {
+  var today = new Date();
+  var todayStr = today.toISOString().split('T')[0];
+
+  // Week starts on Monday
+  var weekStart = new Date(today);
+  var dow = today.getDay(); // 0=Sun
+  var diffToMon = dow === 0 ? -6 : 1 - dow;
+  weekStart.setDate(today.getDate() + diffToMon);
+  weekStart.setHours(0, 0, 0, 0);
+
+  var dayActivity = {};
+  (rawProgress || []).forEach(function(r) {
+    if (r.status === 'done' && r.status_changed_at) {
+      var d = new Date(r.status_changed_at);
+      if (d >= weekStart) {
+        var key = d.toISOString().split('T')[0];
+        dayActivity[key] = (dayActivity[key] || 0) + 1;
+      }
+    }
+  });
+
+  var done = Object.values(dayActivity).reduce(function(s, v) { return s + v; }, 0);
+  var pct  = Math.min(Math.round(done / WK_GOAL * 100), 100);
+  var isGoalMet = done >= WK_GOAL;
+
+  var wkDoneEl = document.getElementById('wkDone');
+  var wkPctEl  = document.getElementById('wkPct');
+  var wkBarEl  = document.getElementById('wkBar');
+  var wkDaysEl = document.getElementById('wkDays');
+
+  if (wkDoneEl) wkDoneEl.textContent = done;
+  if (wkPctEl)  wkPctEl.textContent  = pct + '%';
+  if (wkBarEl)  { wkBarEl.style.width = pct + '%'; if (isGoalMet) wkBarEl.classList.add('done'); }
+
+  if (wkDaysEl) {
+    var DAY_LABELS = ['M','T','W','T','F','S','S'];
+    var html = '';
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      var key = d.toISOString().split('T')[0];
+      var cnt = dayActivity[key] || 0;
+      var cls = 'wg-day';
+      if (cnt > 0)        cls += ' has-activity';
+      if (key === todayStr) cls += ' is-today';
+      html += '<div class="' + cls + '" title="' + DAY_LABELS[i] + ': ' + cnt + ' solved">' + DAY_LABELS[i] + '</div>';
+    }
+    wkDaysEl.innerHTML = html;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   STUDY MODULE ACCESS CONTROL
+══════════════════════════════════════════════════════ */
+function _canAccessStudyModule(study_modules, moduleKey) {
+  if (!moduleKey) return true;
+  if (study_modules === null || study_modules === undefined) return true;
+  if (study_modules.length === 0) return false;
+  return study_modules.indexOf(moduleKey) !== -1;
+}
+
+function _applyModuleAccess(profile) {
+  if (!profile) return;
+  if (profile.role === 'admin') return; // admins see everything
+  var study_modules = profile.study_modules;
+
+  // Lock resource cards the user can't access
+  document.querySelectorAll('.res-card').forEach(function(card) {
+    var resId     = card.dataset.id;
+    var moduleKey = null;
+    for (var i = 0; i < RESOURCES.length; i++) {
+      if (RESOURCES[i].id === resId) { moduleKey = RESOURCES[i].moduleKey; break; }
+    }
+    if (moduleKey && !_canAccessStudyModule(study_modules, moduleKey)) {
+      card.classList.add('res-card--locked');
+      var overlay = document.createElement('div');
+      overlay.className = 'res-lock-overlay';
+      overlay.innerHTML = '<div class="res-lock-badge">🔒 Access Restricted</div>' +
+                          '<div class="res-lock-hint">Contact admin to enable access</div>';
+      card.appendChild(overlay);
+    }
+  });
+
+  // Lock module progress rings the user can't access
+  var modKeyMap = { java: 'java', dsa: 'dsa', react: 'react', hr: 'hr', ipk: 'ipk' };
+  document.querySelectorAll('.mod-card').forEach(function(card) {
+    var href = card.getAttribute('href') || '';
+    var fileKey = Object.keys(modKeyMap).find(function(k) {
+      return href.toLowerCase().includes(k === 'ipk' ? 'interview-prep' : k);
+    });
+    if (fileKey && !_canAccessStudyModule(study_modules, modKeyMap[fileKey])) {
+      card.classList.add('mod-card--locked');
+      card.removeAttribute('href');
+      card.setAttribute('title', 'Access restricted — contact admin');
+    }
+  });
+
+  // Lock the Interview Tracker banner if tracker module is restricted
+  if (!_canAccessStudyModule(study_modules, 'tracker')) {
+    var trackerBanner = document.querySelector('.tracker-banner-inner');
+    if (trackerBanner) {
+      trackerBanner.removeAttribute('href');
+      trackerBanner.style.opacity = '0.55';
+      trackerBanner.style.cursor  = 'not-allowed';
+      trackerBanner.style.pointerEvents = 'none';
+      var ctaBtn = trackerBanner.querySelector('.tracker-banner-cta');
+      if (ctaBtn) { ctaBtn.textContent = '🔒 Restricted'; ctaBtn.style.background = 'var(--text3)'; }
+    }
+  }
+}
+
+// Receive profile from auth-guard and apply access restrictions before page is shown
+document.addEventListener('studyAccessReady', function(e) {
+  _applyModuleAccess(e && e.detail && e.detail.profile);
+});
+
+/* ══════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', function() {
+  // Show noaccess banner when redirected from a restricted module
+  var _urlParams = new URLSearchParams(window.location.search);
+  if (_urlParams.get('msg') === 'noaccess') {
+    document.getElementById('noAccessBanner').classList.add('show');
+    history.replaceState(null, '', window.location.pathname);
+  }
+
   // Theme
   var savedTheme = localStorage.getItem('sr_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', savedTheme);
@@ -925,6 +1163,21 @@ document.addEventListener('DOMContentLoaded', function() {
   var skel70 = '';
   for (var i = 0; i < 70; i++) skel70 += '<div class="heat-cell heat-0"></div>';
   document.getElementById('heatmapGrid').innerHTML = skel70;
+
+  // Interview Tracker banner stats
+  (function() {
+    try {
+      var apps = JSON.parse(localStorage.getItem('it_apps_v1') || '[]');
+      var INACTIVE = ['offer','accepted','rejected','withdrawn'];
+      var active = apps.filter(function(a){ return !INACTIVE.includes(a.status); }).length;
+      var offers = apps.filter(function(a){ return a.status === 'offer' || a.status === 'accepted'; }).length;
+      document.getElementById('tbTotal').textContent  = apps.length;
+      document.getElementById('tbActive').textContent = active;
+      document.getElementById('tbOffers').textContent = offers;
+    } catch(e) {
+      ['tbTotal','tbActive','tbOffers'].forEach(function(id){ document.getElementById(id).textContent = '0'; });
+    }
+  })();
 
   // Load live DB data
   loadDashboard();
