@@ -7,7 +7,7 @@
   'use strict';
 
   var LS_KEY      = 'lm_push_prefs';
-  var ICON        = '../assets/icons/icon-study-192.png';
+  var ICON        = './assets/icon-study-192.png';
   var _scheduled  = false;
   /* ── Persistence ───────────────────────────────────────── */
   function _load() {
