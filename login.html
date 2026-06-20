@@ -315,7 +315,7 @@ body {
   var _isLogout = _params.get('action') === 'logout';
   var _msgParam = _params.get('msg');
   var urlApp    = _params.get('app') || localStorage.getItem('lm_oauth_app');
-  selectApp(urlApp === 'study' ? 'study' : 'ledger');
+  selectApp(urlApp === 'ledger' ? 'ledger' : 'study');
 
   /* Show pending-approval message when redirected back from AuthManager */
   if (_msgParam === 'pending') {

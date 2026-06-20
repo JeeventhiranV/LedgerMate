@@ -288,7 +288,8 @@
     'react-prep.html':         'react',
     'hr-questions.html':       'hr',
     'interview-prep-kit.html': 'ipk',
-    'interview-tracker.html':  'tracker'
+    'interview-tracker.html':      'tracker',
+    'daily-learning-tracker.html': 'dlt'
   };
 
   function _currentModule() {

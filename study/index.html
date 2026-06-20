@@ -274,6 +274,28 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 @media(max-width:720px){.tracker-banner-stats{display:none}}
 @media(max-width:560px){.tracker-banner-inner{padding:14px 16px 14px 20px;gap:12px}.tracker-banner-title{font-size:14px}.tracker-banner-sub{display:none}}
 
+/* ── HERO QUICK LINKS ── */
+.hero-quick-links{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px;max-width:640px;margin-left:auto;margin-right:auto}
+.hero-ql-btn{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--card-border);border-radius:13px;padding:10px 14px;text-decoration:none;color:inherit;transition:all .22s;flex:1;min-width:200px;position:relative;overflow:hidden}
+.hero-ql-btn::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:13px 0 0 13px}
+.ql-teal{border-color:rgba(6,214,160,.3)}
+.ql-teal::before{background:#06d6a0}
+.ql-teal:hover{border-color:rgba(6,214,160,.6);transform:translateY(-2px);box-shadow:0 6px 20px rgba(6,214,160,.12)}
+.ql-blue{border-color:rgba(79,142,247,.3)}
+.ql-blue::before{background:#4f8ef7}
+.ql-blue:hover{border-color:rgba(79,142,247,.5);transform:translateY(-2px);box-shadow:0 6px 20px rgba(79,142,247,.12)}
+.ql-icon{font-size:20px;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex-shrink:0}
+.ql-teal .ql-icon{background:rgba(6,214,160,.12)}
+.ql-blue .ql-icon{background:rgba(79,142,247,.12)}
+.ql-body{flex:1;min-width:0}
+.ql-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);line-height:1.2}
+.ql-sub{font-size:11px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ql-arrow{color:var(--text3);font-size:12px;flex-shrink:0;transition:transform .2s}
+.hero-ql-btn:hover .ql-arrow{transform:translate(2px,-2px);color:var(--text)}
+.ql-stats{display:inline-flex;gap:6px;margin-top:4px}
+.ql-stat-chip{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#06d6a0;background:rgba(6,214,160,.1);border:1px solid rgba(6,214,160,.25);border-radius:6px;padding:1px 6px}
+@media(max-width:480px){.hero-quick-links{flex-direction:column}.hero-ql-btn{min-width:0}}
+
 /* ── MOBILE ── */
 @media(max-width:640px){
   .hero{padding:32px 16px 24px}
@@ -326,6 +348,114 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .wg-day.is-today{border-color:var(--gold)}
 .wg-day.is-today:not(.has-activity){color:var(--gold)}
 @media(max-width:640px){.weekly-goal-wrap{padding:0 16px 10px}.weekly-goal-inner{padding:12px 16px;gap:12px}.weekly-goal-days{gap:3px}.wg-day{width:22px;height:22px;border-radius:5px;font-size:8px}}
+
+/* ── INTERVIEW COUNTDOWN ── */
+.countdown-widget{max-width:640px;margin:14px auto 0}
+.countdown-none{background:var(--bg3);border:1px dashed var(--border2);border-radius:13px;padding:10px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .2s}
+.countdown-none:hover{border-color:var(--blue);color:var(--blue)}
+.countdown-none-text{font-size:12px;color:var(--text3);flex:1}
+.countdown-card{background:var(--card);border:1px solid var(--cd-color,var(--border2));border-radius:13px;padding:12px 16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;display:flex;align-items:center;gap:14px}
+.countdown-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cd-color,var(--blue))}
+.countdown-card:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,.35)}
+.cd-ring-wrap{position:relative;width:50px;height:50px;flex-shrink:0}
+.cd-ring-svg{width:50px;height:50px;transform:rotate(-90deg)}
+.cd-ring-bg{fill:none;stroke:var(--bg4);stroke-width:5}
+.cd-ring-fill{fill:none;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .6s}
+.cd-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;gap:1px}
+.cd-days{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--cd-color,var(--blue))}
+.cd-days-lbl{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em}
+.cd-body{flex:1;min-width:0}
+.cd-eyebrow{font-size:10px;font-weight:700;color:var(--cd-color,var(--blue));text-transform:uppercase;letter-spacing:.07em;font-family:'JetBrains Mono',monospace;margin-bottom:2px}
+.cd-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cd-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.cd-manage-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--text3);cursor:pointer;transition:all .2s;white-space:nowrap;font-family:'Inter',sans-serif;flex-shrink:0}
+.cd-manage-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--glow-blue)}
+@keyframes cdPulse{0%,100%{box-shadow:0 0 0 0 rgba(244,63,94,.4)}70%{box-shadow:0 0 0 8px rgba(244,63,94,0)}}
+.cd-urgent{animation:cdPulse 1.8s infinite}
+
+/* ── COUNTDOWN MODAL ── */
+.cd-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:600;display:flex;align-items:flex-end;justify-content:center;padding:0;opacity:0;pointer-events:none;transition:opacity .25s}
+.cd-modal-overlay.open{opacity:1;pointer-events:all}
+@media(min-width:480px){.cd-modal-overlay{align-items:center;padding:20px}}
+.cd-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:20px 20px 0 0;width:100%;max-width:460px;transform:translateY(60px);transition:transform .3s cubic-bezier(.34,1.2,.64,1);overflow:hidden}
+@media(min-width:480px){.cd-modal{border-radius:20px;transform:translateY(20px) scale(.97)}}
+.cd-modal-overlay.open .cd-modal{transform:translateY(0) scale(1)}
+.cd-modal-hdr{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.cd-modal-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text)}
+.cd-modal-close{background:none;border:1px solid var(--border);border-radius:7px;width:28px;height:28px;display:grid;place-items:center;cursor:pointer;font-size:14px;color:var(--text3);transition:all .2s}
+.cd-modal-close:hover{border-color:var(--rose);color:var(--rose)}
+.cd-modal-body{padding:16px 20px;max-height:70vh;overflow-y:auto}
+.cd-int-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:9px;margin-bottom:6px;border:1px solid var(--border)}
+.cd-int-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+.cd-int-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.cd-int-del{background:none;border:none;padding:4px;cursor:pointer;color:var(--text3);font-size:14px;flex-shrink:0;transition:color .15s;line-height:1}
+.cd-int-del:hover{color:var(--rose)}
+.cd-add-form{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:12px}
+.cd-add-form-title{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;font-family:'JetBrains Mono',monospace}
+.cd-form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+@media(max-width:420px){.cd-form-row{grid-template-columns:1fr}}
+.cd-input{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--text);font-family:'Inter',sans-serif;outline:none;transition:border-color .2s;width:100%}
+.cd-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--glow-blue)}
+.cd-input::placeholder{color:var(--text3)}
+.cd-modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;background:var(--bg3)}
+
+/* ── STUDY ADMIN SIDE DRAWER ── */
+#studyAdminBtn{display:none}
+#studyAdminBtn.visible{display:flex}
+.study-admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:500;opacity:0;pointer-events:none;transition:opacity .25s}
+.study-admin-overlay.open{opacity:1;pointer-events:all}
+.study-admin-drawer{position:fixed;top:0;right:0;bottom:0;width:min(500px,100vw);background:var(--bg2);border-left:1px solid var(--border2);z-index:501;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);box-shadow:-8px 0 40px rgba(0,0,0,.5)}
+.study-admin-overlay.open .study-admin-drawer{transform:translateX(0)}
+.sad-header{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.sad-header-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--purple));display:grid;place-items:center;font-size:16px;flex-shrink:0}
+.sad-titles{flex:1;min-width:0}
+.sad-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text)}
+.sad-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.sad-close{background:none;border:1px solid var(--border);border-radius:8px;width:30px;height:30px;display:grid;place-items:center;cursor:pointer;font-size:14px;color:var(--text3);transition:all .2s;flex-shrink:0}
+.sad-close:hover{border-color:var(--rose);color:var(--rose)}
+.sad-tabs{display:flex;border-bottom:1px solid var(--border);padding:0 12px;flex-shrink:0;overflow-x:auto}
+.sad-tabs::-webkit-scrollbar{height:0}
+.sad-tab{background:none;border:none;border-bottom:2px solid transparent;padding:10px 12px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;white-space:nowrap;transition:all .2s;font-family:'Inter',sans-serif;flex-shrink:0}
+.sad-tab:hover{color:var(--text)}
+.sad-tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+.sad-body{flex:1;overflow-y:auto;padding:16px 20px}
+.sad-body::-webkit-scrollbar{width:4px}
+.sad-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.sad-section-hdr{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;margin-top:16px;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:8px}
+.sad-section-hdr:first-child{margin-top:0}
+.sad-section-hdr::after{content:'';flex:1;height:1px;background:var(--border)}
+.sad-user-card{background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:12px 14px;margin-bottom:8px;transition:border-color .2s}
+.sad-user-card:hover{border-color:var(--border2)}
+.sad-user-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.sad-user-avatar{width:32px;height:32px;border-radius:50%;background:var(--bg4);display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--blue);flex-shrink:0;font-family:'JetBrains Mono',monospace}
+.sad-user-info{flex:1;min-width:0}
+.sad-user-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sad-user-email{font-size:11px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sad-user-badges{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.sad-badge{display:inline-flex;align-items:center;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:600}
+.sad-badge-admin{background:rgba(139,92,246,.12);color:var(--purple);border:1px solid rgba(139,92,246,.3)}
+.sad-badge-user{background:var(--bg4);color:var(--text3);border:1px solid var(--border)}
+.sad-badge-active{background:rgba(6,214,160,.1);color:var(--teal);border:1px solid rgba(6,214,160,.25)}
+.sad-badge-pending{background:rgba(244,63,94,.08);color:var(--rose);border:1px solid rgba(244,63,94,.2)}
+.sad-user-actions{display:flex;gap:5px;flex-wrap:wrap}
+.sad-btn{background:none;border:1px solid var(--border);border-radius:7px;padding:4px 10px;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;white-space:nowrap}
+.sad-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--glow-blue)}
+.sad-btn.ok{border-color:rgba(6,214,160,.4);color:var(--teal)}
+.sad-btn.ok:hover{background:rgba(6,214,160,.1)}
+.sad-btn.warn{border-color:rgba(244,63,94,.3);color:var(--rose)}
+.sad-btn.warn:hover{background:rgba(244,63,94,.08)}
+.sad-btn.purple{border-color:rgba(139,92,246,.35);color:var(--purple)}
+.sad-btn.purple:hover{background:rgba(139,92,246,.1)}
+.sad-loading{padding:40px;text-align:center;color:var(--text3);font-size:13px}
+.sad-empty{padding:20px;text-align:center;color:var(--text3);font-size:12px;background:var(--bg3);border-radius:9px;border:1px solid var(--border)}
+/* Module access modal inside drawer */
+.sad-mod-overlay{position:fixed;inset:0;z-index:700;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);padding:20px}
+.sad-mod-panel{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:24px;max-width:380px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.8)}
+.sad-module-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.sad-mod-label{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;cursor:pointer;font-size:12px;color:var(--text2);transition:all .18s}
+.sad-mod-label:hover{border-color:var(--border2)}
+.sad-mod-label input{width:14px;height:14px;accent-color:var(--purple);cursor:pointer;flex-shrink:0}
+.sad-mod-label:has(input:checked){border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.06);color:var(--text)}
 </style>
 <!-- Auth: Supabase SDK → config → guard → StudySync (order matters) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -342,6 +472,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   <div class="topbar-divider"></div>
   <div class="topbar-title">Study Resources Hub</div>
   <div class="topbar-right">
+    <button id="studyAdminBtn" class="btn-back" onclick="StudyAdmin.open()" title="Admin Panel" aria-label="Open study admin panel">⚙ Admin</button>
     <button class="btn-theme" id="themeBtn" title="Toggle theme" aria-label="Toggle dark/light theme">🌙</button>
   </div>
 </div>
@@ -386,6 +517,38 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       <input type="text" id="searchInput" placeholder="Search resources, topics, tags…" autocomplete="off" aria-label="Search resources"/>
       <kbd class="search-kbd">Ctrl+K</kbd>
     </div>
+
+    <!-- Quick-access tracker links -->
+    <div class="hero-quick-links">
+      <a href="prep/Interview-Tracker.html" class="hero-ql-btn ql-teal">
+        <div class="ql-icon">🎯</div>
+        <div class="ql-body">
+          <div class="ql-title">Interview Tracker</div>
+          <div class="ql-sub">Kanban · Rounds · CTC · CSV export</div>
+          <div class="ql-stats">
+            <span class="ql-stat-chip" id="tbTotal">—</span>
+            <span style="font-size:10px;color:var(--text3);align-self:center">applied</span>
+            <span class="ql-stat-chip" id="tbActive">—</span>
+            <span style="font-size:10px;color:var(--text3);align-self:center">active</span>
+            <span class="ql-stat-chip" id="tbOffers">—</span>
+            <span style="font-size:10px;color:var(--text3);align-self:center">offers</span>
+          </div>
+        </div>
+        <span class="ql-arrow">↗</span>
+      </a>
+      <a href="prep/Daily-Learning-Tracker.html" class="hero-ql-btn ql-blue">
+        <div class="ql-icon">📊</div>
+        <div class="ql-body">
+          <div class="ql-title">Daily Learning Tracker</div>
+          <div class="ql-sub">Activities · Coding · Revisions · Charts</div>
+        </div>
+        <span class="ql-arrow">↗</span>
+      </a>
+    </div>
+
+    <!-- Interview Countdown -->
+    <div class="countdown-widget" id="cdWidget"></div>
+
   </div>
 </div>
 
@@ -458,27 +621,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 </div>
 <!-- ═══ END DASHBOARD ═══ -->
 
-<!-- INTERVIEW TRACKER SHORTCUT -->
-<div class="tracker-banner" style="padding-top:20px;padding-bottom:4px">
-  <div class="tracker-banner-inner" role="link" tabindex="0"
-       onclick="window.location.href='prep/Interview-Tracker.html'"
-       onkeydown="if(event.key==='Enter')window.location.href='prep/Interview-Tracker.html'"
-       style="cursor:pointer">
-    <div class="tracker-banner-icon">🎯</div>
-    <div class="tracker-banner-body">
-      <div class="tracker-banner-label">Job Search · Quick Access</div>
-      <div class="tracker-banner-title">Interview Tracker</div>
-      <div class="tracker-banner-sub">Kanban board · Interview rounds · CTC tracking · CSV export</div>
-    </div>
-    <div class="tracker-banner-stats" id="trackerBannerStats">
-      <div class="tracker-stat"><div class="tracker-stat-num" id="tbTotal">—</div><div class="tracker-stat-lbl">Applied</div></div>
-      <div class="tracker-stat"><div class="tracker-stat-num" id="tbActive">—</div><div class="tracker-stat-lbl">Active</div></div>
-      <div class="tracker-stat"><div class="tracker-stat-num" id="tbOffers">—</div><div class="tracker-stat-lbl">Offers</div></div>
-    </div>
-    <button class="tracker-banner-cta" onclick="event.stopPropagation();window.location.href='prep/Interview-Tracker.html'">Open Tracker ↗</button>
-  </div>
-</div>
-
 <!-- WEEKLY STUDY GOAL -->
 <div class="weekly-goal-wrap">
   <div class="weekly-goal-inner">
@@ -530,6 +672,57 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   </div>
   <div class="resource-grid" id="resourceGrid"></div>
 
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     INTERVIEW COUNTDOWN MODAL
+══════════════════════════════════════════════════════════════ -->
+<div class="cd-modal-overlay" id="cdModalOverlay">
+  <div class="cd-modal">
+    <div class="cd-modal-hdr">
+      <div class="cd-modal-title">📅 Interview Countdown</div>
+      <button class="cd-modal-close" onclick="CDWidget.closeModal()">✕</button>
+    </div>
+    <div class="cd-modal-body">
+      <div id="cdIntList"></div>
+      <div class="cd-add-form">
+        <div class="cd-add-form-title">+ Add Interview</div>
+        <div class="cd-form-row">
+          <input class="cd-input" id="cdNewName" placeholder="Company / Role" autocomplete="off"/>
+          <input class="cd-input" id="cdNewDate" type="date"/>
+        </div>
+        <input class="cd-input" id="cdNewRound" placeholder="Round (e.g. Technical Round 2)" autocomplete="off" style="margin-bottom:0"/>
+      </div>
+    </div>
+    <div class="cd-modal-footer">
+      <button class="btn-back" onclick="CDWidget.closeModal()">Cancel</button>
+      <button class="res-open-btn" onclick="CDWidget.addInterview()" style="background:var(--blue);border-radius:9px;padding:7px 16px;font-size:12px">Add Interview</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     STUDY ADMIN SIDE DRAWER
+══════════════════════════════════════════════════════════════ -->
+<div class="study-admin-overlay" id="studyAdminOverlay">
+  <div class="study-admin-drawer">
+    <div class="sad-header">
+      <div class="sad-header-icon">⚙</div>
+      <div class="sad-titles">
+        <div class="sad-title">Study Admin Panel</div>
+        <div class="sad-sub">Manage users & study module access</div>
+      </div>
+      <button class="sad-close" onclick="StudyAdmin.close()">✕</button>
+    </div>
+    <nav class="sad-tabs">
+      <button class="sad-tab active" data-tab="users"    onclick="StudyAdmin.switchTab('users')">👥 Users</button>
+      <button class="sad-tab"        data-tab="pending"  onclick="StudyAdmin.switchTab('pending')">⏳ Pending</button>
+      <button class="sad-tab"        data-tab="settings" onclick="StudyAdmin.switchTab('settings')">🔧 Settings</button>
+    </nav>
+    <div class="sad-body" id="sadBody">
+      <div class="sad-loading">Loading…</div>
+    </div>
+  </div>
 </div>
 
 <div class="footer">Study Resources — Admin-approved access only.</div>
@@ -1012,9 +1205,10 @@ function applyFilters() {
 /* ══════════════════════════════════════════════════════
    WEEKLY GOAL TRACKER
 ══════════════════════════════════════════════════════ */
-var WK_GOAL = 20;
+var WK_GOAL = parseInt(localStorage.getItem('sr_wk_goal') || '20') || 20;
 
 function renderWeeklyGoal(rawProgress) {
+  window._lastRawProgress = rawProgress;
   var today = new Date();
   var todayStr = today.toISOString().split('T')[0];
 
@@ -1112,18 +1306,23 @@ function _applyModuleAccess(profile) {
     }
   });
 
-  // Lock the Interview Tracker banner if tracker module is restricted
-  if (!_canAccessStudyModule(study_modules, 'tracker')) {
-    var trackerBanner = document.querySelector('.tracker-banner-inner');
-    if (trackerBanner) {
-      trackerBanner.removeAttribute('href');
-      trackerBanner.style.opacity = '0.55';
-      trackerBanner.style.cursor  = 'not-allowed';
-      trackerBanner.style.pointerEvents = 'none';
-      var ctaBtn = trackerBanner.querySelector('.tracker-banner-cta');
-      if (ctaBtn) { ctaBtn.textContent = '🔒 Restricted'; ctaBtn.style.background = 'var(--text3)'; }
+  // Lock quick-link tracker buttons if modules are restricted
+  var qlMap = [
+    { sel: '.ql-teal', moduleKey: 'tracker' },
+    { sel: '.ql-blue',  moduleKey: 'dlt' },
+  ];
+  qlMap.forEach(function(item) {
+    var btn = document.querySelector(item.sel);
+    if (!btn) return;
+    if (!_canAccessStudyModule(study_modules, item.moduleKey)) {
+      btn.removeAttribute('href');
+      btn.style.opacity = '0.5';
+      btn.style.cursor  = 'not-allowed';
+      btn.style.pointerEvents = 'none';
+      var arrow = btn.querySelector('.ql-arrow');
+      if (arrow) arrow.textContent = '🔒';
     }
-  }
+  });
 }
 
 // Receive profile from auth-guard and apply access restrictions before page is shown
@@ -1256,6 +1455,400 @@ document.addEventListener('DOMContentLoaded', function() {
     startStopBtn.classList.remove('active');
   });
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   INTERVIEW COUNTDOWN WIDGET
+══════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  var CD_KEY = 'study_interviews_v1';
+
+  function _load() {
+    try { return JSON.parse(localStorage.getItem(CD_KEY) || '[]'); } catch (e) { return []; }
+  }
+  function _save(list) { localStorage.setItem(CD_KEY, JSON.stringify(list)); }
+
+  function _daysLeft(dateStr) {
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var d = new Date(dateStr); d.setHours(0, 0, 0, 0);
+    return Math.round((d - today) / 86400000);
+  }
+
+  function _color(days) {
+    if (days <= 0)  return 'var(--rose)';
+    if (days <= 2)  return 'var(--rose)';
+    if (days <= 5)  return 'var(--gold)';
+    if (days <= 10) return 'var(--blue)';
+    return 'var(--teal)';
+  }
+
+  function _esc(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function renderWidget() {
+    var widget = document.getElementById('cdWidget');
+    if (!widget) return;
+    var all = _load();
+    var upcoming = all.filter(function (i) { return _daysLeft(i.date) >= 0; })
+                      .sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
+    var past = all.filter(function (i) { return _daysLeft(i.date) < 0; });
+    // Auto-purge interviews older than 3 days
+    var pruned = all.filter(function (i) { return _daysLeft(i.date) >= -3; });
+    if (pruned.length !== all.length) _save(pruned);
+
+    if (!upcoming.length) {
+      widget.innerHTML = '<div class="countdown-none" onclick="CDWidget.openModal()">' +
+        '<span style="font-size:18px">📅</span>' +
+        '<div class="countdown-none-text">Add upcoming interview — get a countdown timer</div>' +
+        '<span style="font-size:13px;color:var(--blue);font-weight:600;flex-shrink:0">+ Add</span>' +
+        '</div>';
+      return;
+    }
+
+    var next = upcoming[0];
+    var days = _daysLeft(next.date);
+    var color = _color(days);
+    var CIRC = 2 * Math.PI * 21; // r=21
+    var pct = days === 0 ? 100 : Math.max(10, Math.round((1 - Math.min(days, 30) / 30) * 90) + 10);
+    var offset = (CIRC * (1 - pct / 100)).toFixed(1);
+
+    var daysLabel = days === 0 ? 'TODAY' : days === 1 ? '1 day' : days + ' days';
+    var subLabel  = days === 0 ? '🔴 Your interview is today!' :
+                    days === 1 ? '⚡ Interview tomorrow!' :
+                    next.date + (next.round ? ' · ' + next.round : '');
+    var moreText  = upcoming.length > 1 ? ' &nbsp;+' + (upcoming.length - 1) + ' more' : '';
+    var isUrgent  = days <= 1;
+
+    widget.innerHTML = '<div class="countdown-card' + (isUrgent ? ' cd-urgent' : '') + '" style="--cd-color:' + color + '" onclick="CDWidget.openModal()">' +
+      '<div class="cd-ring-wrap">' +
+        '<svg class="cd-ring-svg" viewBox="0 0 50 50">' +
+          '<circle class="cd-ring-bg" cx="25" cy="25" r="21"/>' +
+          '<circle class="cd-ring-fill" cx="25" cy="25" r="21" stroke="' + color + '" stroke-dasharray="' + CIRC.toFixed(1) + '" stroke-dashoffset="' + offset + '"/>' +
+        '</svg>' +
+        '<div class="cd-ring-text">' +
+          '<div class="cd-days">' + (days === 0 ? '🎯' : days) + '</div>' +
+          '<div class="cd-days-lbl">' + (days === 0 ? 'NOW' : 'days') + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="cd-body">' +
+        '<div class="cd-eyebrow">Next Interview' + moreText + '</div>' +
+        '<div class="cd-name">' + _esc(next.name) + '</div>' +
+        '<div class="cd-sub">' + subLabel + '</div>' +
+      '</div>' +
+      '<button class="cd-manage-btn" onclick="event.stopPropagation();CDWidget.openModal()">Manage ↗</button>' +
+    '</div>';
+  }
+
+  function openModal() {
+    document.getElementById('cdModalOverlay').classList.add('open');
+    renderModalList();
+  }
+
+  function closeModal() {
+    document.getElementById('cdModalOverlay').classList.remove('open');
+  }
+
+  function renderModalList() {
+    var list = _load().sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
+    var el = document.getElementById('cdIntList');
+    if (!list.length) {
+      el.innerHTML = '<div style="padding:12px 0 4px;text-align:center;color:var(--text3);font-size:12px">No interviews added yet — use the form below</div>';
+      return;
+    }
+    el.innerHTML = list.map(function (item) {
+      var days = _daysLeft(item.date);
+      var color = _color(days);
+      var daysLabel = days < 0 ? 'Passed' : days === 0 ? '🔴 Today!' : days === 1 ? '⚡ Tomorrow' : days + ' days left';
+      return '<div class="cd-int-item">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div class="cd-int-name">' + _esc(item.name) + '</div>' +
+          '<div class="cd-int-sub"><span style="color:' + color + ';font-weight:600">' + daysLabel + '</span>' + (item.round ? ' · ' + _esc(item.round) : '') + ' · ' + item.date + '</div>' +
+        '</div>' +
+        '<button class="cd-int-del" onclick="CDWidget.deleteItem(\'' + item.id + '\')" title="Remove">✕</button>' +
+      '</div>';
+    }).join('');
+  }
+
+  function deleteItem(id) {
+    _save(_load().filter(function (i) { return i.id !== id; }));
+    renderModalList();
+    renderWidget();
+  }
+
+  function addInterview() {
+    var name  = (document.getElementById('cdNewName')  || {}).value.trim();
+    var date  = (document.getElementById('cdNewDate')  || {}).value;
+    var round = (document.getElementById('cdNewRound') || {}).value.trim();
+    if (!name || !date) { return; }
+    var list = _load();
+    list.push({ id: Date.now().toString(36), name: name, date: date, round: round });
+    _save(list);
+    document.getElementById('cdNewName').value  = '';
+    document.getElementById('cdNewDate').value  = '';
+    document.getElementById('cdNewRound').value = '';
+    renderModalList();
+    renderWidget();
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    renderWidget();
+    setInterval(renderWidget, 60000);
+    var overlay = document.getElementById('cdModalOverlay');
+    if (overlay) overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+  });
+
+  window.CDWidget = { openModal: openModal, closeModal: closeModal, addInterview: addInterview, deleteItem: deleteItem };
+}());
+
+/* ══════════════════════════════════════════════════════════════
+   STUDY ADMIN SIDE PANEL
+══════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  var _overlay = document.getElementById('studyAdminOverlay');
+  var _activeTab = 'users';
+  var _allUsers  = [];
+
+  var STUDY_MODS = [
+    { key: 'java',    label: '☕ Java'      },
+    { key: 'dsa',     label: '🧠 DSA'       },
+    { key: 'react',   label: '⚛️ React'     },
+    { key: 'hr',      label: '🤝 HR'         },
+    { key: 'ipk',     label: '📚 PDFs'       },
+    { key: 'tracker', label: '🎯 Tracker'    },
+    { key: 'dlt',     label: '📊 DLT'        },
+  ];
+
+  function open() {
+    _overlay.classList.add('open');
+    _loadTab(_activeTab);
+  }
+
+  function close() {
+    _overlay.classList.remove('open');
+  }
+
+  function switchTab(tab) {
+    _activeTab = tab;
+    document.querySelectorAll('.sad-tab').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.tab === tab);
+    });
+    _loadTab(tab);
+  }
+
+  function _loadTab(tab) {
+    if (tab === 'users')    _loadUsers(false);
+    else if (tab === 'pending') _loadUsers(true);
+    else                    _loadSettings();
+  }
+
+  async function _loadUsers(pendingOnly) {
+    var body = document.getElementById('sadBody');
+    body.innerHTML = '<div class="sad-loading">Loading users…</div>';
+    try {
+      var res = await _supabase.from('user_profiles').select('*').order('created_at');
+      if (res.error) throw res.error;
+      _renderUsers(res.data || [], pendingOnly);
+    } catch (e) {
+      body.innerHTML = '<div class="sad-empty">Failed to load: ' + _esc(e.message) + '</div>';
+    }
+  }
+
+  function _renderUsers(profiles, pendingOnly) {
+    _allUsers = profiles;
+    var body = document.getElementById('sadBody');
+    var pending = profiles.filter(function (u) { return !u.active; });
+    var active  = profiles.filter(function (u) { return  u.active; });
+    var html = '';
+
+    if (pendingOnly) {
+      html += '<div class="sad-section-hdr">⏳ Pending Approval (' + pending.length + ')</div>';
+      html += pending.length ? pending.map(_userCard).join('') : '<div class="sad-empty">No pending users 🎉</div>';
+    } else {
+      if (pending.length) {
+        html += '<div class="sad-section-hdr" style="color:var(--rose)">⏳ Pending (' + pending.length + ')</div>';
+        html += pending.map(_userCard).join('');
+        html += '<div class="sad-section-hdr" style="margin-top:20px">✅ Active (' + active.length + ')</div>';
+      } else {
+        html += '<div class="sad-section-hdr">✅ All Users (' + active.length + ')</div>';
+      }
+      html += active.length ? active.map(_userCard).join('') : '<div class="sad-empty">No active users</div>';
+    }
+    body.innerHTML = html;
+  }
+
+  function _userCard(u) {
+    var initial = (u.display_name || u.email || '?').charAt(0).toUpperCase();
+    var mods = u.study_modules !== undefined ? u.study_modules : null;
+    var modBadge = mods === null
+      ? '<span class="sad-badge sad-badge-active">All modules</span>'
+      : Array.isArray(mods) && mods.length === 0
+        ? '<span class="sad-badge sad-badge-pending">No access</span>'
+        : '<span class="sad-badge sad-badge-user">' + mods.length + ' modules</span>';
+    return '<div class="sad-user-card">' +
+      '<div class="sad-user-top">' +
+        '<div class="sad-user-avatar">' + initial + '</div>' +
+        '<div class="sad-user-info">' +
+          '<div class="sad-user-name">' + _esc(u.display_name || u.email.split('@')[0]) + '</div>' +
+          '<div class="sad-user-email">' + _esc(u.email) + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="sad-user-badges">' +
+        '<span class="sad-badge ' + (u.role === 'admin' ? 'sad-badge-admin' : 'sad-badge-user') + '">' + u.role + '</span>' +
+        '<span class="sad-badge ' + (u.active ? 'sad-badge-active' : 'sad-badge-pending') + '">' + (u.active ? 'active' : 'pending') + '</span>' +
+        modBadge +
+      '</div>' +
+      '<div class="sad-user-actions">' +
+        (!u.active ? '<button class="sad-btn ok"     onclick="StudyAdmin.approve(\'' + u.id + '\')">✅ Approve</button>' : '') +
+        (u.active  ? '<button class="sad-btn warn"   onclick="StudyAdmin.deactivate(\'' + u.id + '\')">⏸ Pause</button>' : '') +
+        '<button class="sad-btn purple" onclick="StudyAdmin.modAccess(\'' + u.id + '\')">📚 Modules</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function _loadSettings() {
+    var body = document.getElementById('sadBody');
+    var wkGoal = parseInt(localStorage.getItem('sr_wk_goal') || '20');
+    body.innerHTML = '<div class="sad-section-hdr">Study Hub Settings</div>' +
+      '<div style="background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:16px;">' +
+        '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">Weekly Question Goal</div>' +
+        '<div style="display:flex;gap:8px;align-items:center">' +
+          '<input id="sadWkGoal" type="number" min="1" max="200" value="' + wkGoal + '" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;color:var(--text);font-family:JetBrains Mono,monospace;width:80px;outline:none">' +
+          '<span style="font-size:12px;color:var(--text3)">questions / week</span>' +
+          '<button onclick="StudyAdmin.saveWkGoal()" class="sad-btn ok" style="margin-left:auto">Save</button>' +
+        '</div>' +
+        '<div style="font-size:11px;color:var(--text3);margin-top:8px">This updates the weekly goal bar shown in the dashboard</div>' +
+      '</div>';
+  }
+
+  async function approve(id) {
+    await _patch(id, { active: true, updated_at: new Date().toISOString() }, 'User approved ✓');
+  }
+
+  async function deactivate(id) {
+    if (!confirm('Deactivate this user?')) return;
+    await _patch(id, { active: false, updated_at: new Date().toISOString() }, 'User deactivated');
+  }
+
+  function modAccess(userId) {
+    var u = _allUsers.find(function (x) { return x.id === userId; });
+    if (!u) return;
+    var name    = u.display_name || u.email;
+    var current = u.study_modules !== undefined ? u.study_modules : null;
+    var hasAccess = current === null || (Array.isArray(current) && current.length > 0);
+    var allowed   = current === null ? STUDY_MODS.map(function (m) { return m.key; }) : (Array.isArray(current) ? current : []);
+
+    var modCheckboxes = STUDY_MODS.map(function (m) {
+      return '<label class="sad-mod-label">' +
+        '<input type="checkbox" id="sm_' + m.key + '" value="' + m.key + '"' + (current === null || allowed.indexOf(m.key) !== -1 ? ' checked' : '') + '>' +
+        m.label + '</label>';
+    }).join('');
+
+    var panel = document.createElement('div');
+    panel.className = 'sad-mod-overlay';
+    panel.id = 'sadModOverlay';
+    panel.innerHTML = '<div class="sad-mod-panel">' +
+      '<div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px">📚 Study Module Access</div>' +
+      '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">' + _esc(name) + '</div>' +
+      '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:11px 13px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.2);border-radius:9px;margin-bottom:14px">' +
+        '<input type="checkbox" id="sm_enabled" ' + (hasAccess ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--purple)">' +
+        '<div>' +
+          '<div style="font-size:13px;font-weight:600;color:var(--text)">Enable Study Hub access</div>' +
+          '<div style="font-size:11px;color:var(--text3)">Uncheck to block all study modules for this user</div>' +
+        '</div>' +
+      '</label>' +
+      '<div id="smModSection" style="' + (hasAccess ? '' : 'opacity:.35;pointer-events:none') + '">' +
+        '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-family:JetBrains Mono,monospace">Module Permissions</div>' +
+        '<div class="sad-module-grid">' + modCheckboxes + '</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;margin-top:18px;">' +
+        '<button onclick="StudyAdmin._saveModules(\'' + userId + '\')" style="flex:1;padding:9px;background:var(--purple);border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Save Access</button>' +
+        '<button onclick="document.getElementById(\'sadModOverlay\').remove()" style="padding:9px 14px;background:none;border:1px solid var(--border);border-radius:9px;color:var(--text2);font-size:13px;cursor:pointer;font-family:Inter,sans-serif">Cancel</button>' +
+      '</div>' +
+    '</div>';
+    document.body.appendChild(panel);
+
+    document.getElementById('sm_enabled').addEventListener('change', function () {
+      var sec = document.getElementById('smModSection');
+      sec.style.opacity = this.checked ? '1' : '.35';
+      sec.style.pointerEvents = this.checked ? '' : 'none';
+    });
+    panel.addEventListener('click', function (e) { if (e.target === panel) panel.remove(); });
+  }
+
+  async function _saveModules(userId) {
+    var enabled = (document.getElementById('sm_enabled') || {}).checked;
+    var studyModules;
+    if (!enabled) {
+      studyModules = [];
+    } else {
+      var checked = STUDY_MODS.filter(function (m) {
+        var el = document.getElementById('sm_' + m.key);
+        return el && el.checked;
+      }).map(function (m) { return m.key; });
+      studyModules = checked.length === STUDY_MODS.length ? null : checked;
+    }
+    document.getElementById('sadModOverlay')?.remove();
+    await _patch(userId, { study_modules: studyModules, updated_at: new Date().toISOString() }, 'Study access updated ✓');
+  }
+
+  function saveWkGoal() {
+    var val = parseInt((document.getElementById('sadWkGoal') || {}).value || '20') || 20;
+    localStorage.setItem('sr_wk_goal', String(val));
+    WK_GOAL = val;
+    renderWeeklyGoal(window._lastRawProgress || []);
+    _sadToast('Weekly goal set to ' + val + ' questions ✓');
+  }
+
+  async function _patch(id, patch, msg) {
+    try {
+      var res = await _supabase.from('user_profiles').update(patch).eq('id', id);
+      if (res.error) throw res.error;
+      _sadToast(msg);
+      _loadTab(_activeTab);
+    } catch (e) {
+      _sadToast('Error: ' + _esc(e.message), true);
+    }
+  }
+
+  function _sadToast(msg, isErr) {
+    var el = document.createElement('div');
+    el.style.cssText = 'position:fixed;bottom:24px;left:24px;z-index:9999;background:var(--bg2);border:1px solid var(--border2);border-left:3px solid ' +
+      (isErr ? 'var(--rose)' : 'var(--teal)') +
+      ';border-radius:9px;padding:9px 14px;font-size:12px;color:var(--text);box-shadow:0 4px 16px rgba(0,0,0,.4);pointer-events:none;';
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 2600);
+  }
+
+  function _esc(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /* Show admin button only for admins */
+  function _tryShowAdminBtn(profile) {
+    if (profile && profile.role === 'admin') {
+      var btn = document.getElementById('studyAdminBtn');
+      if (btn) btn.classList.add('visible');
+    }
+  }
+
+  document.addEventListener('studyAccessReady', function (e) {
+    _tryShowAdminBtn(e && e.detail && e.detail.profile);
+  });
+
+  if (window._studyProfile) _tryShowAdminBtn(window._studyProfile);
+
+  if (_overlay) _overlay.addEventListener('click', function (e) { if (e.target === _overlay) close(); });
+
+  window.StudyAdmin = {
+    open: open, close: close, switchTab: switchTab,
+    approve: approve, deactivate: deactivate, modAccess: modAccess,
+    _saveModules: _saveModules, saveWkGoal: saveWkGoal,
+  };
+}());
 
 CommunityHub.init({ module: 'general', moduleName: 'Interview Prep Community' });
 </script>

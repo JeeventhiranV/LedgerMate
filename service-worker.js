@@ -8,7 +8,7 @@
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v2.3.2';
+const CACHE_VERSION = 'lm-v2.7.0';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
@@ -71,6 +71,7 @@ const STATIC_ASSETS = [
   './study/prep/HR-Questions.html',
   './study/prep/Interview-Prep-Kit.html',
   './study/prep/Interview-Tracker.html',
+  './study/prep/Daily-Learning-Tracker.html',
 
   /* Study JS */
   './study/js/StudySync.js',

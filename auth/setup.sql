@@ -249,3 +249,78 @@ $$;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+
+
+-- ─── Daily Learning Tracker tables ─────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.lm_config_master (
+  id          uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     uuid        REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  config_type text        NOT NULL,
+  code        text        NOT NULL,
+  label       text        NOT NULL,
+  parent_code text,
+  sort_order  int         DEFAULT 0,
+  is_active   boolean     DEFAULT true,
+  created_at  timestamptz DEFAULT now(),
+  updated_at  timestamptz DEFAULT now(),
+  UNIQUE (user_id, config_type, code)
+);
+ALTER TABLE public.lm_config_master ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "lm_config_master_user" ON public.lm_config_master;
+CREATE POLICY "lm_config_master_user" ON public.lm_config_master
+  FOR ALL USING (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS public.lm_daily_learning (
+  id                      uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id                 uuid        REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  activity_date           date        NOT NULL,
+  category_code           text,
+  subcategory_code        text,
+  activity_type_code      text,
+  topic_name              text        NOT NULL,
+  description             text,
+  time_spent_mins         int,
+  difficulty_code         text,
+  source_code             text,
+  status_code             text        DEFAULT 'not_started',
+  priority_code           text        DEFAULT 'medium',
+  target_date             date,
+  actual_completion_date  date,
+  learning_outcome        text,
+  reference_link          text,
+  remarks                 text,
+  is_revision_required    boolean     DEFAULT false,
+  revision_date           date,
+  revision_status         text,
+  revision_notes          text,
+  created_at              timestamptz DEFAULT now(),
+  updated_at              timestamptz DEFAULT now()
+);
+ALTER TABLE public.lm_daily_learning ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "lm_daily_learning_user" ON public.lm_daily_learning;
+CREATE POLICY "lm_daily_learning_user" ON public.lm_daily_learning
+  FOR ALL USING (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS public.lm_coding_tracker (
+  id                  uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id             uuid        REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  practice_date       date        NOT NULL,
+  platform_code       text,
+  problem_name        text        NOT NULL,
+  difficulty_code     text,
+  category_code       text,
+  time_taken_mins     int,
+  solution_available  boolean     DEFAULT false,
+  revision_required   boolean     DEFAULT false,
+  notes               text,
+  reference_link      text,
+  status_code         text        DEFAULT 'completed',
+  created_at          timestamptz DEFAULT now(),
+  updated_at          timestamptz DEFAULT now()
+);
+ALTER TABLE public.lm_coding_tracker ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "lm_coding_tracker_user" ON public.lm_coding_tracker;
+CREATE POLICY "lm_coding_tracker_user" ON public.lm_coding_tracker
+  FOR ALL USING (auth.uid() = user_id);
