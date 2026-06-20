@@ -8,7 +8,7 @@
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v2.18.0';
+const CACHE_VERSION = 'lm-v2.19.0';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
@@ -20,7 +20,7 @@ const STATIC_ASSETS = [
 
   /* Icons / PWA */
   './assets/icons/favicon.ico',
-  './assets/icons/icon-512.png',
+  './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
 
   /* Stylesheets */
@@ -34,6 +34,7 @@ const STATIC_ASSETS = [
   './assets/vendor/tailwind.min.js',
   './assets/vendor/jspdf.umd.min.js',
   './assets/vendor/html2canvas.min.js',
+  './assets/vendor/drive.min.js',
 
   /* Core JS */
   './src/scripts/Core/AppBus.js',
@@ -51,6 +52,7 @@ const STATIC_ASSETS = [
   './src/scripts/Charts/Doughnut.js',
   './src/scripts/SpeechText/VoiceText.js',
   './src/scripts/Common/Notifications.js',
+  './src/scripts/Common/Drive.js',
   './src/scripts/Common/GoldRateFetch.js',
   './src/scripts/Common/TripPlanner.js',
   './src/scripts/Common/Dropdown.js',

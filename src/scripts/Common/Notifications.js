@@ -463,11 +463,22 @@
     }
   }
 
-  async function scheduleLocalNotification(timestamp, title, body, data = {}) {
+  async function scheduleLocalNotification(timestamp, title, body, opts = {}) {
     if (!('serviceWorker' in navigator)) return false;
-    const reg = await navigator.serviceWorker.ready;
-    reg.active.postMessage({ type: 'schedule-notification', timestamp, title, body, data });
-    return true;
+    try {
+      const reg    = await navigator.serviceWorker.ready;
+      const target = reg.active || reg.installing || reg.waiting;
+      if (!target) return false;
+      target.postMessage({
+        type     : 'schedule-notification',
+        timestamp: timestamp,
+        title    : title,
+        body     : body,
+        tag      : opts.tag  || 'lm-notif',
+        url      : opts.url  || './'
+      });
+      return true;
+    } catch (e) { return false; }
   }
 
   // ========== CHECK ALL NOTIFICATIONS (time‑gated, cooldown applied) ==========
@@ -511,49 +522,71 @@
       }
     }
 
-    // 2. Loan due‑soon (with cooldown)
-    const isDueSoon = (dueDate) => {
-      if (!dueDate) return false;
-      const due = new Date(dueDate);
-      const diffDays = Math.floor((due - now) / (1000 * 60 * 60 * 24));
-      return diffDays <= 3;
-    };
-
+    // 2. Loan due-soon / overdue alerts (with cooldown, separate tags per direction)
     const loanGroups = {};
     (state.loans || []).forEach((loan) => {
-      if (!loan.collected && loan.dueDate && isDueSoon(loan.dueDate)) {
-        const key = `${loan.person}__${loan.type}__${loan.dueDate}`;
-        if (!loanGroups[key]) {
-          loanGroups[key] = { person: loan.person, type: loan.type, dueDate: loan.dueDate, total: 0 };
-        }
-        loanGroups[key].total += Number(loan.amount);
+      if (loan.collected || !loan.dueDate) return;
+      const due      = new Date(loan.dueDate + 'T00:00:00');
+      const diffDays = Math.floor((due - now) / (1000 * 60 * 60 * 24));
+      if (diffDays > 3) return; // more than 3 days away — skip
+      const key = `${loan.person}__${loan.type}__${loan.dueDate}`;
+      if (!loanGroups[key]) {
+        loanGroups[key] = { person: loan.person, type: loan.type, dueDate: loan.dueDate, total: 0, diffDays };
       }
+      loanGroups[key].total += Number(loan.amount);
     });
 
     Object.values(loanGroups).forEach((g) => {
       const groupKey = `${g.person}__${g.type}__${g.dueDate}`;
-      if (!canAlertLoanGroup(groupKey)) return; // cooldown active
+      if (!canAlertLoanGroup(groupKey)) return;
 
-      const msg = `⚠️ Loan ${g.type === 'given' ? 'to Collect' : 'to Pay'}: ${fmtINR(g.total)} ${g.type === 'given' ? 'from' : 'to'} ${g.person} (Due: ${g.dueDate})`;
-      notifications.push({ title: 'Loan Due Soon!', message: msg, type: 'error', timestamp: parseDateTime(g.dueDate)?.getTime() || Date.now() });
+      const isOverdue  = g.diffDays < 0;
+      const isToday    = g.diffDays === 0;
+      const isTomorrow = g.diffDays === 1;
+      const isCollect  = g.type === 'given';   // we gave money → we need to collect
+      const direction  = isCollect ? 'Collect from' : 'Repay to';
+      const preposition= isCollect ? 'from' : 'to';
+      const pushTag    = isCollect ? 'lm-loan-collect' : 'lm-loan-repay';
+
+      const statusLabel = isOverdue
+        ? `${Math.abs(g.diffDays)} day(s) OVERDUE`
+        : isToday    ? 'Due TODAY'
+        : isTomorrow ? 'Due TOMORROW'
+        : `Due in ${g.diffDays} days`;
+
+      const alertTitle = isOverdue
+        ? `Loan Overdue — ${direction} ${g.person}`
+        : `Loan Due ${isToday ? 'Today' : 'Soon'} — ${direction} ${g.person}`;
+
+      const msg = `${fmtINR(g.total)} ${preposition} ${g.person} · ${statusLabel} (${g.dueDate})`;
+
+      notifications.push({
+        title    : alertTitle,
+        message  : msg,
+        type     : isOverdue ? 'error' : 'warning',
+        tag      : pushTag,
+        isOverdue: isOverdue,
+        timestamp: new Date(g.dueDate + 'T00:00:00').getTime()
+      });
       markLoanGroupAlerted(groupKey);
     });
 
-    // 3. Process notifications in batches, but only within allowed time window
+    // 3. Process notifications — overdue loans always fire, others only in allowed window
     function processNotifications() {
-      if (!isAllowedAlertTime()) return;   // ⛔ silent outside morning/evening
-
       enableNotifications();
       const batch = notifications.splice(0, 2);
       batch.forEach((n) => {
         showToast(n.message, n.type);
-        if (n.title === "Loan Due Soon!" && canTriggerBrowserNotification("loan")) {
-          sendBrowserNotification(n.title, n.message, { tag: 'lm-loan', url: './' });
+
+        /* Overdue loans always push regardless of time; everything else is time-gated */
+        const pushAllowed = n.isOverdue || isAllowedAlertTime();
+        if (!pushAllowed) return;
+
+        const pushTag = n.tag || (n.title && n.title.includes('Loan') ? 'lm-loan' : 'lm-reminder');
+        if (canTriggerBrowserNotification(pushTag)) {
+          sendBrowserNotification(n.title, n.message, { tag: pushTag, url: './' });
         }
-        if (n.title === "Reminder Due Soon!" && canTriggerBrowserNotification("reminder")) {
-          sendBrowserNotification(n.title, n.message, { tag: 'lm-reminder', url: './' });
-        }
-        scheduleLocalNotification(n.timestamp, n.title, n.message);
+        scheduleLocalNotification(n.timestamp, n.title, n.message, { tag: pushTag, url: './' });
       });
       if (notifications.length > 0) {
         setTimeout(processNotifications, 3500);
@@ -567,12 +600,12 @@
     renderNotifications();
   }
 
-  function canTriggerBrowserNotification(type) {
-    const key = `lastNotif_${type}`;
+  function canTriggerBrowserNotification(tag) {
+    const key  = `lastNotif_${tag}`;
     const last = localStorage.getItem(key);
-    const now = Date.now();
-    const TWELVE_HOURS = 12 * 60 * 60 * 1000; // 12 hours
-    if (!last || now - parseInt(last, 10) > TWELVE_HOURS) {
+    const now  = Date.now();
+    const COOLDOWN = 12 * 60 * 60 * 1000; // 12 hours per unique tag
+    if (!last || now - parseInt(last, 10) > COOLDOWN) {
       localStorage.setItem(key, now.toString());
       return true;
     }
