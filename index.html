@@ -2,6 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co;"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LedgerMate - Personal Finance</title>
 <link rel="manifest" href="./manifest.json">
@@ -289,6 +290,9 @@
       <button class="sidebar-nav-item" onclick="window.LM_Admin?.show()">
         <span class="nav-icon">⚙️</span> Admin Panel
       </button>
+      <button class="sidebar-nav-item" onclick="window.open('./study/index.html?admin=open','_self')">
+        <span class="nav-icon">📚</span> Study Admin
+      </button>
     </div>
 
     <!-- ── SIGN OUT ───────────────────────────────────────── -->
@@ -325,6 +329,11 @@
 
         <!-- ☁️ Cloud Sync -->
         <button id="cloudSyncBtn" class="icon-btn" title="Sync to cloud" onclick="LM_manualSync()">☁️</button>
+
+        <!-- 🔔 Push enable (shown until granted) -->
+        <button id="lmPushEnableBtn" class="icon-btn" title="Enable push notifications" onclick="window.LMPush&&LMPush.request()" style="display:none;position:relative;" aria-label="Enable notifications">
+          🔕
+        </button>
 
         <!-- 🌙 Theme toggle -->
         <button class="icon-btn" onclick="toggleTheme()" id="themeIcon" title="Toggle Theme">🌙</button>
@@ -1382,6 +1391,29 @@ function setGreeting() {
   <!-- Admin Panel -->
   <script src="./src/scripts/Admin/AdminPanel.js"></script>
   <script src="./src/scripts/Common/Search.js"></script>
+  <!-- PWA install prompt — works on any page -->
+  <script src="./src/scripts/pwa-install.js"></script>
+  <!-- Real-time push notifications -->
+  <script src="./src/scripts/pwa-push.js"></script>
+  <script>
+  /* Show 🔕 button in topbar until user grants push permission */
+  (function () {
+    function _syncPushBtn() {
+      var btn = document.getElementById('lmPushEnableBtn');
+      if (!btn) return;
+      var perm = typeof Notification !== 'undefined' ? Notification.permission : 'unsupported';
+      btn.style.display = (perm === 'default') ? '' : 'none';
+    }
+    document.addEventListener('DOMContentLoaded', _syncPushBtn);
+    /* Re-check after user grants permission via the bell */
+    if (typeof Notification !== 'undefined') {
+      var _origReq = Notification.requestPermission.bind(Notification);
+      Notification.requestPermission = function () {
+        return _origReq.apply(this, arguments).then(function (p) { _syncPushBtn(); return p; });
+      };
+    }
+  }());
+  </script>
 
 <!-- Modals / Hidden UI -->
       <div id="modals"></div>

@@ -8,7 +8,7 @@
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v2.7.0';
+const CACHE_VERSION = 'lm-v2.18.0';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
@@ -20,7 +20,7 @@ const STATIC_ASSETS = [
 
   /* Icons / PWA */
   './assets/icons/favicon.ico',
-  './assets/icons/icon-192.png',
+  './assets/icons/icon-512.png',
   './assets/icons/icon-512.png',
 
   /* Stylesheets */
@@ -42,6 +42,8 @@ const STATIC_ASSETS = [
   './src/scripts/Auth/StorePatch.js',
   './src/scripts/Admin/AdminPanel.js',
   './src/scripts/CloudSync.js',
+  './src/scripts/pwa-install.js',
+  './src/scripts/pwa-push.js',
   './src/scripts/Common.js',
   './src/scripts/Wealth/Wealth.js',
   './src/scripts/Wealth/Essentials.js',
@@ -77,9 +79,15 @@ const STATIC_ASSETS = [
   './study/js/StudySync.js',
   './study/js/study-features.js',
   './study/js/community-hub.js',
+  './study/js/lm-toast.js',
+  './study/js/pwa-push.js',
+
+  /* Study assets */
+  './study/assets/icon-study-192.png',
 
   /* Study styles */
   './study/styles/Preparation.css',
+  './study/styles/study-hub.css',
 
   /* Study data */
   './study/data/pdfs.json',
@@ -211,4 +219,76 @@ self.addEventListener('fetch', event => {
         caches.match(event.request).then(c => c || caches.match('./index.html'))
       )
   );
+});
+
+/* ── Push: receive server-sent or local push ───────────────── */
+self.addEventListener('push', event => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (e) {}
+
+  const title = data.title || 'LedgerMate';
+  const opts  = {
+    body    : data.body  || '',
+    icon    : './assets/icons/icon-512.png',
+    badge   : './assets/icons/icon-512.png',
+    tag     : data.tag   || 'lm-push',
+    renotify: true,
+    data    : { url: data.url || './' },
+    actions : data.actions || []
+  };
+
+  event.waitUntil(self.registration.showNotification(title, opts));
+});
+
+/* ── Notification click: focus or open the target URL ─────── */
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || './';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+      for (const client of list) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      return clients.openWindow(url);
+    })
+  );
+});
+
+/* ── Message: schedule a delayed local notification ────────── */
+const _scheduled = new Map();
+
+self.addEventListener('message', event => {
+  if (!event.data) return;
+
+  if (event.data.type === 'schedule-notification') {
+    const { title, body, timestamp, tag, url } = event.data;
+    const delay = Math.max(0, timestamp - Date.now());
+    const id    = tag || ('lm-sched-' + timestamp);
+
+    /* Cancel any prior timer for the same tag */
+    if (_scheduled.has(id)) clearTimeout(_scheduled.get(id));
+
+    const timer = setTimeout(function () {
+      _scheduled.delete(id);
+      self.registration.showNotification(title || 'LedgerMate Reminder', {
+        body    : body  || '',
+        icon    : './assets/icons/icon-512.png',
+        badge   : './assets/icons/icon-512.png',
+        tag     : id,
+        renotify: true,
+        data    : { url: url || './' }
+      });
+    }, delay);
+
+    _scheduled.set(id, timer);
+  }
+
+  if (event.data.type === 'cancel-notification') {
+    const id = event.data.tag;
+    if (_scheduled.has(id)) { clearTimeout(_scheduled.get(id)); _scheduled.delete(id); }
+    self.registration.getNotifications({ tag: id }).then(ns => ns.forEach(n => n.close()));
+  }
 });

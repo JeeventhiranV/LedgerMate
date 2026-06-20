@@ -101,7 +101,10 @@ var StudySync = (function () {
         ),
         { onConflict: 'user_id,module,item_id' }
       ).then(function (res) {
-        if (res.error) console.warn('[StudySync] upsert error:', res.error.message, res.error);
+        if (res.error) {
+          console.warn('[StudySync] upsert error:', res.error.message, res.error);
+          if (window.LMToast) LMToast.err('Sync failed — check connection');
+        }
       });
     }).catch(function () {});
   }
@@ -152,7 +155,10 @@ var StudySync = (function () {
         { user_id: uid, last_date: date, streak: streak, longest: longest, updated_at: new Date().toISOString() },
         { onConflict: 'user_id' }
       ).then(function (res) {
-        if (res.error) console.warn('[StudySync] streak upsert error:', res.error.message, res.error);
+        if (res.error) {
+          console.warn('[StudySync] streak upsert error:', res.error.message, res.error);
+          if (window.LMToast) LMToast.err('Sync failed — check connection');
+        }
       });
     }).catch(function () {});
   }

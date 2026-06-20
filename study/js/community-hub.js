@@ -1569,6 +1569,14 @@
       .subscribe();
   }
 
+  /* ── Chat access check ───────────────────────────────────────────── */
+  function _hasChatAccess(profile) {
+    if (!profile) return false;
+    var mods = profile.study_modules;
+    if (mods === null || mods === undefined) return true; // null = all-access (includes admin with null modules)
+    return Array.isArray(mods) && mods.indexOf('chat') !== -1;
+  }
+
   /* ══════════════════════════════════════════════════════════════════════
      INIT
   ══════════════════════════════════════════════════════════════════════ */
@@ -1577,8 +1585,18 @@
     _injectStyles();
     _buildWidget();
 
-    // Resolve current user
-    _uid().then(function(uid) {
+    // Hide widget immediately; DB calls deferred until access confirmed
+    var widget = document.getElementById('ch-widget');
+    if (widget) widget.style.display = 'none';
+
+    function _onProfileReady(profile) {
+      if (!_hasChatAccess(profile)) return; // no access — widget stays hidden, no DB calls
+
+      // Show widget
+      if (widget) widget.style.display = '';
+
+      // Resolve current user (only if chat is accessible)
+      _uid().then(function(uid) {
       if (!uid) return;
       var profilePromise = _supabase.from('community_profiles')
         .select('user_id,display_name,avatar_color,reputation')
@@ -1600,6 +1618,16 @@
         return _supabase.from('community_topics').select('id,slug,label,icon,color').order('id');
       }).then(function(r) { if (r && r.data) _topics = r.data; });
     }).catch(function(){});
+    } // end _onProfileReady
+
+    // Wire to profile — DB calls only fire when access is confirmed
+    if (window._studyProfile) {
+      _onProfileReady(window._studyProfile);
+    } else {
+      document.addEventListener('studyAccessReady', function (e) {
+        _onProfileReady(e && e.detail && e.detail.profile);
+      }, { once: true });
+    }
   }
 
   /* ── Public API ───────────────────────────────────────────────────── */

@@ -29,6 +29,11 @@
     { key: 'tracker', label: '🎯 Interview Tracker'   },
   ];
 
+  /* ── User list pagination state ──────────────────────── */
+  const PAGE_SIZE     = 10;
+  let   _userPage     = 0;
+  let   _userTotal    = 0;
+
   /* ══════════════════════════════════════════════════════
      ENTRY / EXIT
   ══════════════════════════════════════════════════════ */
@@ -114,16 +119,27 @@
     await _refreshUserList();
   }
 
-  async function _refreshUserList() {
+  async function _refreshUserList(page) {
+    if (page !== undefined) _userPage = page;
     const area = document.getElementById('userListArea');
     if (!area) return;
+
+    area.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3);">Loading users…</div>';
+
+    const from = _userPage * PAGE_SIZE;
+    const to   = from + PAGE_SIZE - 1;
 
     let profiles = [];
     let loadErr  = null;
     try {
-      const { data, error } = await _supabase.from('user_profiles').select('*').order('created_at');
+      const { data, error, count } = await _supabase
+        .from('user_profiles')
+        .select('*', { count: 'exact' })
+        .order('created_at')
+        .range(from, to);
       if (error) throw error;
-      profiles = data || [];
+      profiles   = data  || [];
+      _userTotal = count || 0;
     } catch (e) {
       loadErr = e.message || String(e);
     }
@@ -191,6 +207,16 @@
     </tbody>
   </table>
 </div>`;
+
+    const totalPages = Math.max(1, Math.ceil(_userTotal / PAGE_SIZE));
+    if (totalPages > 1) {
+      html += `
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding:10px 14px;background:var(--surface-2,rgba(255,255,255,.04));border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--text-3);">
+  <button class="admin-btn admin-btn-sm" ${_userPage === 0 ? 'disabled' : ''} onclick="window.LM_Admin._prevPage()">← Prev</button>
+  <span>Page ${_userPage + 1} of ${totalPages} &nbsp;·&nbsp; ${_userTotal} users total</span>
+  <button class="admin-btn admin-btn-sm" ${_userPage >= totalPages - 1 ? 'disabled' : ''} onclick="window.LM_Admin._nextPage()">Next →</button>
+</div>`;
+    }
 
     area.innerHTML = html;
   }
@@ -798,7 +824,9 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
     syncToCloud       : _syncToCloud,
     importBackup      : _importBackup,
     clearUserData     : _clearUserData,
-    resetFactory      : _resetFactory
+    resetFactory      : _resetFactory,
+    _prevPage         : () => { if (_userPage > 0) _refreshUserList(_userPage - 1); },
+    _nextPage         : () => { const tp = Math.ceil(_userTotal / PAGE_SIZE); if (_userPage < tp - 1) _refreshUserList(_userPage + 1); }
   };
 
 })();

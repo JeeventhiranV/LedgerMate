@@ -53,6 +53,8 @@
         .then(function (r) {
           if (r.error) {
             console.warn('[CloudSync] save error:', r.error.message);
+            if (typeof showToast === 'function') showToast('☁️ Cloud sync failed — will retry', 'error');
+            if (window.LM_Bus) LM_Bus.emit('lm:cloud:failed', { message: 'Cloud sync failed — check connection' });
           } else {
             console.log('[CloudSync] ✅ saved to cloud');
             if (window.LM_Bus) LM_Bus.emit('lm:cloud:saved', {});
@@ -76,6 +78,7 @@
       })
       .catch(function (e) {
         console.warn('[CloudSync] save exception:', e && e.message || e);
+        if (typeof showToast === 'function') showToast('☁️ Cloud sync error — retrying', 'error');
         _dirty = true;
       })
       .then(function () {

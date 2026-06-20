@@ -78,6 +78,12 @@
     '.agf-email{font-size:10px;color:var(--text3,#535d7e);',
       'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}',
 
+    '.agf-admin-btn{width:100%;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.25);',
+      'border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;',
+      'color:var(--purple,#8b5cf6);cursor:pointer;transition:all .2s;',
+      'font-family:inherit;text-align:left;display:flex;align-items:center;gap:8px;margin-bottom:6px}',
+    '.agf-admin-btn:hover{background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.4)}',
+
     '.agf-signout{width:100%;background:none;border:1px solid var(--border,#1e2436);',
       'border-radius:8px;padding:8px 12px;font-size:12px;font-weight:500;',
       'color:var(--text2,#8a95b8);cursor:pointer;transition:border-color .2s,color .2s;',
@@ -156,6 +162,7 @@
           '<div class="agf-email">' + email + '</div>' +
         '</div>' +
       '</div>' +
+      '<button class="agf-admin-btn" id="agfAdminBtn">⚙ Admin Panel</button>' +
       '<button class="agf-signout" id="authLogoutBtn">↩ Sign out</button>';
 
     // ── Decide where to put it ───────────────────────────────────────────────
@@ -175,6 +182,24 @@
         _redirect(_getLoginUrl());
       });
     });
+
+    // ── Wire admin panel button ──────────────────────────────────────────────
+    var agfAdminBtn = document.getElementById('agfAdminBtn');
+    if (agfAdminBtn) {
+      agfAdminBtn.addEventListener('click', function () {
+        // Close authNav sidebar before opening admin panel
+        var nav = document.getElementById('authNav');
+        var navOv = document.getElementById('authNavOverlay');
+        if (nav) nav.classList.remove('open');
+        if (navOv) navOv.classList.remove('show');
+
+        if (window.StudyAdmin) {
+          window.StudyAdmin.open();
+        } else {
+          window.location.href = hubUrl + '?admin=open';
+        }
+      });
+    }
 
     // ── Wire theme toggle (proxies to the page's own #themeBtn) ─────────────
     var agfThemeBtn = document.getElementById('agfThemeBtn');
@@ -210,16 +235,22 @@
     }
   }
 
-  // ── 5. Build new sidebar for pages without one (HR / IPK) ───────────────────
+  // ── 5. Build new sidebar for pages without one ──────────────────────────────
   function _buildAuthNav(footerEl) {
-    var currentPage = window.location.pathname.split('/').pop();
+    var parts       = window.location.pathname.split('/');
+    var currentPage = parts[parts.length - 1]; // just the filename
+    // Prefix is 'prep/' when we're at study/index.html, empty when inside prep/
+    var inPrep      = parts.indexOf('prep') !== -1;
+    var prepPrefix  = inPrep ? '' : 'prep/';
 
     var modules = [
-      { href: 'Java-Prep-kit.html',    icon: '☕', label: 'Java Prep Kit' },
-      { href: 'DSA-Prep-Hub.html',     icon: '🧠', label: 'DSA Master Hub' },
-      { href: 'React-Prep.html',       icon: '⚛',  label: 'React Prep Hub' },
-      { href: 'HR-Questions.html',     icon: '🤝', label: 'HR Questions' },
-      { href: 'Interview-Prep-Kit.html', icon: '📚', label: 'Interview Kit' },
+      { href: prepPrefix + 'Java-Prep-kit.html',          icon: '☕', label: 'Java Prep Kit'       },
+      { href: prepPrefix + 'DSA-Prep-Hub.html',           icon: '🧠', label: 'DSA Master Hub'      },
+      { href: prepPrefix + 'React-Prep.html',             icon: '⚛️', label: 'React Prep Hub'      },
+      { href: prepPrefix + 'HR-Questions.html',           icon: '🤝', label: 'HR Questions'         },
+      { href: prepPrefix + 'Interview-Prep-Kit.html',     icon: '📚', label: 'Interview Kit'        },
+      { href: prepPrefix + 'Interview-Tracker.html',      icon: '🎯', label: 'Interview Tracker'    },
+      { href: prepPrefix + 'Daily-Learning-Tracker.html', icon: '📊', label: 'Daily Tracker'        },
     ];
 
     // ── Overlay ──────────────────────────────────────────────────────────────
@@ -245,7 +276,8 @@
     modules.forEach(function (m) {
       var a = document.createElement('a');
       a.href = m.href;
-      a.className = 'auth-nav-link' + (currentPage === m.href ? ' active' : '');
+      var fileName = m.href.split('/').pop();
+      a.className = 'auth-nav-link' + (currentPage === fileName ? ' active' : '');
       a.innerHTML =
         '<span class="auth-nav-link-icon">' + m.icon + '</span>' +
         '<span>' + m.label + '</span>';
@@ -363,9 +395,12 @@
         _revealWhenReady();
       })
       .catch(function () {
-        // Network error loading profile — fail-open so pages still work offline
-        window._studyProfile = { active: true, role: 'user', study_modules: null };
-        _revealWhenReady();
+        // Network error — fail-closed: sign out and redirect rather than grant access
+        _supabase.auth.signOut().then(function () {
+          _redirect(_getLoginUrl());
+        }).catch(function () {
+          _redirect(_getLoginUrl());
+        });
       });
 
   }).catch(function () {

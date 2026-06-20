@@ -1474,7 +1474,7 @@ function sendBrowserNotification(title, message) {
     navigator.serviceWorker.ready.then(registration => {
       registration.showNotification(title, {
         body: message,
-        icon: 'icons/icon-512.png'
+        icon: './assets/icons/icon-512.png'
       });
     });
   }

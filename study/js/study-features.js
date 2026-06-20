@@ -36,8 +36,13 @@
   var _focusIdx = -1;       // keyboard navigation: currently focused card index
   var _toastWrap = null;
 
-  // ── Today's date string ──────────────────────────────────────────────────
-  function _today() { return new Date().toISOString().split('T')[0]; }
+  // ── Today's date string (local, avoids UTC timezone shift) ──────────────
+  function _today() {
+    var t = new Date();
+    return t.getFullYear() + '-' +
+      String(t.getMonth() + 1).padStart(2, '0') + '-' +
+      String(t.getDate()).padStart(2, '0');
+  }
 
   // ── HTML escape ──────────────────────────────────────────────────────────
   function _esc(s) {
@@ -488,7 +493,7 @@
   function _mockDone() {
     if (!_mockState) return;
     var q = _mockState.qs[_mockState.idx];
-    _mockState.results.push({ id: q.id, title: q.title, result: 'correct' });
+    _mockState.results.push({ id: q.id, title: q.title, result: 'correct', category: q.category || '' });
     _mockState.idx++;
     _renderMockQ();
   }
@@ -496,7 +501,7 @@
   function _mockSkip() {
     if (!_mockState) return;
     var q = _mockState.qs[_mockState.idx];
-    _mockState.results.push({ id: q.id, title: q.title, result: 'skipped' });
+    _mockState.results.push({ id: q.id, title: q.title, result: 'skipped', category: q.category || '' });
     _mockState.idx++;
     _renderMockQ();
   }
@@ -506,7 +511,8 @@
     // fill remaining as skipped
     if (_mockState) {
       for (var i = _mockState.idx; i < _mockState.qs.length; i++) {
-        _mockState.results.push({ id: _mockState.qs[i].id, title: _mockState.qs[i].title, result: 'skipped' });
+        var _q = _mockState.qs[i];
+        _mockState.results.push({ id: _q.id, title: _q.title, result: 'skipped', category: _q.category || '' });
       }
       _mockState.idx = _mockState.qs.length;
     }
@@ -516,24 +522,72 @@
   function _showMockResult() {
     clearInterval(_mockTimer);
     if (!_mockState) return;
-    var results = _mockState.results;
-    var correct = results.filter(function (r) { return r.result === 'correct'; }).length;
-    var pct = results.length ? Math.round((correct / results.length) * 100) : 0;
-    var emoji = pct >= 80 ? '🏆' : pct >= 60 ? '👍' : pct >= 40 ? '📖' : '💪';
+    var results  = _mockState.results;
+    var correct  = results.filter(function (r) { return r.result === 'correct'; }).length;
+    var skipped  = results.filter(function (r) { return r.result === 'skipped'; }).length;
+    var wrong    = results.length - correct - skipped;
+    var pct      = results.length ? Math.round((correct / results.length) * 100) : 0;
+    var emoji    = pct >= 80 ? '🏆' : pct >= 60 ? '👍' : pct >= 40 ? '📖' : '💪';
+
+    // Weak category analysis
+    var catStats = {};
+    results.forEach(function (r) {
+      if (!r.category) return;
+      if (!catStats[r.category]) catStats[r.category] = { total: 0, correct: 0 };
+      catStats[r.category].total++;
+      if (r.result === 'correct') catStats[r.category].correct++;
+    });
+    var weakCats = Object.keys(catStats)
+      .map(function (c) { return { cat: c, pct: Math.round(catStats[c].correct / catStats[c].total * 100), total: catStats[c].total }; })
+      .filter(function (c) { return c.pct < 60; })
+      .sort(function (a, b) { return a.pct - b.pct; })
+      .slice(0, 4);
+
+    var weakHtml = '';
+    if (weakCats.length) {
+      weakHtml = '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border,#252b3a)">' +
+        '<div style="font-size:10px;font-weight:700;color:var(--text3,#6b7494);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">⚠ Weak Areas — Focus Here</div>' +
+        weakCats.map(function (c) {
+          var color = c.pct < 30 ? '#f43f5e' : '#f59e0b';
+          return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+            '<div style="flex:1;font-size:12px;color:var(--text2,#9aa3bf);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + _esc(c.cat) + '</div>' +
+            '<div style="flex:2;height:6px;background:var(--bg4,#1a1f2e);border-radius:3px;overflow:hidden">' +
+              '<div style="height:100%;width:' + c.pct + '%;background:' + color + ';border-radius:3px;transition:width .6s"></div>' +
+            '</div>' +
+            '<div style="font-size:11px;font-weight:600;color:' + color + ';width:34px;text-align:right">' + c.pct + '%</div>' +
+          '</div>';
+        }).join('') +
+      '</div>';
+    }
 
     _modal('mock', '⏱️ Interview Result', function (body) {
-      body.innerHTML = '<div class="sf-result-center">' +
-        '<div class="sf-big-score">' + emoji + ' ' + correct + '/' + results.length + '</div>' +
-        '<div class="sf-result-sub">' + pct + '% correct' + (pct >= 70 ? ' — Great job!' : ' — Keep practising!') + '</div>' +
+      body.innerHTML =
+        '<div class="sf-result-center">' +
+          '<div class="sf-big-score">' + emoji + ' ' + correct + '/' + results.length + '</div>' +
+          '<div class="sf-result-sub">' + pct + '% correct' + (pct >= 70 ? ' — Great job!' : ' — Keep practising!') + '</div>' +
+          '<div style="display:flex;gap:10px;justify-content:center;margin-top:8px">' +
+            '<span style="font-size:11px;background:rgba(6,214,160,.12);color:#06d6a0;border-radius:6px;padding:2px 8px">✓ ' + correct + ' correct</span>' +
+            (wrong   ? '<span style="font-size:11px;background:rgba(244,63,94,.1);color:#f43f5e;border-radius:6px;padding:2px 8px">✗ ' + wrong + ' wrong</span>'   : '') +
+            (skipped ? '<span style="font-size:11px;background:rgba(139,92,246,.1);color:#8b5cf6;border-radius:6px;padding:2px 8px">⏭ ' + skipped + ' skipped</span>' : '') +
+          '</div>' +
         '</div>' +
-        '<div class="sf-result-rows">' +
-        results.map(function (r) {
-          return '<div class="sf-result-row"><span class="sf-result-tag ' + r.result + '">' + r.result + '</span>' +
-            '<span style="font-size:12px;color:var(--text2,#9aa3bf);flex:1">' + _esc(r.title) + '</span></div>';
-        }).join('') +
+        weakHtml +
+        '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border,#252b3a)">' +
+          '<div style="font-size:10px;font-weight:700;color:var(--text3,#6b7494);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Question Breakdown</div>' +
+          '<div class="sf-result-rows">' +
+          results.map(function (r) {
+            var tagColor = r.result === 'correct' ? '#06d6a0' : r.result === 'skipped' ? '#8b5cf6' : '#f43f5e';
+            return '<div class="sf-result-row">' +
+              '<span class="sf-result-tag ' + r.result + '" style="border-color:' + tagColor + ';color:' + tagColor + '">' + r.result + '</span>' +
+              '<span style="font-size:12px;color:var(--text2,#9aa3bf);flex:1">' + _esc(r.title) + '</span>' +
+              (r.category ? '<span style="font-size:10px;color:var(--text3,#6b7494);flex-shrink:0">' + _esc(r.category) + '</span>' : '') +
+            '</div>';
+          }).join('') +
+          '</div>' +
         '</div>';
     }, function (foot) {
-      foot.innerHTML = '<button class="sf-bsec" onclick="StudyFeatures._close(\'mock\')">Close</button>' +
+      foot.innerHTML =
+        '<button class="sf-bsec" onclick="StudyFeatures._close(\'mock\')">Close</button>' +
         '<button class="sf-bprim" onclick="StudyFeatures.mock()">Try Again</button>';
     });
     _mockState = null;
@@ -1234,7 +1288,7 @@
           if (perm === 'granted') {
             new Notification('Study Reminder 📚', {
               body: 'You haven\'t reviewed ' + (_cfg ? _cfg.module.toUpperCase() : 'your study materials') + ' in 3+ days. Time for a quick session!',
-              icon: '/assets/icons/icon-192.png'
+              icon: '../assets/icon-study-192.png'
             });
           }
         }).catch(function () {});

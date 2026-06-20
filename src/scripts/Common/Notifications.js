@@ -437,12 +437,22 @@
     return (hour >= 8 && hour <= 10) || (hour >= 18 && hour <= 21);
   }
 
-  function sendBrowserNotification(title, message) {
-    if (Notification.permission === 'granted') {
-      navigator.serviceWorker.ready.then(registration => {
-        registration.showNotification(title, { body: message, icon: 'icons/icon-512.png' });
-      });
+  function sendBrowserNotification(title, message, opts) {
+    /* Prefer LMPush if loaded (handles Edge Function + local fallback) */
+    if (window.LMPush) {
+      LMPush.notify(title, message, opts || {});
+      return;
     }
+    if (Notification.permission !== 'granted') return;
+    navigator.serviceWorker.ready.then(function (reg) {
+      reg.showNotification(title, {
+        body : message,
+        icon : './assets/icons/icon-512.png',
+        badge: './assets/icons/icon-512.png',
+        tag  : (opts && opts.tag) || 'lm-notif',
+        data : { url: (opts && opts.url) || './' }
+      });
+    }).catch(function () { new Notification(title, { body: message }); });
   }
 
   function enableNotifications() {
@@ -538,7 +548,10 @@
       batch.forEach((n) => {
         showToast(n.message, n.type);
         if (n.title === "Loan Due Soon!" && canTriggerBrowserNotification("loan")) {
-          sendBrowserNotification(n.title, n.message);
+          sendBrowserNotification(n.title, n.message, { tag: 'lm-loan', url: './' });
+        }
+        if (n.title === "Reminder Due Soon!" && canTriggerBrowserNotification("reminder")) {
+          sendBrowserNotification(n.title, n.message, { tag: 'lm-reminder', url: './' });
         }
         scheduleLocalNotification(n.timestamp, n.title, n.message);
       });
