@@ -8,7 +8,7 @@
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v2.19.1';
+const CACHE_VERSION = 'lm-v2.19.2';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
@@ -21,6 +21,7 @@ const STATIC_ASSETS = [
   /* Icons / PWA */
   './assets/icons/favicon.ico',
   './assets/icons/icon-192.png',
+  './assets/icons/icon-study-192.png',
   './assets/icons/icon-512.png',
 
   /* Stylesheets */
@@ -83,9 +84,6 @@ const STATIC_ASSETS = [
   './study/js/community-hub.js',
   './study/js/lm-toast.js',
   './study/js/pwa-push.js',
-
-  /* Study assets */
-  './study/assets/icon-study-192.png',
 
   /* Study styles */
   './study/styles/Preparation.css',
