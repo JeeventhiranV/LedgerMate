@@ -38,6 +38,13 @@
     return '/study/index.html';
   }
 
+  function _getMainAppUrl() {
+    var parts = window.location.pathname.split('/');
+    var idx   = parts.lastIndexOf('study');
+    var base  = idx >= 0 ? parts.slice(0, idx).join('/') : '';
+    return (base || '') + '/index.html';
+  }
+
   function _redirect(url) {
     window.location.replace(url);
   }
@@ -53,6 +60,12 @@
       'transition:background .2s,color .2s;margin-bottom:4px}',
     '.agf-home:hover{background:rgba(79,142,247,.12);color:var(--blue,#4f8ef7)}',
     '.agf-home-icon{font-size:15px;flex-shrink:0}',
+
+    '.agf-mainapp{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500;',
+      'color:var(--text2,#8a93b5);text-decoration:none;padding:9px 10px;border-radius:8px;',
+      'transition:background .2s,color .2s;margin-bottom:4px;cursor:pointer;border:none;',
+      'background:none;width:100%;font-family:inherit;text-align:left}',
+    '.agf-mainapp:hover{background:rgba(52,211,153,.12);color:var(--emerald,#34d399)}',
 
     '.agf-theme-row{display:flex;align-items:center;justify-content:space-between;',
       'padding:7px 10px;border-radius:8px;margin-bottom:10px;cursor:pointer;',
@@ -144,12 +157,17 @@
     var hubUrl  = _getHubUrl();
 
     // ── Build auth footer element ────────────────────────────────────────────
+    var mainUrl = _getMainAppUrl();
+
     var footer = document.createElement('div');
     footer.className = 'agf';
     footer.innerHTML =
       '<a href="' + hubUrl + '" class="agf-home">' +
         '<span class="agf-home-icon">🏠</span>Study Hub' +
       '</a>' +
+      '<button class="agf-mainapp" id="agfMainAppBtn">' +
+        '<span class="agf-home-icon">💰</span>LedgerMate' +
+      '</button>' +
       '<div class="agf-theme-row" id="agfThemeRow">' +
         '<span class="agf-theme-label">Theme</span>' +
         '<button class="agf-theme-btn" id="agfThemeBtn">🌙</button>' +
@@ -175,6 +193,12 @@
       // Pages without sidebar (HR / IPK) — build a new one
       _buildAuthNav(footer);
     }
+
+    // ── Wire LedgerMate nav ──────────────────────────────────────────────────
+    document.getElementById('agfMainAppBtn').addEventListener('click', function () {
+      try { localStorage.setItem('lm_last_page', 'main'); } catch (e) {}
+      window.location.href = mainUrl;
+    });
 
     // ── Wire sign out ────────────────────────────────────────────────────────
     document.getElementById('authLogoutBtn').addEventListener('click', function () {
@@ -262,6 +286,8 @@
     var nav = document.createElement('aside');
     nav.id = 'authNav';
 
+    var mainAppUrl = _getMainAppUrl();
+
     var header = document.createElement('div');
     header.className = 'auth-nav-header';
     header.innerHTML =
@@ -284,12 +310,28 @@
       linkList.appendChild(a);
     });
 
+    var appSection = document.createElement('div');
+    appSection.className = 'auth-nav-section-label';
+    appSection.textContent = 'Apps';
+
+    var mainAppLink = document.createElement('a');
+    mainAppLink.href      = '#';
+    mainAppLink.className = 'auth-nav-link';
+    mainAppLink.innerHTML = '<span class="auth-nav-link-icon">💰</span><span>LedgerMate</span>';
+    mainAppLink.addEventListener('click', function (e) {
+      e.preventDefault();
+      try { localStorage.setItem('lm_last_page', 'main'); } catch (err) {}
+      window.location.href = mainAppUrl;
+    });
+
     var spacer = document.createElement('div');
     spacer.className = 'auth-nav-spacer';
 
     nav.appendChild(header);
     nav.appendChild(sectionLabel);
     nav.appendChild(linkList);
+    nav.appendChild(appSection);
+    nav.appendChild(mainAppLink);
     nav.appendChild(spacer);
     nav.appendChild(footerEl);
     document.body.appendChild(nav);
