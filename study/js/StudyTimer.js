@@ -251,9 +251,15 @@
   function onTick(fn) { _onTick = fn; }
 
   /* ── Boot: resume tick if a session was active ───────── */
-  document.addEventListener('DOMContentLoaded', function () {
+  /* If loaded dynamically (auth-guard injection), DOMContentLoaded has already
+     fired — start immediately. Otherwise wait for it. */
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      if (_load().running) _startTick();
+    });
+  } else {
     if (_load().running) _startTick();
-  });
+  }
 
   window.StudyTimer = {
     start      : start,
