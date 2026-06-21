@@ -1194,7 +1194,7 @@ function _renderActivities() {
       '<td>'+(a.is_revision_required?'<span class="badge badge-gold">🔁 '+(a.revision_date?fmtDate(a.revision_date):'Yes')+'</span>':'–')+'</td>'+
       '<td><div class="row-actions">'+
         '<button class="act-btn" onclick="DLT.openActivity(\''+a.id+'\')" title="Edit">✏</button>'+
-        '<button class="act-btn del" onclick="DLT.deleteActivity(\''+a.id+'\','+JSON.stringify(a.topic_name)+')" title="Delete">🗑</button>'+
+        '<button class="act-btn del" onclick="DLT.deleteActivity(\''+a.id+'\','+JSON.stringify(a.topic_name).replace(/"/g,'&quot;')+')" title="Delete">🗑</button>'+
       '</div></td></tr>';
     }).join('');
   document.getElementById('actPageInfo').textContent='Showing '+(start+1)+'–'+Math.min(start+PAGE_SIZE,total)+' of '+total;
@@ -1218,7 +1218,7 @@ function _renderCoding() {
       '<td>'+(c.revision_required?'<span class="badge badge-gold">🔁</span>':'–')+'</td>'+
       '<td><div class="row-actions">'+
         '<button class="act-btn" onclick="DLT.openCoding(\''+c.id+'\')" title="Edit">✏</button>'+
-        '<button class="act-btn del" onclick="DLT.deleteCoding(\''+c.id+'\','+JSON.stringify(c.problem_name)+')" title="Delete">🗑</button>'+
+        '<button class="act-btn del" onclick="DLT.deleteCoding(\''+c.id+'\','+JSON.stringify(c.problem_name).replace(/"/g,'&quot;')+')" title="Delete">🗑</button>'+
       '</div></td></tr>';
     }).join('');
   document.getElementById('codePageInfo').textContent='Showing '+(start+1)+'–'+Math.min(start+PAGE_SIZE,total)+' of '+total;
@@ -1367,7 +1367,7 @@ function _renderConfigTable() {
       '<td>'+(item.is_active?'<span class="badge badge-teal">Active</span>':'<span class="badge badge-gray">Inactive</span>')+'</td>'+
       '<td><div class="row-actions">'+
         '<button class="act-btn" onclick="DLT.openConfig(\''+item.id+'\')" title="Edit">✏</button>'+
-        '<button class="act-btn del" onclick="DLT.deleteConfig(\''+item.id+'\','+JSON.stringify(item.label)+')" title="Delete">🗑</button>'+
+        '<button class="act-btn del" onclick="DLT.deleteConfig(\''+item.id+'\','+JSON.stringify(item.label).replace(/"/g,'&quot;')+')" title="Delete">🗑</button>'+
       '</div></td></tr>';
     }).join('');
 }
