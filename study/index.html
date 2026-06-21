@@ -17,6 +17,7 @@
 <script src="js/lm-toast.js"></script>
 <script src="js/StudySync.js"></script>
 <script src="js/community-hub.js"></script>
+<script src="js/StudyTimer.js"></script>
 <script src="js/pwa-push.js"></script>
 <script src="../src/scripts/pwa-install.js"></script>
 <script>
@@ -314,13 +315,22 @@ if ('serviceWorker' in navigator) {
 
 <div class="footer">Study Resources Hub</div>
 
-<!-- STUDY TIMER -->
-<button class="timer-toggle" id="timerToggle" title="Study Timer" aria-label="Open study timer">⏱</button>
-<div class="study-timer hidden" id="studyTimer">
-  <div class="timer-display" id="timerDisplay">00:00</div>
-  <button class="timer-btn" id="timerStartStop">Start</button>
-  <button class="timer-btn" id="timerReset">Reset</button>
-  <button class="timer-btn" id="timerClose">✕</button>
+<!-- STUDY TIMER ─────────────────────────────────────── -->
+<button class="st-fab" id="stFab" title="Study Timer" aria-label="Toggle study timer">
+  <span class="st-fab-icon">⏱</span>
+  <span class="st-fab-live hidden" id="stFabLive">00:00:00</span>
+</button>
+<div class="st-timer-card hidden" id="stTimerCard">
+  <div class="st-tc-head">
+    <span class="st-tc-title">⏱ Study Timer</span>
+    <button class="st-tc-close" id="stTcClose">✕</button>
+  </div>
+  <div class="st-tc-clock" id="stTcClock">00:00:00</div>
+  <div class="st-tc-meta" id="stTcMeta">Press Start to begin a session</div>
+  <div class="st-tc-btns">
+    <button class="st-tc-btn primary" id="stTcToggle">▶ Start</button>
+    <button class="st-tc-btn secondary" id="stTcHistory">📊 Sessions</button>
+  </div>
 </div>
 
 <script>
@@ -1079,63 +1089,48 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-/* ── STUDY TIMER ── */
-(function(){
-  var timerInterval=null, timerSeconds=0, timerRunning=false;
-  var display=document.getElementById('timerDisplay');
-  var startStopBtn=document.getElementById('timerStartStop');
-  var resetBtn=document.getElementById('timerReset');
-  var closeBtn=document.getElementById('timerClose');
-  var timerEl=document.getElementById('studyTimer');
-  var toggleBtn=document.getElementById('timerToggle');
+/* ── STUDY TIMER WIRING ── */
+(function () {
+  var fab     = document.getElementById('stFab');
+  var fabLive = document.getElementById('stFabLive');
+  var card    = document.getElementById('stTimerCard');
+  var clock   = document.getElementById('stTcClock');
+  var meta    = document.getElementById('stTcMeta');
+  var togBtn  = document.getElementById('stTcToggle');
+  var histBtn = document.getElementById('stTcHistory');
+  var closeBtn= document.getElementById('stTcClose');
 
-  function pad(n){return String(n).padStart(2,'0');}
-  function updateDisplay(){
-    var m=Math.floor(timerSeconds/60), s=timerSeconds%60;
-    display.textContent=pad(m)+':'+pad(s);
+  function _refresh(st) {
+    if (clock)   clock.textContent = st.display || '00:00:00';
+    if (fabLive) {
+      fabLive.textContent = st.display || '00:00:00';
+      fabLive.classList.toggle('hidden', !st.running);
+    }
+    if (togBtn) {
+      togBtn.textContent = st.running ? '■ Stop' : '▶ Start';
+      togBtn.classList.toggle('active', !!st.running);
+    }
+    if (meta) {
+      if (st.running && st.startedAt) {
+        var t = new Date(st.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        meta.textContent = 'Started at ' + t;
+        meta.classList.add('running');
+      } else {
+        meta.textContent = 'Press Start to begin a session';
+        meta.classList.remove('running');
+      }
+    }
   }
 
-  toggleBtn.addEventListener('click',function(){
-    timerEl.classList.toggle('hidden');
-    toggleBtn.style.display=timerEl.classList.contains('hidden')?'flex':'none';
-  });
-  closeBtn.addEventListener('click',function(){
-    timerEl.classList.add('hidden');
-    toggleBtn.style.display='flex';
-  });
-  startStopBtn.addEventListener('click',function(){
-    if(timerRunning){
-      clearInterval(timerInterval);
-      timerRunning=false;
-      startStopBtn.textContent='Resume';
-      startStopBtn.classList.remove('active');
-    } else {
-      timerInterval=setInterval(function(){timerSeconds++;updateDisplay();},1000);
-      timerRunning=true;
-      startStopBtn.textContent='Pause';
-      startStopBtn.classList.add('active');
-    }
-  });
-  resetBtn.addEventListener('click',function(){
-    var elapsed = timerSeconds;
-    clearInterval(timerInterval);
-    timerRunning=false;
-    timerSeconds=0;
-    updateDisplay();
-    startStopBtn.textContent='Start';
-    startStopBtn.classList.remove('active');
-    // Offer session logging when meaningful time was studied
-    if (elapsed >= 60) {
-      var mins = Math.round(elapsed / 60);
-      var toast = document.createElement('div');
-      toast.style.cssText='position:fixed;bottom:90px;right:24px;z-index:9999;background:var(--bg2);border:1px solid var(--border2);border-left:3px solid var(--teal);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--text);box-shadow:0 4px 20px rgba(0,0,0,.5);display:flex;align-items:center;gap:10px;max-width:290px;animation:fadeUp .25s ease';
-      toast.innerHTML='<span>⏱ <strong>'+mins+' min</strong> studied</span>'+
-        '<a href="prep/Daily-Learning-Tracker.html" style="color:var(--teal);text-decoration:none;font-weight:600;white-space:nowrap">Log it →</a>'+
-        '<button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:0;margin-left:2px">✕</button>';
-      document.body.appendChild(toast);
-      setTimeout(function(){if(toast.parentNode)toast.remove();},9000);
-    }
-  });
+  if (window.StudyTimer) {
+    StudyTimer.onTick(_refresh);
+    _refresh(StudyTimer.getState());
+  }
+
+  if (fab)     fab.addEventListener('click',     function () { card.classList.toggle('hidden'); });
+  if (closeBtn)closeBtn.addEventListener('click', function () { card.classList.add('hidden'); });
+  if (togBtn)  togBtn.addEventListener('click',   function () { StudyTimer.toggle().then(_refresh); });
+  if (histBtn) histBtn.addEventListener('click',  function () { StudyTimer.openPanel(); });
 })();
 
 /* ── WEEKLY GOAL INLINE EDIT ── */

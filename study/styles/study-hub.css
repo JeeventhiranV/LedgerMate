@@ -336,14 +336,50 @@ a.activity-item:hover{background:rgba(255,255,255,.04)}
 .delay-1{animation-delay:.05s}.delay-2{animation-delay:.1s}.delay-3{animation-delay:.15s}
 .delay-4{animation-delay:.2s}.delay-5{animation-delay:.25s}.delay-6{animation-delay:.3s}
 
-/* Study timer */
-.study-timer{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:10px 18px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,.25);z-index:1000;backdrop-filter:blur(12px);transition:all .3s}
-.study-timer.hidden{transform:translateY(100px);opacity:0;pointer-events:none}
-.timer-display{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--text);min-width:68px;text-align:center}
-.timer-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 12px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);transition:all .15s}
-.timer-btn:hover{background:var(--bg4)}
-.timer-btn.active{background:rgba(6,214,160,.12);border-color:rgba(6,214,160,.4);color:var(--teal)}
-.timer-toggle{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--border);border-radius:50%;width:44px;height:44px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:999;transition:all .3s}
+/* ── Study Timer FAB ──────────────────────────────────── */
+.st-fab{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--border);border-radius:28px;padding:0 16px;height:46px;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 4px 24px rgba(0,0,0,.35);z-index:999;font-family:inherit;color:var(--text);transition:border-color .2s}
+.st-fab:hover{border-color:var(--teal,#06d6a0)}
+.st-fab-icon{font-size:18px;line-height:1}
+.st-fab-live{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--teal,#06d6a0)}
+.st-fab-live.hidden{display:none}
+/* ── Study Timer Card ─────────────────────────────────── */
+.st-timer-card{position:fixed;bottom:82px;right:24px;width:264px;background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 8px 40px rgba(0,0,0,.4);z-index:1000;backdrop-filter:blur(12px)}
+.st-timer-card.hidden{display:none}
+.st-tc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.st-tc-title{font-size:13px;font-weight:700;color:var(--text)}
+.st-tc-close{background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;line-height:1;transition:color .15s}
+.st-tc-close:hover{color:var(--text)}
+.st-tc-clock{font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:800;color:var(--text);text-align:center;letter-spacing:2px;margin-bottom:6px}
+.st-tc-meta{font-size:11px;color:var(--text3);text-align:center;margin-bottom:16px;min-height:14px;transition:color .2s}
+.st-tc-meta.running{color:var(--teal,#06d6a0)}
+.st-tc-btns{display:flex;gap:8px}
+.st-tc-btn{flex:1;padding:9px 0;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:none;color:var(--text);font-family:inherit;transition:all .15s}
+.st-tc-btn.primary:hover,.st-tc-btn.primary.active{background:rgba(6,214,160,.12);border-color:var(--teal,#06d6a0);color:var(--teal,#06d6a0)}
+.st-tc-btn.secondary{color:var(--text3);font-size:12px}
+.st-tc-btn.secondary:hover{background:var(--bg4);color:var(--text)}
+/* ── Sessions Panel ───────────────────────────────────── */
+.stp-wrap{display:flex;flex-direction:column;gap:14px}
+.stp-today{background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.2);border-radius:12px;padding:16px;text-align:center}
+.stp-today-val{font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:800;color:var(--teal,#06d6a0)}
+.stp-today-lbl{font-size:11px;color:var(--text3);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+.stp-list{display:flex;flex-direction:column;gap:8px;max-height:380px;overflow-y:auto}
+.stp-group{background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.stp-date-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg4);font-size:12px;font-weight:700;color:var(--text2)}
+.stp-total{font-family:'JetBrains Mono',monospace;color:var(--teal,#06d6a0);font-size:12px}
+.stp-row{display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--border);font-size:11px;color:var(--text2)}
+.stp-page{flex:0 0 auto;color:var(--text3);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stp-range{flex:1;font-family:'JetBrains Mono',monospace;font-size:10px;white-space:nowrap}
+.stp-arrow{color:var(--text3);margin:0 2px}
+.stp-dur{flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text);font-size:11px}
+.stp-empty{text-align:center;color:var(--text3);padding:28px 16px;font-size:13px}
+/* ── Timer chip (auth-guard, all study pages) ─────────── */
+.st-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg3,#1a1f35);border:1px solid var(--border,#1e2436);border-radius:20px;padding:5px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--text2,#8a93b5);cursor:pointer;transition:border-color .2s,color .2s;user-select:none;vertical-align:middle}
+.st-chip:hover{border-color:var(--teal,#06d6a0)}
+.st-chip-dot{width:7px;height:7px;border-radius:50%;background:var(--border,#1e2436);flex-shrink:0;transition:background .3s,box-shadow .3s}
+.st-chip.running{border-color:rgba(6,214,160,.4)}
+.st-chip.running .st-chip-dot{background:var(--teal,#06d6a0);box-shadow:0 0 6px var(--teal,#06d6a0);animation:st-blink 1.4s infinite}
+.st-chip.running .st-chip-time{color:var(--teal,#06d6a0)}
+@keyframes st-blink{0%,100%{opacity:1}50%{opacity:.3}}
 .res-notes-badge{font-size:10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:20px;padding:1px 7px;color:#f59e0b;white-space:nowrap}
 
 /* ── WEEKLY GOAL WIDGET ── */

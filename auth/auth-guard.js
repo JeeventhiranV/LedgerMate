@@ -45,6 +45,13 @@
     return (base || '') + '/index.html';
   }
 
+  function _getStudyJsBase() {
+    var parts = window.location.pathname.split('/');
+    var idx   = parts.lastIndexOf('study');
+    if (idx >= 0) return parts.slice(0, idx + 1).join('/') + '/js';
+    return '/study/js';
+  }
+
   function _redirect(url) {
     window.location.replace(url);
   }
@@ -144,6 +151,22 @@
       'flex-shrink:0;transition:border-color .2s,color .2s;line-height:1;',
       'font-family:inherit;margin-right:2px}',
     '.agf-menu-btn:hover{border-color:var(--blue,#4f8ef7);color:var(--blue,#4f8ef7)}',
+
+    /* ── Timer chip (injected into topbar on all study pages) ── */
+    '.st-chip{display:inline-flex;align-items:center;gap:6px;',
+      'background:var(--bg3,#1a1f35);border:1px solid var(--border,#1e2436);',
+      'border-radius:20px;padding:5px 12px;',
+      'font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:600;',
+      'color:var(--text2,#8a93b5);cursor:pointer;',
+      'transition:border-color .2s,color .2s;user-select:none;vertical-align:middle}',
+    '.st-chip:hover{border-color:var(--teal,#06d6a0)}',
+    '.st-chip-dot{width:7px;height:7px;border-radius:50%;',
+      'background:var(--border,#1e2436);flex-shrink:0;transition:background .3s,box-shadow .3s}',
+    '.st-chip.running{border-color:rgba(6,214,160,.4)}',
+    '.st-chip.running .st-chip-dot{background:var(--teal,#06d6a0);',
+      'box-shadow:0 0 6px var(--teal,#06d6a0);animation:st-blink 1.4s infinite}',
+    '.st-chip.running .st-chip-time{color:var(--teal,#06d6a0)}',
+    '@keyframes st-blink{0%,100%{opacity:1}50%{opacity:.3}}',
   ].join('');
   document.head.appendChild(_style);
 
@@ -259,7 +282,51 @@
     }
   }
 
-  // ── 5. Build new sidebar for pages without one ──────────────────────────────
+  // ── 5. Timer chip: injected into every study page topbar ────────────────────
+  function _injectTimerChip() {
+    /* Skip on study/index.html — it has its own FAB + card */
+    if (document.getElementById('stFab')) return;
+
+    var topbar = document.querySelector('.topbar');
+    if (!topbar) return;
+
+    var chip = document.createElement('div');
+    chip.id        = 'stTimerChip';
+    chip.className = 'st-chip';
+    chip.title     = 'Study Timer — click to start / stop';
+    chip.innerHTML = '<span class="st-chip-dot"></span><span class="st-chip-time">00:00:00</span>';
+
+    var chipTime = chip.querySelector('.st-chip-time');
+
+    function _updateChip(st) {
+      chipTime.textContent = (st && st.display) || '00:00:00';
+      chip.classList.toggle('running', !!(st && st.running));
+    }
+
+    if (window.StudyTimer) {
+      StudyTimer.onTick(_updateChip);
+      _updateChip(StudyTimer.getState());
+    }
+
+    chip.addEventListener('click', function () {
+      if (!window.StudyTimer) return;
+      StudyTimer.toggle().then(function () { _updateChip(StudyTimer.getState()); });
+    });
+
+    /* Insert as first item in topbar-right, or append to topbar */
+    var right = topbar.querySelector('.topbar-right') || topbar;
+    right.insertBefore(chip, right.firstChild);
+  }
+
+  function _loadTimer() {
+    if (window.StudyTimer) { _injectTimerChip(); return; }
+    var s   = document.createElement('script');
+    s.src   = _getStudyJsBase() + '/StudyTimer.js';
+    s.onload = _injectTimerChip;
+    document.head.appendChild(s);
+  }
+
+  // ── 6. Build new sidebar for pages without one ──────────────────────────────
   function _buildAuthNav(footerEl) {
     var parts       = window.location.pathname.split('/');
     var currentPage = parts[parts.length - 1]; // just the filename
@@ -394,6 +461,7 @@
       _hideStyle.textContent = '';
       document.body.style.visibility = 'visible';
       _injectChip(session);
+      _loadTimer();
     }
 
     function _revealWhenReady() {

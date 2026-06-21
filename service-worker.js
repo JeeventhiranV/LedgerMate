@@ -79,6 +79,7 @@ const STATIC_ASSETS = [
   './study/prep/Daily-Learning-Tracker.html',
 
   /* Study JS */
+  './study/js/StudyTimer.js',
   './study/js/StudySync.js',
   './study/js/study-features.js',
   './study/js/community-hub.js',
