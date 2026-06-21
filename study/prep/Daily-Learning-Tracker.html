@@ -1035,11 +1035,23 @@ function _init() {
   document.documentElement.setAttribute('data-theme', t);
   document.getElementById('themeBtn').textContent = t === 'dark' ? '🌙' : '☀️';
   _buildConfigSidebar();
-  _loadConfig().then(function () {
-    _populateAllSelects();
-    _loadActivities();
-    _loadCoding();
-  });
+  _loadConfig()
+    .then(function () {
+      _populateAllSelects();
+      return Promise.all([_loadActivities(), _loadCoding()]);
+    })
+    .then(_renderAll)
+    .catch(function (e) { toast('Init failed: ' + e.message, 'err'); });
+}
+
+/* ── Render all views from current state ── */
+function _renderAll() {
+  _updateBadges();
+  _renderDashboard();
+  _renderActivities();
+  _renderCoding();
+  _renderCodingStats();
+  _renderRevisions();
 }
 
 /* ── Config ── */
@@ -1101,24 +1113,18 @@ function _onCatChange() {
   document.getElementById('actSubcat').innerHTML=html;
 }
 
-/* ── Load Data ── */
+/* ── Data loaders — fetch only, no rendering side-effects ── */
 async function _loadActivities() {
-  try {
-    var res=await _sb.from('lm_daily_learning').select('*').eq('user_id',_uid)
-      .order('activity_date',{ascending:false}).order('created_at',{ascending:false});
-    if(res.error) throw res.error;
-    _activities=res.data||[];
-    _renderActivities(); _renderDashboard(); _renderRevisions(); _updateBadges();
-  } catch(e){ toast('Load failed: '+e.message,'err'); }
+  var res = await _sb.from('lm_daily_learning').select('*').eq('user_id', _uid)
+    .order('activity_date', { ascending: false }).order('created_at', { ascending: false });
+  if (res.error) throw res.error;
+  _activities = res.data || [];
 }
 async function _loadCoding() {
-  try {
-    var res=await _sb.from('lm_coding_tracker').select('*').eq('user_id',_uid)
-      .order('practice_date',{ascending:false}).order('created_at',{ascending:false});
-    if(res.error) throw res.error;
-    _coding=res.data||[];
-    _renderCoding(); _renderCodingStats(); _updateBadges();
-  } catch(e){ toast('Load failed: '+e.message,'err'); }
+  var res = await _sb.from('lm_coding_tracker').select('*').eq('user_id', _uid)
+    .order('practice_date', { ascending: false }).order('created_at', { ascending: false });
+  if (res.error) throw res.error;
+  _coding = res.data || [];
 }
 
 /* ── Badges + Hero Stats ── */
@@ -1436,13 +1442,13 @@ async function saveActivity() {
               :await _sb.from('lm_daily_learning').insert({...payload,created_at:new Date().toISOString()});
     if(res.error) throw res.error;
     toast(id?'Activity updated':'Activity added','ok');
-    _closeModal('actModal'); await _loadActivities();
+    _closeModal('actModal'); await _loadActivities(); _renderAll();
   }catch(e){toast('Save failed: '+e.message,'err');}
 }
 function deleteActivity(id,name){
   _confirm('Delete "'+name+'"?','This cannot be undone.',async function(){
     try{var r=await _sb.from('lm_daily_learning').delete().eq('id',id).eq('user_id',_uid);
-      if(r.error)throw r.error; toast('Deleted','info'); await _loadActivities();
+      if(r.error)throw r.error; toast('Deleted','info'); await _loadActivities(); _renderAll();
     }catch(e){toast('Delete failed: '+e.message,'err');}
   });
 }
@@ -1492,13 +1498,13 @@ async function saveCoding() {
               :await _sb.from('lm_coding_tracker').insert({...payload,created_at:new Date().toISOString()});
     if(res.error) throw res.error;
     toast(id?'Problem updated':'Problem added','ok');
-    _closeModal('codeModal'); await _loadCoding();
+    _closeModal('codeModal'); await _loadCoding(); _renderAll();
   }catch(e){toast('Save failed: '+e.message,'err');}
 }
 function deleteCoding(id,name){
   _confirm('Delete "'+name+'"?','This cannot be undone.',async function(){
     try{var r=await _sb.from('lm_coding_tracker').delete().eq('id',id).eq('user_id',_uid);
-      if(r.error)throw r.error; toast('Deleted','info'); await _loadCoding();
+      if(r.error)throw r.error; toast('Deleted','info'); await _loadCoding(); _renderAll();
     }catch(e){toast('Delete failed: '+e.message,'err');}
   });
 }
