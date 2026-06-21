@@ -1018,16 +1018,16 @@ document.querySelectorAll('.modal-overlay').forEach(function (o) {
 });
 
 /* ── Auth ── */
-document.addEventListener('studyAccessReady', function (e) {
-  var p = e.detail || {};
-  _uid = p.userId;
-  if (window._supabaseClient) { _sb = window._supabaseClient; _init(); }
-});
-if (window._studyProfile && window._supabaseClient) {
-  _uid = window._studyProfile.userId;
-  _sb = window._supabaseClient;
-  setTimeout(_init, 0);
+async function _initAuth() {
+  _sb = window._supabase || null;
+  if (!_sb) { toast('Supabase not available', 'err'); return; }
+  var r = await _sb.auth.getSession();
+  _uid = r.data && r.data.session && r.data.session.user && r.data.session.user.id;
+  if (!_uid) return;
+  _init();
 }
+document.addEventListener('studyAccessReady', _initAuth);
+if (window._studyProfile) setTimeout(_initAuth, 0);
 
 /* ── Init ── */
 function _init() {

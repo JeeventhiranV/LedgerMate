@@ -148,6 +148,59 @@
     }).catch(function () { return []; });
   }
 
+  /* ── Self-contained modal ────────────────────────────── */
+  function _injectStyles() {
+    if (document.getElementById('st-stp-styles')) return;
+    var s = document.createElement('style');
+    s.id = 'st-stp-styles';
+    s.textContent = [
+      '.stp-wrap{font-family:"Inter",sans-serif}',
+      '.stp-today{text-align:center;padding:16px 0 12px;border-bottom:1px solid var(--border,#1e2436);margin-bottom:12px}',
+      '.stp-today-val{font-size:30px;font-weight:700;font-family:"JetBrains Mono",monospace;background:linear-gradient(135deg,#06d6a0,#4f8ef7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}',
+      '.stp-today-lbl{font-size:11px;color:var(--text2,#8a95b8);margin-top:4px;text-transform:uppercase;letter-spacing:.06em}',
+      '.stp-list{display:flex;flex-direction:column;gap:8px}',
+      '.stp-group{background:var(--bg3,#141820);border:1px solid var(--border,#1e2436);border-radius:10px;overflow:hidden}',
+      '.stp-date-row{display:flex;justify-content:space-between;padding:8px 12px;background:var(--bg4,#1a1f2e);font-size:12px;font-weight:600;color:var(--text2,#8a95b8)}',
+      '.stp-total{color:var(--teal,#06d6a0);font-family:"JetBrains Mono",monospace}',
+      '.stp-row{display:flex;align-items:center;padding:7px 12px;gap:8px;border-top:1px solid var(--border,#1e2436);font-size:12px}',
+      '.stp-page{color:var(--text3,#535d7e);font-size:11px;min-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      '.stp-range{flex:1;color:var(--text2,#8a95b8)}',
+      '.stp-arrow{color:var(--text3,#535d7e)}',
+      '.stp-dur{color:var(--teal,#06d6a0);font-family:"JetBrains Mono",monospace;font-weight:600;white-space:nowrap}',
+      '.stp-empty{text-align:center;padding:32px;color:var(--text3,#535d7e);font-size:13px}',
+      '#st-modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9900;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}',
+      '#st-modal-box{background:var(--bg2,#0e1117);border:1px solid var(--border,#1e2436);border-radius:16px;width:100%;max-width:520px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.8)}',
+      '#st-modal-head{padding:14px 18px;border-bottom:1px solid var(--border,#1e2436);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}',
+      '#st-modal-title{font-size:14px;font-weight:700;color:var(--text,#e2e8f8)}',
+      '#st-modal-close{background:none;border:none;color:var(--text2,#8a95b8);font-size:20px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:6px}',
+      '#st-modal-close:hover{color:var(--text,#e2e8f8);background:var(--bg4,#1a1f2e)}',
+      '#st-modal-body{overflow-y:auto;padding:16px 18px;flex:1}',
+    ].join('');
+    document.head.appendChild(s);
+  }
+
+  function _showModal(title, html) {
+    _injectStyles();
+    var existing = document.getElementById('st-modal-ov');
+    if (existing) existing.remove();
+
+    var ov  = document.createElement('div'); ov.id = 'st-modal-ov';
+    var box = document.createElement('div'); box.id = 'st-modal-box';
+    var hd  = document.createElement('div'); hd.id = 'st-modal-head';
+    var ttl = document.createElement('span'); ttl.id = 'st-modal-title'; ttl.textContent = title;
+    var cls = document.createElement('button'); cls.id = 'st-modal-close'; cls.textContent = '✕';
+    var bd  = document.createElement('div'); bd.id = 'st-modal-body'; bd.innerHTML = html;
+
+    hd.appendChild(ttl); hd.appendChild(cls);
+    box.appendChild(hd); box.appendChild(bd);
+    ov.appendChild(box);
+    document.body.appendChild(ov);
+
+    function close() { ov.remove(); }
+    ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
+    cls.addEventListener('click', close);
+  }
+
   /* ── Public: openPanel ───────────────────────────────── */
   function openPanel() {
     getSessions(50).then(function (sessions) {
@@ -190,7 +243,7 @@
         '<div class="stp-list">' + rows + '</div>' +
       '</div>';
 
-      if (window.showSimpleModal) showSimpleModal('📊 Study Sessions', html);
+      _showModal('📊 Study Sessions', html);
     });
   }
 
