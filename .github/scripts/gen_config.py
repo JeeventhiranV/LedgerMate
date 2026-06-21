@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 """
-Generates auth/supabase-config.js from CI environment variables.
+Generates auth/supabase-config.js from CI environment variables,
+and stamps service-worker.js with an auto-incrementing cache version.
 Called by GitHub Actions deploy.yml — do not run manually.
 
 Required env vars (set as REPOSITORY secrets in GitHub):
   SUPABASE_URL      https://xxxx.supabase.co
   SUPABASE_ANON     your-anon-public-key
   VAPID_PUBLIC_KEY  your VAPID EC public key (safe to embed, not secret)
+
+Auto-injected by GitHub Actions (no config needed):
+  GITHUB_SHA        full commit SHA — first 7 chars used as build tag
 """
 import json
 import os
+import re
 import sys
+from datetime import date
 
 url          = os.environ.get("SUPABASE_URL",     "").strip()
 anon         = os.environ.get("SUPABASE_ANON",    "").strip()
@@ -61,3 +67,23 @@ with open("auth/supabase-config.js", "w") as f:
 
 print("✅  auth/supabase-config.js generated (" + str(len(content)) + " bytes)")
 print("    URL: " + url[:45] + "...")
+
+# ── Stamp service-worker.js with auto cache version ──────────────────────────
+sha          = os.environ.get("GITHUB_SHA", "local")[:7]
+build_date   = date.today().strftime("%Y%m%d")
+cache_version = "lm-v" + build_date + "." + sha
+
+sw_path = "service-worker.js"
+with open(sw_path, "r") as f:
+    sw = f.read()
+
+sw_patched = re.sub(
+    r"const CACHE_VERSION = 'lm-v[^']*';",
+    "const CACHE_VERSION = '" + cache_version + "';",
+    sw
+)
+
+with open(sw_path, "w") as f:
+    f.write(sw_patched)
+
+print("✅  service-worker.js cache version → " + cache_version)
