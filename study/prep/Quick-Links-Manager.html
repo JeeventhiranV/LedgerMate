@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Quick Links Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../auth/supabase-config.js"></script>
+<script src="../../auth/auth-guard.js"></script>
+<style>
+/* ── Design System ── */
+:root[data-theme="dark"]{
+  --bg:#07090f;--bg2:#0e1117;--bg3:#141820;--bg4:#1a1f2e;
+  --border:#1e2436;--border2:#2a3148;
+  --text:#e2e8f8;--text2:#8a95b8;--text3:#535d7e;
+  --blue:#4f8ef7;--purple:#8b5cf6;--teal:#06d6a0;--rose:#f43f5e;
+  --gold:#f59e0b;--orange:#fb923c;--pink:#ec4899;--cyan:#22d3ee;
+  --card:#0f1319;--card-border:#1e2436;
+  --glow-blue:rgba(79,142,247,.15);--glow-teal:rgba(6,214,160,.12);
+  --glow-purple:rgba(139,92,246,.12);
+  --shadow:0 8px 32px rgba(0,0,0,.6);--glass:rgba(14,17,23,.85);
+}
+:root[data-theme="light"]{
+  --bg:#f0f4ff;--bg2:#ffffff;--bg3:#f5f7ff;--bg4:#edf0fb;
+  --border:#dde3f5;--border2:#c5cee8;
+  --text:#1a1e35;--text2:#475089;--text3:#8891be;
+  --blue:#2563eb;--purple:#7c3aed;--teal:#059669;--rose:#e11d48;
+  --gold:#d97706;--orange:#ea580c;--pink:#db2777;--cyan:#0891b2;
+  --card:#ffffff;--card-border:#dde3f5;
+  --glow-blue:rgba(37,99,235,.08);--glow-teal:rgba(5,150,105,.08);
+  --glow-purple:rgba(124,58,237,.07);
+  --shadow:0 4px 20px rgba(0,0,0,.1);--glass:rgba(255,255,255,.9);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s;display:flex;flex-direction:column}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* ── Topbar ── */
+.topbar{position:sticky;top:0;z-index:200;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 20px;height:56px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.btn-back{display:flex;align-items:center;gap:6px;background:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;text-decoration:none;transition:all .2s;white-space:nowrap}
+.btn-back:hover{border-color:var(--blue);color:var(--blue);background:var(--glow-blue)}
+.topbar-divider{width:1px;height:20px;background:var(--border2);flex-shrink:0}
+.topbar-icon{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--purple));display:grid;place-items:center;font-size:14px;flex-shrink:0}
+.topbar-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;white-space:nowrap}
+@media(max-width:480px){.topbar-title{display:none}}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:6px}
+.btn-icon{background:none;border:1px solid var(--border);border-radius:8px;width:34px;height:34px;display:grid;place-items:center;cursor:pointer;font-size:15px;transition:all .2s;color:var(--text2);flex-shrink:0}
+.btn-icon:hover{border-color:var(--blue);background:var(--glow-blue)}
+
+/* ── Hero ── */
+.hero{padding:32px 20px 24px;background:radial-gradient(ellipse 80% 60% at 50% 0%,var(--glow-blue),transparent);position:relative;overflow:hidden}
+.hero-glow{position:absolute;top:-80px;right:-40px;width:380px;height:380px;background:radial-gradient(circle,var(--glow-purple),transparent 65%);pointer-events:none}
+.hero-content{position:relative;max-width:900px;margin:0 auto;text-align:center}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:5px 14px;font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--blue);text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:12px}
+.hero-eyebrow span{width:6px;height:6px;border-radius:50%;background:var(--blue);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(20px,4vw,36px);font-weight:800;line-height:1.2;margin-bottom:6px;background:linear-gradient(135deg,var(--text) 0%,var(--blue) 50%,var(--purple) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:13px;color:var(--text2);margin-bottom:20px;max-width:520px;margin-left:auto;margin-right:auto}
+.hero-stats{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+.stat-pill{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:10px 18px;text-align:center;cursor:default}
+.stat-num{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-lbl{font-size:11px;color:var(--text3);margin-top:2px}
+.action-strip{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.btn-action{display:inline-flex;align-items:center;gap:6px;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;border:1px solid transparent;font-family:'Inter',sans-serif;white-space:nowrap}
+.btn-action.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-action.primary:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn-action.secondary{background:none;border-color:var(--border2);color:var(--text2)}
+.btn-action.secondary:hover{border-color:var(--blue);color:var(--blue);background:var(--glow-blue);transform:translateY(-1px)}
+
+/* ── Tab Nav ── */
+.tab-nav{display:flex;padding:0 16px;border-bottom:1px solid var(--border);background:var(--bg2);overflow-x:auto;gap:0;flex-shrink:0}
+.tab-nav::-webkit-scrollbar{height:0}
+.tab-btn{background:none;border:none;border-bottom:2px solid transparent;padding:12px 14px;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:6px;font-family:'Inter',sans-serif;flex-shrink:0}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+.tab-badge{background:var(--blue);color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;min-width:18px;text-align:center;font-family:'JetBrains Mono',monospace;line-height:1.4}
+.tab-badge.gold{background:var(--gold)}
+@media(max-width:480px){.tab-btn{padding:10px 10px;font-size:12px}}
+
+/* ── Tab Content ── */
+.tab-pane{display:none;flex:1;overflow-y:auto}
+.tab-pane.active{display:flex;flex-direction:column}
+.tab-body{max-width:1200px;margin:0 auto;width:100%;padding:20px}
+@media(max-width:640px){.tab-body{padding:14px}}
+
+/* ── Section title ── */
+.section-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.section-title-action{background:none;border:1px solid var(--border);border-radius:7px;padding:3px 10px;font-size:11px;color:var(--text2);cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;white-space:nowrap}
+.section-title-action:hover{border-color:var(--blue);color:var(--blue)}
+
+/* ── Dashboard Stat Grid ── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+@media(max-width:480px){.stat-grid{grid-template-columns:1fr 1fr;gap:10px}}
+.stat-card{background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s;cursor:default}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--sc-color,var(--blue));border-radius:14px 14px 0 0}
+.stat-card:hover{border-color:var(--sc-color,var(--blue));transform:translateY(-2px)}
+.stat-card-num{font-family:'JetBrains Mono',monospace;font-size:clamp(22px,3vw,30px);font-weight:700;color:var(--sc-color,var(--blue));line-height:1}
+.stat-card-lbl{font-size:11px;color:var(--text3);margin-top:5px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.stat-card-sub{font-size:11px;color:var(--text2);margin-top:4px}
+
+/* ── Search & Filter Bar ── */
+.filter-bar{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:16px}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.search-wrap{flex:1;min-width:200px;position:relative}
+.search-wrap input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:9px;padding:8px 12px 8px 34px;font-size:13px;color:var(--text);font-family:'Inter',sans-serif;transition:border-color .2s}
+.search-wrap input:focus{outline:none;border-color:var(--blue)}
+.search-wrap::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none}
+.filter-selects{display:flex;gap:6px;flex-wrap:wrap}
+.filter-sel{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--text2);font-family:'Inter',sans-serif;cursor:pointer;transition:border-color .2s}
+.filter-sel:focus{outline:none;border-color:var(--blue);color:var(--text)}
+.filter-actions{display:flex;gap:6px;align-items:center}
+.btn-sm{border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;border:1px solid;font-family:'Inter',sans-serif;white-space:nowrap}
+.btn-sm.outline{background:none;border-color:var(--border2);color:var(--text2)}
+.btn-sm.outline:hover{border-color:var(--blue);color:var(--blue);background:var(--glow-blue)}
+.btn-sm.rose{background:var(--rose);border-color:var(--rose);color:#fff}
+.btn-sm.rose:hover{filter:brightness(1.1)}
+.btn-sm.blue{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn-sm.teal{background:var(--teal);border-color:var(--teal);color:#022b1e}
+
+/* ── View toggle & sort row ── */
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.toolbar-left{display:flex;align-items:center;gap:6px;flex:1}
+.result-count{font-size:12px;color:var(--text3)}
+.view-toggle{display:flex;gap:0;border:1px solid var(--border2);border-radius:8px;overflow:hidden}
+.view-btn{background:none;border:none;padding:6px 10px;font-size:14px;cursor:pointer;color:var(--text3);transition:all .2s}
+.view-btn.active{background:var(--bg4);color:var(--blue)}
+.sort-sel{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text2);font-family:'Inter',sans-serif;cursor:pointer}
+.sort-sel:focus{outline:none;border-color:var(--blue)}
+
+/* ── Link Cards (grid view) ── */
+.links-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+@media(max-width:640px){.links-grid{grid-template-columns:1fr}}
+.link-card{background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;transition:border-color .2s,transform .2s,box-shadow .2s;position:relative}
+.link-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:var(--shadow)}
+.link-card.pinned{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+.link-card-head{display:flex;align-items:flex-start;gap:10px}
+.link-card-icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:18px;flex-shrink:0;background:var(--bg3)}
+.link-card-info{flex:1;min-width:0}
+.link-card-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.link-card-url{font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'JetBrains Mono',monospace;max-width:100%}
+.link-card-badges{display:flex;flex-wrap:wrap;gap:5px}
+.link-card-desc{font-size:12px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.link-card-tags{display:flex;flex-wrap:wrap;gap:4px}
+.tag-chip{background:var(--bg4);border:1px solid var(--border2);border-radius:20px;padding:2px 8px;font-size:10px;color:var(--text2);font-family:'JetBrains Mono',monospace}
+.link-card-footer{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:10px;margin-top:2px}
+.link-card-meta{font-size:11px;color:var(--text3)}
+.link-card-actions{display:flex;gap:4px}
+.link-act-btn{background:none;border:1px solid var(--border);border-radius:7px;width:28px;height:28px;display:grid;place-items:center;cursor:pointer;font-size:13px;transition:all .2s;color:var(--text3)}
+.link-act-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--glow-blue)}
+.link-act-btn.fav{border-color:transparent}
+.link-act-btn.fav.active{color:var(--gold)}
+.link-act-btn.pin.active{color:var(--orange)}
+.link-act-btn.del:hover{border-color:var(--rose);color:var(--rose);background:rgba(244,63,94,.08)}
+.link-open-btn{display:inline-flex;align-items:center;gap:5px;background:var(--glow-blue);border:1px solid var(--blue);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--blue);font-weight:600;cursor:pointer;transition:all .2s;text-decoration:none;font-family:'Inter',sans-serif}
+.link-open-btn:hover{background:var(--blue);color:#fff}
+
+/* ── Link list (list view) ── */
+.links-list{display:flex;flex-direction:column;gap:6px}
+.link-row{background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;transition:border-color .2s}
+.link-row:hover{border-color:var(--border2)}
+.link-row.pinned{border-color:var(--gold)}
+.link-row-icon{font-size:18px;flex-shrink:0}
+.link-row-body{flex:1;min-width:0}
+.link-row-title{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.link-row-meta{font-size:11px;color:var(--text3);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}
+.link-row-badges{display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap}
+.link-row-actions{display:flex;gap:4px;flex-shrink:0}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:600;white-space:nowrap}
+.badge-blue{background:rgba(79,142,247,.15);color:var(--blue);border:1px solid rgba(79,142,247,.3)}
+.badge-teal{background:rgba(6,214,160,.15);color:var(--teal);border:1px solid rgba(6,214,160,.3)}
+.badge-purple{background:rgba(139,92,246,.15);color:var(--purple);border:1px solid rgba(139,92,246,.3)}
+.badge-gold{background:rgba(245,158,11,.15);color:var(--gold);border:1px solid rgba(245,158,11,.3)}
+.badge-rose{background:rgba(244,63,94,.15);color:var(--rose);border:1px solid rgba(244,63,94,.3)}
+.badge-gray{background:var(--bg4);color:var(--text3);border:1px solid var(--border2)}
+.badge-orange{background:rgba(251,146,60,.15);color:var(--orange);border:1px solid rgba(251,146,60,.3)}
+.badge-cyan{background:rgba(34,211,238,.15);color:var(--cyan);border:1px solid rgba(34,211,238,.3)}
+
+/* ── Category Tree ── */
+.cat-tree{display:flex;flex-direction:column;gap:8px}
+.cat-group{background:var(--card);border:1px solid var(--card-border);border-radius:12px;overflow:hidden}
+.cat-group-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;transition:background .2s}
+.cat-group-head:hover{background:var(--bg3)}
+.cat-toggle{font-size:11px;color:var(--text3);transition:transform .2s;flex-shrink:0}
+.cat-group.open .cat-toggle{transform:rotate(90deg)}
+.cat-group-label{font-size:13px;font-weight:600;color:var(--text);flex:1}
+.cat-group-count{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;background:var(--bg4);border:1px solid var(--border2);border-radius:20px;padding:2px 8px}
+.cat-links{display:none;flex-direction:column;gap:0;border-top:1px solid var(--border)}
+.cat-group.open .cat-links{display:flex}
+.cat-link-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);transition:background .2s}
+.cat-link-row:last-child{border-bottom:none}
+.cat-link-row:hover{background:var(--bg3)}
+.cat-link-title{font-size:13px;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cat-link-src{font-size:11px;color:var(--text3);flex-shrink:0}
+
+/* ── Favourites section ── */
+.fav-section{margin-bottom:24px}
+.pinned-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:6px}
+.pinned-chip{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--gold);border-radius:10px;padding:8px 14px;cursor:pointer;transition:all .2s;text-decoration:none;max-width:260px}
+.pinned-chip:hover{background:var(--bg3);transform:translateY(-1px)}
+.pinned-chip-icon{font-size:16px;flex-shrink:0}
+.pinned-chip-title{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── Config Tab ── */
+.config-layout{display:flex;gap:16px}
+.config-sidebar{flex-shrink:0;width:180px;display:flex;flex-direction:column;gap:4px}
+@media(max-width:640px){.config-layout{flex-direction:column}.config-sidebar{flex-direction:row;width:100%;flex-wrap:wrap;overflow-x:auto}}
+.config-type-btn{background:none;border:1px solid transparent;border-radius:9px;padding:9px 12px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;text-align:left;transition:all .2s;font-family:'Inter',sans-serif;white-space:nowrap}
+.config-type-btn:hover{background:var(--bg3)}
+.config-type-btn.active{background:var(--glow-blue);border-color:var(--blue);color:var(--blue);font-weight:600}
+.config-main{flex:1;min-width:0}
+.config-main-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.config-main-title{font-size:14px;font-weight:700;color:var(--text)}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;background:var(--bg3);border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--bg3)}
+.tbl-empty{text-align:center;padding:32px;color:var(--text3)}
+.row-actions{display:flex;gap:4px}
+.act-btn{background:none;border:1px solid var(--border);border-radius:7px;width:28px;height:28px;display:grid;place-items:center;cursor:pointer;font-size:12px;transition:all .2s;color:var(--text3)}
+.act-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--glow-blue)}
+.act-btn.del:hover{border-color:var(--rose);color:var(--rose);background:rgba(244,63,94,.08)}
+
+/* ── Modals ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:18px;width:100%;max-width:620px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.8)}
+.modal.sm{max-width:420px}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-title{font-size:15px;font-weight:700;color:var(--text);font-family:'Syne',sans-serif}
+.modal-close{background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:0 4px;line-height:1;transition:color .2s}
+.modal-close:hover{color:var(--text)}
+.modal-body{overflow-y:auto;padding:20px;flex:1}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:500px){.form-grid{grid-template-columns:1fr}}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:1/-1}
+.form-label{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.02em}
+.form-label .req{color:var(--rose);margin-left:2px}
+.form-input,.form-select,.form-textarea{background:var(--bg3);border:1px solid var(--border2);border-radius:9px;padding:9px 12px;font-size:13px;color:var(--text);font-family:'Inter',sans-serif;transition:border-color .2s;width:100%}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--blue)}
+.form-textarea{resize:vertical;min-height:70px}
+.form-input::placeholder,.form-textarea::placeholder{color:var(--text3)}
+.form-hint{font-size:11px;color:var(--text3)}
+
+/* ── Empty state ── */
+.empty-state{text-align:center;padding:48px 20px}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.empty-msg{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
+.empty-sub{font-size:13px;color:var(--text3)}
+
+/* ── Toast ── */
+.toast-wrap{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--bg4);border:1px solid var(--border2);border-radius:10px;padding:10px 16px;font-size:13px;color:var(--text);box-shadow:var(--shadow);opacity:0;transform:translateY(8px);transition:all .3s;max-width:320px;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast-ok{border-color:var(--teal);color:var(--teal)}
+.toast-err{border-color:var(--rose);color:var(--rose)}
+.toast-info{border-color:var(--blue);color:var(--blue)}
+
+/* ── Pagination ── */
+.pagination{display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:8px;flex-wrap:wrap}
+.page-info{font-size:12px;color:var(--text3)}
+.page-btns{display:flex;gap:6px}
+
+/* ── Bulk bar ── */
+.bulk-bar{background:var(--bg4);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:none;align-items:center;gap:10px;flex-wrap:wrap}
+.bulk-bar.show{display:flex}
+.bulk-count{font-size:13px;font-weight:600;color:var(--blue)}
+.bulk-actions{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ── Responsive helpers ── */
+@media(max-width:480px){
+  .filter-selects{gap:4px}
+  .filter-sel{font-size:11px;padding:6px 8px}
+  .toolbar{gap:6px}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <a class="btn-back" href="../index.html">← Back</a>
+  <div class="topbar-divider"></div>
+  <div class="topbar-icon">🔗</div>
+  <div class="topbar-title">Quick Links Manager</div>
+  <div class="topbar-right">
+    <button class="btn-icon" id="themeBtn" onclick="QLM.toggleTheme()" title="Toggle theme">🌙</button>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow"><span></span> Learning Resource Hub</div>
+    <h1>Quick Links Manager</h1>
+    <p class="hero-sub">Centralize all your learning, documentation, GitHub, and reference links. One click access to everything you need.</p>
+    <div class="hero-stats">
+      <div class="stat-pill"><div class="stat-num" id="hpTotal">0</div><div class="stat-lbl">Total Links</div></div>
+      <div class="stat-pill"><div class="stat-num" id="hpFav">0</div><div class="stat-lbl">Favourites</div></div>
+      <div class="stat-pill"><div class="stat-num" id="hpPinned">0</div><div class="stat-lbl">Pinned</div></div>
+      <div class="stat-pill"><div class="stat-num" id="hpCats">0</div><div class="stat-lbl">Categories</div></div>
+    </div>
+    <div class="action-strip">
+      <button class="btn-action primary" onclick="QLM.openLink(null)">+ Add Link</button>
+      <button class="btn-action secondary" onclick="QLM.switchTab('favourites')">⭐ Favourites</button>
+      <button class="btn-action secondary" onclick="QLM.exportLinks()">⬇ Export CSV</button>
+      <button class="btn-action secondary" onclick="QLM.openImport()">⬆ Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB NAV -->
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="dashboard" onclick="QLM.switchTab('dashboard')">📊 Dashboard</button>
+  <button class="tab-btn" data-tab="links" onclick="QLM.switchTab('links')">🔗 All Links <span class="tab-badge" id="badgeAll">0</span></button>
+  <button class="tab-btn" data-tab="favourites" onclick="QLM.switchTab('favourites')">⭐ Favourites <span class="tab-badge gold" id="badgeFav">0</span></button>
+  <button class="tab-btn" data-tab="categories" onclick="QLM.switchTab('categories')">📂 Categories</button>
+  <button class="tab-btn" data-tab="config" onclick="QLM.switchTab('config')">⚙ Config</button>
+</nav>
+
+<!-- ═══ DASHBOARD TAB ═══ -->
+<div class="tab-pane active" id="tab-dashboard">
+  <div class="tab-body">
+    <div class="section-title">Overview</div>
+    <div class="stat-grid">
+      <div class="stat-card" style="--sc-color:var(--blue)">
+        <div class="stat-card-num" id="dTotal">0</div>
+        <div class="stat-card-lbl">Total Links</div>
+        <div class="stat-card-sub" id="dActive">0 active</div>
+      </div>
+      <div class="stat-card" style="--sc-color:var(--gold)">
+        <div class="stat-card-num" id="dFav">0</div>
+        <div class="stat-card-lbl">Favourites</div>
+        <div class="stat-card-sub" id="dPinned">0 pinned</div>
+      </div>
+      <div class="stat-card" style="--sc-color:var(--teal)">
+        <div class="stat-card-num" id="dCats">0</div>
+        <div class="stat-card-lbl">Categories</div>
+        <div class="stat-card-sub" id="dTechs">0 technologies</div>
+      </div>
+      <div class="stat-card" style="--sc-color:var(--purple)">
+        <div class="stat-card-num" id="dUsage">0</div>
+        <div class="stat-card-lbl">Total Clicks</div>
+        <div class="stat-card-sub" id="dTopLink">Most used: —</div>
+      </div>
+    </div>
+
+    <!-- Pinned Links -->
+    <div class="section-title">📌 Pinned Links</div>
+    <div class="pinned-row" id="dashPinned">
+      <div style="font-size:12px;color:var(--text3);padding:8px">No pinned links yet — pin important links for instant access.</div>
+    </div>
+
+    <!-- Recently Added -->
+    <div class="section-title">🆕 Recently Added</div>
+    <div class="links-grid" id="dashRecent"></div>
+
+    <!-- Top Used -->
+    <div class="section-title" style="margin-top:20px">🔥 Most Accessed</div>
+    <div class="links-list" id="dashTopUsed"></div>
+
+    <!-- Category Breakdown -->
+    <div class="section-title" style="margin-top:20px">📂 By Category</div>
+    <div id="dashCatBreakdown" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
+  </div>
+</div>
+
+<!-- ═══ ALL LINKS TAB ═══ -->
+<div class="tab-pane" id="tab-links">
+  <div class="tab-body">
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-row">
+        <div class="search-wrap">
+          <input type="text" id="fSearch" placeholder="Search links, URLs, tags…" oninput="QLM.applyFilters()"/>
+        </div>
+        <div class="filter-selects">
+          <select class="filter-sel" id="fCat" onchange="QLM.onCatChange();QLM.applyFilters()"><option value="">All Categories</option></select>
+          <select class="filter-sel" id="fSubcat" onchange="QLM.applyFilters()"><option value="">All Subcategories</option></select>
+          <select class="filter-sel" id="fTech" onchange="QLM.applyFilters()"><option value="">All Technologies</option></select>
+          <select class="filter-sel" id="fSrc" onchange="QLM.applyFilters()"><option value="">All Sources</option></select>
+          <select class="filter-sel" id="fPriority" onchange="QLM.applyFilters()">
+            <option value="">All Priorities</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <select class="filter-sel" id="fFav" onchange="QLM.applyFilters()">
+            <option value="">All</option>
+            <option value="1">Favourites</option>
+            <option value="0">Non-Favourites</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button class="btn-sm outline" onclick="QLM.clearFilters()">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bulk Bar -->
+    <div class="bulk-bar" id="bulkBar">
+      <span class="bulk-count" id="bulkCount">0 selected</span>
+      <div class="bulk-actions">
+        <button class="btn-sm teal" onclick="QLM.bulkActivate(true)">Activate</button>
+        <button class="btn-sm outline" onclick="QLM.bulkActivate(false)">Deactivate</button>
+        <button class="btn-sm rose" onclick="QLM.bulkDelete()">Delete</button>
+        <button class="btn-sm outline" onclick="QLM.clearSelection()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <span class="result-count" id="resultCount">0 links</span>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);cursor:pointer;margin-left:8px">
+          <input type="checkbox" id="selectAllCb" onchange="QLM.selectAll(this.checked)" style="accent-color:var(--blue)"> Select all
+        </label>
+      </div>
+      <select class="sort-sel" id="sortSel" onchange="QLM.applyFilters()">
+        <option value="created_at_desc">Newest First</option>
+        <option value="title_asc">Name A-Z</option>
+        <option value="title_desc">Name Z-A</option>
+        <option value="usage_desc">Most Used</option>
+        <option value="priority_desc">Priority</option>
+        <option value="last_accessed_desc">Recently Used</option>
+      </select>
+      <div class="view-toggle">
+        <button class="view-btn active" id="vBtnGrid" onclick="QLM.setView('grid')" title="Grid view">⊞</button>
+        <button class="view-btn" id="vBtnList" onclick="QLM.setView('list')" title="List view">☰</button>
+      </div>
+    </div>
+
+    <!-- Links Output -->
+    <div id="linksOutput"></div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <span class="page-info" id="pageInfo">Showing 0–0 of 0</span>
+      <div class="page-btns">
+        <button class="btn-sm outline" id="prevBtn" onclick="QLM.changePage(-1)" disabled>← Prev</button>
+        <button class="btn-sm outline" id="nextBtn" onclick="QLM.changePage(1)" disabled>Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FAVOURITES TAB ═══ -->
+<div class="tab-pane" id="tab-favourites">
+  <div class="tab-body">
+    <div class="section-title">📌 Pinned for Quick Access</div>
+    <div id="favPinned" style="margin-bottom:20px"></div>
+
+    <div class="section-title">⭐ Favourite Links</div>
+    <div id="favGrid"></div>
+  </div>
+</div>
+
+<!-- ═══ CATEGORIES TAB ═══ -->
+<div class="tab-pane" id="tab-categories">
+  <div class="tab-body">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+      <button class="btn-sm outline" onclick="QLM.expandAllCats()">Expand All</button>
+      <button class="btn-sm outline" onclick="QLM.collapseAllCats()">Collapse All</button>
+    </div>
+    <div class="cat-tree" id="catTree"></div>
+  </div>
+</div>
+
+<!-- ═══ CONFIG TAB ═══ -->
+<div class="tab-pane" id="tab-config">
+  <div class="tab-body">
+    <div class="config-layout">
+      <div class="config-sidebar" id="configSidebar"></div>
+      <div class="config-main">
+        <div class="config-main-header">
+          <div class="config-main-title" id="configMainTitle">Categories</div>
+          <button class="btn-sm blue" onclick="QLM.openConfig(null)">+ Add</button>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>Code</th><th>Label</th><th>Parent</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="configTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Add/Edit Link ═══ -->
+<div class="modal-overlay" id="linkModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="linkModalTitle">Add Link</div>
+      <button class="modal-close" onclick="QLM._closeModal('linkModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="linkId"/>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Title <span class="req">*</span></label>
+          <input class="form-input" id="linkTitle" placeholder="e.g. Java Stream API Guide"/>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">URL <span class="req">*</span></label>
+          <input class="form-input" id="linkUrl" type="url" placeholder="https://…"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Code</label>
+          <input class="form-input" id="linkCode" placeholder="Auto-generated"/>
+          <span class="form-hint">Leave blank to auto-generate from title</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Priority</label>
+          <select class="form-select" id="linkPriority">
+            <option value="high">High</option>
+            <option value="medium" selected>Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-select" id="linkCat" onchange="QLM._onModalCatChange()"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subcategory</label>
+          <select class="form-select" id="linkSubcat"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Source Type</label>
+          <select class="form-select" id="linkSrc"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Technology</label>
+          <select class="form-select" id="linkTech"></select>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Tags <span class="form-hint">(comma-separated)</span></label>
+          <input class="form-input" id="linkTags" placeholder="java, streams, interview"/>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Description / Notes</label>
+          <textarea class="form-textarea" id="linkDesc" placeholder="Notes, what this covers, why it's useful…"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="flex-direction:row;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="linkFav" style="accent-color:var(--gold)"> Mark as Favourite ⭐
+          </label>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="flex-direction:row;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="linkPin" style="accent-color:var(--orange)"> Pin this link 📌
+          </label>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="flex-direction:row;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="linkActive" checked style="accent-color:var(--teal)"> Active
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm outline" onclick="QLM._closeModal('linkModal')">Cancel</button>
+      <button class="btn-sm blue" onclick="QLM.saveLink()">Save Link</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Add/Edit Config ═══ -->
+<div class="modal-overlay" id="cfgModal">
+  <div class="modal sm">
+    <div class="modal-header">
+      <div class="modal-title" id="cfgModalTitle">Add Config</div>
+      <button class="modal-close" onclick="QLM._closeModal('cfgModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cfgId"/>
+      <input type="hidden" id="cfgType"/>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Code <span class="req">*</span></label>
+          <input class="form-input" id="cfgCode" placeholder="e.g. java"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Label <span class="req">*</span></label>
+          <input class="form-input" id="cfgLabel" placeholder="e.g. Java"/>
+        </div>
+        <div class="form-group" id="cfgParentGrp" style="display:none">
+          <label class="form-label">Parent Category</label>
+          <select class="form-select" id="cfgParent"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sort Order</label>
+          <input class="form-input" id="cfgOrder" type="number" value="0"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="flex-direction:row;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="cfgActive" checked style="accent-color:var(--teal)"> Active
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm outline" onclick="QLM._closeModal('cfgModal')">Cancel</button>
+      <button class="btn-sm blue" onclick="QLM.saveConfig()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Confirm ═══ -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal sm">
+    <div class="modal-header">
+      <div class="modal-title" id="confirmTitle">Confirm</div>
+      <button class="modal-close" onclick="QLM._closeModal('confirmModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirmMsg" style="color:var(--text2);font-size:13px;line-height:1.6"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm outline" onclick="QLM._closeModal('confirmModal')">Cancel</button>
+      <button class="btn-sm rose" id="confirmOkBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Import ═══ -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal sm">
+    <div class="modal-header">
+      <div class="modal-title">Import Links (CSV)</div>
+      <button class="modal-close" onclick="QLM._closeModal('importModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">
+        CSV must have columns: <code style="background:var(--bg3);padding:1px 6px;border-radius:4px;font-family:monospace">title,url,category,technology,source_type,priority,tags,description</code>
+      </p>
+      <input type="file" id="importFile" accept=".csv" style="display:block;width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:9px;padding:10px;font-size:13px;color:var(--text);cursor:pointer"/>
+      <div id="importStatus" style="margin-top:10px;font-size:12px;color:var(--text2)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm outline" onclick="QLM._closeModal('importModal')">Cancel</button>
+      <button class="btn-sm blue" onclick="QLM.importLinks()">Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════
+   QUICK LINKS MANAGER — Script
+════════════════════════════════════════════════════════════════ */
+(function () {
+'use strict';
+
+/* ── Theme init ── */
+(function () {
+  var t = localStorage.getItem('ql_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  var btn = document.getElementById('themeBtn');
+  if (btn) btn.textContent = t === 'dark' ? '🌙' : '☀️';
+}());
+
+/* ── Constants ── */
+var PAGE_SIZE = 24;
+
+var CONFIG_TYPES = [
+  { key: 'category',    label: 'Categories'    },
+  { key: 'subcategory', label: 'Subcategories' },
+  { key: 'source_type', label: 'Source Types'  },
+  { key: 'technology',  label: 'Technologies'  },
+  { key: 'tag',         label: 'Tags'          },
+];
+
+var SOURCE_ICON = {
+  youtube:'▶️', github:'🐙', documentation:'📄', article:'📰',
+  course:'🎓', website:'🌐', interview_question:'💼', ai_tool:'🤖', other:'🔗'
+};
+
+var PRIORITY_COLOR = { high: 'rose', medium: 'blue', low: 'gray' };
+
+var DEFAULT_CONFIG = {
+  category: [
+    {code:'java',label:'Java',order:1},{code:'spring',label:'Spring Boot',order:2},
+    {code:'sql',label:'SQL',order:3},{code:'javascript',label:'JavaScript',order:4},
+    {code:'jquery',label:'jQuery',order:5},{code:'html_css',label:'HTML/CSS',order:6},
+    {code:'system_design',label:'System Design',order:7},{code:'dsa',label:'DSA',order:8},
+    {code:'devops',label:'DevOps',order:9},{code:'interview',label:'Interview Prep',order:10},
+    {code:'ai_tools',label:'AI Tools',order:11},{code:'other',label:'Other',order:12},
+  ],
+  subcategory: [
+    {code:'core_java',label:'Core Java',parent:'java',order:1},
+    {code:'streams',label:'Streams & Lambdas',parent:'java',order:2},
+    {code:'multithreading',label:'Multithreading',parent:'java',order:3},
+    {code:'rest_api',label:'REST API',parent:'spring',order:1},
+    {code:'security',label:'Spring Security',parent:'spring',order:2},
+    {code:'indexing',label:'Indexing & Tuning',parent:'sql',order:1},
+    {code:'arrays',label:'Arrays',parent:'dsa',order:1},
+    {code:'trees',label:'Trees',parent:'dsa',order:2},
+    {code:'dp',label:'Dynamic Programming',parent:'dsa',order:3},
+    {code:'ci_cd',label:'CI/CD',parent:'devops',order:1},
+    {code:'docker_k8s',label:'Docker & K8s',parent:'devops',order:2},
+  ],
+  source_type: [
+    {code:'youtube',label:'YouTube',order:1},{code:'github',label:'GitHub',order:2},
+    {code:'documentation',label:'Documentation',order:3},{code:'article',label:'Article',order:4},
+    {code:'course',label:'Course',order:5},{code:'website',label:'Website',order:6},
+    {code:'interview_question',label:'Interview Question',order:7},
+    {code:'ai_tool',label:'AI Tool',order:8},{code:'other',label:'Other',order:9},
+  ],
+  technology: [
+    {code:'java',label:'Java',order:1},{code:'spring_boot',label:'Spring Boot',order:2},
+    {code:'sql',label:'SQL',order:3},{code:'javascript',label:'JavaScript',order:4},
+    {code:'jquery',label:'jQuery',order:5},{code:'html_css',label:'HTML/CSS',order:6},
+    {code:'system_design',label:'System Design',order:7},{code:'dsa',label:'DSA',order:8},
+    {code:'devops',label:'DevOps',order:9},{code:'other',label:'Other',order:10},
+  ],
+  tag: [
+    {code:'interview',label:'Interview',order:1},{code:'beginner',label:'Beginner',order:2},
+    {code:'advanced',label:'Advanced',order:3},{code:'reference',label:'Reference',order:4},
+    {code:'tutorial',label:'Tutorial',order:5},{code:'cheatsheet',label:'Cheat Sheet',order:6},
+    {code:'practice',label:'Practice',order:7},{code:'bookmark',label:'Bookmark',order:8},
+  ],
+};
+
+/* ── State ── */
+var _sb   = null;
+var _uid  = null;
+var _links = [];
+var _config = {};
+var _activeTab = 'dashboard';
+var _activeConfigType = 'category';
+var _view = 'grid';
+var _page = 1;
+var _selected = {};
+var _confirmCb = null;
+
+var _filters = { search:'', cat:'', subcat:'', tech:'', src:'', priority:'', fav:'', sort:'created_at_desc' };
+
+/* ── Auth ── */
+async function _initAuth() {
+  _sb = window._supabase || null;
+  if (!_sb) { _toast('Supabase not available', 'err'); return; }
+  var r = await _sb.auth.getSession();
+  _uid = r.data && r.data.session && r.data.session.user && r.data.session.user.id;
+  if (!_uid) return;
+  _init();
+}
+document.addEventListener('studyAccessReady', _initAuth);
+if (window._studyProfile) setTimeout(_initAuth, 0);
+
+/* ── Init ── */
+function _init() {
+  _buildConfigSidebar();
+  _loadConfig()
+    .then(function () {
+      _populateAllSelects();
+      return _loadLinks();
+    })
+    .then(_renderAll)
+    .catch(function (e) { _toast('Init failed: ' + e.message, 'err'); });
+}
+
+/* ── Render All ── */
+function _renderAll() {
+  _updateHero();
+  _renderDashboard();
+  _renderLinks();
+  _renderFavourites();
+  _renderCategories();
+}
+
+/* ── Data Loaders ── */
+async function _loadLinks() {
+  var res = await _sb.from('lm_quick_links').select('*').eq('user_id', _uid).order('created_at', { ascending: false });
+  if (res.error) throw res.error;
+  _links = res.data || [];
+}
+
+async function _loadConfig() {
+  try {
+    var res = await _sb.from('lm_ql_config').select('*').eq('user_id', _uid).order('sort_order');
+    if (res.error) throw res.error;
+    if (!res.data.length) { await _seedDefaultConfig(); return _loadConfig(); }
+    _config = {};
+    res.data.forEach(function (r) {
+      if (!_config[r.config_type]) _config[r.config_type] = [];
+      _config[r.config_type].push(r);
+    });
+  } catch (e) { _toast('Config load failed: ' + e.message, 'err'); }
+}
+
+async function _seedDefaultConfig() {
+  var rows = [];
+  Object.keys(DEFAULT_CONFIG).forEach(function (type) {
+    DEFAULT_CONFIG[type].forEach(function (item) {
+      rows.push({ user_id: _uid, config_type: type, code: item.code, label: item.label,
+        parent_code: item.parent || null, sort_order: item.order || 0, is_active: true });
+    });
+  });
+  await _sb.from('lm_ql_config').insert(rows);
+}
+
+/* ── Helpers ── */
+function _cfgList(type) { return (_config[type] || []).filter(function (x) { return x.is_active; }); }
+function _cfgLabel(type, code) {
+  if (!code) return '—';
+  var f = (_config[type] || []).find(function (x) { return x.code === code; });
+  return f ? f.label : code;
+}
+function _todayStr() { return new Date().toISOString().split('T')[0]; }
+function _slugify(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40); }
+function _parseTags(s) {
+  return (s || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+}
+function _tagsStr(arr) { return (arr || []).join(', '); }
+function _fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric', year: '2-digit' });
+}
+function _getDomain(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return url; }
+}
+function _srcIcon(src) { return SOURCE_ICON[src] || '🔗'; }
+function _priColor(p) { return PRIORITY_COLOR[p] || 'gray'; }
+function esc(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* ── Select population ── */
+function _populateAllSelects() {
+  _fillSel('fCat',     'category',    '', true);
+  _fillSel('fSubcat',  'subcategory', '', true);
+  _fillSel('fTech',    'technology',  '', true);
+  _fillSel('fSrc',     'source_type', '', true);
+  _fillSel('linkCat',  'category',    '', false);
+  _fillSel('linkSubcat','subcategory','', false);
+  _fillSel('linkSrc',  'source_type', '', false);
+  _fillSel('linkTech', 'technology',  '', false);
+}
+function _fillSel(id, type, defaultVal, withAll) {
+  var sel = document.getElementById(id);
+  if (!sel) return;
+  var list = _cfgList(type).slice().sort(function (a, b) { return a.sort_order - b.sort_order; });
+  var html = withAll ? '<option value="">All ' + (type.replace('_', ' ')) + '</option>' : '<option value="">Select…</option>';
+  list.forEach(function (item) {
+    html += '<option value="' + esc(item.code) + '"' + (item.code === defaultVal ? ' selected' : '') + '>' + esc(item.label) + '</option>';
+  });
+  sel.innerHTML = html;
+}
+function _fillSubcatSel(id, parentCode) {
+  var sel = document.getElementById(id);
+  if (!sel) return;
+  var list = _cfgList('subcategory').filter(function (x) { return !parentCode || x.parent_code === parentCode; });
+  list.sort(function (a, b) { return a.sort_order - b.sort_order; });
+  var isFilter = id.startsWith('f');
+  var html = isFilter ? '<option value="">All Subcategories</option>' : '<option value="">Select…</option>';
+  list.forEach(function (item) {
+    html += '<option value="' + esc(item.code) + '">' + esc(item.label) + '</option>';
+  });
+  sel.innerHTML = html;
+}
+
+function onCatChange() {
+  var cat = document.getElementById('fCat').value;
+  _fillSubcatSel('fSubcat', cat);
+  _filters.subcat = '';
+}
+function _onModalCatChange() {
+  var cat = document.getElementById('linkCat').value;
+  _fillSubcatSel('linkSubcat', cat);
+}
+
+/* ── Update Hero Pills ── */
+function _updateHero() {
+  var active = _links.filter(function (l) { return l.is_active; });
+  var favs   = _links.filter(function (l) { return l.is_favourite; });
+  var pinned = _links.filter(function (l) { return l.is_pinned; });
+  var cats   = Object.keys(_links.reduce(function (m, l) { if (l.category_code) m[l.category_code] = 1; return m; }, {}));
+  _setText('hpTotal',  active.length);
+  _setText('hpFav',    favs.length);
+  _setText('hpPinned', pinned.length);
+  _setText('hpCats',   cats.length);
+  _setText('badgeAll', active.length);
+  _setText('badgeFav', favs.length);
+}
+function _setText(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; }
+
+/* ── Dashboard ── */
+function _renderDashboard() {
+  var active  = _links.filter(function (l) { return l.is_active; });
+  var favs    = _links.filter(function (l) { return l.is_favourite; });
+  var pinned  = _links.filter(function (l) { return l.is_pinned; });
+  var cats    = Object.keys(active.reduce(function (m, l) { if (l.category_code) m[l.category_code] = 1; return m; }, {}));
+  var techs   = Object.keys(active.reduce(function (m, l) { if (l.technology)   m[l.technology] = 1; return m; }, {}));
+  var totalUse = _links.reduce(function (s, l) { return s + (l.usage_count || 0); }, 0);
+  var topLink  = _links.slice().sort(function (a, b) { return (b.usage_count || 0) - (a.usage_count || 0); })[0];
+
+  _setText('dTotal',  active.length);
+  _setText('dActive', active.length + ' active');
+  _setText('dFav',    favs.length);
+  _setText('dPinned', pinned.length + ' pinned');
+  _setText('dCats',   cats.length);
+  _setText('dTechs',  techs.length + ' technologies');
+  _setText('dUsage',  totalUse);
+  _setText('dTopLink', topLink ? 'Most used: ' + topLink.title.slice(0, 20) : 'Most used: —');
+
+  /* Pinned chips */
+  var pinnedEl = document.getElementById('dashPinned');
+  if (pinned.length) {
+    pinnedEl.innerHTML = pinned.map(function (l) {
+      return '<a class="pinned-chip" href="#" onclick="QLM.trackClick(\''+esc(l.id)+'\',\''+esc(l.url)+'\');return false;" title="'+esc(l.url)+'">' +
+        '<span class="pinned-chip-icon">' + _srcIcon(l.source_type) + '</span>' +
+        '<span class="pinned-chip-title">' + esc(l.title) + '</span>' +
+        '</a>';
+    }).join('');
+  } else {
+    pinnedEl.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:6px">No pinned links yet.</div>';
+  }
+
+  /* Recently added */
+  var recent = _links.slice(0, 6);
+  document.getElementById('dashRecent').innerHTML = recent.length
+    ? recent.map(_cardHtml).join('')
+    : '<div style="font-size:13px;color:var(--text3)">No links yet.</div>';
+
+  /* Top used */
+  var topUsed = _links.slice().sort(function (a, b) { return (b.usage_count || 0) - (a.usage_count || 0); }).slice(0, 5).filter(function (l) { return l.usage_count > 0; });
+  document.getElementById('dashTopUsed').innerHTML = topUsed.length
+    ? topUsed.map(_rowHtml).join('')
+    : '<div style="font-size:13px;color:var(--text3);padding:8px">Open some links to track usage.</div>';
+
+  /* Category breakdown */
+  var catCount = {};
+  active.forEach(function (l) { var k = l.category_code || 'uncategorized'; catCount[k] = (catCount[k] || 0) + 1; });
+  var catKeys = Object.keys(catCount).sort(function (a, b) { return catCount[b] - catCount[a]; });
+  document.getElementById('dashCatBreakdown').innerHTML = catKeys.map(function (k) {
+    return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:8px 14px;display:flex;gap:8px;align-items:center">' +
+      '<span style="font-size:12px;font-weight:600;color:var(--text)">' + esc(_cfgLabel('category', k)) + '</span>' +
+      '<span style="font-size:11px;font-family:JetBrains Mono,monospace;color:var(--blue)">' + catCount[k] + '</span>' +
+      '</div>';
+  }).join('');
+}
+
+/* ── Filtered + sorted links ── */
+function _filtered() {
+  var f = _filters;
+  return _links.filter(function (l) {
+    if (!l.is_active && f.fav !== '0') {} // show inactive only in non-fav filter, always include if searching
+    if (f.search) {
+      var q = f.search.toLowerCase();
+      if (!(l.title || '').toLowerCase().includes(q) &&
+          !(l.url   || '').toLowerCase().includes(q) &&
+          !(l.description || '').toLowerCase().includes(q) &&
+          !(l.tags || []).some(function (t) { return t.toLowerCase().includes(q); })) return false;
+    }
+    if (f.cat      && l.category_code    !== f.cat)      return false;
+    if (f.subcat   && l.subcategory_code !== f.subcat)   return false;
+    if (f.tech     && l.technology       !== f.tech)     return false;
+    if (f.src      && l.source_type      !== f.src)      return false;
+    if (f.priority && l.priority         !== f.priority) return false;
+    if (f.fav === '1' && !l.is_favourite) return false;
+    if (f.fav === '0' &&  l.is_favourite) return false;
+    return true;
+  }).sort(function (a, b) {
+    switch (f.sort) {
+      case 'title_asc':         return (a.title || '').localeCompare(b.title || '');
+      case 'title_desc':        return (b.title || '').localeCompare(a.title || '');
+      case 'usage_desc':        return (b.usage_count || 0) - (a.usage_count || 0);
+      case 'last_accessed_desc':return new Date(b.last_accessed_at||0) - new Date(a.last_accessed_at||0);
+      case 'priority_desc': {
+        var pm = { high: 3, medium: 2, low: 1 };
+        return (pm[b.priority] || 0) - (pm[a.priority] || 0);
+      }
+      default: return new Date(b.created_at||0) - new Date(a.created_at||0);
+    }
+  });
+}
+
+/* ── Render Links Tab ── */
+function _renderLinks() {
+  var list  = _filtered();
+  var total = list.length;
+  var start = (_page - 1) * PAGE_SIZE;
+  var page  = list.slice(start, start + PAGE_SIZE);
+
+  _setText('resultCount', total + ' link' + (total !== 1 ? 's' : ''));
+  _setText('pageInfo', total ? 'Showing ' + (start + 1) + '–' + Math.min(start + PAGE_SIZE, total) + ' of ' + total : 'No results');
+  document.getElementById('prevBtn').disabled = _page <= 1;
+  document.getElementById('nextBtn').disabled = start + PAGE_SIZE >= total;
+
+  var out = document.getElementById('linksOutput');
+  if (!page.length) {
+    out.innerHTML = '<div class="empty-state"><div class="empty-icon">🔗</div><div class="empty-msg">No links found</div><div class="empty-sub">Try adjusting your filters or add a new link.</div></div>';
+    return;
+  }
+
+  if (_view === 'grid') {
+    out.innerHTML = '<div class="links-grid">' + page.map(_cardHtml).join('') + '</div>';
+  } else {
+    out.innerHTML = '<div class="links-list">' + page.map(_rowHtml).join('') + '</div>';
+  }
+}
+
+/* ── Card HTML ── */
+function _cardHtml(l) {
+  var tags = (l.tags || []).slice(0, 3).map(function (t) { return '<span class="tag-chip">' + esc(t) + '</span>'; }).join('');
+  return '<div class="link-card' + (l.is_pinned ? ' pinned' : '') + '">' +
+    '<div class="link-card-head">' +
+      '<div class="link-card-icon">' + _srcIcon(l.source_type) + '</div>' +
+      '<div class="link-card-info">' +
+        '<div class="link-card-title" title="' + esc(l.title) + '">' + esc(l.title) + '</div>' +
+        '<div class="link-card-url" title="' + esc(l.url) + '">' + esc(_getDomain(l.url)) + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="link-card-badges">' +
+      (l.category_code ? '<span class="badge badge-purple">' + esc(_cfgLabel('category', l.category_code)) + '</span>' : '') +
+      (l.technology    ? '<span class="badge badge-teal">'   + esc(_cfgLabel('technology', l.technology)) + '</span>' : '') +
+      (l.source_type   ? '<span class="badge badge-blue">'   + esc(_cfgLabel('source_type', l.source_type)) + '</span>' : '') +
+      '<span class="badge badge-' + _priColor(l.priority) + '">' + (l.priority || 'medium') + '</span>' +
+    '</div>' +
+    (l.description ? '<div class="link-card-desc">' + esc(l.description) + '</div>' : '') +
+    (tags ? '<div class="link-card-tags">' + tags + '</div>' : '') +
+    '<div class="link-card-footer">' +
+      '<div class="link-card-meta">' +
+        (l.usage_count ? '👁 ' + l.usage_count + ' · ' : '') +
+        _fmtDate(l.created_at) +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:6px">' +
+        '<div class="link-card-actions">' +
+          '<button class="link-act-btn fav' + (l.is_favourite ? ' active' : '') + '" onclick="QLM.toggleFav(\''+esc(l.id)+'\')" title="Favourite">⭐</button>' +
+          '<button class="link-act-btn pin' + (l.is_pinned ? ' active' : '') + '" onclick="QLM.togglePin(\''+esc(l.id)+'\')" title="Pin">📌</button>' +
+          '<button class="link-act-btn" onclick="QLM.copyUrl(\''+esc(l.url)+'\')" title="Copy URL">📋</button>' +
+          '<button class="link-act-btn" onclick="QLM.openLink(\''+esc(l.id)+'\')" title="Edit">✏</button>' +
+          '<button class="link-act-btn del" onclick="QLM.deleteLink(\''+esc(l.id)+'\','+JSON.stringify(l.title).replace(/"/g,'&quot;')+')" title="Delete">🗑</button>' +
+        '</div>' +
+        '<a class="link-open-btn" href="#" onclick="QLM.trackClick(\''+esc(l.id)+'\',\''+esc(l.url)+'\');return false;">Open ↗</a>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── Row HTML ── */
+function _rowHtml(l) {
+  return '<div class="link-row' + (l.is_pinned ? ' pinned' : '') + '">' +
+    '<span class="link-row-icon">' + _srcIcon(l.source_type) + '</span>' +
+    '<div class="link-row-body">' +
+      '<div class="link-row-title" title="' + esc(l.title) + '">' + esc(l.title) + '</div>' +
+      '<div class="link-row-meta">' +
+        (l.category_code ? '<span>' + esc(_cfgLabel('category', l.category_code)) + '</span>' : '') +
+        (l.technology    ? '<span>' + esc(_cfgLabel('technology', l.technology))  + '</span>' : '') +
+        (l.usage_count   ? '<span>👁 ' + l.usage_count + '</span>' : '') +
+        '<span>' + _fmtDate(l.created_at) + '</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="link-row-badges">' +
+      (l.source_type ? '<span class="badge badge-blue">' + esc(_cfgLabel('source_type', l.source_type)) + '</span>' : '') +
+      '<span class="badge badge-' + _priColor(l.priority) + '">' + (l.priority || 'medium') + '</span>' +
+    '</div>' +
+    '<div class="link-row-actions">' +
+      '<button class="link-act-btn fav' + (l.is_favourite ? ' active' : '') + '" onclick="QLM.toggleFav(\''+esc(l.id)+'\')" title="Favourite">⭐</button>' +
+      '<button class="link-act-btn" onclick="QLM.copyUrl(\''+esc(l.url)+'\')" title="Copy URL">📋</button>' +
+      '<button class="link-act-btn" onclick="QLM.openLink(\''+esc(l.id)+'\')" title="Edit">✏</button>' +
+      '<button class="link-act-btn del" onclick="QLM.deleteLink(\''+esc(l.id)+'\','+JSON.stringify(l.title).replace(/"/g,'&quot;')+')" title="Delete">🗑</button>' +
+      '<a class="link-open-btn" href="#" onclick="QLM.trackClick(\''+esc(l.id)+'\',\''+esc(l.url)+'\');return false;" style="padding:4px 8px">↗</a>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── Favourites Tab ── */
+function _renderFavourites() {
+  var pinned = _links.filter(function (l) { return l.is_pinned && l.is_active; });
+  var favs   = _links.filter(function (l) { return l.is_favourite && l.is_active; });
+
+  var pinnedEl = document.getElementById('favPinned');
+  if (pinned.length) {
+    pinnedEl.innerHTML = '<div class="pinned-row">' +
+      pinned.map(function (l) {
+        return '<a class="pinned-chip" href="#" onclick="QLM.trackClick(\''+esc(l.id)+'\',\''+esc(l.url)+'\');return false;">' +
+          '<span class="pinned-chip-icon">' + _srcIcon(l.source_type) + '</span>' +
+          '<span class="pinned-chip-title">' + esc(l.title) + '</span>' +
+          '</a>';
+      }).join('') + '</div>';
+  } else {
+    pinnedEl.innerHTML = '<div class="empty-state" style="padding:24px"><div class="empty-icon">📌</div><div class="empty-msg">No pinned links</div><div class="empty-sub">Pin important links for instant access.</div></div>';
+  }
+
+  var favEl = document.getElementById('favGrid');
+  if (favs.length) {
+    favEl.innerHTML = '<div class="links-grid">' + favs.map(_cardHtml).join('') + '</div>';
+  } else {
+    favEl.innerHTML = '<div class="empty-state"><div class="empty-icon">⭐</div><div class="empty-msg">No favourites yet</div><div class="empty-sub">Click ⭐ on any link to add it here.</div></div>';
+  }
+}
+
+/* ── Categories Tab ── */
+function _renderCategories() {
+  var cats = _cfgList('category');
+  var catEl = document.getElementById('catTree');
+  if (!cats.length) {
+    catEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📂</div><div class="empty-msg">No categories</div></div>';
+    return;
+  }
+
+  catEl.innerHTML = cats.map(function (cat) {
+    var links = _links.filter(function (l) { return l.category_code === cat.code && l.is_active; });
+    var subcats = _cfgList('subcategory').filter(function (s) { return s.parent_code === cat.code; });
+
+    var rows = '';
+    if (subcats.length) {
+      subcats.forEach(function (sub) {
+        var subLinks = links.filter(function (l) { return l.subcategory_code === sub.code; });
+        if (!subLinks.length) return;
+        rows += '<div style="padding:6px 14px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;background:var(--bg4)">' + esc(sub.label) + '</div>';
+        rows += subLinks.map(_catLinkRow).join('');
+      });
+      var uncategorized = links.filter(function (l) { return !l.subcategory_code; });
+      if (uncategorized.length) {
+        rows += uncategorized.map(_catLinkRow).join('');
+      }
+    } else {
+      rows = links.map(_catLinkRow).join('');
+    }
+
+    return '<div class="cat-group" id="cat-' + esc(cat.code) + '">' +
+      '<div class="cat-group-head" onclick="QLM._toggleCat(\'cat-' + esc(cat.code) + '\')">' +
+        '<span class="cat-toggle">▶</span>' +
+        '<span class="cat-group-label">' + esc(cat.label) + '</span>' +
+        '<span class="cat-group-count">' + links.length + '</span>' +
+      '</div>' +
+      '<div class="cat-links">' + (rows || '<div style="padding:12px 14px;font-size:12px;color:var(--text3)">No links in this category.</div>') + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function _catLinkRow(l) {
+  return '<div class="cat-link-row">' +
+    '<span style="font-size:16px">' + _srcIcon(l.source_type) + '</span>' +
+    '<span class="cat-link-title" title="' + esc(l.url) + '">' + esc(l.title) + '</span>' +
+    (l.source_type ? '<span class="cat-link-src">' + esc(_cfgLabel('source_type', l.source_type)) + '</span>' : '') +
+    '<div style="display:flex;gap:4px;flex-shrink:0">' +
+      (l.is_favourite ? '<span style="font-size:13px">⭐</span>' : '') +
+      '<a href="#" onclick="QLM.trackClick(\''+esc(l.id)+'\',\''+esc(l.url)+'\');return false;" class="link-open-btn" style="padding:3px 8px;font-size:11px">Open ↗</a>' +
+    '</div>' +
+  '</div>';
+}
+
+function _toggleCat(id) {
+  var el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
+}
+function expandAllCats()  { document.querySelectorAll('.cat-group').forEach(function (el) { el.classList.add('open'); }); }
+function collapseAllCats(){ document.querySelectorAll('.cat-group').forEach(function (el) { el.classList.remove('open'); }); }
+
+/* ── Config Tab ── */
+function _buildConfigSidebar() {
+  document.getElementById('configSidebar').innerHTML = CONFIG_TYPES.map(function (t) {
+    return '<button class="config-type-btn' + (t.key === _activeConfigType ? ' active' : '') + '" onclick="QLM._setConfigType(\'' + t.key + '\')">' + t.label + '</button>';
+  }).join('');
+}
+function _setConfigType(type) {
+  _activeConfigType = type;
+  _buildConfigSidebar();
+  var found = CONFIG_TYPES.find(function (t) { return t.key === type; });
+  document.getElementById('configMainTitle').textContent = found ? found.label : type;
+  _renderConfigTable();
+}
+function _renderConfigTable() {
+  var list = (_config[_activeConfigType] || []).slice().sort(function (a, b) { return a.sort_order - b.sort_order; });
+  document.getElementById('configTbody').innerHTML = !list.length
+    ? '<tr><td colspan="6" class="tbl-empty">No entries — click + Add</td></tr>'
+    : list.map(function (item) {
+        return '<tr>' +
+          '<td><code style="font-size:11px;color:var(--text3)">' + esc(item.code) + '</code></td>' +
+          '<td>' + esc(item.label) + '</td>' +
+          '<td>' + (item.parent_code ? '<span class="badge badge-gray">' + esc(item.parent_code) + '</span>' : '—') + '</td>' +
+          '<td><span style="font-size:12px;color:var(--text3);font-family:monospace">' + (item.sort_order || 0) + '</span></td>' +
+          '<td>' + (item.is_active ? '<span class="badge badge-teal">Active</span>' : '<span class="badge badge-gray">Inactive</span>') + '</td>' +
+          '<td><div class="row-actions">' +
+            '<button class="act-btn" onclick="QLM.openConfig(\'' + esc(item.id) + '\')" title="Edit">✏</button>' +
+            '<button class="act-btn del" onclick="QLM.deleteConfig(\'' + esc(item.id) + '\',' + JSON.stringify(item.label).replace(/"/g, '&quot;') + ')" title="Delete">🗑</button>' +
+          '</div></td>' +
+        '</tr>';
+      }).join('');
+}
+
+/* ── CRUD: Links ── */
+function openLink(id) {
+  document.getElementById('linkModalTitle').textContent = id ? 'Edit Link' : 'Add Link';
+  document.getElementById('linkId').value = '';
+  document.getElementById('linkTitle').value = '';
+  document.getElementById('linkUrl').value = '';
+  document.getElementById('linkCode').value = '';
+  document.getElementById('linkPriority').value = 'medium';
+  document.getElementById('linkCat').value = '';
+  document.getElementById('linkSubcat').value = '';
+  document.getElementById('linkSrc').value = '';
+  document.getElementById('linkTech').value = '';
+  document.getElementById('linkTags').value = '';
+  document.getElementById('linkDesc').value = '';
+  document.getElementById('linkFav').checked = false;
+  document.getElementById('linkPin').checked = false;
+  document.getElementById('linkActive').checked = true;
+
+  if (id) {
+    var rec = _links.find(function (l) { return l.id === id; });
+    if (!rec) { _toast('Not found', 'err'); return; }
+    document.getElementById('linkId').value       = rec.id;
+    document.getElementById('linkTitle').value    = rec.title || '';
+    document.getElementById('linkUrl').value      = rec.url || '';
+    document.getElementById('linkCode').value     = rec.code || '';
+    document.getElementById('linkPriority').value = rec.priority || 'medium';
+    document.getElementById('linkCat').value      = rec.category_code || '';
+    _onModalCatChange();
+    document.getElementById('linkSubcat').value   = rec.subcategory_code || '';
+    document.getElementById('linkSrc').value      = rec.source_type || '';
+    document.getElementById('linkTech').value     = rec.technology || '';
+    document.getElementById('linkTags').value     = _tagsStr(rec.tags);
+    document.getElementById('linkDesc').value     = rec.description || '';
+    document.getElementById('linkFav').checked    = !!rec.is_favourite;
+    document.getElementById('linkPin').checked    = !!rec.is_pinned;
+    document.getElementById('linkActive').checked = rec.is_active !== false;
+  }
+  _openModal('linkModal');
+}
+
+async function saveLink() {
+  var id    = document.getElementById('linkId').value;
+  var title = document.getElementById('linkTitle').value.trim();
+  var url   = document.getElementById('linkUrl').value.trim();
+  if (!title || !url) { _toast('Title and URL required', 'err'); return; }
+
+  var code = (document.getElementById('linkCode').value.trim() || _slugify(title));
+  var payload = {
+    user_id          : _uid,
+    code             : code,
+    title,
+    url,
+    category_code    : document.getElementById('linkCat').value    || null,
+    subcategory_code : document.getElementById('linkSubcat').value  || null,
+    source_type      : document.getElementById('linkSrc').value     || null,
+    technology       : document.getElementById('linkTech').value    || null,
+    description      : document.getElementById('linkDesc').value.trim() || null,
+    priority         : document.getElementById('linkPriority').value || 'medium',
+    tags             : _parseTags(document.getElementById('linkTags').value),
+    is_active        : document.getElementById('linkActive').checked,
+    is_favourite     : document.getElementById('linkFav').checked,
+    is_pinned        : document.getElementById('linkPin').checked,
+    updated_at       : new Date().toISOString(),
+  };
+
+  try {
+    var res = id
+      ? await _sb.from('lm_quick_links').update(payload).eq('id', id).eq('user_id', _uid)
+      : await _sb.from('lm_quick_links').insert({ ...payload, usage_count: 0, created_at: new Date().toISOString() });
+    if (res.error) throw res.error;
+    _toast(id ? 'Link updated' : 'Link added', 'ok');
+    _closeModal('linkModal');
+    await _loadLinks(); _renderAll();
+  } catch (e) { _toast('Save failed: ' + e.message, 'err'); }
+}
+
+function deleteLink(id, name) {
+  _confirm('Delete "' + name + '"?', 'This cannot be undone.', async function () {
+    try {
+      var r = await _sb.from('lm_quick_links').delete().eq('id', id).eq('user_id', _uid);
+      if (r.error) throw r.error;
+      _toast('Deleted', 'info');
+      await _loadLinks(); _renderAll();
+    } catch (e) { _toast('Delete failed: ' + e.message, 'err'); }
+  });
+}
+
+async function toggleFav(id) {
+  var rec = _links.find(function (l) { return l.id === id; });
+  if (!rec) return;
+  try {
+    var r = await _sb.from('lm_quick_links').update({ is_favourite: !rec.is_favourite, updated_at: new Date().toISOString() }).eq('id', id).eq('user_id', _uid);
+    if (r.error) throw r.error;
+    await _loadLinks(); _renderAll();
+  } catch (e) { _toast('Failed', 'err'); }
+}
+
+async function togglePin(id) {
+  var rec = _links.find(function (l) { return l.id === id; });
+  if (!rec) return;
+  try {
+    var r = await _sb.from('lm_quick_links').update({ is_pinned: !rec.is_pinned, updated_at: new Date().toISOString() }).eq('id', id).eq('user_id', _uid);
+    if (r.error) throw r.error;
+    await _loadLinks(); _renderAll();
+  } catch (e) { _toast('Failed', 'err'); }
+}
+
+async function trackClick(id, url) {
+  window.open(url, '_blank', 'noopener,noreferrer');
+  try {
+    var rec = _links.find(function (l) { return l.id === id; });
+    var newCount = ((rec && rec.usage_count) || 0) + 1;
+    await _sb.from('lm_quick_links').update({ usage_count: newCount, last_accessed_at: new Date().toISOString() }).eq('id', id).eq('user_id', _uid);
+    if (rec) { rec.usage_count = newCount; rec.last_accessed_at = new Date().toISOString(); }
+  } catch (e) { /* tracking failures are silent */ }
+}
+
+function copyUrl(url) {
+  navigator.clipboard.writeText(url).then(function () { _toast('URL copied!', 'ok'); }).catch(function () { _toast('Copy failed', 'err'); });
+}
+
+/* ── CRUD: Config ── */
+function openConfig(id) {
+  document.getElementById('cfgModalTitle').textContent = id ? 'Edit Config' : 'Add Config';
+  document.getElementById('cfgId').value = '';
+  document.getElementById('cfgType').value = _activeConfigType;
+  document.getElementById('cfgCode').value = '';
+  document.getElementById('cfgLabel').value = '';
+  document.getElementById('cfgOrder').value = '0';
+  document.getElementById('cfgActive').checked = true;
+
+  var showParent = _activeConfigType === 'subcategory';
+  document.getElementById('cfgParentGrp').style.display = showParent ? 'flex' : 'none';
+  if (showParent) {
+    var list = _cfgList('category');
+    document.getElementById('cfgParent').innerHTML = '<option value="">Select category…</option>' +
+      list.map(function (c) { return '<option value="' + esc(c.code) + '">' + esc(c.label) + '</option>'; }).join('');
+  }
+
+  if (id) {
+    var all = [].concat.apply([], Object.values(_config));
+    var rec = all.find(function (x) { return x.id === id; });
+    if (!rec) { _toast('Not found', 'err'); return; }
+    document.getElementById('cfgId').value    = rec.id;
+    document.getElementById('cfgCode').value  = rec.code;
+    document.getElementById('cfgLabel').value = rec.label;
+    document.getElementById('cfgOrder').value = rec.sort_order || 0;
+    document.getElementById('cfgActive').checked = !!rec.is_active;
+    if (showParent) document.getElementById('cfgParent').value = rec.parent_code || '';
+  }
+  _openModal('cfgModal');
+}
+
+async function saveConfig() {
+  var id   = document.getElementById('cfgId').value;
+  var type = document.getElementById('cfgType').value;
+  var payload = {
+    user_id     : _uid,
+    config_type : type,
+    code        : document.getElementById('cfgCode').value.trim().toLowerCase().replace(/\s+/g, '_'),
+    label       : document.getElementById('cfgLabel').value.trim(),
+    parent_code : (type === 'subcategory' ? document.getElementById('cfgParent').value || null : null),
+    sort_order  : parseInt(document.getElementById('cfgOrder').value) || 0,
+    is_active   : document.getElementById('cfgActive').checked,
+    updated_at  : new Date().toISOString(),
+  };
+  if (!payload.code || !payload.label) { _toast('Code and Label required', 'err'); return; }
+  try {
+    var res = id
+      ? await _sb.from('lm_ql_config').update(payload).eq('id', id).eq('user_id', _uid)
+      : await _sb.from('lm_ql_config').insert({ ...payload, created_at: new Date().toISOString() });
+    if (res.error) throw res.error;
+    _toast(id ? 'Updated' : 'Added', 'ok');
+    _closeModal('cfgModal');
+    await _loadConfig(); _populateAllSelects(); _buildConfigSidebar(); _renderConfigTable();
+  } catch (e) { _toast('Save failed: ' + e.message, 'err'); }
+}
+
+function deleteConfig(id, label) {
+  _confirm('Delete "' + label + '"?', 'Links using this value will not be affected.', async function () {
+    try {
+      var r = await _sb.from('lm_ql_config').delete().eq('id', id).eq('user_id', _uid);
+      if (r.error) throw r.error;
+      _toast('Deleted', 'info');
+      await _loadConfig(); _populateAllSelects(); _buildConfigSidebar(); _renderConfigTable();
+    } catch (e) { _toast('Delete failed: ' + e.message, 'err'); }
+  });
+}
+
+/* ── Filters ── */
+function applyFilters() {
+  _filters.search   = (document.getElementById('fSearch').value   || '').trim();
+  _filters.cat      = document.getElementById('fCat').value      || '';
+  _filters.subcat   = document.getElementById('fSubcat').value   || '';
+  _filters.tech     = document.getElementById('fTech').value     || '';
+  _filters.src      = document.getElementById('fSrc').value      || '';
+  _filters.priority = document.getElementById('fPriority').value || '';
+  _filters.fav      = document.getElementById('fFav').value      || '';
+  _filters.sort     = document.getElementById('sortSel').value   || 'created_at_desc';
+  _page = 1;
+  _renderLinks();
+}
+
+function clearFilters() {
+  _filters = { search:'', cat:'', subcat:'', tech:'', src:'', priority:'', fav:'', sort:'created_at_desc' };
+  ['fSearch','fCat','fSubcat','fTech','fSrc','fPriority','fFav'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('sortSel').value = 'created_at_desc';
+  _page = 1;
+  _renderLinks();
+}
+
+function changePage(dir) { _page = Math.max(1, _page + dir); _renderLinks(); }
+function setView(v) {
+  _view = v;
+  document.getElementById('vBtnGrid').classList.toggle('active', v === 'grid');
+  document.getElementById('vBtnList').classList.toggle('active', v === 'list');
+  _renderLinks();
+}
+
+/* ── Bulk operations ── */
+function selectAll(checked) {
+  var list = _filtered();
+  list.forEach(function (l) { if (checked) _selected[l.id] = true; else delete _selected[l.id]; });
+  _updateBulkBar();
+  _renderLinks();
+}
+function clearSelection() {
+  _selected = {};
+  var cb = document.getElementById('selectAllCb');
+  if (cb) cb.checked = false;
+  _updateBulkBar();
+  _renderLinks();
+}
+function _updateBulkBar() {
+  var count = Object.keys(_selected).length;
+  var bar = document.getElementById('bulkBar');
+  bar.classList.toggle('show', count > 0);
+  _setText('bulkCount', count + ' selected');
+}
+
+function bulkActivate(active) {
+  var ids = Object.keys(_selected);
+  if (!ids.length) return;
+  _confirm((active ? 'Activate ' : 'Deactivate ') + ids.length + ' link(s)?', '', async function () {
+    try {
+      for (var i = 0; i < ids.length; i++) {
+        await _sb.from('lm_quick_links').update({ is_active: active, updated_at: new Date().toISOString() }).eq('id', ids[i]).eq('user_id', _uid);
+      }
+      _toast((active ? 'Activated' : 'Deactivated') + ' ' + ids.length + ' links', 'ok');
+      clearSelection();
+      await _loadLinks(); _renderAll();
+    } catch (e) { _toast('Failed: ' + e.message, 'err'); }
+  });
+}
+
+function bulkDelete() {
+  var ids = Object.keys(_selected);
+  if (!ids.length) return;
+  _confirm('Delete ' + ids.length + ' link(s)?', 'This cannot be undone.', async function () {
+    try {
+      for (var i = 0; i < ids.length; i++) {
+        await _sb.from('lm_quick_links').delete().eq('id', ids[i]).eq('user_id', _uid);
+      }
+      _toast('Deleted ' + ids.length + ' links', 'info');
+      clearSelection();
+      await _loadLinks(); _renderAll();
+    } catch (e) { _toast('Failed: ' + e.message, 'err'); }
+  });
+}
+
+/* ── Export CSV ── */
+function exportLinks() {
+  var cols = ['code','title','url','category','subcategory','source_type','technology','priority','tags','description','is_favourite','is_pinned','is_active','usage_count','created_at'];
+  var rows = [cols];
+  _links.forEach(function (l) {
+    rows.push([
+      l.code || '', l.title || '', l.url || '',
+      _cfgLabel('category', l.category_code),
+      _cfgLabel('subcategory', l.subcategory_code),
+      _cfgLabel('source_type', l.source_type),
+      _cfgLabel('technology', l.technology),
+      l.priority || 'medium',
+      (l.tags || []).join('; '),
+      l.description || '',
+      l.is_favourite ? 'Yes' : 'No',
+      l.is_pinned    ? 'Yes' : 'No',
+      l.is_active    ? 'Yes' : 'No',
+      l.usage_count || 0,
+      l.created_at || '',
+    ]);
+  });
+  var csv = rows.map(function (r) { return r.map(function (v) { return '"' + String(v || '').replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
+  var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  var url  = URL.createObjectURL(blob);
+  var a = document.createElement('a'); a.href = url; a.download = 'quick-links-' + _todayStr() + '.csv'; a.click();
+  URL.revokeObjectURL(url);
+  _toast('CSV exported', 'ok');
+}
+
+/* ── Import CSV ── */
+function openImport() { _openModal('importModal'); }
+function importLinks() {
+  var file = document.getElementById('importFile').files[0];
+  if (!file) { _toast('Select a CSV file first', 'err'); return; }
+  var reader = new FileReader();
+  reader.onload = async function (e) {
+    var lines = e.target.result.split('\n').filter(Boolean);
+    if (lines.length < 2) { _toast('CSV appears empty', 'err'); return; }
+    var headers = lines[0].split(',').map(function (h) { return h.replace(/^"|"$/g, '').trim().toLowerCase(); });
+    var statusEl = document.getElementById('importStatus');
+    statusEl.textContent = 'Importing…';
+    var imported = 0, failed = 0;
+    for (var i = 1; i < lines.length; i++) {
+      var vals = lines[i].match(/("(?:[^""]|"")*"|[^,]*)/g) || [];
+      var clean = function (v) { return (v || '').replace(/^"|"$/g, '').replace(/""/g, '"').trim(); };
+      var row = {};
+      headers.forEach(function (h, idx) { row[h] = clean(vals[idx]); });
+      if (!row.title || !row.url) { failed++; continue; }
+      try {
+        await _sb.from('lm_quick_links').insert({
+          user_id: _uid, title: row.title, url: row.url, code: _slugify(row.title),
+          category_code: row.category || null, technology: row.technology || null,
+          source_type: row.source_type || null, priority: row.priority || 'medium',
+          tags: row.tags ? row.tags.split(';').map(function (t) { return t.trim(); }).filter(Boolean) : [],
+          description: row.description || null,
+          is_active: true, is_favourite: false, is_pinned: false, usage_count: 0,
+          created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+        });
+        imported++;
+      } catch (e) { failed++; }
+    }
+    statusEl.textContent = 'Done: ' + imported + ' imported, ' + failed + ' failed.';
+    _toast('Imported ' + imported + ' links', 'ok');
+    await _loadLinks(); _renderAll();
+  };
+  reader.readAsText(file);
+}
+
+/* ── Tabs ── */
+function switchTab(name) {
+  _activeTab = name;
+  document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === name); });
+  document.querySelectorAll('.tab-pane').forEach(function (p) { p.classList.toggle('active', p.id === 'tab-' + name); });
+  if (name === 'config') { _setConfigType(_activeConfigType); }
+}
+
+/* ── Modal helpers ── */
+function _openModal(id)  { document.getElementById(id).classList.add('open'); }
+function _closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(function (o) {
+  o.addEventListener('click', function (e) { if (e.target === o) o.classList.remove('open'); });
+});
+
+/* ── Confirm ── */
+function _confirm(title, msg, cb) {
+  _confirmCb = cb;
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent   = msg;
+  document.getElementById('confirmOkBtn').onclick = function () { _closeModal('confirmModal'); if (_confirmCb) _confirmCb(); };
+  _openModal('confirmModal');
+}
+
+/* ── Toast ── */
+function _toast(msg, type) {
+  type = type || 'info';
+  var w  = document.getElementById('toastWrap');
+  var el = document.createElement('div');
+  el.className = 'toast toast-' + type;
+  el.textContent = msg;
+  w.appendChild(el);
+  requestAnimationFrame(function () { el.classList.add('show'); });
+  setTimeout(function () {
+    el.classList.remove('show');
+    setTimeout(function () { el.remove(); }, 350);
+  }, 3200);
+}
+
+/* ── Theme ── */
+function toggleTheme() {
+  var cur  = document.documentElement.getAttribute('data-theme') || 'dark';
+  var next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('ql_theme', next);
+  document.getElementById('themeBtn').textContent = next === 'dark' ? '🌙' : '☀️';
+}
+
+/* ── Public API ── */
+window.QLM = {
+  /* Link CRUD */
+  openLink, saveLink, deleteLink, toggleFav, togglePin, trackClick, copyUrl,
+  /* Config CRUD */
+  openConfig, saveConfig, deleteConfig,
+  /* Filters & view */
+  applyFilters, clearFilters, changePage, setView, onCatChange, _onModalCatChange,
+  /* Tabs */
+  switchTab,
+  /* Bulk */
+  selectAll, clearSelection, bulkActivate, bulkDelete,
+  /* Import/Export */
+  exportLinks, openImport, importLinks,
+  /* Categories */
+  expandAllCats, collapseAllCats, _toggleCat,
+  /* Config sidebar */
+  _setConfigType,
+  /* Theme */
+  toggleTheme,
+  /* Modal */
+  _closeModal,
+};
+}());
+</script>
+</body>
+</html>

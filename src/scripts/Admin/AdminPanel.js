@@ -21,12 +21,14 @@
   ];
 
   const STUDY_MODULES = [
-    { key: 'java',    label: '☕ Java Prep Kit'      },
-    { key: 'dsa',     label: '🧠 DSA Master Hub'     },
-    { key: 'react',   label: '⚛️ React Prep Hub'     },
-    { key: 'hr',      label: '🤝 HR Questions'        },
-    { key: 'ipk',     label: '📚 Interview Prep Kit'  },
-    { key: 'tracker', label: '🎯 Interview Tracker'   },
+    { key: 'java',    label: '☕ Java Prep Kit'         },
+    { key: 'dsa',     label: '🧠 DSA Master Hub'        },
+    { key: 'react',   label: '⚛️ React Prep Hub'        },
+    { key: 'hr',      label: '🤝 HR Questions'           },
+    { key: 'ipk',     label: '📚 Interview Prep Kit'     },
+    { key: 'tracker', label: '🎯 Interview Tracker'      },
+    { key: 'dlt',     label: '📊 Daily Learning Tracker' },
+    { key: 'ql',      label: '🔗 Quick Links Manager'    },
   ];
 
   /* ── User list pagination state ──────────────────────── */

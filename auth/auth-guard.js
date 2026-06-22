@@ -342,6 +342,7 @@
       { href: prepPrefix + 'Interview-Prep-Kit.html',     icon: '📚', label: 'Interview Kit'        },
       { href: prepPrefix + 'Interview-Tracker.html',      icon: '🎯', label: 'Interview Tracker'    },
       { href: prepPrefix + 'Daily-Learning-Tracker.html', icon: '📊', label: 'Daily Tracker'        },
+      { href: prepPrefix + 'Quick-Links-Manager.html',   icon: '🔗', label: 'Quick Links'           },
     ];
 
     // ── Overlay ──────────────────────────────────────────────────────────────
@@ -377,19 +378,19 @@
       linkList.appendChild(a);
     });
 
-    var appSection = document.createElement('div');
-    appSection.className = 'auth-nav-section-label';
-    appSection.textContent = 'Apps';
+    // var appSection = document.createElement('div');
+    // appSection.className = 'auth-nav-section-label';
+    // appSection.textContent = 'Apps';
 
-    var mainAppLink = document.createElement('a');
-    mainAppLink.href      = '#';
-    mainAppLink.className = 'auth-nav-link';
-    mainAppLink.innerHTML = '<span class="auth-nav-link-icon">💰</span><span>LedgerMate</span>';
-    mainAppLink.addEventListener('click', function (e) {
-      e.preventDefault();
-      try { localStorage.setItem('lm_last_page', 'main'); } catch (err) {}
-      window.location.href = mainAppUrl;
-    });
+    // var mainAppLink = document.createElement('a');
+    // mainAppLink.href      = '#';
+    // mainAppLink.className = 'auth-nav-link';
+    // mainAppLink.innerHTML = '<span class="auth-nav-link-icon">💰</span><span>LedgerMate</span>';
+    // mainAppLink.addEventListener('click', function (e) {
+    //   e.preventDefault();
+    //   try { localStorage.setItem('lm_last_page', 'main'); } catch (err) {}
+    //   window.location.href = mainAppUrl;
+    // });
 
     var spacer = document.createElement('div');
     spacer.className = 'auth-nav-spacer';
@@ -397,8 +398,8 @@
     nav.appendChild(header);
     nav.appendChild(sectionLabel);
     nav.appendChild(linkList);
-    nav.appendChild(appSection);
-    nav.appendChild(mainAppLink);
+   // nav.appendChild(appSection);
+   // nav.appendChild(mainAppLink);
     nav.appendChild(spacer);
     nav.appendChild(footerEl);
     document.body.appendChild(nav);
@@ -424,13 +425,14 @@
 
   // ── 6. Study module key detection ───────────────────────────────────────────
   var _PAGE_MOD = {
-    'java-prep-kit.html':      'java',
-    'dsa-prep-hub.html':       'dsa',
-    'react-prep.html':         'react',
-    'hr-questions.html':       'hr',
-    'interview-prep-kit.html': 'ipk',
+    'java-prep-kit.html':          'java',
+    'dsa-prep-hub.html':           'dsa',
+    'react-prep.html':             'react',
+    'hr-questions.html':           'hr',
+    'interview-prep-kit.html':     'ipk',
     'interview-tracker.html':      'tracker',
-    'daily-learning-tracker.html': 'dlt'
+    'daily-learning-tracker.html': 'dlt',
+    'quick-links-manager.html':    'ql'
   };
 
   function _currentModule() {

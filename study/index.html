@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Study Resources Hub</title>
+<!-- <title>Study Resources Hub</title> -->
 <script>try { localStorage.setItem('lm_last_page', 'study'); } catch (e) {}</script>
 <link rel="manifest" href="../manifest.json"/>
 <meta name="theme-color" content="#10b981"/>
@@ -32,7 +32,7 @@ if ('serviceWorker' in navigator) {
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <div class="topbar-title">Study Resources Hub</div>
+  <!-- <div class="topbar-title">Study Resources Hub</div> -->
   <div class="topbar-right">
     <button class="btn-notes-search" onclick="openNotesSearch()" title="Search your notes (Ctrl+/)">🗒 Search Notes</button>
     <!-- PWA install button — shown only when beforeinstallprompt fires -->
@@ -120,6 +120,14 @@ if ('serviceWorker' in navigator) {
         <div class="ql-body">
           <div class="ql-title">Daily Learning Tracker</div>
           <div class="ql-sub">Activities · Coding · Revisions · Charts</div>
+        </div>
+        <span class="ql-arrow">↗</span>
+      </a>
+      <a href="prep/Quick-Links-Manager.html" class="hero-ql-btn ql-purple">
+        <div class="ql-icon">🔗</div>
+        <div class="ql-body">
+          <div class="ql-title">Quick Links Manager</div>
+          <div class="ql-sub">Docs · YouTube · GitHub · References</div>
         </div>
         <span class="ql-arrow">↗</span>
       </a>
