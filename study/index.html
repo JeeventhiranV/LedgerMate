@@ -1111,7 +1111,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function _refresh(st) {
     if (clock)   clock.textContent = st.display || '00:00:00';
     if (fabLive) {
-      fabLive.textContent = st.display || '00:00:00';
+      fabLive.textContent = (st.running && st.topic ? st.topic + ' · ' : '') + (st.display || '00:00:00');
       fabLive.classList.toggle('hidden', !st.running);
     }
     if (togBtn) {
@@ -1121,7 +1121,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (meta) {
       if (st.running && st.startedAt) {
         var t = new Date(st.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        meta.textContent = 'Started at ' + t;
+        var topicPart = st.topic ? st.topic + ' · ' : '';
+        meta.textContent = topicPart + 'Started at ' + t;
         meta.classList.add('running');
       } else {
         meta.textContent = 'Press Start to begin a session';
