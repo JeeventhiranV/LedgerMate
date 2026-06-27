@@ -84,8 +84,8 @@ if ('serviceWorker' in navigator) {
     <div class="hero-stats">
       <div class="stat-pill"><div class="stat-num" id="statDone">0</div><div class="stat-lbl">Questions Done</div></div>
       <div class="stat-pill" id="statInProgressPill" style="display:none;border-color:rgba(245,158,11,.35)"><div class="stat-num" id="statInProgress" style="background:linear-gradient(135deg,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">0</div><div class="stat-lbl">In Progress</div></div>
-      <div class="stat-pill"><div class="stat-num" id="statTotal">5</div><div class="stat-lbl">Resources</div></div>
-      <div class="stat-pill"><div class="stat-num" id="statQ">496</div><div class="stat-lbl">Questions</div></div>
+      <div class="stat-pill"><div class="stat-num" id="statTotal">7</div><div class="stat-lbl">Resources</div></div>
+      <div class="stat-pill"><div class="stat-num" id="statQ">538</div><div class="stat-lbl">Questions</div></div>
     </div>
 
     <!-- Resume where you left off (populated by JS after DB load) -->
@@ -251,6 +251,8 @@ if ('serviceWorker' in navigator) {
     <button class="chip" data-filter="pdf">PDF Library</button>
     <button class="chip" data-filter="done">Has Progress</button>
     <button class="chip" data-filter="inprogress" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.4);color:#f59e0b">⏳ In Progress</button>
+    <button class="chip chip-st-wip" data-filter="st-wip">🚧 WIP</button>
+    <button class="chip chip-st-completed" data-filter="st-completed">✅ Completed</button>
     <button class="chip gold" data-filter="fav">⭐ Favorites</button>
   </div>
 </div>
@@ -347,18 +349,25 @@ if ('serviceWorker' in navigator) {
 ══════════════════════════════════════════════════════ */
 const RESOURCES = [
   {
-    id: 'dsa-hub', title: 'DSA Master Preparation Hub', category: 'DSA & Algorithms',
+    id: 'dsa-hub', title: 'DSA Algorithm Animator', category: 'DSA & Algorithms',
     categoryKey: 'dsa', moduleKey: 'dsa', icon: '🧠',
-    desc: '200+ curated DSA questions across 15 categories — Arrays, Graphs, DP, Trees, Tries, and more. Each question ships with a full Java solution, complexity analysis, and persistent progress tracking.',
-    tags: ['Arrays','Linked Lists','Trees','Graphs','DP','Backtracking','Heaps','Tries','Binary Search','FAANG','MNC'],
-    color: '#06d6a0', file: 'prep/DSA-Prep-Hub.html', progressKey: 'dsa_prep_done_v1', notesKey: 'dsa_notes_v1', totalQ: 214, badge: 'new'
+    desc: 'Interactive visual walkthroughs of DSA patterns and problems — animated arrays, two pointers, sliding window, trees, graphs and more. A launcher for the visualizer; progress is tracked in the DSA Codebase.',
+    tags: ['Visualizer','Animations','Patterns','Arrays','Trees','Graphs','DP','Learning'],
+    color: '#06d6a0', file: 'prep/DSA-Prep-Hub.html', progressKey: 'dsa_prep_done_v1', notesKey: 'dsa_notes_v1', totalQ: 0, launcher: true, footerHint: '🎬 Visual learning · animator', badge: 'new'
   },
   {
-    id: 'dsa-codebase', title: 'DSA Interview Handbook (Codebase)', category: 'DSA & Algorithms',
+    id: 'dsa-codebase', title: 'DSA Codebase', category: 'DSA & Algorithms',
     categoryKey: 'dsa', moduleKey: 'dsa', icon: '📖',
-    desc: '171 interview-ready DSA problems across 17 topics — each with a structured answer: intuition, brute/better/optimal Java 17 code, complexity tables, dry runs, edge cases, and follow-ups. Click any problem to open its full solution.',
+    desc: '171 interview-ready DSA problems across 17 topics — each with a structured answer: intuition, brute/better/optimal Java 17 code, complexity tables, dry runs, edge cases, and follow-ups. Mark each problem Pending / WIP / Completed.',
     tags: ['Arrays','Strings','Trees','Graphs','DP','Backtracking','Heaps','Tries','Binary Search','Java 17','FAANG'],
-    color: '#4ecdc4', file: 'prep/DSA_CodeBase.html', progressKey: 'dsa_prep_done_v1', notesKey: 'dsa_notes_v1', totalQ: 171, badge: 'new'
+    color: '#4ecdc4', file: 'prep/DSA_CodeBase.html', progressKey: 'dsa_codebase_status_v1', notesKey: 'dsa_notes_v1', totalQ: 171, badge: 'new'
+  },
+  {
+    id: 'dsa-system-design', title: 'LLD & System Design', category: 'DSA & Algorithms',
+    categoryKey: 'dsa', moduleKey: 'dsa', icon: '🏗',
+    desc: '85 interview-ready modules across 11 categories — LLD (Parking Lot, LRU, Rate Limiter…), Concurrency, Networking, Databases, Reliability, SOLID, Design Patterns, Architecture & Messaging. Each with theory, Mermaid diagrams, production Java 21 / Spring Boot 3 code, comparison tables and interview Q&A.',
+    tags: ['LLD','HLD','Concurrency','Kafka','Redis','Resilience4j','Design Patterns','SOLID','Spring Boot','Java 21'],
+    color: '#a78bfa', file: 'prep/DSA_SystemDesign.html', progressKey: 'sd_done', notesKey: null, totalQ: 85, badge: 'new'
   },
   {
     id: 'java-kit', title: 'Java Interview Prep Kit', category: 'Java & Spring',
@@ -394,14 +403,24 @@ const RESOURCES = [
 
 /* ── Module config for dashboard rings ── */
 const MOD_CONFIG = [
-  { id:'java',  label:'Java',   icon:'☕', color:'#f59e0b', total:120, file:'prep/Java-Prep-kit.html',        progKey:'java_prep_done_v1' },
-  { id:'dsa',   label:'DSA',   icon:'🧠', color:'#06d6a0', total:214, file:'prep/DSA-Prep-Hub.html',          progKey:'dsa_prep_done_v1' },
-  { id:'react', label:'React', icon:'⚛️', color:'#4f8ef7', total:31,  file:'prep/React-Prep.html',            progKey:'react_prep_done_v1' },
-  { id:'hr',    label:'HR',    icon:'🤝', color:'#8b5cf6', total:48,  file:'prep/HR-Questions.html',          progKey:'hr_questions_done_v1' },
-  { id:'ipk',   label:'PDFs',  icon:'📚', color:'#22d3ee', total:83,  file:'prep/Interview-Prep-Kit.html',    progKey:'ipk_completed_v1' },
+  { id:'java',    label:'Java',    icon:'☕', color:'#f59e0b', total:120, file:'prep/Java-Prep-kit.html',     progKey:'java_prep_done_v1' },
+  { id:'dsacode', label:'DSA Code',icon:'📖', color:'#4ecdc4', total:171, file:'prep/DSA_CodeBase.html',      progKey:'dsa_codebase_status_v1' },
+  { id:'lld',     label:'LLD/SD',  icon:'🏗', color:'#a78bfa', total:85,  file:'prep/DSA_SystemDesign.html',  progKey:'sd_done' },
+  { id:'react',   label:'React',   icon:'⚛️', color:'#4f8ef7', total:31,  file:'prep/React-Prep.html',        progKey:'react_prep_done_v1' },
+  { id:'hr',      label:'HR',      icon:'🤝', color:'#8b5cf6', total:48,  file:'prep/HR-Questions.html',      progKey:'hr_questions_done_v1' },
+  { id:'ipk',     label:'PDFs',    icon:'📚', color:'#22d3ee', total:83,  file:'prep/Interview-Prep-Kit.html',progKey:'ipk_completed_v1' },
 ];
 
-const TOTAL_Q = MOD_CONFIG.reduce(function(s,m){return s+m.total;},0); // 496
+const TOTAL_Q = MOD_CONFIG.reduce(function(s,m){return s+m.total;},0); // 538
+
+/* Module totals: prefer Supabase (byModule) when present, else fall back to localStorage
+   (covers offline + modules not yet synced to the DB, e.g. first-time Codebase/LLD). */
+function modTotals(m, byModule) {
+  var d = byModule && byModule[m.id];
+  if (d) return { done: d.done, inprog: d.inprog, last: d.last || null };
+  var p = getProgress(m.progKey, m.total);
+  return { done: p.done, inprog: p.inProgress, last: null };
+}
 
 /* ── Achievements definition ── */
 const ACHIEVEMENTS = [
@@ -432,6 +451,25 @@ function toggleFav(id) {
   const favs = getFavs();
   favs.has(id) ? favs.delete(id) : favs.add(id);
   localStorage.setItem(FAV_KEY, JSON.stringify([...favs]));
+}
+
+/* ══════════════════════════════════════════════════════
+   MODULE STATUS (pending / wip / completed) — per resource card
+══════════════════════════════════════════════════════ */
+const MOD_STATUS_KEY = 'lm_module_status_v1';
+const MOD_STATUS_LABELS = { pending: 'Pending', wip: '🚧 WIP', completed: '✅ Done' };
+function getStatusMap() {
+  try { return JSON.parse(localStorage.getItem(MOD_STATUS_KEY) || '{}') || {}; }
+  catch { return {}; }
+}
+function getModuleStatus(id) {
+  var s = getStatusMap()[id];
+  return (s === 'wip' || s === 'completed') ? s : 'pending';
+}
+function setModuleStatus(id, status) {
+  var map = getStatusMap();
+  if (status === 'pending') delete map[id]; else map[id] = status;   // pending = default, don't store
+  localStorage.setItem(MOD_STATUS_KEY, JSON.stringify(map));
 }
 
 /* ══════════════════════════════════════════════════════
@@ -466,6 +504,7 @@ function getNotesCount(notesKey) {
 function buildCard(r, idx) {
   const p = getProgress(r.progressKey, r.totalQ);
   const notesCount = r.notesKey ? getNotesCount(r.notesKey) : 0;
+  const mstatus = getModuleStatus(r.id);
   const fillColor = r.color;
   const bgColor = r.color + '18';
   const ipPct = p.total > 0 ? Math.min(Math.round((p.inProgress / p.total) * 100), Math.max(0, 100 - p.pct)) : 0;
@@ -480,7 +519,7 @@ function buildCard(r, idx) {
     <div class="res-card fade-up delay-${Math.min(idx+1,6)}" style="--c-accent:${r.color};--c-bg:${bgColor}"
       data-id="${r.id}" data-tags="${r.tags.join(' ').toLowerCase()}" data-cat="${r.categoryKey}"
       data-has-progress="${p.done > 0}" data-has-inprogress="${p.inProgress > 0}"
-      data-fav="${isFav}" data-file="${r.file}">
+      data-fav="${isFav}" data-status="${mstatus}" data-file="${r.file}">
       <button class="res-fav${isFav ? ' active' : ''}" data-fav-id="${r.id}"
         title="${isFav ? 'Remove from favorites' : 'Add to favorites'}">${isFav ? '⭐' : '☆'}</button>
       <div class="res-card-top">
@@ -496,6 +535,12 @@ function buildCard(r, idx) {
         ${r.tags.map(function(t){return`<span class="res-tag">${t}</span>`;}).join('')}
         ${notesCount > 0 ? `<span class="res-notes-badge">📝 ${notesCount} note${notesCount>1?'s':''}</span>` : ''}
       </div>
+      ${r.launcher ? '' : `<div class="res-status" role="group" aria-label="Module status">
+        <span class="res-status-label">Status</span>
+        <button class="res-status-btn${mstatus==='pending'?' active':''}" data-st="pending" data-status-id="${r.id}">Pending</button>
+        <button class="res-status-btn${mstatus==='wip'?' active':''}" data-st="wip" data-status-id="${r.id}">🚧 WIP</button>
+        <button class="res-status-btn${mstatus==='completed'?' active':''}" data-st="completed" data-status-id="${r.id}">✅ Completed</button>
+      </div>`}
       <div class="res-footer">
         ${r.totalQ > 0 ? `
         <div class="res-progress-wrap">
@@ -507,7 +552,7 @@ function buildCard(r, idx) {
             <div class="res-progress-fill" style="width:${p.pct}%;background:${fillColor}"></div>
             ${p.inProgress > 0 ? `<div class="res-progress-fill-ip" style="width:${ipPct}%"></div>` : ''}
           </div>
-        </div>` : `<div class="res-progress-wrap" style="align-self:center"><span style="font-size:11px;color:var(--text3)">Kanban · Rounds · Analytics · Export</span></div>`}
+        </div>` : `<div class="res-progress-wrap" style="align-self:center"><span style="font-size:11px;color:var(--text3)">${r.footerHint || 'Kanban · Rounds · Analytics · Export'}</span></div>`}
         <a class="res-open-btn" href="${r.file}" style="background:${r.color}" onclick="event.stopPropagation()">Open ↗</a>
       </div>
     </div>`;
@@ -531,6 +576,19 @@ function renderResourceGrid() {
       applyFilters();
     });
   });
+  grid.querySelectorAll('.res-status-btn').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();                                  // don't open the module
+      var id = this.dataset.statusId, st = this.dataset.st;
+      setModuleStatus(id, st);
+      var card = this.closest('.res-card');
+      card.setAttribute('data-status', st);                 // update left-edge accent
+      card.querySelectorAll('.res-status-btn').forEach(function(b){
+        b.classList.toggle('active', b.dataset.st === st);  // highlight the chosen one
+      });
+      applyFilters();                                       // respect an active status filter
+    });
+  });
 }
 
 /* ══════════════════════════════════════════════════════
@@ -539,6 +597,7 @@ function renderResourceGrid() {
 function updateHeroStats() {
   var totalDone = 0, totalIP = 0;
   RESOURCES.forEach(function(r){
+    if (!r.totalQ) return;                  // launcher cards (e.g. the animator) aren't tracked
     var p = getProgress(r.progressKey, r.totalQ);
     totalDone += p.done;
     totalIP += p.inProgress;
@@ -597,7 +656,7 @@ function renderModRingsLocal() {
 
 function renderModRingsDB(byModule) {
   var html = MOD_CONFIG.map(function(m) {
-    var d = byModule[m.id] || { done: 0, inprog: 0, last: null };
+    var d = modTotals(m, byModule);                     // DB when available, else localStorage
     var agoText = d.last ? StudySync.ago(d.last) : null;
     return buildModRingCard(m, d.done, d.inprog, agoText);
   }).join('');
@@ -775,9 +834,13 @@ function loadDashboard() {
       document.getElementById('heroStreak').style.display = '';
     }
 
-    // Update hero: done / in-progress from DB
+    // Update hero from the dashboard modules only (excludes the animator) —
+    // DB when synced, else localStorage fallback (per module).
     var totalDone = 0, totalIP = 0;
-    Object.values(byModule).forEach(function(m) { totalDone += m.done; totalIP += m.inprog; });
+    MOD_CONFIG.forEach(function(m) {
+      var d = modTotals(m, byModule);
+      totalDone += d.done; totalIP += d.inprog;
+    });
     document.getElementById('statDone').textContent = totalDone;
     if (totalIP > 0) {
       document.getElementById('statInProgress').textContent = totalIP;
@@ -867,12 +930,16 @@ function applyFilters() {
     var hasProg   = card.dataset.hasProgress   === 'true';
     var isFav     = card.dataset.fav           === 'true';
     var hasInprog = card.dataset.hasInprogress === 'true';
+    var mstatus   = card.dataset.status || 'pending';
 
     var show = true;
     if (activeFilter === 'fav'        && !isFav)      show = false;
     else if (activeFilter === 'done'  && !hasProg)    show = false;
     else if (activeFilter === 'inprogress' && !hasInprog) show = false;
-    else if (activeFilter !== 'all' && activeFilter !== 'done' && activeFilter !== 'inprogress' && activeFilter !== 'fav' && cat !== activeFilter) show = false;
+    else if (activeFilter === 'st-pending'   && mstatus !== 'pending')   show = false;
+    else if (activeFilter === 'st-wip'       && mstatus !== 'wip')       show = false;
+    else if (activeFilter === 'st-completed' && mstatus !== 'completed') show = false;
+    else if (activeFilter !== 'all' && ['done','inprogress','fav','st-pending','st-wip','st-completed'].indexOf(activeFilter) === -1 && cat !== activeFilter) show = false;
 
     if (q && !(title.includes(q) || desc.includes(q) || tags.includes(q))) show = false;
 

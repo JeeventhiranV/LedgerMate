@@ -337,7 +337,8 @@
     var modules = [
       { href: prepPrefix + 'Java-Prep-kit.html',          icon: '☕', label: 'Java Prep Kit'       },
       { href: prepPrefix + 'DSA-Prep-Hub.html',           icon: '🧠', label: 'DSA Master Hub'      },
-      { href: prepPrefix + 'DSA_CodeBase.html',           icon: '📖', label: 'DSA Handbook'        },
+      { href: prepPrefix + 'DSA_CodeBase.html',           icon: '📖', label: 'DSA Codebase'        },
+      { href: prepPrefix + 'DSA_SystemDesign.html',       icon: '🏗', label: 'LLD & System Design'  },
       { href: prepPrefix + 'React-Prep.html',             icon: '⚛️', label: 'React Prep Hub'      },
       { href: prepPrefix + 'HR-Questions.html',           icon: '🤝', label: 'HR Questions'         },
       { href: prepPrefix + 'Interview-Prep-Kit.html',     icon: '📚', label: 'Interview Kit'        },
@@ -429,6 +430,7 @@
     'java-prep-kit.html':          'java',
     'dsa-prep-hub.html':           'dsa',
     'dsa_codebase.html':           'dsa',
+    'dsa_systemdesign.html':       'dsa',
     'react-prep.html':             'react',
     'hr-questions.html':           'hr',
     'interview-prep-kit.html':     'ipk',

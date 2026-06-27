@@ -21,7 +21,12 @@
       "Bash(node -e \"global.window={}; require\\('./study/js/dsa-answers.js'\\); const A=window.DSA_ANSWERS; console.log\\('total:',Object.keys\\(A\\).length\\); ['389','191','231','338','371','260','137','287'].forEach\\(k=>{if\\(!A[k]||!A[k].html\\)console.log\\('BAD',k\\)}\\); console.log\\('bit ok'\\); const all=require\\('fs'\\).readFileSync\\('./study/js/dsa-answers.js','utf8'\\); console.log\\('stray colon-comments:', \\(all.match\\(/cc\\\\\">: /g\\)||[]\\).length\\);\")",
       "Bash(awk '/id=\"design\"/,/<\\\\/main>|id=\"patterns-view\"|<!-- ═══/' study/prep/DSA_CodeBase.html)",
       "Bash(node --check auth/auth-guard.js)",
-      "Bash(node -e \"global.window={}; require\\('./study/js/dsa-answers.js'\\); console.log\\('answers parse OK:', Object.keys\\(window.DSA_ANSWERS\\).length\\);\")"
+      "Bash(node -e \"global.window={}; require\\('./study/js/dsa-answers.js'\\); console.log\\('answers parse OK:', Object.keys\\(window.DSA_ANSWERS\\).length\\);\")",
+      "Bash(node -e \"global.window={}; require\\('./study/js/dsa-systemdesign-content.js'\\); const t=window.SD_TOPICS; const n=t.reduce\\(\\(a,c\\)=>a+c.topics.length,0\\); console.log\\('registry OK: '+t.length+' categories, '+n+' topics'\\);\")",
+      "Bash(node -e \"global.window={}; require\\('./study/js/dsa-systemdesign-content.js'\\); const C=window.SD_CONTENT; console.log\\('content keys:', Object.keys\\(C\\).length, '->', Object.keys\\(C\\).join\\(', '\\)\\); ['parking-lot','lru-cache'].forEach\\(k=>{ if\\(!C[k]||C[k].length<2000\\) console.log\\('THIN/MISSING',k\\); }\\); console.log\\('parking-lot len:', C['parking-lot'].length, ' lru-cache len:', C['lru-cache'].length\\);\")",
+      "Bash(node -e \"global.window={}; require\\('./study/js/dsa-systemdesign-content.js'\\); const C=window.SD_CONTENT; console.log\\('keys:',Object.keys\\(C\\).length\\); ['rate-limiter-lld','splitwise','elevator'].forEach\\(k=>console.log\\(k, C[k]?C[k].length:'MISSING'\\)\\);\")",
+      "Bash(node -e \"global.window={}; require\\('./study/js/dsa-systemdesign-content.js'\\); const C=window.SD_CONTENT; console.log\\('keys:',Object.keys\\(C\\).length\\); ['bookmyshow','atm-machine','food-delivery'].forEach\\(k=>console.log\\(k, C[k]?C[k].length:'MISSING'\\)\\);\")",
+      "Bash(node -e \"global.window={}; require\\('./study/js/dsa-systemdesign-content.js'\\); const C=window.SD_CONTENT; console.log\\('keys:',Object.keys\\(C\\).length\\); ['concurrency-basics','thread-pools','completablefuture','volatile-keyword'].forEach\\(k=>console.log\\(k, C[k]?C[k].length:'MISSING'\\)\\);\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\E1707\\.claude\\projects\\c--Jeeva-Workspace-VsProjectSpace-LedgerMate\\memory"

@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DSA Animator</title>
+<title>DSA CodeBase</title>
 <meta name="description" content="Learn DSA with animation: arrays, strings, trees, graphs, dynamic programming, and more with interview-focused visual walkthroughs.">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="DSA Animator">
+<meta property="og:site_name" content="DSA CodeBase">
 <link rel="stylesheet" href="../styles/dsa.css">
 </head>
 <body>
 <header>
   <div class="header-left">
     <button id="navToggle" class="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="sidebar" onclick="toggleNav()">☰</button>
-    <h1>🧠 DSA Animator</h1>
+    <!-- <h1>🧠 DSA CodeBase</h1> -->
   </div>
   <div class="stats">
     Total: <span>170+</span> &nbsp;|&nbsp;
@@ -49,12 +49,8 @@
   <a href="/system-design" id="nav-sd-link" class="sd-nav-link" target="_blank" rel="noopener noreferrer" onclick="window.open('/system-design','_blank','noopener,noreferrer');return false;">🏗 System Design <span class="focus-nav-new">New</span></a>
   <a href="#" id="nav-tricks-link"   onclick="showView('tricks');return false;">⚙️ Code Tricks</a>
   <a href="#" id="nav-ec-link"       onclick="showView('edge');return false;">⚠️ Edge Cases</a>
-  <a href="#" id="nav-jobs-link" class="jobs-nav-link" onclick="openJobs();return false;">💼 Jobs <span class="focus-nav-new">New</span></a>
-  <a href="#" id="nav-mock-link" class="mi-nav-link" onclick="openMockInterview();return false;">🎤 Mock Interview <span class="focus-nav-new">New</span></a>
   <div class="section-label" style="margin-top:8px">Apps</div>
   <a href="/java" id="nav-java-link" class="java-nav-link" target="_blank" rel="noopener noreferrer">🤖 AI-Powered Java Backend Developer <span class="focus-nav-new">New</span></a>
-  <a href="#" id="nav-quiz-link" class="quiz-nav-link" onclick="openQuiz();return false;">🎯 Pattern Quiz</a>
-  <a href="#" id="nav-focus-link" class="focus-nav-link" onclick="showView('focus');return false;">📵 Focus <span class="focus-nav-new">New</span></a>
 </nav>
 
 <main id="main">
@@ -66,12 +62,7 @@
       <a href="/system-design" class="view-tab sd-view-tab" target="_blank" rel="noopener noreferrer" onclick="window.open('/system-design','_blank','noopener,noreferrer');return false;">🏗 System Design</a>
       <button class="view-tab"        id="tab-tricks"   onclick="showView('tricks')">⚙️ Code Tricks</button>
       <button class="view-tab"        id="tab-edge"     onclick="showView('edge')">⚠️ Edge Cases</button>
-      <a href="#" class="view-tab jobs-view-tab" onclick="openJobs();return false;">💼 Jobs</a>
-      <a href="#" class="view-tab mi-view-tab" onclick="openMockInterview();return false;">🎤 Mock Interview</a>
       <a href="/java" class="view-tab java-view-tab" target="_blank" rel="noopener noreferrer">🤖 AI Java Backend</a>
-      <a href="#" class="view-tab quiz-view-tab" onclick="openQuiz();return false;">🎯 Quiz</a>
-      <button class="view-tab"        id="tab-focus"    onclick="showView('focus')" style="color:inherit">📵 Focus</button>
-      <button class="view-tab explore-tab" id="tab-explore" onclick="openExplore()">🌐 Explore <span class="explore-ad-badge">Ad</span></button>
     </div>
   </div>
 
@@ -115,6 +106,11 @@
     <button class="filter-btn"            id="btn-p1"     onclick="setPriority('p1')">🔴 P1 Only</button>
     <button class="filter-btn"            id="btn-p1p2"   onclick="setPriority('p1p2')">🔴🟡 P1 + P2</button>
     <button class="filter-btn"            id="btn-p3"     onclick="setPriority('p3')">⚫ P3 Only</button>
+    <span class="filter-sep" aria-hidden="true"></span>
+    <button class="filter-btn status-filter active-status" data-st="all">All Status</button>
+    <button class="filter-btn status-filter" data-st="pending">○ Pending</button>
+    <button class="filter-btn status-filter" data-st="inprogress">🚧 WIP</button>
+    <button class="filter-btn status-filter" data-st="done">✅ Completed</button>
   </div>
 
   <!-- ═══ ARRAYS ═══ -->
@@ -531,17 +527,6 @@
      PATTERNS VIEW
 ═════════════════════════════════════════════════ -->
 <div id="patterns-view" style="display:none">
-
-  <div class="patterns-quiz-banner">
-    <div class="pqb-left">
-      <span class="pqb-icon">🎯</span>
-      <div>
-        <div class="pqb-title">Test Your Pattern Knowledge</div>
-        <div class="pqb-sub">10 random questions · hints · explanations · score tracking</div>
-      </div>
-    </div>
-    <button onclick="openQuiz()" class="pqb-btn">Take Quiz →</button>
-  </div>
 
   <div class="pat-jumper">
     <a class="pat-jump-btn" href="#pat-sliding">🪟 Sliding Window</a>
@@ -4076,34 +4061,7 @@ toRemove.forEach(map::remove);</pre>
 
 </div><!-- /edge-view -->
 
-<!-- ═══════════════════════════════════════════════
-     FOCUS VIEW — rendered lazily
-════════════════════════════════════════════════ -->
-<div id="focus-view" style="display:none"></div>
-
 <button id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
-
-<!-- ══════════════════════════════════════════════
-     QUIZ MODAL
-══════════════════════════════════════════════ -->
-<div id="quiz-overlay">
-  <div class="qm-top-bar">
-    <span class="qm-top-title">🎯 Pattern Quiz</span>
-    <button class="qm-close-btn" onclick="closeQuizModal()">✕ Close</button>
-  </div>
-  <div id="qm-stats-bar" class="qm-stats-bar">
-    <div class="qm-stat"><span class="qm-stat-val" id="qms-attempts">—</span><span class="qm-stat-lbl">Attempts</span></div>
-    <div class="qm-stat-sep"></div>
-    <div class="qm-stat"><span class="qm-stat-val" id="qms-avg">—</span><span class="qm-stat-lbl">Avg Score</span></div>
-    <div class="qm-stat-sep"></div>
-    <div class="qm-stat"><span class="qm-stat-val" id="qms-best">—</span><span class="qm-stat-lbl">Best</span></div>
-    <div class="qm-stat-sep"></div>
-    <div class="qm-stat"><span class="qm-stat-val" id="qms-last">—</span><span class="qm-stat-lbl">Last Attempt</span></div>
-  </div>
-  <div class="qm-body">
-    <div id="qz-content"></div>
-  </div>
-</div>
 
 <!-- Mobile sidebar backdrop -->
 <div id="nav-backdrop" onclick="closeNav()"></div>
@@ -4128,126 +4086,22 @@ toRemove.forEach(map::remove);</pre>
 <script src="../js/dsa-answers.js"></script>
 <script>
   // ── View switcher ──
-  function openExplore() {
-    window.open('https://nomorerejection.com/', '_blank', 'noopener,noreferrer');
-  }
-
   function showView(view) {
     document.getElementById('problems-view').style.display = view === 'problems' ? '' : 'none';
     document.getElementById('patterns-view').style.display = view === 'patterns' ? '' : 'none';
     document.getElementById('tricks-view').style.display   = view === 'tricks'   ? '' : 'none';
     document.getElementById('edge-view').style.display     = view === 'edge'     ? '' : 'none';
-    document.getElementById('focus-view').style.display    = view === 'focus'    ? '' : 'none';
     document.getElementById('tab-problems').classList.toggle('active', view === 'problems');
     document.getElementById('tab-patterns').classList.toggle('active', view === 'patterns');
     document.getElementById('tab-tricks').classList.toggle('active',   view === 'tricks');
     document.getElementById('tab-edge').classList.toggle('active',     view === 'edge');
-    document.getElementById('tab-focus').classList.toggle('active',    view === 'focus');
     document.getElementById('nav-patterns-link').classList.toggle('active', view === 'patterns');
     document.getElementById('nav-tricks-link').classList.toggle('active',   view === 'tricks');
     document.getElementById('nav-ec-link').classList.toggle('active',       view === 'edge');
-    document.getElementById('nav-focus-link').classList.toggle('active',    view === 'focus');
     if (view === 'problems') {
-      navLinks.forEach(l => { if (l.id !== 'nav-patterns-link' && l.id !== 'nav-tricks-link' && l.id !== 'nav-ec-link' && l.id !== 'nav-focus-link') l.classList.remove('active'); });
+      navLinks.forEach(l => { if (l.id !== 'nav-patterns-link' && l.id !== 'nav-tricks-link' && l.id !== 'nav-ec-link') l.classList.remove('active'); });
     }
-    if (view === 'focus') renderFocusView();
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  // ── Focus view lazy render ──
-  var focusRendered = false;
-  function renderFocusView() {
-    if (focusRendered) return;
-    focusRendered = true;
-    document.getElementById('focus-view').innerHTML = `
-<div class="focus-view">
-
-  <div class="focus-hero">
-    <div class="focus-hero-badge">🔒 New App</div>
-    <h1 class="focus-hero-title">LockIn – Take Back Control of<br><span>Your Life</span></h1>
-    <p class="focus-hero-sub">A commitment system that creates real accountability for focused work.</p>
-    <p class="focus-hero-tagline">Set a lock. Set a penalty. Stay focused. Build discipline.</p>
-    <p style="font-size:0.9rem;color:#a78bfa;font-weight:600;margin-bottom:20px;line-height:1.6">
-      💡 DSA Animator teaches you <em style="color:#e879f9">how</em> to solve problems.<br>
-      LockIn makes sure you actually <em style="color:#e879f9">sit down and do it.</em><br>
-      Together — cracking your dream company gets a whole lot closer. 🚀
-    </p>
-    <a href="https://play.google.com/store/apps/details?id=com.lockinbhushanltd.lockinapp" target="_blank" rel="noopener noreferrer" class="focus-hero-cta">▶ Download on Google Play</a>
-  </div>
-
-  <div class="focus-screenshots">
-    <div class="focus-ss-wrap"><img src="images/Screenshot_20260303_185359_LockIn.jpg" alt="LockIn lock session" loading="lazy"></div>
-    <div class="focus-ss-wrap"><img src="images/Screenshot_20260303_185412_LockIn.jpg" alt="LockIn penalty setup" loading="lazy"></div>
-    <div class="focus-ss-wrap"><img src="images/Screenshot_20260303_185739_LockIn.jpg" alt="LockIn progress tracking" loading="lazy"></div>
-  </div>
-
-  <div class="focus-section">
-    <div class="focus-sec-hdr">
-      <span class="focus-sec-icon">🚀</span>
-      <div><div class="focus-sec-title">How It Works</div><div class="focus-sec-sub">Four simple steps to a focused session</div></div>
-    </div>
-    <div class="focus-steps">
-      <div class="focus-step"><div class="focus-step-icon">⏱️</div><div><div class="focus-step-label">Choose lock time &amp; penalty</div><div class="focus-step-desc">Pick how long to focus and set a penalty amount that feels real to you.</div></div></div>
-      <div class="focus-step"><div class="focus-step-icon">🔒</div><div><div class="focus-step-label">Start the lock session</div><div class="focus-step-desc">Distracting apps are blocked the moment the session begins.</div></div></div>
-      <div class="focus-step"><div class="focus-step-icon">💳</div><div><div class="focus-step-label">Need to exit early?</div><div class="focus-step-desc">Complete the penalty payment through a secure flow to unlock your phone.</div></div></div>
-      <div class="focus-step"><div class="focus-step-icon">📊</div><div><div class="focus-step-label">Track your progress</div><div class="focus-step-desc">Finish successfully and watch your streaks, locked time, and consistency grow.</div></div></div>
-    </div>
-  </div>
-
-  <div class="focus-section">
-    <div class="focus-sec-hdr">
-      <span class="focus-sec-icon">💡</span>
-      <div><div class="focus-sec-title">Why LockIn Works</div><div class="focus-sec-sub">Real consequences change real behaviour</div></div>
-    </div>
-    <div class="focus-features">
-      <div class="focus-feature"><div class="focus-feat-icon">⚡</div><div class="focus-feat-title">Real consequences</div><div class="focus-feat-desc">A penalty amount that actually matters turns intention into action.</div></div>
-      <div class="focus-feature"><div class="focus-feat-icon">🛡️</div><div class="focus-feat-title">Strong lock enforcement</div><div class="focus-feat-desc">Blocked apps stay blocked during active sessions — no workarounds.</div></div>
-      <div class="focus-feature"><div class="focus-feat-icon">💳</div><div class="focus-feat-title">Secure early unlock</div><div class="focus-feat-desc">Payment verification ensures breaking focus has a real cost.</div></div>
-      <div class="focus-feature"><div class="focus-feat-icon">📈</div><div class="focus-feat-title">Session history &amp; streaks</div><div class="focus-feat-desc">Progress insights keep you motivated and aware of your patterns.</div></div>
-      <div class="focus-feature"><div class="focus-feat-icon">👋</div><div class="focus-feat-title">Beginner-friendly</div><div class="focus-feat-desc">Guided permission setup so you're locked in within minutes.</div></div>
-      <div class="focus-feature"><div class="focus-feat-icon">🎯</div><div class="focus-feat-title">Goal-based motivation</div><div class="focus-feat-desc">Daily sessions and targets help you reduce screen dependency over time.</div></div>
-    </div>
-  </div>
-
-  <div class="focus-section">
-    <div class="focus-sec-hdr">
-      <span class="focus-sec-icon">🎯</span>
-      <div><div class="focus-sec-title">Smart Focus Features</div><div class="focus-sec-sub">Built to keep you accountable every day</div></div>
-    </div>
-    <div class="focus-features">
-      <div class="focus-feature"><div class="focus-feat-icon">📅</div><div class="focus-feat-title">Daily lock sessions</div><div class="focus-feat-desc">Build discipline with a consistent daily locking habit.</div></div>
-      <div class="focus-feature"><div class="focus-feat-icon">💳</div><div class="focus-feat-title">Penalty-based unlock</div><div class="focus-feat-desc">Secure payment confirmation for any early exit — keeps you honest.</div></div>
-      <div class="focus-feature"><div class="focus-feat-icon">📊</div><div class="focus-feat-title">Locked time tracking</div><div class="focus-feat-desc">See exactly how much time you've protected from distractions.</div></div>
-      <div class="focus-feature"><div class="focus-feat-icon">🏆</div><div class="focus-feat-title">Goal-based streaks</div><div class="focus-feat-desc">Reduce screen dependency with motivating streak milestones.</div></div>
-    </div>
-  </div>
-
-  <div class="focus-section">
-    <div class="focus-sec-hdr">
-      <span class="focus-sec-icon">🔧</span>
-      <div><div class="focus-sec-title">Built for Reliability</div><div class="focus-sec-sub">Lock sessions that actually hold</div></div>
-    </div>
-    <div class="focus-reliability">
-      <div class="focus-rel-row"><div class="focus-rel-icon">🔁</div><div><div class="focus-rel-title">Persists through device reboots</div><div class="focus-rel-desc">Lock session continues even after your phone restarts — no escape hatch.</div></div></div>
-      <div class="focus-rel-row"><div class="focus-rel-icon">📞</div><div><div class="focus-rel-title">Essential access always available</div><div class="focus-rel-desc">Calls, SMS, and payment authentication work normally during a lock session.</div></div></div>
-      <div class="focus-rel-row"><div class="focus-rel-icon">📱</div><div><div class="focus-rel-title">On-device usage insights</div><div class="focus-rel-desc">See your screen usage patterns without data leaving your device.</div></div></div>
-    </div>
-  </div>
-
-  <div class="focus-privacy">
-    <div class="focus-privacy-icon">🔐</div>
-    <div class="focus-privacy-text">
-      <strong>Privacy first.</strong> LockIn uses Android Accessibility Service only to enforce lock sessions — detecting app/window changes and bringing back the lock screen when blocked apps are opened. It does <strong>not</strong> read personal content (messages, passwords, or typed text), and the service can be disabled at any time from your device settings.
-    </div>
-  </div>
-
-  <div class="focus-bottom-cta">
-    <p>Whether you're a <strong>student</strong>, <strong>founder</strong>, <strong>creator</strong>, or <strong>working professional</strong> — if distractions are costing you your best hours, LockIn gives you the accountability layer that willpower alone cannot.</p>
-    <a href="https://play.google.com/store/apps/details?id=com.lockinbhushanltd.lockinapp" target="_blank" rel="noopener noreferrer" class="focus-bottom-btn">▶ Get LockIn on Google Play</a>
-    <div class="focus-tags">#Productivity &nbsp;#ScreenTime &nbsp;#Focus &nbsp;#Students &nbsp;#DeepWork &nbsp;#Discipline &nbsp;#AndroidApp &nbsp;#Startup</div>
-  </div>
-
-</div>`;
   }
 
   // ── Pattern card toggle ──
@@ -5746,489 +5600,6 @@ toRemove.forEach(map::remove);</pre>
     window.open(link.href, '_blank', 'noopener,noreferrer');
   });
 
-  // ── QUIZ MODULE ──────────────────────────────────────────────────────────
-  const _qz = {
-    phase: 'idle',
-    difficulty: null,
-    questions: [],
-    idx: 0,
-    selected: null,
-    results: [],
-    showHint: false,
-    elapsed: 0,
-    timerInterval: null,
-    startTime: null,
-    stats: null,
-    statsLoading: false,
-    saveError: null,
-    historyItems: [],
-    historyPage: 0,
-    historyTotal: 0,
-    historyLoading: false,
-  };
-
-  const _QZ_DIFF = { easy: 'qz-diff-easy', medium: 'qz-diff-medium', hard: 'qz-diff-hard' };
-  const _QZ_LABELS = ['A', 'B', 'C', 'D'];
-
-  function _qzFmtTime(s) {
-    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
-  }
-  function _qzFmtDate(iso) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-  }
-  function _escHtml(str) {
-    return String(str || '')
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
-
-  function openQuiz() { _openQuizModal(); }
-  function openMockInterview() { window.open('/mockInterview', '_blank', 'noopener,noreferrer'); }
-  window.openMockInterview = openMockInterview;
-  function openJobs() { window.open('/jobs', '_blank', 'noopener,noreferrer'); }
-  window.openJobs = openJobs;
-
-  function _openQuizModal() {
-    document.getElementById('quiz-overlay').style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-    _qz.phase = 'idle';
-    _qz.saveError = null;
-    _qzRender();
-    _qzLoadStats();
-  }
-
-  function closeQuizModal() {
-    document.getElementById('quiz-overlay').style.display = 'none';
-    document.body.style.overflow = '';
-    _qzStopTimer();
-  }
-
-  async function _qzLoadStats() {
-    _qz.statsLoading = true;
-    if (_qz.phase === 'idle') _qzRender();
-    try {
-      const res = await fetch('/api/quiz/performance/stats');
-      if (!res.ok) return;
-      _qz.stats = await res.json();
-      _qzUpdateStatsBar();
-    } catch {}
-    _qz.statsLoading = false;
-    if (_qz.phase === 'idle') _qzRender();
-  }
-
-  function _qzUpdateStatsBar() {
-    const s = _qz.stats;
-    if (!s || s.totalAttempts === 0) return;
-    const bar = document.getElementById('qm-stats-bar');
-    if (bar) bar.style.display = 'flex';
-    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    set('qms-attempts', s.totalAttempts);
-    set('qms-avg', (s.avgPercentage || 0).toFixed(1) + '%');
-    set('qms-best', s.bestScore + '/10');
-    set('qms-last', _qzFmtDate(s.lastAttemptAt));
-  }
-
-  async function _qzLoadHistory(page) {
-    _qz.historyLoading = true;
-    if (page === 0) _qzRender();
-    try {
-      const res = await fetch('/api/quiz/performance/me?page=' + page + '&size=20');
-      if (!res.ok) return;
-      const data = await res.json();
-      const items = Array.isArray(data) ? data : (data.items || data.content || []);
-      const total = Array.isArray(data) ? items.length : (data.totalItems != null ? data.totalItems : (data.totalElements != null ? data.totalElements : items.length));
-      if (page === 0) { _qz.historyItems = items; } else { _qz.historyItems = _qz.historyItems.concat(items); }
-      _qz.historyTotal = total;
-      _qz.historyPage  = page;
-    } catch {}
-    _qz.historyLoading = false;
-    _qzRender();
-  }
-
-  function _qzOpenHistory() {
-    _qz.phase = 'history';
-    _qz.historyItems = [];
-    _qz.historyPage  = 0;
-    _qz.historyTotal = 0;
-    _qzLoadHistory(0);
-  }
-
-  function _qzStartTimer() {
-    _qzStopTimer();
-    _qz.startTime = Date.now();
-    _qz.elapsed = 0;
-    _qz.timerInterval = setInterval(() => {
-      _qz.elapsed = Math.floor((Date.now() - _qz.startTime) / 1000);
-      const el = document.getElementById('qz-timer');
-      if (el) el.textContent = '⏱ ' + _qzFmtTime(_qz.elapsed);
-    }, 1000);
-  }
-
-  function _qzStopTimer() {
-    if (_qz.timerInterval) { clearInterval(_qz.timerInterval); _qz.timerInterval = null; }
-  }
-
-  async function _qzStart(level) {
-    _qz.difficulty = level || 'random';
-    _qz.phase = 'loading';
-    _qzRender();
-    const qUrl = (level && level !== 'random')
-      ? '/api/quiz/questions/random?level=' + encodeURIComponent(level)
-      : '/api/quiz/questions/random';
-    try {
-      const res = await fetch(qUrl);
-      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Failed to load questions'); }
-      const qs = await res.json();
-      _qz.questions = qs;
-      _qz.idx = 0;
-      _qz.results = [];
-      _qz.selected = null;
-      _qz.showHint = false;
-      _qz.saveError = null;
-      _qzStartTimer();
-      _qz.phase = 'question';
-      _qzRender();
-    } catch (e) {
-      _qz.phase = 'idle';
-      _qzRender();
-      const err = document.getElementById('qz-idle-error');
-      if (err) { err.textContent = e.message; err.style.display = 'block'; }
-    }
-  }
-
-  function _qzSelectOption(i) {
-    if (_qz.phase !== 'question') return;
-    _qz.selected = i;
-    document.querySelectorAll('.qz-opt').forEach((btn, idx) => {
-      btn.className = 'qz-opt' + (idx === i ? ' qz-opt-selected' : '');
-      btn.querySelector('.qz-opt-lbl').className = 'qz-opt-lbl';
-    });
-    const submitBtn = document.getElementById('qz-submit-btn');
-    if (submitBtn) submitBtn.disabled = false;
-  }
-
-  function _qzSubmit() {
-    if (_qz.selected === null || _qz.phase !== 'question') return;
-    const q = _qz.questions[_qz.idx];
-    _qz.results.push({ id: q.id, selected: _qz.selected, correct: _qz.selected === q.answer });
-    _qz.phase = 'answered';
-    _qzRender();
-  }
-
-  function _qzNext() {
-    const next = _qz.idx + 1;
-    if (next >= _qz.questions.length) {
-      _qzStopTimer();
-      _qz.phase = 'complete';
-    } else {
-      _qz.idx = next;
-      _qz.selected = null;
-      _qz.showHint = false;
-      _qz.phase = 'question';
-    }
-    _qzRender();
-  }
-
-  function _qzToggleHint() {
-    _qz.showHint = !_qz.showHint;
-    const box = document.getElementById('qz-hint-box');
-    const btn = document.getElementById('qz-hint-btn');
-    if (box) box.style.display = _qz.showHint ? 'block' : 'none';
-    if (btn) {
-      btn.textContent = '💡 ' + (_qz.showHint ? 'Hide Hint' : 'Show Hint');
-      btn.className = 'qz-hint-btn' + (_qz.showHint ? ' active' : '');
-    }
-  }
-
-  async function _qzSave(andStart) {
-    const correct = _qz.results.filter(r => r.correct).length;
-    const wrong   = _qz.results.length - correct;
-    const total   = _qz.questions.length;
-    _qz.phase = 'saving';
-    _qz.saveError = null;
-    _qzRender();
-    try {
-      const res = await fetch('/api/quiz/performance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          totalQuestions: total,
-          correctAnswers: correct,
-          wrongAnswers: wrong,
-          score: correct,
-          percentage: parseFloat(((correct / total) * 100).toFixed(2)),
-          timeTakenSeconds: _qz.elapsed,
-          questionIds: _qz.questions.map(q => q.id),
-          attemptedAt: new Date().toISOString(),
-        }),
-      });
-      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Failed to save score'); }
-      await _qzLoadStats();
-      if (andStart) { _qz.phase = 'difficulty'; _qzRender(); } else { _qz.phase = 'idle'; _qzRender(); }
-    } catch (e) {
-      _qz.saveError = e.message || 'Failed to save score';
-      _qz.phase = 'complete';
-      _qzRender();
-    }
-  }
-
-  function _qzRender() {
-    const el = document.getElementById('qz-content');
-    if (!el) return;
-    switch (_qz.phase) {
-      case 'idle':                      el.innerHTML = _qzHtmlIdle();       break;
-      case 'difficulty':                el.innerHTML = _qzHtmlDifficulty(); break;
-      case 'history':                   el.innerHTML = _qzHtmlHistory();    break;
-      case 'loading':                   el.innerHTML = _qzHtmlLoading();    break;
-      case 'question': case 'answered': el.innerHTML = _qzHtmlQuestion();   break;
-      case 'complete': case 'saving':   el.innerHTML = _qzHtmlResults();    break;
-    }
-  }
-
-  function _qzHtmlIdle() {
-    const s = _qz.stats;
-    const statsHtml = _qz.statsLoading ? `
-      <div class="qz-shimmer-grid">
-        <div class="qz-shimmer qz-shimmer-card"></div>
-        <div class="qz-shimmer qz-shimmer-card"></div>
-        <div class="qz-shimmer qz-shimmer-card"></div>
-        <div class="qz-shimmer qz-shimmer-card"></div>
-      </div>` :
-      (s && s.totalAttempts > 0) ? `
-      <div class="qz-stats-grid">
-        <div class="qz-stat-card"><span>${s.totalAttempts}</span>Attempts</div>
-        <div class="qz-stat-card"><span>${(s.avgPercentage || 0).toFixed(1)}%</span>Avg Score</div>
-        <div class="qz-stat-card qz-stat-green"><span>${s.bestScore}/10</span>Best Score</div>
-        <div class="qz-stat-card"><span>${s.totalCorrect != null ? s.totalCorrect : '—'}</span>Total Correct</div>
-      </div>` : `<p class="qz-no-stats">No attempts yet — take your first quiz!</p>`;
-    return `
-      <div class="qz-idle-card">
-        <div class="qz-idle-icon">🎯</div>
-        <h2>Pattern Quiz</h2>
-        <p class="qz-idle-desc">10 questions per attempt — sliding window, two pointers, DP, graphs &amp; more.
-          Get hints before answering and full explanations after each submission.</p>
-        ${statsHtml}
-        ${(s && s.totalAttempts > 0) ? `<button class="qz-history-btn" onclick="_qzOpenHistory()">View History →</button>` : ''}
-        <div id="qz-idle-error" class="qz-error-box" style="display:none"></div>
-        <button class="qz-start-btn" onclick="_qz.phase='difficulty';_qzRender()">Start Quiz →</button>
-      </div>`;
-  }
-
-  function _qzHtmlDifficulty() {
-    return `
-      <div class="qz-diff-card">
-        <h2 class="qzd-title">Choose Difficulty</h2>
-        <p class="qzd-desc">Select the difficulty level for your 10 questions</p>
-        <div class="qzd-grid">
-          <button class="qzd-opt qzd-easy"   onclick="_qzStart('easy')">
-            <span class="qzd-icon">🟢</span><span class="qzd-label">Easy</span>
-            <span class="qzd-sub">Core patterns, beginner-friendly</span>
-          </button>
-          <button class="qzd-opt qzd-medium" onclick="_qzStart('medium')">
-            <span class="qzd-icon">🟡</span><span class="qzd-label">Medium</span>
-            <span class="qzd-sub">Standard interview level</span>
-          </button>
-          <button class="qzd-opt qzd-hard"   onclick="_qzStart('hard')">
-            <span class="qzd-icon">🔴</span><span class="qzd-label">Hard</span>
-            <span class="qzd-sub">Advanced problem-solving</span>
-          </button>
-          <button class="qzd-opt qzd-random" onclick="_qzStart('random')">
-            <span class="qzd-icon">🎲</span><span class="qzd-label">Random</span>
-            <span class="qzd-sub">Mix of all difficulties</span>
-          </button>
-        </div>
-        <button class="qzd-back" onclick="_qz.phase='idle';_qzRender()">← Back</button>
-      </div>`;
-  }
-
-  function _qzHtmlHistory() {
-    const hdr = `<div class="qz-hist-hdr">
-      <button class="qzd-back" onclick="_qz.phase='idle';_qzRender()">← Back</button>
-      <h2 class="qz-hist-title">Attempt History</h2>
-    </div>`;
-    if (_qz.historyLoading && _qz.historyItems.length === 0) {
-      const shimRows = [1,2,3].map(() => `
-        <div class="qz-hist-item">
-          <div class="qz-shimmer" style="width:48px;height:26px;border-radius:6px;flex-shrink:0"></div>
-          <div style="display:flex;flex-direction:column;gap:4px;min-width:72px;flex-shrink:0">
-            <div class="qz-shimmer" style="width:56px;height:14px;border-radius:6px"></div>
-            <div class="qz-shimmer" style="width:40px;height:11px;border-radius:6px"></div>
-          </div>
-          <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0">
-            <div class="qz-shimmer" style="width:100%;height:7px;border-radius:99px"></div>
-            <div class="qz-shimmer" style="width:40%;height:11px;border-radius:6px"></div>
-          </div>
-          <div class="qz-shimmer" style="width:56px;height:32px;border-radius:8px;flex-shrink:0"></div>
-        </div>`).join('');
-      return `<div class="qz-history-wrap">${hdr}<div class="qz-hist-list">${shimRows}</div></div>`;
-    }
-    if (_qz.historyItems.length === 0) {
-      return `<div class="qz-history-wrap">${hdr}
-        <p class="qz-no-stats" style="text-align:center;margin-top:24px">No attempts recorded yet.</p>
-      </div>`;
-    }
-    const rows = _qz.historyItems.map((item, idx) => {
-      const pct   = item.percentage != null ? item.percentage : (item.correctAnswers / item.totalQuestions * 100);
-      const color = pct >= 70 ? '#4ade80' : pct >= 40 ? '#fbbf24' : '#f87171';
-      return `<div class="qz-hist-item">
-        <span class="qz-hi-num">#${item.attemptId != null ? item.attemptId : (idx + 1)}</span>
-        <div class="qz-hi-meta">
-          <span class="qz-hi-date">${_qzFmtDate(item.attemptedAt)}</span>
-          <span class="qz-hi-time">⏱ ${_qzFmtTime(item.timeTakenSeconds)}</span>
-        </div>
-        <div class="qz-hi-bar-wrap">
-          <div class="qz-hi-bar-bg">
-            <div class="qz-hi-bar-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div>
-          </div>
-          <div class="qz-hi-counts">
-            <span class="qz-hi-correct">✓ ${item.correctAnswers} correct</span>
-            <span class="qz-hi-wrong">✗ ${item.wrongAnswers} wrong</span>
-          </div>
-        </div>
-        <div class="qz-hi-score-wrap">
-          <span class="qz-hi-score" style="color:${color}">${item.correctAnswers}/${item.totalQuestions}</span>
-          <span class="qz-hi-pct" style="color:${color}">${pct.toFixed(0)}%</span>
-        </div>
-      </div>`;
-    }).join('');
-    const loadMore = _qz.historyItems.length < _qz.historyTotal
-      ? `<button class="qz-hist-more" onclick="_qzLoadHistory(${_qz.historyPage + 1})" ${_qz.historyLoading ? 'disabled' : ''}>${_qz.historyLoading ? 'Loading…' : 'Load More'}</button>`
-      : '';
-    return `<div class="qz-history-wrap">${hdr}
-      <div class="qz-hist-list">${rows}</div>
-      ${loadMore}
-    </div>`;
-  }
-
-  function _qzHtmlLoading() {
-    return `<div class="qz-loading"><div class="qz-spinner"></div><p>Loading questions…</p></div>`;
-  }
-
-  function _qzHtmlQuestion() {
-    const q        = _qz.questions[_qz.idx];
-    const answered = _qz.phase === 'answered';
-    const last     = _qz.results[_qz.results.length - 1];
-    const dots = _qz.questions.map((_, i) => {
-      let c = 'qz-dot';
-      if (i < _qz.results.length) c += _qz.results[i].correct ? ' qz-dot-ok' : ' qz-dot-ng';
-      else if (i === _qz.idx) c += ' qz-dot-cur';
-      return `<span class="${c}"></span>`;
-    }).join('');
-    const opts = q.options.map((opt, i) => {
-      let c = 'qz-opt';
-      if (answered) {
-        if (i === q.answer) c += ' qz-opt-correct';
-        else if (i === _qz.selected && i !== q.answer) c += ' qz-opt-wrong';
-        else c += ' qz-opt-faded';
-      } else {
-        if (i === _qz.selected) c += ' qz-opt-selected';
-      }
-      const mark = answered
-        ? (i === q.answer
-            ? '<span class="qz-opt-mark qz-mark-ok">✓</span>'
-            : (i === _qz.selected && i !== q.answer ? '<span class="qz-opt-mark qz-mark-ng">✗</span>' : ''))
-        : '';
-      return `<button class="${c}" ${answered ? 'disabled' : `onclick="_qzSelectOption(${i})"`}>
-        <span class="qz-opt-lbl">${_QZ_LABELS[i]}</span>
-        <span class="qz-opt-txt">${_escHtml(opt)}</span>${mark}
-      </button>`;
-    }).join('');
-    const hintHtml = answered ? '' : `
-      <div class="qz-hint-area">
-        <button id="qz-hint-btn" class="qz-hint-btn${_qz.showHint ? ' active' : ''}" onclick="_qzToggleHint()">
-          💡 ${_qz.showHint ? 'Hide Hint' : 'Show Hint'}
-        </button>
-        <div id="qz-hint-box" class="qz-hint-box" style="display:${_qz.showHint ? 'block' : 'none'}">${_escHtml(q.hint)}</div>
-      </div>`;
-    const explainHtml = answered ? `
-      <div class="qz-explanation">
-        <div class="qz-verdict ${last.correct ? 'qz-verdict-ok' : 'qz-verdict-ng'}">${last.correct ? '✓ Correct!' : '✗ Wrong'}</div>
-        <p class="qz-explain-text">${_escHtml(q.explain)}</p>
-        <div class="qz-explain-hint"><span class="qz-hint-lbl">💡 Hint:</span> ${_escHtml(q.hint)}</div>
-      </div>` : '';
-    const actionHtml = answered
-      ? `<button class="qz-next-btn" onclick="_qzNext()">${_qz.idx + 1 >= _qz.questions.length ? 'See Results →' : 'Next Question →'}</button>`
-      : `<button id="qz-submit-btn" class="qz-submit-btn" onclick="_qzSubmit()" ${_qz.selected === null ? 'disabled' : ''}>Submit Answer</button>`;
-    return `
-      <div class="qz-q-wrap">
-        <div class="qz-meta-row">
-          <div class="qz-progress">${dots}<span class="qz-q-label">Q ${_qz.idx + 1} / ${_qz.questions.length}</span></div>
-          <div id="qz-timer" class="qz-timer">⏱ ${_qzFmtTime(_qz.elapsed)}</div>
-        </div>
-        <div class="qz-card">
-          <div class="qz-card-meta">
-            <span class="qz-diff ${_QZ_DIFF[q.difficulty] || ''}">${q.difficulty}</span>
-            <span class="qz-platform">${_escHtml(q.platform || '')}</span>
-          </div>
-          <p class="qz-question-text">${_escHtml(q.text)}</p>
-          <div class="qz-opts">${opts}</div>
-          ${hintHtml}
-          ${explainHtml}
-        </div>
-        <div class="qz-actions">${actionHtml}</div>
-      </div>`;
-  }
-
-  function _qzHtmlResults() {
-    const correct = _qz.results.filter(r => r.correct).length;
-    const wrong   = _qz.results.length - correct;
-    const total   = _qz.questions.length;
-    const pct     = (correct / total) * 100;
-    const ringColor = pct >= 70 ? '#4ade80' : pct >= 40 ? '#fbbf24' : '#f87171';
-    const saving  = _qz.phase === 'saving';
-    const verdict = pct >= 80 ? '🏆 Excellent!' : pct >= 60 ? '👍 Good job!' : pct >= 40 ? '📚 Keep going' : '💪 Try again';
-    const verdictCls = pct >= 60 ? 'qz-verdict-good' : 'qz-verdict-retry';
-    const reviewRows = _qz.questions.map((q, i) => {
-      const ok = _qz.results[i]?.correct;
-      return `<div class="qz-rev-item ${ok ? 'qz-rev-ok' : 'qz-rev-ng'}">
-        <span class="qz-rev-mark">${ok ? '✓' : '✗'}</span>
-        <span class="qz-rev-num">Q${i + 1}</span>
-        <span class="qz-rev-pat">${_escHtml((q.pattern || '').replace(/-/g, ' '))}</span>
-        <span class="qz-diff ${_QZ_DIFF[q.difficulty] || ''}">${q.difficulty}</span>
-      </div>`;
-    }).join('');
-    const errHtml = _qz.saveError ? `<div class="qz-error-box">${_escHtml(_qz.saveError)}</div>` : '';
-    return `
-      <div class="qz-results-card">
-        <div class="qz-res-title-row">
-          <h2 class="qz-results-title">Quiz Complete!</h2>
-          <span class="qz-verdict-badge ${verdictCls}">${verdict}</span>
-        </div>
-        <div class="qz-score-strip">
-          <div class="qzss-ring">
-            <div class="qz-ring-wrap" style="width:84px;height:84px">
-              <svg viewBox="0 0 36 36" class="qz-ring-svg">
-                <path class="qz-ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-                <path class="qz-ring-fill" style="stroke:${ringColor}" stroke-dasharray="${pct.toFixed(1)},100"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-              </svg>
-              <div class="qz-ring-center">
-                <span class="qz-ring-num" style="color:${ringColor};font-size:1.6rem">${correct}</span><span class="qz-ring-den">/${total}</span>
-              </div>
-            </div>
-          </div>
-          <div class="qzss-stat qzss-ok"><span>${correct}</span>Correct</div>
-          <div class="qzss-stat qzss-ng"><span>${wrong}</span>Wrong</div>
-          <div class="qzss-stat"><span>${_qzFmtTime(_qz.elapsed)}</span>Time</div>
-          <div class="qzss-stat"><span>${pct.toFixed(0)}%</span>Accuracy</div>
-        </div>
-        <div class="qz-review-section">
-          <div class="qz-rev-header">Question Review</div>
-          <div class="qz-review-two-col">${reviewRows}</div>
-        </div>
-        ${errHtml}
-        <div class="qz-results-actions">
-          <button class="qz-save-btn qz-save-secondary" onclick="_qzSave(false)" ${saving ? 'disabled' : ''}>
-            ${saving ? 'Saving…' : 'Save &amp; Exit'}
-          </button>
-          <button class="qz-save-btn qz-save-primary" onclick="_qzSave(true)" ${saving ? 'disabled' : ''}>
-            ${saving ? 'Saving…' : 'Save &amp; Try Again →'}
-          </button>
-        </div>
-        ${saving ? '<p class="qz-saving-note">Saving your score…</p>' : ''}
-      </div>`;
-  }
 </script>
 
 <script>
@@ -6335,6 +5706,106 @@ toRemove.forEach(map::remove);</pre>
   })();
 </script>
 
+<script>
+  // ── Per-problem status (Pending / WIP / Completed), persisted + dashboard-friendly ──
+  (function () {
+    const STORE_KEY = 'dsa_codebase_status_v1';   // { problemKey: 'inprogress' | 'done' }  (pending = absent)
+    const STATES = [
+      { st: 'pending',    icon: '○',  title: 'Pending'   },
+      { st: 'inprogress', icon: '🚧', title: 'WIP'       },
+      { st: 'done',       icon: '✓',  title: 'Completed' }
+    ];
+    function load() { try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}') || {}; } catch { return {}; } }
+    function save(map) { localStorage.setItem(STORE_KEY, JSON.stringify(map)); }
+    function getStatus(key) { const s = load()[key]; return (s === 'inprogress' || s === 'done') ? s : 'pending'; }
+    function setStatus(key, st) {
+      const map = load();
+      if (st === 'pending') delete map[key]; else map[key] = st;   // keep store lean
+      save(map);
+    }
+    function cardKey(card) {
+      if (card.dataset.answerKey) return card.dataset.answerKey;
+      const num = (card.querySelector('.problem-num')?.textContent || '').replace(/^#/, '').trim();
+      if (/^\d+$/.test(num)) return num;
+      const name = (card.querySelector('.problem-name')?.textContent || '').trim();
+      return (num || 'p') + ':' + name;   // GFG/IB cards → unique by name
+    }
+
+    function buildControl(key, status) {
+      const wrap = document.createElement('div');
+      wrap.className = 'pcs';
+      wrap.setAttribute('role', 'group');
+      wrap.setAttribute('aria-label', 'Problem status');
+      wrap.dataset.key = key;
+      wrap.innerHTML = STATES.map(s =>
+        `<button class="pcs-b${s.st === status ? ' active' : ''}" data-st="${s.st}" title="${s.title}" aria-label="${s.title}">${s.icon}</button>`
+      ).join('');
+      return wrap;
+    }
+
+    function initStatusControls() {
+      document.querySelectorAll('.problem-card').forEach(card => {
+        if (card.querySelector('.pcs')) return;            // idempotent
+        const key = cardKey(card);
+        const status = getStatus(key);
+        card.setAttribute('data-dsa-status', status);      // drives existing filter + card styling
+        const control = buildControl(key, status);
+        card.appendChild(control);
+        control.addEventListener('click', e => {
+          const btn = e.target.closest('.pcs-b');
+          if (!btn) return;
+          e.stopPropagation();                             // don't open the answer drawer / viz link
+          const st = btn.dataset.st;
+          setStatus(key, st);
+          if (window.StudySync) StudySync.saveStatus('dsacode', key, st === 'pending' ? null : st); // → Supabase
+          card.setAttribute('data-dsa-status', st);
+          control.querySelectorAll('.pcs-b').forEach(b => b.classList.toggle('active', b.dataset.st === st));
+          if (typeof applyFilters === 'function') applyFilters();   // respect an active status filter
+        });
+      });
+    }
+
+    function initStatusFilters() {
+      const btns = document.querySelectorAll('.filter-btn.status-filter');
+      btns.forEach(btn => btn.addEventListener('click', function () {
+        btns.forEach(b => b.classList.remove('active-status'));
+        this.classList.add('active-status');
+        if (typeof setStatusFilter === 'function') setStatusFilter(this.dataset.st); // 'all'|'pending'|'inprogress'|'done'
+      }));
+    }
+
+    // Reflect the current (possibly DB-updated) status onto each card's control.
+    function refreshControls() {
+      document.querySelectorAll('.problem-card').forEach(card => {
+        const key = cardKey(card);
+        const status = getStatus(key);
+        card.setAttribute('data-dsa-status', status);
+        const ctrl = card.querySelector('.pcs');
+        if (ctrl) ctrl.querySelectorAll('.pcs-b').forEach(b => b.classList.toggle('active', b.dataset.st === status));
+      });
+      if (typeof applyFilters === 'function') applyFilters();
+    }
+
+    // Pull statuses from Supabase (DB wins) and push any local-only items up (one-time migration).
+    function hydrateFromDB() {
+      if (!window.StudySync) return;
+      StudySync.load('dsacode').then(data => {
+        if (!data) return;
+        const dbStatus = data.status || {};        // { key: 'done' | 'inprogress' }
+        const localMap = load();
+        let changed = false;
+        Object.keys(dbStatus).forEach(k => { if (localMap[k] !== dbStatus[k]) { localMap[k] = dbStatus[k]; changed = true; } });
+        Object.keys(localMap).forEach(k => { if (!(k in dbStatus)) StudySync.saveStatus('dsacode', k, localMap[k]); });
+        if (changed) { save(localMap); refreshControls(); }
+      }).catch(() => {});
+    }
+
+    function boot() { initStatusControls(); initStatusFilters(); hydrateFromDB(); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+    else boot();
+  })();
+</script>
+
 <!-- ══════════════════════════════════════════════
      Study module integration: auth gate + study timer
      auth-guard.js enforces login + DSA module access and
@@ -6342,6 +5813,7 @@ toRemove.forEach(map::remove);</pre>
 ══════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../../auth/supabase-config.js"></script>
+<script src="../js/StudySync.js"></script>
 <script src="../../auth/auth-guard.js"></script>
 
 </body>
