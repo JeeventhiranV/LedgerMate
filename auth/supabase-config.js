@@ -7,8 +7,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 var SUPABASE_URL1  = 'SUPABASE_URL';
-var SUPABASE_ANON1 = 'SUPABASE_ANON'; // ← paste your anon/public key from Supabase Dashboard → Settings → API
- 
+var SUPABASE_ANON1 = 'SUPABASE_ANON'; // ← paste your anon/public key from Supabase Dashboard → Settings → API 
 var _supabase = (function () {
   if (!SUPABASE_URL1.startsWith('https://') || SUPABASE_ANON1.length < 20) {
     console.error('[LM] supabase-config.js: SUPABASE_URL or SUPABASE_ANON not configured. Edit auth/supabase-config.js with your real credentials.');

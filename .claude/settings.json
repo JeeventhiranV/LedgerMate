@@ -14,7 +14,17 @@
       "PowerShell(Get-ChildItem \"c:\\\\Jeeva_Workspace\\\\VsProjectSpace\\\\LedgerMate\" -Recurse -File | Where-Object {$_.Name -match \"\\(chat|community|notification\\)\" } | Select-Object FullName)",
       "PowerShell(Get-ChildItem \"c:\\\\Jeeva_Workspace\\\\VsProjectSpace\\\\LedgerMate\" -Recurse -File | Where-Object {$_.DirectoryName -match \"\\(chat|community|discuss|message|social\\)\" } | Select-Object FullName)",
       "PowerShell(\\(Get-Content \"c:\\\\Jeeva_Workspace\\\\VsProjectSpace\\\\LedgerMate\\\\study\\\\prep\\\\Interview-Tracker.html\"\\).Count; \\(Get-Content \"c:\\\\Jeeva_Workspace\\\\VsProjectSpace\\\\LedgerMate\\\\auth\\\\interview-tracker.sql\"\\).Count)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(node -e \"global.window={}; require\\('./study/js/dsa-answers.js'\\); const A=window.DSA_ANSWERS; const k=Object.keys\\(A\\); console.log\\('total entries:',k.length\\); const strings=['13','14','271','205','344','3','424','76','567','438','242','49','1189','125','680','5','647']; const missing=strings.filter\\(x=>!A[x]\\); console.log\\('strings present:', strings.length-missing.length, '/ 17'\\); if\\(missing.length\\)console.log\\('MISSING:',missing\\); for\\(const x of strings\\){const a=A[x]; if\\(!a.title||!a.html||!a.difficulty||!a.id\\)console.log\\('bad fields',x\\);}\")",
+      "Bash(node -e \"global.window={}; require\\('./study/js/dsa-answers.js'\\); const A=window.DSA_ANSWERS; console.log\\('total:',Object.keys\\(A\\).length\\); ['1971','994','133','207','210','gfg-graph-tree','417','743','787','399','1584'].forEach\\(k=>{if\\(!A[k]||!A[k].html\\)console.log\\('BAD',k\\)}\\); console.log\\('graph ok'\\);\")",
+      "Bash(node -e \"global.window={}; require\\('./study/js/dsa-answers.js'\\); const A=window.DSA_ANSWERS; console.log\\('total:',Object.keys\\(A\\).length\\); ['509','70','746','62','63','120','198','213','152','300','91','322','1143','72','gfg-lcs-substring'].forEach\\(k=>{if\\(!A[k]||!A[k].html\\)console.log\\('BAD',k\\)}\\); console.log\\('dp ok \\(15\\)'\\);\")",
+      "Bash(node -e \"global.window={}; require\\('./study/js/dsa-answers.js'\\); const A=window.DSA_ANSWERS; console.log\\('total:',Object.keys\\(A\\).length\\); ['389','191','231','338','371','260','137','287'].forEach\\(k=>{if\\(!A[k]||!A[k].html\\)console.log\\('BAD',k\\)}\\); console.log\\('bit ok'\\); const all=require\\('fs'\\).readFileSync\\('./study/js/dsa-answers.js','utf8'\\); console.log\\('stray colon-comments:', \\(all.match\\(/cc\\\\\">: /g\\)||[]\\).length\\);\")",
+      "Bash(awk '/id=\"design\"/,/<\\\\/main>|id=\"patterns-view\"|<!-- ═══/' study/prep/DSA_CodeBase.html)",
+      "Bash(node --check auth/auth-guard.js)",
+      "Bash(node -e \"global.window={}; require\\('./study/js/dsa-answers.js'\\); console.log\\('answers parse OK:', Object.keys\\(window.DSA_ANSWERS\\).length\\);\")"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\E1707\\.claude\\projects\\c--Jeeva-Workspace-VsProjectSpace-LedgerMate\\memory"
     ]
   }
 }
