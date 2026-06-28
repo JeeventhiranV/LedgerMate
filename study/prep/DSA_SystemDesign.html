@@ -27,12 +27,17 @@
     display:flex;align-items:center;gap:14px;padding:11px 18px}
   .hdr-burger{display:none;background:var(--surface2);border:1px solid var(--border);color:var(--text);
     font-size:1.1rem;border-radius:8px;padding:6px 11px;cursor:pointer}
+  .hdr-back{display:inline-flex;align-items:center;justify-content:center;background:var(--surface2);
+    border:1px solid var(--border);color:var(--text);font-size:1.05rem;line-height:1;padding:6px 11px;
+    border-radius:8px;text-decoration:none;flex-shrink:0;transition:color .15s,border-color .15s}
+  .hdr-back:hover{color:var(--accent);border-color:var(--accent)}
   header h1{font-family:'Syne',sans-serif;font-size:1.05rem;color:var(--accent);white-space:nowrap}
   header h1 small{color:var(--muted);font-weight:400;font-size:.7rem;display:block;letter-spacing:.5px}
   .hdr-search{flex:1;max-width:420px;display:flex;align-items:center;gap:8px;background:var(--bg2);
     border:1px solid var(--border);border-radius:9px;padding:7px 12px}
   .hdr-search input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:.85rem}
-  .hdr-progress{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:.72rem;color:var(--text2);white-space:nowrap}
+  .topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .hdr-progress{display:flex;align-items:center;gap:10px;font-size:.72rem;color:var(--text2);white-space:nowrap}
   .hdr-prog-bar{width:120px;height:7px;background:var(--surface2);border-radius:5px;overflow:hidden}
   .hdr-prog-fill{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s}
 
@@ -179,32 +184,56 @@
   #sd-backdrop{display:none;position:fixed;inset:55px 0 0 0;background:rgba(5,8,14,.6);z-index:90}
   #sd-backdrop.open{display:block}
 
+  /* auth-guard appends its account footer (.agf) into #sidebar, below the rebuilt nav */
+  #sidebar > .agf { margin-top: 12px; }
+
   @media(max-width:900px){
-    .hdr-burger{display:inline-block}
+    .hdr-burger{display:inline-flex;align-items:center;justify-content:center}
     .hdr-progress{display:none}
-    .sd-sidebar{position:fixed;top:55px;left:0;z-index:95;transform:translateX(-100%);transition:transform .25s;box-shadow:6px 0 28px rgba(0,0,0,.5)}
+    .sd-sidebar{position:fixed;top:55px;left:0;width:min(300px,86vw);min-width:0;z-index:95;
+      transform:translateX(-100%);transition:transform .25s;box-shadow:6px 0 28px rgba(0,0,0,.5)}
     .sd-sidebar.open{transform:translateX(0)}
     main{padding:20px 16px 80px}
     .sd-topic-actions{flex-wrap:wrap}
+  }
+  @media(max-width:600px){
+    header{gap:8px;padding:9px 12px}
+    header h1{font-size:.95rem}
+    header h1 small{display:none}
+    .hdr-search{display:none}      /* the off-canvas sidebar has its own search; keep room for the timer */
+    main{padding:16px 12px 72px;max-width:none}
+    .sd-topic-head{gap:10px;flex-wrap:wrap}
+    .sd-topic-ico{font-size:1.7rem}
+    .sd-topic-h1{font-size:1.3rem}
+    .sd-topic-actions{width:100%;margin-left:0}
+    .sd-topic-actions .sd-btn{flex:1;text-align:center}
+    .sd-h2{font-size:.95rem;padding:11px 13px}
+    .sd-block-body{padding:4px 13px 14px;font-size:.85rem}
+    .sd-block-body pre[class*="language-"]{font-size:.72rem!important}
+    .sd-cat-grid{grid-template-columns:1fr}
+    .sd-prevnext{flex-direction:column}
   }
 </style>
 </head>
 <body>
 <header class="topbar">
   <button class="hdr-burger" id="hdrBurger" aria-label="Menu">☰</button>
+  <a href="../index.html" class="hdr-back" title="Back to Study Hub" aria-label="Back to Study Hub">←</a>
   <h1>🏗 System Design<small>Java Backend · LLD · HLD</small></h1>
   <div class="hdr-search">
     <span style="color:var(--muted)">🔍</span>
     <input type="text" id="globalSearch" placeholder="Search all topics…" autocomplete="off">
   </div>
-  <div class="hdr-progress topbar-right">
-    <span id="progText">0 / 0</span>
-    <div class="hdr-prog-bar"><div class="hdr-prog-fill" id="progFill"></div></div>
+  <div class="topbar-right">
+    <div class="hdr-progress">
+      <span id="progText">0 / 0</span>
+      <div class="hdr-prog-bar"><div class="hdr-prog-fill" id="progFill"></div></div>
+    </div>
   </div>
 </header>
 
 <div class="layout">
-  <aside class="sd-sidebar" id="sdSidebar"><!-- nav rendered by JS --></aside>
+  <aside class="sd-sidebar" id="sidebar"><div id="sdSidebar"><!-- nav rendered by JS --></div></aside>
   <main id="sdMain"><!-- content rendered by JS --></main>
 </div>
 <div id="sd-backdrop"></div>
@@ -441,9 +470,10 @@
 
   // ── mobile nav ──
   const backdrop=document.getElementById('sd-backdrop');
-  document.getElementById('hdrBurger').onclick=()=>{ sidebar.classList.toggle('open'); backdrop.classList.toggle('open'); };
+  const sidebarEl=document.getElementById('sidebar');   // off-canvas container (holds nav + auth-guard footer)
+  document.getElementById('hdrBurger').onclick=()=>{ sidebarEl.classList.toggle('open'); backdrop.classList.toggle('open'); };
   backdrop.onclick=closeMobileNav;
-  function closeMobileNav(){ sidebar.classList.remove('open'); backdrop.classList.remove('open'); }
+  function closeMobileNav(){ sidebarEl.classList.remove('open'); backdrop.classList.remove('open'); }
 
   // ── Supabase sync: pull completed topics (DB wins) and push local-only ones up ──
   function hydrateFromDB(){

@@ -500,9 +500,11 @@ body{
 
 /* ── MOBILE ── */
 @media(max-width:768px){
+  .layout{display:block}
   .sidebar{transform:translateX(-100%)}
   .sidebar.open{transform:translateX(0)}
-  .main{margin-left:0}
+  .main{margin-left:0;min-width:0;max-width:100%;overflow-x:hidden}
+  .topbar{height:auto;min-height:56px;flex-wrap:wrap;gap:8px 10px;padding:8px 14px}
   .menu-btn{display:flex;align-items:center}
   .hero{padding:28px 20px}
   .section{padding:24px 16px}

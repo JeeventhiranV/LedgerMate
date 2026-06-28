@@ -186,6 +186,17 @@
       '.sf-reminder{margin:7px 22px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.22);border-radius:9px;padding:9px 14px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--gold,#f59e0b)}',
       '.sf-rclose{background:none;border:none;cursor:pointer;color:var(--text3,#6b7494);font-size:15px;margin-left:auto;padding:2px}',
       '.sf-rclose:hover{color:var(--text,#e8eaf2)}',
+      /* ─── Mobile: feature toolbar becomes a horizontal scroll strip ─── */
+      '@media(max-width:600px){',
+        '.sf-toolbar{position:static;top:auto;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:5px;padding:6px 12px;scrollbar-width:none}',
+        '.sf-toolbar::-webkit-scrollbar{height:0;display:none}',
+        '.sf-toolbar-label{display:none}',
+        '.sf-btn{flex-shrink:0;padding:5px 9px}',
+        '.sf-goal-w{flex-shrink:0;margin-left:6px}',
+        '.sf-bulk-bar{padding:9px 12px}',
+        '.sf-reminder{margin:7px 12px}',
+        '.sf-kgrid{grid-template-columns:1fr}',
+      '}',
       /* ─── Print ─── */
       '@media print{',
         '.sf-toolbar,.sf-bulk-bar,.sidebar,.topbar,.progress-section,.filter-bar,.roadmap-banner,',

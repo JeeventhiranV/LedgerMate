@@ -11,16 +11,19 @@
 <link rel="stylesheet" href="../styles/dsa.css">
 </head>
 <body>
-<header>
+<header class="topbar">
   <div class="header-left">
     <button id="navToggle" class="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="sidebar" onclick="toggleNav()">☰</button>
-    <!-- <h1>🧠 DSA CodeBase</h1> -->
+    <a href="../index.html" class="hdr-back" title="Back to Study Hub" aria-label="Back to Study Hub">←</a>
+    <h1>🧠 DSA CodeBase</h1>
   </div>
-  <div class="stats">
-    Total: <span>170+</span> &nbsp;|&nbsp;
-    Easy: <span style="color:var(--easy)">60+</span> &nbsp;|&nbsp;
-    Medium: <span style="color:var(--medium)">85+</span> &nbsp;|&nbsp;
-    Hard: <span style="color:var(--hard)">25+</span>
+  <div class="topbar-right">
+    <div class="stats">
+      Total: <span>170+</span> &nbsp;|&nbsp;
+      Easy: <span style="color:var(--easy)">60+</span> &nbsp;|&nbsp;
+      Medium: <span style="color:var(--medium)">85+</span> &nbsp;|&nbsp;
+      Hard: <span style="color:var(--hard)">25+</span>
+    </div>
   </div>
 </header>
 
@@ -46,7 +49,7 @@
   <a href="#design">🏗 Design <span class="count">1</span></a>
   <div class="section-label">Reference</div>
   <a href="#" id="nav-patterns-link" onclick="showView('patterns');return false;">🧩 Common Patterns <span class="count">43</span></a>
-  <a href="/system-design" id="nav-sd-link" class="sd-nav-link" target="_blank" rel="noopener noreferrer" onclick="window.open('/system-design','_blank','noopener,noreferrer');return false;">🏗 System Design <span class="focus-nav-new">New</span></a>
+  <a href="DSA_SystemDesign.html" id="nav-sd-link" class="sd-nav-link">🏗 System Design <span class="focus-nav-new">New</span></a>
   <a href="#" id="nav-tricks-link"   onclick="showView('tricks');return false;">⚙️ Code Tricks</a>
   <a href="#" id="nav-ec-link"       onclick="showView('edge');return false;">⚠️ Edge Cases</a>
   <div class="section-label" style="margin-top:8px">Apps</div>
@@ -59,7 +62,7 @@
     <div class="view-tabs">
       <button class="view-tab active" id="tab-problems" onclick="showView('problems')">📦 Problems</button>
       <button class="view-tab"        id="tab-patterns" onclick="showView('patterns')">🧩 Common Patterns</button>
-      <a href="/system-design" class="view-tab sd-view-tab" target="_blank" rel="noopener noreferrer" onclick="window.open('/system-design','_blank','noopener,noreferrer');return false;">🏗 System Design</a>
+      <a href="DSA_SystemDesign.html" class="view-tab sd-view-tab">🏗 System Design</a>
       <button class="view-tab"        id="tab-tricks"   onclick="showView('tricks')">⚙️ Code Tricks</button>
       <button class="view-tab"        id="tab-edge"     onclick="showView('edge')">⚠️ Edge Cases</button>
       <a href="/java" class="view-tab java-view-tab" target="_blank" rel="noopener noreferrer">🤖 AI Java Backend</a>
