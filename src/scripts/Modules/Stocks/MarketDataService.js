@@ -79,37 +79,49 @@
   }
 
   /**
-   * Query Indian stock quotes via multiple CORS-enabled financial bridges
+   * Query Indian stock quotes via resilient CORS-enabled bridges & registries
    */
   async function fetchQuoteFromNetwork(symbol, exchange) {
     var ticker = getTickerCode(symbol, exchange);
     var yfTarget = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(ticker) + '?interval=1d&range=5d';
     
-    var urls = [
-      // 1. AllOrigins Gateway (reliable open CORS proxy)
-      'https://api.allorigins.win/raw?url=' + encodeURIComponent(yfTarget),
-      // 2. Corsproxy.io Gateway
-      'https://corsproxy.io/?url=' + encodeURIComponent(yfTarget),
-      // 3. CodeTabs Proxy
-      'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(yfTarget),
-      // 4. ThingProxy Gateway
-      'https://thingproxy.freeboard.io/fetch/' + yfTarget
+    var endpoints = [
+      {
+        url: 'https://api.allorigins.win/get?url=' + encodeURIComponent(yfTarget),
+        isWrapper: true
+      },
+      {
+        url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(yfTarget),
+        isWrapper: false
+      },
+      {
+        url: 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(yfTarget),
+        isWrapper: false
+      }
     ];
 
-    for (var i = 0; i < urls.length; i++) {
+    for (var i = 0; i < endpoints.length; i++) {
       try {
-        var resp = await fetch(urls[i], {
+        var ep = endpoints[i];
+        var resp = await fetch(ep.url, {
           signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : undefined
         });
 
         if (!resp.ok) continue;
 
-        var text = await resp.text();
-        if (!text || text.trim().length === 0) continue;
+        var jsonStr = '';
+        if (ep.isWrapper) {
+          var wrapper = await resp.json();
+          jsonStr = wrapper && wrapper.contents;
+        } else {
+          jsonStr = await resp.text();
+        }
+
+        if (!jsonStr || typeof jsonStr !== 'string' || jsonStr.trim().length === 0) continue;
 
         var data;
         try {
-          data = JSON.parse(text);
+          data = JSON.parse(jsonStr);
         } catch (pe) {
           continue;
         }
@@ -151,11 +163,21 @@
           };
         }
       } catch (err) {
-        // Try next fallback proxy URL
+        // Silently proceed to next gateway
       }
     }
 
-    return await fetchFromSupabaseCache(symbol, exchange);
+    // 2. Check Supabase shared price cache
+    var cachedSb = await fetchFromSupabaseCache(symbol, exchange);
+    if (cachedSb) return cachedSb;
+
+    // 3. Fallback to StockRegistry baseline reference price
+    if (window.LM_StockRegistry && typeof window.LM_StockRegistry.getReferenceQuote === 'function') {
+      var ref = window.LM_StockRegistry.getReferenceQuote(symbol, exchange);
+      if (ref) return ref;
+    }
+
+    return null;
   }
 
   /**

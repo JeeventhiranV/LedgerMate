@@ -35,41 +35,48 @@ html, body {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  padding: 8px 14px !important;
-  gap: 6px !important;
-  overflow: hidden !important;
+  padding: 8px 12px !important;
+  gap: 8px !important;
+  overflow: visible !important;
   flex-wrap: nowrap !important;
 }
 
 .topbar-title {
-  min-width: 0;
-  flex-shrink: 1;
-  font-size: 13px !important;
-  white-space: nowrap;
+  display: none !important; /* Removed/hidden to ensure all action icons and profile avatar fit cleanly on all screen sizes */
 }
 
 .topbar-actions, .topbar-tools {
   display: flex !important;
   align-items: center !important;
-  gap: 5px !important;
-  max-width: 100% !important;
-  flex-shrink: 1 !important;
-  min-width: 0 !important;
-  overflow-x: auto !important;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-  -webkit-overflow-scrolling: touch !important;
+  gap: 6px !important;
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
   padding: 2px 0 !important;
   flex-wrap: nowrap !important;
 }
 
-.topbar-actions::-webkit-scrollbar, .topbar-tools::-webkit-scrollbar {
-  display: none !important;
+.topbar-user-chip {
+  width: 34px !important;
+  height: 34px !important;
+  padding: 0 !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.topbar-user-avatar {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 13px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 @media (max-width: 640px) {
   #topbar, .topbar {
-    padding: 6px 10px !important;
+    padding: 6px 8px !important;
     gap: 4px !important;
     height: 48px !important;
   }
@@ -96,8 +103,8 @@ html, body {
     display: none !important;
   }
   .topbar-user-chip {
-    width: 30px !important;
-    height: 30px !important;
+    width: 32px !important;
+    height: 32px !important;
     padding: 0 !important;
     flex-shrink: 0 !important;
     display: flex !important;
@@ -105,15 +112,9 @@ html, body {
     justify-content: center !important;
   }
   .topbar-user-avatar {
-    width: 28px !important;
-    height: 28px !important;
+    width: 30px !important;
+    height: 30px !important;
     font-size: 12px !important;
-  }
-}
-
-@media (max-width: 400px) {
-  .topbar-title {
-    display: none !important; /* Hide redundant logo text on ultra-compact phones so buttons fit cleanly */
   }
 }
 
