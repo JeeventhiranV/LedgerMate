@@ -79,26 +79,41 @@
   }
 
   /**
-   * Query Yahoo Finance API via CORS-friendly financial proxies for real Indian quotes
+   * Query Indian stock quotes via multiple CORS-enabled financial bridges
    */
   async function fetchQuoteFromNetwork(symbol, exchange) {
     var ticker = getTickerCode(symbol, exchange);
+    var yfTarget = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(ticker) + '?interval=1d&range=5d';
+    
     var urls = [
-      // Primary: query1.finance.yahoo.com via CORS gateway
-      'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(ticker) + '?interval=1d&range=5d',
-      'https://query2.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(ticker) + '?interval=1d&range=5d'
+      // 1. AllOrigins Gateway (reliable open CORS proxy)
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(yfTarget),
+      // 2. Corsproxy.io Gateway
+      'https://corsproxy.io/?url=' + encodeURIComponent(yfTarget),
+      // 3. CodeTabs Proxy
+      'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(yfTarget),
+      // 4. ThingProxy Gateway
+      'https://thingproxy.freeboard.io/fetch/' + yfTarget
     ];
 
     for (var i = 0; i < urls.length; i++) {
       try {
         var resp = await fetch(urls[i], {
-          headers: { 'Accept': 'application/json' },
-          signal: AbortSignal.timeout ? AbortSignal.timeout(6000) : undefined
+          signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : undefined
         });
 
         if (!resp.ok) continue;
 
-        var data = await resp.json();
+        var text = await resp.text();
+        if (!text || text.trim().length === 0) continue;
+
+        var data;
+        try {
+          data = JSON.parse(text);
+        } catch (pe) {
+          continue;
+        }
+
         var result = data && data.chart && data.chart.result && data.chart.result[0];
         if (!result) continue;
 
@@ -136,7 +151,7 @@
           };
         }
       } catch (err) {
-        // Try next fallback URL or proceed to Supabase price cache
+        // Try next fallback proxy URL
       }
     }
 
