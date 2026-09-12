@@ -163,6 +163,79 @@ var StudySync = (function () {
     }).catch(function () {});
   }
 
+  // ── Quiz & Assessment Attempts ────────────────────────────────────────
+  function saveQuizAttempt(attempt) {
+    return _uid().then(function (uid) {
+      if (!uid) return null;
+      return _supabase.from('study_quiz_attempts').insert({
+        user_id: uid,
+        module: attempt.module || 'mixed',
+        topic: attempt.topic || 'General',
+        score: attempt.score || 0,
+        total_questions: attempt.total_questions || 10,
+        time_taken_seconds: attempt.time_taken_seconds || 0,
+        details: attempt.details || {}
+      }).then(function (res) {
+        if (res.error) {
+          console.warn('[StudySync] Quiz attempt save error:', res.error.message);
+        }
+        return res;
+      });
+    }).catch(function () { return null; });
+  }
+
+  function loadQuizHistory() {
+    return _uid().then(function (uid) {
+      if (!uid) return [];
+      return _supabase.from('study_quiz_attempts')
+        .select('*')
+        .eq('user_id', uid)
+        .order('created_at', { ascending: false })
+        .limit(20)
+        .then(function (res) {
+          return (res && !res.error && res.data) ? res.data : [];
+        });
+    }).catch(function () { return []; });
+  }
+
+  // ── Weak Topics & Revision Analytics ──────────────────────────────────
+  function getWeakTopics(byModule, moduleTotals) {
+    var recommendations = [];
+    var modules = moduleTotals || [
+      { id: 'java', label: 'Java & Spring', total: 120 },
+      { id: 'dsacode', label: 'DSA Codebase', total: 171 },
+      { id: 'lld', label: 'System Design', total: 85 },
+      { id: 'react', label: 'React & Frontend', total: 31 },
+      { id: 'hr', label: 'HR Behavioral', total: 48 },
+      { id: 'ipk', label: 'PDF Library', total: 83 }
+    ];
+
+    modules.forEach(function (m) {
+      var d = (byModule && byModule[m.id]) || { done: 0, inprog: 0, last: null };
+      var pct = m.total > 0 ? Math.round((d.done / m.total) * 100) : 0;
+      var daysSinceReview = 999;
+      if (d.last) {
+        daysSinceReview = Math.floor((Date.now() - new Date(d.last).getTime()) / (1000 * 60 * 60 * 24));
+      }
+
+      if (pct < 60 || daysSinceReview >= 3) {
+        recommendations.push({
+          id: m.id,
+          label: m.label,
+          done: d.done,
+          total: m.total,
+          pct: pct,
+          daysSinceReview: daysSinceReview === 999 ? 'Not started' : daysSinceReview + 'd ago',
+          urgency: pct === 0 ? 'High' : daysSinceReview >= 7 ? 'Critical' : 'Medium'
+        });
+      }
+    });
+
+    return recommendations.sort(function (a, b) {
+      return a.pct - b.pct;
+    });
+  }
+
   // ── TAT label injection ────────────────────────────────────────────────
   // Call after DB sync + DOM restore to stamp relative timestamps on status buttons.
   // selector: CSS selector for each question's action container element
@@ -181,6 +254,9 @@ var StudySync = (function () {
     saveNote: saveNote,
     loadStreak: loadStreak,
     saveStreak: saveStreak,
+    saveQuizAttempt: saveQuizAttempt,
+    loadQuizHistory: loadQuizHistory,
+    getWeakTopics: getWeakTopics,
     ago: ago
   };
 }());

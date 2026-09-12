@@ -10,6 +10,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- Syntax highlighting -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+<!-- Auth: Supabase SDK → config → guard (order matters) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../auth/supabase-config.js"></script>
+<script src="../../auth/auth-guard.js"></script>
+<script src="../js/StudySync.js"></script>
+<script src="../js/StudySRS.js"></script>
+<script src="../js/StudyQuizEngine.js"></script>
 <style>
   :root{
     --bg:#0b0e14; --bg2:#11151f; --surface:#141925; --surface2:#1b2130; --border:#262d3d;
@@ -500,14 +507,5 @@
 })();
 </script>
 
-<!-- ══════════════════════════════════════════════
-     Study module integration: auth gate + study timer
-     auth-guard.js enforces login + DSA module access and
-     auto-loads StudyTimer.js (timer chip in the topbar).
-══════════════════════════════════════════════ -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../auth/supabase-config.js"></script>
-<script src="../js/StudySync.js"></script>
-<script src="../../auth/auth-guard.js"></script>
 </body>
 </html>

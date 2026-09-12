@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="styles/study-hub.css"/>
+<link rel="stylesheet" href="../src/styles/responsive-upgrades.css"/>
 <!-- Auth: Supabase SDK → config → guard → toast → StudySync (order matters) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../auth/supabase-config.js"></script>
@@ -18,6 +19,10 @@
 <script src="js/StudySync.js"></script>
 <script src="js/community-hub.js"></script>
 <script src="js/StudyTimer.js"></script>
+<script src="js/StudySRS.js"></script>
+<script src="js/CodeRunner.js"></script>
+<script src="js/AIInterviewHelper.js"></script>
+<script src="js/StudyQuizEngine.js"></script>
 <script src="js/pwa-push.js"></script>
 <script src="../src/scripts/pwa-install.js"></script>
 <script>
@@ -31,27 +36,48 @@ if ('serviceWorker' in navigator) {
 <body>
 
 <!-- TOPBAR -->
-<div class="topbar">
-  <!-- <div class="topbar-title">Study Resources Hub</div> -->
-  <div class="topbar-right">
-    <button class="btn-notes-search" onclick="openNotesSearch()" title="Search your notes (Ctrl+/)">🗒 Search Notes</button>
-    <!-- PWA install button — shown only when beforeinstallprompt fires -->
-    <button class="btn-pwa-install" id="pwaInstallBtn" title="Install LedgerMate as an app" aria-label="Install app">⬇ Install App</button>
-    <!-- Push notification bell -->
-    <div style="position:relative">
-      <button class="btn-push-bell" id="pushBellBtn" title="Study reminders" aria-label="Notification settings">
-        🔔<span class="push-dot"></span>
-      </button>
-      <div class="push-panel" id="pushPanel">
-        <div class="push-panel-title">📬 Study Reminders</div>
-        <div class="push-row"><label for="pushTime">Daily reminder at</label><input class="push-time" type="time" id="pushTime" value="09:00"/></div>
-        <button class="push-save" id="pushSaveBtn">Enable Reminders</button>
-        <div class="push-status" id="pushStatus"></div>
-      </div>
-    </div>
-    <button class="btn-theme" id="themeBtn" title="Toggle theme" aria-label="Toggle dark/light theme">🌙</button>
+<header class="topbar">
+  <div class="topbar-left">
+    <a href="index.html" class="topbar-brand" title="Study Resources Hub">
+      <span class="topbar-brand-icon">📚</span>
+      <span class="topbar-brand-text">Study Hub</span>
+    </a>
   </div>
-</div>
+  <div class="topbar-right">
+    <div class="topbar-tools">
+      <button class="topbar-tool-btn btn-quiz" onclick="window.StudyQuiz?.showModal()" title="Timed Topic Quiz & Assessment">
+        <span class="tool-ico">🎯</span><span class="tool-lbl">Practice Quiz</span>
+      </button>
+      <button class="topbar-tool-btn btn-srs" onclick="window.StudySRS?.showModal()" title="Spaced Repetition Flashcards">
+        <span class="tool-ico">🧠</span><span class="tool-lbl">Flashcards</span>
+      </button>
+      <button class="topbar-tool-btn btn-code" onclick="window.StudyCodeRunner?.showModal()" title="DSA Code Execution Playground">
+        <span class="tool-ico">💻</span><span class="tool-lbl">Code Runner</span>
+      </button>
+      <button class="topbar-tool-btn btn-coach" onclick="window.AIInterviewHelper?.showModal()" title="AI Mock Interview Coach">
+        <span class="tool-ico">🤖</span><span class="tool-lbl">AI Coach</span>
+      </button>
+      <button class="topbar-tool-btn btn-notes" onclick="openNotesSearch()" title="Search your notes (Ctrl+/)">
+        <span class="tool-ico">🗒</span><span class="tool-lbl">Search Notes</span>
+      </button>
+    </div>
+    <div class="topbar-utils">
+      <!-- Push notification bell -->
+      <div style="position:relative;display:flex;align-items:center;">
+        <button class="btn-push-bell" id="pushBellBtn" title="Study reminders" aria-label="Notification settings">
+          🔔<span class="push-dot"></span>
+        </button>
+        <div class="push-panel" id="pushPanel">
+          <div class="push-panel-title">📬 Study Reminders</div>
+          <div class="push-row"><label for="pushTime">Daily reminder at</label><input class="push-time" type="time" id="pushTime" value="09:00"/></div>
+          <button class="push-save" id="pushSaveBtn">Enable Reminders</button>
+          <div class="push-status" id="pushStatus"></div>
+        </div>
+      </div>
+      <button class="btn-theme" id="themeBtn" title="Toggle theme" aria-label="Toggle dark/light theme">🌙</button>
+    </div>
+  </div>
+</header>
 
 <!-- NO-ACCESS BANNER (shown when redirected with ?msg=noaccess) -->
 <div class="noaccess-banner" id="noAccessBanner">
@@ -131,6 +157,30 @@ if ('serviceWorker' in navigator) {
         </div>
         <span class="ql-arrow">↗</span>
       </a>
+      <div class="hero-ql-btn" onclick="window.StudySRS?.showModal()" style="cursor:pointer;border-color:rgba(139,92,246,0.35);">
+        <div class="ql-icon" style="background:linear-gradient(135deg,#8b5cf6,#4f8ef7);color:#fff;display:flex;align-items:center;justify-content:center;border-radius:10px;width:34px;height:34px;font-size:16px;">🧠</div>
+        <div class="ql-body">
+          <div class="ql-title">Spaced Flashcards (SRS)</div>
+          <div class="ql-sub">SM-2 Algorithm · Memory Retention</div>
+        </div>
+        <span class="ql-arrow">⚡</span>
+      </div>
+      <div class="hero-ql-btn" onclick="window.StudyCodeRunner?.showModal()" style="cursor:pointer;border-color:rgba(16,185,129,0.35);">
+        <div class="ql-icon" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:#fff;display:flex;align-items:center;justify-content:center;border-radius:10px;width:34px;height:34px;font-size:16px;">💻</div>
+        <div class="ql-body">
+          <div class="ql-title">DSA Code Playground</div>
+          <div class="ql-sub">Interactive In-Browser JS Sandbox</div>
+        </div>
+        <span class="ql-arrow">▶</span>
+      </div>
+      <div class="hero-ql-btn" onclick="window.StudyQuiz?.showModal()" style="cursor:pointer;border-color:rgba(6,214,160,0.35);">
+        <div class="ql-icon" style="background:linear-gradient(135deg,#06d6a0,#00b4d8);color:#07091a;font-weight:700;display:flex;align-items:center;justify-content:center;border-radius:10px;width:34px;height:34px;font-size:16px;">🎯</div>
+        <div class="ql-body">
+          <div class="ql-title">Topic Practice Quizzes</div>
+          <div class="ql-sub">Timed Assessments · Instant Scores</div>
+        </div>
+        <span class="ql-arrow">⚡</span>
+      </div>
     </div>
 
     <!-- Interview Countdown -->
@@ -202,6 +252,30 @@ if ('serviceWorker' in navigator) {
       <div class="heat-lc heat-3"></div>
       <div class="heat-lc heat-4"></div>
       &nbsp;More
+    </div>
+  </div>
+
+  <!-- WEAK TOPICS & REVISION RECOMMENDATIONS -->
+  <div class="dash-row" style="margin-top:14px;">
+    <div class="dash-box" style="flex:1;">
+      <div class="dash-box-header">
+        <div class="dash-box-icon" style="background:rgba(245,158,11,0.15);color:#f59e0b;">⚡</div>
+        <div class="dash-box-title">Topics Needing Revision Today</div>
+        <button class="btn-notes-search" onclick="window.StudyQuiz?.showModal()" style="margin-left:auto;padding:3px 8px;font-size:11px;background:rgba(6,214,160,0.15);color:#06d6a0;border:1px solid rgba(6,214,160,0.3);border-radius:6px;cursor:pointer;">Take Quiz ↗</button>
+      </div>
+      <div id="weakTopicsList" style="padding:4px 0;">
+        <div class="activity-empty">Analyzing study progress…</div>
+      </div>
+    </div>
+    <div class="dash-box" style="flex:1;">
+      <div class="dash-box-header">
+        <div class="dash-box-icon" style="background:rgba(79,142,247,0.15);color:#4f8ef7;">📊</div>
+        <div class="dash-box-title">Recent Quiz Performance</div>
+        <button class="btn-notes-search" onclick="window.StudyQuiz?.openHistory()" style="margin-left:auto;padding:3px 8px;font-size:11px;background:none;border:1px solid var(--border,#262f45);border-radius:6px;color:var(--text2,#8896b8);cursor:pointer;">View All ↗</button>
+      </div>
+      <div id="quizHistoryList" style="padding:4px 0;">
+        <div class="activity-empty">No quiz attempts yet. Take a sprint quiz to test your recall!</div>
+      </div>
     </div>
   </div>
 
@@ -885,10 +959,16 @@ function loadDashboard() {
     // Weekly goal
     renderWeeklyGoal(raw);
 
+    // Weak topics & Quiz History
+    renderWeakTopics(byModule);
+    renderQuizHistoryDashboard();
+
   }).catch(function() {
     // On error: render with empty/local data
     renderHeatmap([]);
     renderWeeklyGoal([]);
+    renderWeakTopics({});
+    renderQuizHistoryDashboard();
     var localStats = { totalDone: 0, streak: 0, java: 0, dsa: 0, react: 0, hr: 0, ipk: 0 };
     RESOURCES.forEach(function(r) {
       var p = getProgress(r.progressKey, r.totalQ);
@@ -897,6 +977,64 @@ function loadDashboard() {
     renderAchievements(localStats);
     renderActivityFeed([]);
   });
+
+function renderWeakTopics(byModule) {
+  var el = document.getElementById('weakTopicsList');
+  if (!el) return;
+  var weak = StudySync.getWeakTopics ? StudySync.getWeakTopics(byModule, MOD_CONFIG) : [];
+  if (!weak || !weak.length) {
+    el.innerHTML = '<div class="activity-empty">🎉 All study modules are well-practiced and up to date!</div>';
+    return;
+  }
+  el.innerHTML = weak.slice(0, 4).map(function(w) {
+    var color = w.pct === 0 ? '#f43f5e' : w.pct < 40 ? '#f59e0b' : '#38bdf8';
+    return `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;margin-bottom:6px;background:rgba(255,255,255,0.02);border:1px solid var(--border,#262f45);border-radius:8px;">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text);">${w.label}</div>
+          <div style="font-size:10px;color:var(--text3,#8891b8);margin-top:2px;">Last review: ${w.daysSinceReview} · ${w.done}/${w.total} completed</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:12px;font-weight:700;color:${color};font-family:'JetBrains Mono',monospace;">${w.pct}%</span>
+          <button onclick="window.StudyQuiz?.startTopic('${w.id}')" style="background:rgba(255,255,255,0.06);border:1px solid var(--border,#262f45);border-radius:6px;padding:3px 7px;font-size:10px;color:var(--text2,#8896b8);cursor:pointer;">Quiz ↗</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderQuizHistoryDashboard() {
+  var el = document.getElementById('quizHistoryList');
+  if (!el) return;
+  if (StudySync.loadQuizHistory) {
+    StudySync.loadQuizHistory().then(function(hist) {
+      if (!hist || !hist.length) {
+        try { hist = JSON.parse(localStorage.getItem('lm_quiz_history_v1') || '[]'); } catch(e) { hist = []; }
+      }
+      if (!hist.length) {
+        el.innerHTML = '<div class="activity-empty">No assessments logged yet. Take a sprint quiz to test your recall!</div>';
+        return;
+      }
+      el.innerHTML = hist.slice(0, 3).map(function(item) {
+        var d = item.created_at ? StudySync.ago(item.created_at) : (item.date ? StudySync.ago(item.date) : 'recently');
+        var pct = item.details && item.details.percentage !== undefined ? item.details.percentage : (item.pct || Math.round(((item.score||0)/(item.total_questions||item.total||10))*100));
+        return `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;margin-bottom:6px;background:rgba(255,255,255,0.02);border:1px solid var(--border,#262f45);border-radius:8px;">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--text);text-transform:capitalize;">${item.module || item.topic} Quiz</div>
+              <div style="font-size:10px;color:var(--text3,#8891b8);margin-top:2px;">${d} · ${item.score}/${item.total_questions || item.total || 10} correct</div>
+            </div>
+            <div style="font-size:14px;font-weight:800;color:${pct>=70?'#06d6a0':pct>=50?'#f59e0b':'#f43f5e'};font-family:'JetBrains Mono',monospace;">
+              ${pct}%
+            </div>
+          </div>
+        `;
+      }).join('');
+    }).catch(function() {
+      el.innerHTML = '<div class="activity-empty">Take a practice quiz to view scorecards!</div>';
+    });
+  }
+}
 
   // Greet with user name
   _supabase.auth.getSession().then(function(r) {

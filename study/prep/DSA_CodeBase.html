@@ -7,8 +7,14 @@
 <meta name="description" content="Learn DSA with animation: arrays, strings, trees, graphs, dynamic programming, and more with interview-focused visual walkthroughs.">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="DSA CodeBase">
 <link rel="stylesheet" href="../styles/dsa.css">
+<!-- Auth + Sync + Interactive Study Tools -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../auth/supabase-config.js"></script>
+<script src="../../auth/auth-guard.js"></script>
+<script src="../js/StudySync.js"></script>
+<script src="../js/CodeRunner.js"></script>
+<script src="../js/StudySRS.js"></script>
 </head>
 <body>
 <header class="topbar">
@@ -53,7 +59,7 @@
   <a href="#" id="nav-tricks-link"   onclick="showView('tricks');return false;">⚙️ Code Tricks</a>
   <a href="#" id="nav-ec-link"       onclick="showView('edge');return false;">⚠️ Edge Cases</a>
   <div class="section-label" style="margin-top:8px">Apps</div>
-  <a href="/java" id="nav-java-link" class="java-nav-link" target="_blank" rel="noopener noreferrer">🤖 AI-Powered Java Backend Developer <span class="focus-nav-new">New</span></a>
+  <a href="Java-Prep-kit.html" id="nav-java-link" class="java-nav-link">🤖 Java Backend Developer Prep <span class="focus-nav-new">Hot</span></a>
 </nav>
 
 <main id="main">
@@ -65,7 +71,7 @@
       <a href="DSA_SystemDesign.html" class="view-tab sd-view-tab">🏗 System Design</a>
       <button class="view-tab"        id="tab-tricks"   onclick="showView('tricks')">⚙️ Code Tricks</button>
       <button class="view-tab"        id="tab-edge"     onclick="showView('edge')">⚠️ Edge Cases</button>
-      <a href="/java" class="view-tab java-view-tab" target="_blank" rel="noopener noreferrer">🤖 AI Java Backend</a>
+      <a href="Java-Prep-kit.html" class="view-tab java-view-tab">🤖 Java Backend Prep</a>
     </div>
   </div>
 
@@ -5805,19 +5811,8 @@ toRemove.forEach(map::remove);</pre>
 
     function boot() { initStatusControls(); initStatusFilters(); hydrateFromDB(); }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
-    else boot();
   })();
 </script>
-
-<!-- ══════════════════════════════════════════════
-     Study module integration: auth gate + study timer
-     auth-guard.js enforces login + DSA module access and
-     auto-loads StudyTimer.js (timer chip in the sidebar).
-══════════════════════════════════════════════ -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../auth/supabase-config.js"></script>
-<script src="../js/StudySync.js"></script>
-<script src="../../auth/auth-guard.js"></script>
 
 </body>
 </html>

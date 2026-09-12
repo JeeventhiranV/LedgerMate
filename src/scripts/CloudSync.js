@@ -193,12 +193,51 @@
       }
     });
 
-    // Additional best-effort on actual unload (browser may or may not wait)
-    window.addEventListener('beforeunload', function () {
-      if (window.LM_DB_READY && _dirty) save();
-    });
+    // ── Supabase Realtime Channel Subscription ───────────────
+    var _realtimeChannel = null;
+    function _initRealtime() {
+      if (!_supabase || typeof _supabase.channel !== 'function') return;
+      _uid().then(function (uid) {
+        if (!uid) return;
+        try {
+          if (_realtimeChannel) _supabase.removeChannel(_realtimeChannel);
+          _realtimeChannel = _supabase
+            .channel('ledger_data_changes_' + uid)
+            .on(
+              'postgres_changes',
+              { event: '*', schema: 'public', table: TABLE, filter: 'user_id=eq.' + uid },
+              function (payload) {
+                // If we are currently actively saving, ignore our own echo
+                if (_saving) return;
+                console.log('[CloudSync] ⚡ Realtime update received from cloud:', payload);
+                if (window.LM_Bus) {
+                  LM_Bus.emit('lm:cloud:remote-update', payload);
+                }
+                if (typeof showToast === 'function') {
+                  showToast('☁️ Cloud data updated from another session. Refreshing...', 'info');
+                }
+                // Automatically refresh state from cloud if not dirty
+                if (!_dirty && typeof window.LM_StartApp === 'function') {
+                  load().then(function(ok) {
+                    if (ok && typeof window.renderAll === 'function') window.renderAll();
+                  });
+                }
+              }
+            )
+            .subscribe(function (status) {
+              if (status === 'SUBSCRIBED') {
+                console.log('[CloudSync] ⚡ Supabase Realtime live sync connected');
+              }
+            });
+        } catch (err) {
+          console.warn('[CloudSync] Realtime subscribe error:', err);
+        }
+      });
+    }
 
-    console.log('[CloudSync] 🔄 auto-save active');
+    _initRealtime();
+
+    console.log('[CloudSync] 🔄 auto-save & realtime sync active');
   }
 
   // ── Expose ───────────────────────────────────────────────────

@@ -1642,11 +1642,54 @@ function renderCashflow(){
     data: {
       labels: cats,
       datasets: [
-        { label: 'Limit', data: dataLimit, backgroundColor: 'rgba(99,102,241,0.25)' },
-        { label: 'Actual', data: dataActual, backgroundColor: 'rgba(99,102,241,0.9)' }
+        { label: 'Limit', data: dataLimit, backgroundColor: 'rgba(99,102,241,0.3)', borderRadius: 6, maxBarThickness: 36 },
+        { label: 'Actual', data: dataActual, backgroundColor: 'rgba(167,139,250,0.9)', borderRadius: 6, maxBarThickness: 36 }
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'end',
+          labels: {
+            boxWidth: 10,
+            padding: 12,
+            color: 'rgba(232, 234, 246, 0.8)',
+            font: { size: 11, family: 'Inter, sans-serif' }
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(13, 17, 40, 0.95)',
+          titleColor: '#00d4b4',
+          bodyColor: '#e8eaf6',
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+          borderWidth: 1,
+          padding: 8,
+          cornerRadius: 8,
+          callbacks: {
+            label: function(context) {
+              return ' ' + context.dataset.label + ': ₹' + Number(context.raw || 0).toLocaleString('en-IN');
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: 'rgba(232, 234, 246, 0.6)', font: { size: 11 } }
+        },
+        y: {
+          grid: { color: 'rgba(255, 255, 255, 0.04)' },
+          ticks: {
+            color: 'rgba(232, 234, 246, 0.6)',
+            font: { size: 10 },
+            callback: v => '₹' + Number(v).toLocaleString('en-IN')
+          }
+        }
+      }
+    }
   });
 }
 

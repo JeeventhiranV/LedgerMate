@@ -98,28 +98,46 @@
       return result;
     };
 
-    /* ─── Patched del (expose global) ─────────────────
-       del() is already in global scope; no change needed,
-       but we expose a convenience helper for admin-side
-       selective deletion by profile. */
+    /* ─── Patched del ────────────────────────────────── */
+    const _origDel = window.del;
+    if (typeof _origDel === 'function') {
+      window.del = async function patchedDel(storeName, key) {
+        const result = await _origDel(storeName, key);
+        if (USER_DATA_STORES.has(storeName) && window.LM_Bus) {
+          LM_Bus.emit('lm:data:changed', { store: storeName, action: 'delete', key: key });
+        }
+        return result;
+      };
+    }
+
+    /* ─── Admin-side selective deletion by profile ──── */
     window.LM_delByProfile = async function(storeName, userId) {
       if (!window.db) return;
       return new Promise((res, rej) => {
         const t   = window.db.transaction(storeName, 'readwrite');
         const s   = t.objectStore(storeName);
         const req = s.openCursor();
+        let deleted = false;
         req.onsuccess = (e) => {
           const cursor = e.target.result;
           if (cursor) {
-            if (cursor.value.profile === userId) cursor.delete();
+            if (cursor.value.profile === userId) {
+              cursor.delete();
+              deleted = true;
+            }
             cursor.continue();
-          } else { res(); }
+          } else {
+            if (deleted && USER_DATA_STORES.has(storeName) && window.LM_Bus) {
+              LM_Bus.emit('lm:data:changed', { store: storeName, action: 'delete_profile', userId: userId });
+            }
+            res();
+          }
         };
         req.onerror = () => rej(req.error);
       });
     };
 
-    console.log('[LM] StorePatch applied – multi-user isolation active.');
+    console.log('[LM] StorePatch applied – multi-user isolation active with deletion sync.');
     window._LM_StorePatchActive = true;
   }
 

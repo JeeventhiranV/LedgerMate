@@ -1,0 +1,273 @@
+/* =============================================================
+   LedgerMate & Study Hub — Responsive Upgrades Stylesheet
+   Ensures 100% responsiveness across Mobile, Tablet, and Desktop.
+   ============================================================= */
+
+/* ─── Mobile Viewport & Touch Optimization ───────────────── */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+/* Global Viewport Overflow Fix (Prevents Horizontal Pan & Left-Clipping) */
+html, body {
+  max-width: 100vw !important;
+  width: 100% !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+
+#app, #main, #pageContent {
+  max-width: 100vw !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+  overflow-x: hidden !important;
+}
+
+/* ─── Topbar Responsiveness ─────────────────────────────── */
+#topbar, .topbar {
+  max-width: 100vw !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 8px 14px !important;
+  gap: 6px !important;
+  overflow: hidden !important;
+  flex-wrap: nowrap !important;
+}
+
+.topbar-title {
+  min-width: 0;
+  flex-shrink: 1;
+  font-size: 13px !important;
+  white-space: nowrap;
+}
+
+.topbar-actions, .topbar-tools {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  max-width: 100% !important;
+  flex-shrink: 1 !important;
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  padding: 2px 0 !important;
+  flex-wrap: nowrap !important;
+}
+
+.topbar-actions::-webkit-scrollbar, .topbar-tools::-webkit-scrollbar {
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  #topbar, .topbar {
+    padding: 6px 10px !important;
+    gap: 4px !important;
+    height: 48px !important;
+  }
+  .topbar-actions, .topbar-tools {
+    gap: 4px !important;
+  }
+  .topbar-actions .icon-btn,
+  .topbar-tool-btn,
+  .agf-menu-btn,
+  .menu-btn,
+  #menuBtn {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 14px !important;
+    border-radius: 8px !important;
+    flex-shrink: 0 !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .topbar-tool-btn .tool-lbl,
+  .topbar-brand-text {
+    display: none !important;
+  }
+  .topbar-user-chip {
+    width: 30px !important;
+    height: 30px !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .topbar-user-avatar {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 12px !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .topbar-title {
+    display: none !important; /* Hide redundant logo text on ultra-compact phones so buttons fit cleanly */
+  }
+}
+
+/* ─── Page Header & Typography ───────────────────────────── */
+.page-header {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  margin-bottom: 20px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.page-title {
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  font-size: clamp(18px, 4.5vw, 26px) !important;
+  line-height: 1.25 !important;
+}
+
+.page-greeting {
+  font-size: 11px !important;
+  letter-spacing: 0.5px !important;
+}
+
+.range-pills {
+  display: flex !important;
+  gap: 4px !important;
+  padding: 3px !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.range-pill {
+  padding: 5px 10px !important;
+  font-size: 11px !important;
+}
+
+@media (max-width: 480px) {
+  .page-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+  .range-pills {
+    align-self: flex-start !important;
+  }
+}
+
+/* ─── Chart Cards & Containers ───────────────────────────── */
+.chart-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 14px !important;
+  overflow: hidden !important;
+}
+
+.chart-wrap {
+  width: 100% !important;
+  max-width: 100% !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+  min-height: 180px !important;
+}
+
+.chart-wrap canvas {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.charts-grid, .two-col {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 768px) {
+  .two-col {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+}
+
+/* ─── Modal Overlays & Responsive Limits ──────────────────── */
+.modal-overlay {
+  padding: max(12px, var(--safe-top)) max(12px, var(--safe-right)) max(12px, var(--safe-bottom)) max(12px, var(--safe-left)) !important;
+  box-sizing: border-box;
+}
+
+.modal,
+[id$="-modal"] > div {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  word-break: break-word;
+}
+
+/* Tables horizontal touch scrolling */
+.table-responsive,
+table {
+  max-width: 100%;
+}
+
+/* Hero Quick Links in Study Hub */
+@media (max-width: 768px) {
+  .hero-quick-links {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  .topbar-right {
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+  }
+  .btn-notes-search {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+  }
+}
+
+/* Inputs & Forms mobile font scaling (prevent iOS zoom on input focus) */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="email"],
+input[type="password"],
+select,
+textarea {
+  font-size: 14px !important;
+}
+
+@media (max-width: 480px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="email"],
+  input[type="password"],
+  select,
+  textarea {
+    font-size: 16px !important; /* Prevents auto-zoom on iOS */
+  }
+}
+
+/* Grid auto-fit helper for all mobile components */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+/* Smooth scrolling for touch tables */
+.touch-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}

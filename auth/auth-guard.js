@@ -394,6 +394,21 @@
     //   window.location.href = mainAppUrl;
     // });
 
+    // PWA Install Option in sidebar
+    var pwaLink = document.createElement('a');
+    pwaLink.href = '#';
+    pwaLink.className = 'auth-nav-link pwa-install-trigger';
+    pwaLink.id = 'authNavPwaBtn';
+    pwaLink.style.display = 'none';
+    pwaLink.innerHTML = '<span class="auth-nav-link-icon">⬇️</span><span>Install App</span>';
+    pwaLink.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (window.LM_PWA && window.LM_PWA.install) {
+        window.LM_PWA.install();
+      }
+    });
+    linkList.appendChild(pwaLink);
+
     var spacer = document.createElement('div');
     spacer.className = 'auth-nav-spacer';
 
@@ -406,21 +421,33 @@
     nav.appendChild(footerEl);
     document.body.appendChild(nav);
 
-    // ── ☰ button → inject as first child of .topbar ─────────────────────────
+    // ── ☰ button → inject as first child of .topbar or .topbar-left ──────────
     var topbar = document.querySelector('.topbar');
     if (topbar) {
-      var menuBtn = document.createElement('button');
-      menuBtn.className = 'agf-menu-btn';
-      menuBtn.setAttribute('aria-label', 'Open navigation');
-      menuBtn.textContent = '☰';
-      topbar.insertBefore(menuBtn, topbar.firstChild);
-
       function _openNav()  { nav.classList.add('open');    overlay.classList.add('show'); }
       function _closeNav() { nav.classList.remove('open'); overlay.classList.remove('show'); }
 
-      menuBtn.addEventListener('click', function () {
-        nav.classList.contains('open') ? _closeNav() : _openNav();
-      });
+      var existingBtn = topbar.querySelector('.agf-menu-btn, #menuBtn, .hdr-burger');
+      if (!existingBtn) {
+        var menuBtn = document.createElement('button');
+        menuBtn.className = 'agf-menu-btn';
+        menuBtn.setAttribute('aria-label', 'Open navigation');
+        menuBtn.textContent = '☰';
+        var leftEl = topbar.querySelector('.topbar-left');
+        if (leftEl) {
+          leftEl.insertBefore(menuBtn, leftEl.firstChild);
+        } else {
+          topbar.insertBefore(menuBtn, topbar.firstChild);
+        }
+
+        menuBtn.addEventListener('click', function () {
+          nav.classList.contains('open') ? _closeNav() : _openNav();
+        });
+      } else {
+        existingBtn.addEventListener('click', function () {
+          nav.classList.contains('open') ? _closeNav() : _openNav();
+        });
+      }
       overlay.addEventListener('click', _closeNav);
     }
   }

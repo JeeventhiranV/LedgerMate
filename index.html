@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
@@ -57,10 +57,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="./src/styles/common.css">
 <link rel="stylesheet" href="./src/styles/auth.css">
-
-<script src="./assets/vendor/chart.umd.min.js"></script> 
-  <link rel="stylesheet" href="./src/styles/style.css">
-  <link rel="stylesheet" href="./src/styles/Notes.css"> 
+<link rel="stylesheet" href="./src/styles/style.css">
+<link rel="stylesheet" href="./src/styles/Notes.css">
+<link rel="stylesheet" href="./src/styles/responsive-upgrades.css"> 
+<link rel="stylesheet" href="./src/styles/stocks.css">
   <script src="./assets/vendor/tailwind.min.js"></script>
   <!-- Cloud auth + sync – MUST load before AuthManager -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -175,6 +175,9 @@
       <button class="sidebar-nav-item" id="openInvestments" data-module="investments">
         <span class="nav-icon">📊</span> Investments
       </button>
+      <button class="sidebar-nav-item" onclick="showPage('stocks')" id="openStockPortfolio" data-module="stocks">
+        <span class="nav-icon">📈</span> Indian Stocks &amp; Portfolio
+      </button>
       <button class="sidebar-nav-item" onclick="showPage('subscriptions')" data-module="subscriptions">
         <span class="nav-icon">🔄</span> Subscriptions
       </button>
@@ -232,6 +235,9 @@
     <!-- ── CALCULATORS ───────────────────────────────────── -->
     <div class="sidebar-section">
       <div class="sidebar-section-label">Calculators</div>
+      <button class="sidebar-nav-item" onclick="window.LM_DebtOptimizer?.showModal()" data-module="loans">
+        <span class="nav-icon">🎯</span> Debt Optimizer
+      </button>
       <button class="sidebar-nav-item" onclick="openEMIModal()" data-module="loans">
         <span class="nav-icon">🧮</span> EMI Calculator
       </button>
@@ -243,6 +249,9 @@
     <!-- ── PRODUCTIVITY ───────────────────────────────────── -->
     <div class="sidebar-section">
       <div class="sidebar-section-label">Productivity</div>
+      <button class="sidebar-nav-item" onclick="window.LM_CommandPalette?.open()">
+        <span class="nav-icon">⚡</span> Command Palette
+      </button>
       <button class="sidebar-nav-item" onclick="showNotesModal();" id="openNotes1" data-module="notes">
         <span class="nav-icon">📝</span> Notes
       </button>
@@ -266,6 +275,9 @@
     <!-- ── SETTINGS ──────────────────────────────────────── -->
     <div class="sidebar-section">
       <div class="sidebar-section-label">Settings</div>
+      <button class="sidebar-nav-item" onclick="window.LM_CategoryRules?.showRulesModal()" data-module="transactions">
+        <span class="nav-icon">🏷️</span> Category Rules
+      </button>
       <button class="sidebar-nav-item" onclick="openDashboardCustomizer()" data-module="dashboard-config">
         <span class="nav-icon">🎛️</span> Customize Dashboard
       </button>
@@ -275,11 +287,17 @@
       <button class="sidebar-nav-item" onclick="openPinSetupModal()" data-module="pin-lock">
         <span class="nav-icon">🔒</span> PIN Lock
       </button>
+      <button class="sidebar-nav-item pwa-install-trigger" id="pwaInstallBtn" style="display:none;color:var(--teal,#00d4b4);" onclick="window.LM_PWA?.install()">
+        <span class="nav-icon">⬇️</span> Install App
+      </button>
     </div>
 
     <!-- ── DATA ──────────────────────────────────────────── -->
     <div class="sidebar-section">
       <div class="sidebar-section-label">Data</div>
+      <button class="sidebar-nav-item" onclick="window.LM_StatementParser?.openFilePicker()">
+        <span class="nav-icon">📄</span> Import Statement (CSV)
+      </button>
       <button class="sidebar-nav-item" id="btnSetFolder">
         <span class="nav-icon">📁</span> <span id="folderLabel">Set Folder</span>
       </button>
@@ -328,8 +346,14 @@
         <!-- hidden account filter -->
         <select id="accFilter" style="display:none;" onchange="renderAll()"><option value="all">All</option></select>
 
+        <!-- ⚡ Command Palette -->
+        <button class="icon-btn" title="Command Palette (Ctrl+K)" onclick="window.LM_CommandPalette?.toggle()" style="font-size:14px;font-weight:700;color:var(--teal,#00d4b4);">⚡</button>
+
+        <!-- 🌊 Sankey Cash Flow -->
+        <button class="icon-btn" title="Cash Flow Sankey" onclick="window.LM_Sankey?.showModal()">🌊</button>
+
         <!-- 🔍 Search -->
-        <button class="icon-btn srch-trigger-btn" title="Search (Ctrl+K)" onclick="openSearch()">🔍</button>
+        <button class="icon-btn srch-trigger-btn" title="Search (Ctrl+K)" onclick="window.LM_CommandPalette ? window.LM_CommandPalette.open() : openSearch()">🔍</button>
 
         <!-- 🔔 Notifications -->
         <button id="notifBell" class="icon-btn notif-bell-btn" title="Notifications" onclick="toggleNotifPanel(event)">
@@ -366,8 +390,14 @@
             <button class="topbar-user-menu-item" onclick="window.LM_Admin?.show(); document.getElementById('userDropdownMenu').classList.remove('open')">
               ⚙️ Admin Panel
             </button>
+            <button class="topbar-user-menu-item" onclick="window.LM_Biometrics?.register(); document.getElementById('userDropdownMenu').classList.remove('open')">
+              🔐 Link Biometrics (Touch/Face ID)
+            </button>
             <button class="topbar-user-menu-item" onclick="document.getElementById('userDropdownMenu').classList.remove('open'); openPreferencesModal()">
               🔔 Preferences
+            </button>
+            <button class="topbar-user-menu-item pwa-install-trigger" style="display:none;color:var(--teal,#00d4b4);" onclick="document.getElementById('userDropdownMenu').classList.remove('open'); window.LM_PWA?.install()">
+              ⬇️ Install App
             </button>
             <div class="topbar-user-menu-divider"></div>
             <button class="topbar-user-menu-item" onclick="document.getElementById('userDropdownMenu').classList.remove('open'); if(confirm('Sign out?')) window.LM_Auth.logout();" style="color:var(--rose)">
@@ -873,6 +903,11 @@
       <!-- container for essentials modals -->
       <div id="essentialModals"></div>
 
+      <!-- ─── INDIAN STOCKS & PORTFOLIO PAGE ────────── -->
+      <div id="page-stocks" style="display:none;">
+        <!-- rendered by LM_StockPortfolioUI.render() in StockPortfolioUI.js -->
+      </div>
+
     </div><!-- /pageContent -->
     <footer>© <span id="year"></span> <span>LedgerMate</span> by Jeeventhiran &nbsp;·&nbsp;</br> All data stored offline</footer>
   </main>
@@ -1240,6 +1275,13 @@ function showPage(page) {
     if (page === 'essentials') {
       try { showEssentialsPage(); } catch (e) { console.error('Essentials page error:', e); }
     }
+    if (page === 'stocks') {
+      try {
+        if (window.LM_StockPortfolioUI) {
+          window.LM_StockPortfolioUI.init();
+        }
+      } catch (e) { console.warn('[LM] Stocks portfolio error:', e); }
+    }
     if (page === 'savings-goals') {
       try { renderSavingsGoals(); } catch (e) { console.warn('[LM] Savings goals error:', e); }
     }
@@ -1402,6 +1444,23 @@ function setGreeting() {
   <!-- Admin Panel -->
   <script src="./src/scripts/Admin/AdminPanel.js"></script>
   <script src="./src/scripts/Common/Search.js"></script>
+  <!-- Unified Toast & WebAuthn Biometrics -->
+  <script src="./src/scripts/Common/SharedToast.js"></script>
+  <script src="./src/scripts/Auth/Biometrics.js"></script>
+  <!-- Upgrade Modules: Statement Parser, Rules, Live Market, Visuals & Calculators -->
+  <script src="./src/scripts/Modules/CategoryRules.js"></script>
+  <script src="./src/scripts/Modules/StatementParser.js"></script>
+  <script src="./src/scripts/Modules/LiveMarket.js"></script>
+  <script src="./src/scripts/Modules/DebtOptimizer.js"></script>
+  <script src="./src/scripts/Modules/SankeyCashFlow.js"></script>
+  <script src="./src/scripts/Modules/SpendingHeatmap.js"></script>
+  <script src="./src/scripts/Modules/CommandPalette.js"></script>
+  <!-- Indian Stock Market & Portfolio Tracking Module -->
+  <script src="./src/scripts/Modules/Stocks/StockRegistry.js"></script>
+  <script src="./src/scripts/Modules/Stocks/StockCalculations.js"></script>
+  <script src="./src/scripts/Modules/Stocks/MarketDataService.js"></script>
+  <script src="./src/scripts/Modules/Stocks/StockPortfolioService.js"></script>
+  <script src="./src/scripts/Modules/Stocks/StockPortfolioUI.js"></script>
   <!-- PWA install prompt — works on any page -->
   <script src="./src/scripts/pwa-install.js"></script>
   <!-- Real-time push notifications -->

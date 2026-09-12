@@ -8,7 +8,7 @@
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v2.19.6';
+const CACHE_VERSION = 'lm-v2.22.0';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
@@ -29,6 +29,8 @@ const STATIC_ASSETS = [
   './src/styles/common.css',
   './src/styles/Notes.css',
   './src/styles/auth.css',
+  './src/styles/responsive-upgrades.css',
+  './src/styles/stocks.css',
 
   /* Third-party libs */
   './assets/vendor/chart.umd.min.js',
@@ -42,11 +44,13 @@ const STATIC_ASSETS = [
   './src/scripts/Auth/AuthManager.js',
   './src/scripts/Auth/UserStore.js',
   './src/scripts/Auth/StorePatch.js',
+  './src/scripts/Auth/Biometrics.js',
   './src/scripts/Admin/AdminPanel.js',
   './src/scripts/CloudSync.js',
   './src/scripts/pwa-install.js',
   './src/scripts/pwa-push.js',
   './src/scripts/Common.js',
+  './src/scripts/Common/SharedToast.js',
   './src/scripts/Wealth/Wealth.js',
   './src/scripts/Wealth/Essentials.js',
   './src/scripts/Investments.js',
@@ -62,6 +66,20 @@ const STATIC_ASSETS = [
   './src/scripts/Common/Notes.js',
   './src/scripts/Common/Search.js',
 
+  /* Upgraded Modules */
+  './src/scripts/Modules/StatementParser.js',
+  './src/scripts/Modules/CategoryRules.js',
+  './src/scripts/Modules/LiveMarket.js',
+  './src/scripts/Modules/DebtOptimizer.js',
+  './src/scripts/Modules/SankeyCashFlow.js',
+  './src/scripts/Modules/SpendingHeatmap.js',
+  './src/scripts/Modules/CommandPalette.js',
+  './src/scripts/Modules/Stocks/StockRegistry.js',
+  './src/scripts/Modules/Stocks/StockCalculations.js',
+  './src/scripts/Modules/Stocks/MarketDataService.js',
+  './src/scripts/Modules/Stocks/StockPortfolioService.js',
+  './src/scripts/Modules/Stocks/StockPortfolioUI.js',
+
   /* Auth (config excluded — see note below) */
   './auth/auth-guard.js',
 
@@ -71,6 +89,8 @@ const STATIC_ASSETS = [
 
   /* Study prep pages */
   './study/prep/DSA-Prep-Hub.html',
+  './study/prep/DSA_CodeBase.html',
+  './study/prep/DSA_SystemDesign.html',
   './study/prep/Java-Prep-kit.html',
   './study/prep/React-Prep.html',
   './study/prep/HR-Questions.html',
@@ -82,6 +102,12 @@ const STATIC_ASSETS = [
   /* Study JS */
   './study/js/StudyTimer.js',
   './study/js/StudySync.js',
+  './study/js/StudyQuizEngine.js',
+  './study/js/StudySRS.js',
+  './study/js/CodeRunner.js',
+  './study/js/AIInterviewHelper.js',
+  './study/js/dsa-answers.js',
+  './study/js/dsa-systemdesign-content.js',
   './study/js/study-features.js',
   './study/js/community-hub.js',
   './study/js/lm-toast.js',
