@@ -140,10 +140,33 @@
       }
     }
 
-    // Fallback: Check if Supabase shared price cache has quotes
+    return await fetchFromSupabaseCache(symbol, exchange);
+  }
+
+  /**
+   * Helper to get initialized Supabase client instance
+   */
+  function getSupabaseClient() {
+    if (typeof _supabase !== 'undefined' && _supabase && typeof _supabase.from === 'function') {
+      return _supabase;
+    }
+    if (typeof window !== 'undefined' && window._supabase && typeof window._supabase.from === 'function') {
+      return window._supabase;
+    }
+    if (typeof window !== 'undefined' && window.supabase && typeof window.supabase.from === 'function') {
+      return window.supabase;
+    }
+    return null;
+  }
+
+  /**
+   * Fallback: Check if Supabase shared price cache has quotes
+   */
+  async function fetchFromSupabaseCache(symbol, exchange) {
     try {
-      if (window.supabase && typeof window.supabase.from === 'function') {
-        var sbRes = await window.supabase
+      var sb = getSupabaseClient();
+      if (sb) {
+        var sbRes = await sb
           .from('stock_price_cache')
           .select('*')
           .eq('symbol', symbol.toUpperCase())
@@ -166,7 +189,6 @@
         }
       }
     } catch (e) {}
-
     return null;
   }
 

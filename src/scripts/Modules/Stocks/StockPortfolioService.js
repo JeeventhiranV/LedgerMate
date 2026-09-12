@@ -89,16 +89,33 @@
   }
 
   /**
+   * Helper to get initialized Supabase client instance
+   */
+  function getSupabaseClient() {
+    if (typeof _supabase !== 'undefined' && _supabase && typeof _supabase.from === 'function') {
+      return _supabase;
+    }
+    if (typeof window !== 'undefined' && window._supabase && typeof window._supabase.from === 'function') {
+      return window._supabase;
+    }
+    if (typeof window !== 'undefined' && window.supabase && typeof window.supabase.from === 'function') {
+      return window.supabase;
+    }
+    return null;
+  }
+
+  /**
    * Sync from Supabase if connected
    */
   async function syncFromSupabase() {
-    if (!window.supabase || !_userId || _userId === 'guest') return;
+    var sb = getSupabaseClient();
+    if (!sb || !_userId || _userId === 'guest') return;
 
     try {
       _isSyncing = true;
 
       // 1. Fetch portfolios
-      var portRes = await window.supabase
+      var portRes = await sb
         .from('stock_portfolios')
         .select('*')
         .order('created_at', { ascending: true });
@@ -118,13 +135,13 @@
           currency: 'INR',
           is_default: true
         };
-        await window.supabase.from('stock_portfolios').insert(newPort);
+        await sb.from('stock_portfolios').insert(newPort);
         _portfolios = [newPort];
         _activePortfolioId = newPort.id;
       }
 
       // 2. Fetch holdings
-      var holdRes = await window.supabase
+      var holdRes = await sb
         .from('stock_holdings')
         .select('*')
         .order('symbol', { ascending: true });
@@ -134,7 +151,7 @@
       }
 
       // 3. Fetch transactions
-      var txRes = await window.supabase
+      var txRes = await sb
         .from('stock_transactions')
         .select('*')
         .order('transaction_date', { ascending: true });
@@ -155,16 +172,17 @@
    * Push change to Supabase in background
    */
   async function pushToSupabase(table, action, record, matchKey) {
-    if (!window.supabase || !_userId || _userId === 'guest') return;
+    var sb = getSupabaseClient();
+    if (!sb || !_userId || _userId === 'guest') return;
     try {
       if (action === 'insert') {
-        await window.supabase.from(table).insert(record);
+        await sb.from(table).insert(record);
       } else if (action === 'update') {
         var key = matchKey || 'id';
-        await window.supabase.from(table).update(record).eq(key, record[key]);
+        await sb.from(table).update(record).eq(key, record[key]);
       } else if (action === 'delete') {
         var dKey = matchKey || 'id';
-        await window.supabase.from(table).delete().eq(dKey, record[dKey] || record);
+        await sb.from(table).delete().eq(dKey, record[dKey] || record);
       }
     } catch (e) {
       console.warn('[StockPortfolioService] Supabase push error for ' + table + ':', e);
