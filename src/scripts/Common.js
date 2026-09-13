@@ -2651,6 +2651,19 @@ async function fullImportJSONText(txt, source = "Unknown"){
       if (icon) icon.textContent = iconValue;
     }
 
+    /* ── Restore Stock Portfolio Data ─────────────────── */
+    if (data.stock_portfolio_data) {
+      try {
+        const uid = window.LM_Auth?.getCurrentUserId?.() || 'guest';
+        localStorage.setItem(`lm_u_${uid}_stock_portfolio_data`, JSON.stringify(data.stock_portfolio_data));
+        if (window.LM_StockPortfolioService && typeof window.LM_StockPortfolioService.importData === 'function') {
+          await window.LM_StockPortfolioService.importData(data.stock_portfolio_data);
+        }
+      } catch(e) {
+        console.warn('[LM] Error restoring stock portfolio data:', e);
+      }
+    }
+
     if(source !== "Drive"){
       await loadAllFromDB();
       renderAll();
@@ -2865,6 +2878,19 @@ async function mergeRestore(payload) {
     document.body.setAttribute('data-theme', theme);
     const icon = document.getElementById('themeIcon');
     if (icon) icon.textContent = theme === 'dark' ? '🌙' : '☀️';
+  }
+
+  /* ── Restore Stock Portfolio Data ───────────────────── */
+  if (payload.stock_portfolio_data && typeof payload.stock_portfolio_data === 'object') {
+    try {
+      const uid = window.LM_Auth?.getCurrentUserId?.() || 'guest';
+      localStorage.setItem(`lm_u_${uid}_stock_portfolio_data`, JSON.stringify(payload.stock_portfolio_data));
+      if (window.LM_StockPortfolioService && typeof window.LM_StockPortfolioService.importData === 'function') {
+        await window.LM_StockPortfolioService.importData(payload.stock_portfolio_data);
+      }
+    } catch(e) {
+      console.warn('[LM] Error merging stock portfolio data:', e);
+    }
   }
 
   /* ── Refresh in-memory state ─────────────────────────── */
@@ -3554,6 +3580,15 @@ async function FinalJson(){
     sip_plan           : state.sip_plan,
     essentials_settings: state.essentials_settings,
     audit_logs         : state.audit_logs,
+    stock_portfolio_data: (function(){
+      try {
+        if (window.LM_StockPortfolioService && typeof window.LM_StockPortfolioService.exportData === 'function') {
+          return window.LM_StockPortfolioService.exportData();
+        }
+        var raw = localStorage.getItem('lm_u_' + (userId || 'guest') + '_stock_portfolio_data');
+        return raw ? JSON.parse(raw) : null;
+      } catch(e) { return null; }
+    })(),
     meta: {
       exportedAt   : new Date().toISOString(),
       exportedBy   : window.LM_Auth?.getCurrentUser?.()?.username || 'user',
@@ -3591,20 +3626,22 @@ window.LM_StartApp = async function LM_StartApp() {
   }
 
   try {
-      await loadAllFromDB();
+    await loadAllFromDB();
 
-    // const isFresh =
-    //   (state.transactions || []).length === 0 &&
-    //   (state.budgets || []).length === 0 &&
-    //   (state.loans || []).length === 0 &&
-    //   (state.users || []).length === 0;
+    /* ── Initialize Stock Portfolio Service ──────────── */
+    if (window.LM_StockPortfolioService) {
+      try {
+        const uid = window.LM_Auth?.getCurrentUserId?.() || 'guest';
+        await window.LM_StockPortfolioService.init(uid);
+      } catch (e) {
+        console.warn('[LM] StockPortfolioService auto-init error:', e);
+      }
+    }
 
-    // if (isFresh) await tryAutoRestoreOnStart(); 
     startBackupSchedule();
-    //autoBackup(); 
     bindUI();
     if (typeof renderAll === "function") {
-    renderAll();
+      renderAll();
     } 
    // tryAutoLoadFolder();
    // checkAllNotifications();
@@ -4198,6 +4235,16 @@ function renderDashboardWealthWidget() {
   const investments = state.investments || [];
   const emiLoans    = state.emi_loans   || [];
 
+  let stockInvested = 0;
+  let stockAssets = 0;
+  if (window.LM_StockPortfolioService && typeof window.LM_StockPortfolioService.getPortfolioSummary === 'function') {
+    try {
+      const summary = window.LM_StockPortfolioService.getPortfolioSummary();
+      stockInvested = Number(summary?.totalInvested) || 0;
+      stockAssets = Number(summary?.totalCurrentValue) || 0;
+    } catch(e) {}
+  }
+
   const totalAssets      = investments.reduce((s,a) => {
     const qty    = parseFloat(a.qty || a.stockQty || 0) || 0;
     const buyP   = parseFloat(a.buyPrice || a.avgCost || a.stockBuyPrice || 0) || 0;
@@ -4206,7 +4253,7 @@ function renderDashboardWealthWidget() {
     const simple = ['GOLD','SILVER','PHYSICAL','COMMODITY','STOCK'];
     if (simple.includes(t)) return s + qty * (curP || buyP);
     return s + (parseFloat(a.principal || a.currentValue || a.amount || 0) || 0);
-  }, 0);
+  }, 0) + stockAssets;
   const totalLiabilities = emiLoans.reduce((s,l) => s + (parseFloat(l.outstanding) || 0), 0);
   const netWorth         = totalAssets - totalLiabilities;
   const invested         = investments.reduce((s,a) => {
@@ -4216,11 +4263,11 @@ function renderDashboardWealthWidget() {
     const simple = ['GOLD','SILVER','PHYSICAL','COMMODITY','STOCK'];
     if (simple.includes(t)) return s + qty * buyP;
     return s + (parseFloat(a.principal || a.amount || 0) || 0);
-  }, 0);
+  }, 0) + stockInvested;
   const pnl  = totalAssets - invested;
   const pnlP = invested > 0 ? ((pnl / invested) * 100).toFixed(1) : 0;
 
-  if (investments.length === 0 && emiLoans.length === 0) {
+  if (investments.length === 0 && emiLoans.length === 0 && stockAssets === 0) {
     wrap.innerHTML = `
       <div class="chart-card" style="text-align:center;padding:24px;">
         <div style="font-size:28px;margin-bottom:8px;">💼</div>
@@ -4252,6 +4299,7 @@ function renderDashboardWealthWidget() {
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="section-action" onclick="showPage('wealth')">📊 View Wealth →</button>
+        <button class="section-action" onclick="showPage('stocks')">📈 Stocks →</button>
         <button class="section-action" onclick="showPage('essentials')">🛡️ Health Check →</button>
       </div>
     </div>`;

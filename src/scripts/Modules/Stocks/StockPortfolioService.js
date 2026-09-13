@@ -694,8 +694,54 @@
       }
 
       return quotes;
+    },
+
+    /**
+     * Export all stock portfolio data for backups
+     */
+    exportData: function () {
+      return {
+        portfolios: _portfolios || [],
+        activePortfolioId: _activePortfolioId,
+        holdings: _holdings || [],
+        transactions: _transactions || []
+      };
+    },
+
+    /**
+     * Import stock portfolio data from backup
+     */
+    importData: async function (data) {
+      if (!data || typeof data !== 'object') return false;
+      if (Array.isArray(data.portfolios)) _portfolios = data.portfolios;
+      if (data.activePortfolioId) _activePortfolioId = data.activePortfolioId;
+      if (Array.isArray(data.holdings)) _holdings = data.holdings;
+      if (Array.isArray(data.transactions)) _transactions = data.transactions;
+      saveLocalData();
+      if (window.LM_Bus) {
+        window.LM_Bus.emit('lm:stocks:changed');
+        window.LM_Bus.emit('lm:data:changed');
+      }
+      return true;
     }
   };
 
+  if (typeof window !== 'undefined') {
+    if (window.LM_Bus) {
+      window.LM_Bus.on('lm:auth:login', function (ev) {
+        var uid = ev?.user?.id || (window.LM_Auth && window.LM_Auth.getCurrentUserId ? window.LM_Auth.getCurrentUserId() : null) || 'guest';
+        LM_StockPortfolioService.init(uid);
+      });
+      window.LM_Bus.on('lm:auth:logout', function () {
+        _userId = 'guest';
+        _portfolios = [];
+        _holdings = [];
+        _transactions = [];
+        _activePortfolioId = null;
+      });
+    }
+  }
+
   window.LM_StockPortfolioService = LM_StockPortfolioService;
 })();
+

@@ -80,15 +80,23 @@ function getAssetCategoryFromType(type) {
   return 'Cash & Savings';
 }
 
-// ─── Totals ───────────────────────────────────────────────────
-// ─── Totals (Upgraded with personal loans) ───────────────────
+// ─── Totals (Upgraded with personal loans and live stock portfolio) ───────────────────
 function getTotalAssets() {
   const investments = (state.investments || []).reduce((s, a) => s + getAssetCurrentValue(a), 0);
   // Money OWED TO you (given loans not yet collected)
   const givenOutstanding = (state.loans || [])
     .filter(l => l.type === 'given' && !l.collected)
     .reduce((s, l) => s + toNum(l.amount), 0);
-  return investments + givenOutstanding;
+
+  let stockVal = 0;
+  if (window.LM_StockPortfolioService && typeof window.LM_StockPortfolioService.getPortfolioSummary === 'function') {
+    try {
+      const summary = window.LM_StockPortfolioService.getPortfolioSummary();
+      stockVal = toNum(summary?.totalCurrentValue || 0);
+    } catch(e) {}
+  }
+
+  return investments + givenOutstanding + stockVal;
 }
 
 function getTotalLiabilities() {
@@ -263,42 +271,73 @@ function renderWealthAssets(container) {
   const xirrRate      = typeof getPortfolioXIRR === 'function' ? getPortfolioXIRR() : null;
   const xirrDisplay   = xirrRate !== null && isFinite(xirrRate) ? (xirrRate * 100).toFixed(1) + '%' : '—';
 
-const givenOutstanding = (state.loans || []).filter(l => l.type === 'given' && !l.collected).reduce((s,l)=>s+toNum(l.amount),0);
-const takenOutstanding = (state.loans || []).filter(l => l.type === 'taken' && !l.collected).reduce((s,l)=>s+toNum(l.amount),0);
-const emiLiabilities = (state.emi_loans || []).reduce((s,l)=>s+toNum(l.outstanding||0),0);
+  const givenOutstanding = (state.loans || []).filter(l => l.type === 'given' && !l.collected).reduce((s,l)=>s+toNum(l.amount),0);
+  const takenOutstanding = (state.loans || []).filter(l => l.type === 'taken' && !l.collected).reduce((s,l)=>s+toNum(l.amount),0);
+  const emiLiabilities = (state.emi_loans || []).reduce((s,l)=>s+toNum(l.outstanding||0),0);
+
+  let stockSummary = null;
+  if (window.LM_StockPortfolioService && typeof window.LM_StockPortfolioService.getPortfolioSummary === 'function') {
+    try { stockSummary = window.LM_StockPortfolioService.getPortfolioSummary(); } catch(e){}
+  }
+  const stockVal = Number(stockSummary?.totalCurrentValue || 0);
+  const stockCount = Number(stockSummary?.holdingsCount || 0);
+  const stockPnL = Number(stockSummary?.totalPnL || 0);
+  const stockPnLPct = Number(stockSummary?.totalPnLPercentage || 0);
 
   const summaryBar = `
     <div class="chart-card" style="margin-bottom:16px;">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
-  <div>
-    <div class="kpi-label">INVESTMENTS</div>
-    <div style="font-family:var(--font-m);font-size:14px;font-weight:600;color:var(--emerald);">
-      ${fmtINR((state.investments||[]).reduce((s,a)=>s+getAssetCurrentValue(a),0))}
-    </div>
-  </div>
-  <div>
-    <div class="kpi-label">GIVEN LOANS (ASSET)</div>
-    <div style="font-family:var(--font-m);font-size:14px;font-weight:600;color:${givenOutstanding>=0?'var(--teal)':'var(--text-3)'};">
-      ${fmtINR(givenOutstanding)}
-    </div>
-  </div>
-  <div>
-    <div class="kpi-label">EMI + TAKEN LOANS</div>
-    <div style="font-family:var(--font-m);font-size:14px;font-weight:600;color:${emiLiabilities+takenOutstanding>0?'var(--rose)':'var(--text-3)'};">
-      ${fmtINR(emiLiabilities)} + ${fmtINR(takenOutstanding)}
-    </div>
-  </div>
-  <div>
-    <div class="kpi-label">XIRR (TRUE RETURN)</div>
-    <div style="font-family:var(--font-m);font-size:14px;font-weight:600;color:var(--violet);" title="Internal Rate of Return — time-weighted">
-      ${xirrDisplay} p.a.
-    </div>
-  </div>
-</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+        <div>
+          <div class="kpi-label">INVESTMENTS</div>
+          <div style="font-family:var(--font-m);font-size:14px;font-weight:600;color:var(--emerald);">
+            ${fmtINR(totalCurrent)}
+          </div>
+        </div>
+        <div>
+          <div class="kpi-label">INDIAN STOCKS</div>
+          <div style="font-family:var(--font-m);font-size:14px;font-weight:600;color:${stockVal>0?'var(--teal)':'var(--text-3)'};">
+            ${fmtINR(stockVal)} <span style="font-size:10px;font-weight:normal;opacity:0.8;">(${stockCount})</span>
+          </div>
+        </div>
+        <div>
+          <div class="kpi-label">GIVEN LOANS</div>
+          <div style="font-family:var(--font-m);font-size:14px;font-weight:600;color:${givenOutstanding>=0?'var(--teal)':'var(--text-3)'};">
+            ${fmtINR(givenOutstanding)}
+          </div>
+        </div>
+        <div>
+          <div class="kpi-label">EMI + TAKEN LOANS</div>
+          <div style="font-family:var(--font-m);font-size:14px;font-weight:600;color:${emiLiabilities+takenOutstanding>0?'var(--rose)':'var(--text-3)'};">
+            ${fmtINR(emiLiabilities)} + ${fmtINR(takenOutstanding)}
+          </div>
+        </div>
+        <div>
+          <div class="kpi-label">XIRR (RETURN)</div>
+          <div style="font-family:var(--font-m);font-size:14px;font-weight:600;color:var(--violet);" title="Internal Rate of Return — time-weighted">
+            ${xirrDisplay} p.a.
+          </div>
+        </div>
+      </div>
     </div>`;
 
-  if (assets.length === 0) {
-    container.innerHTML = summaryBar + `
+  const stockSpotlight = `
+    <div class="chart-card" style="margin-bottom:16px;background:linear-gradient(135deg, rgba(6,182,212,0.08), rgba(99,102,241,0.06));border:1px solid rgba(6,182,212,0.25);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:14px 18px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-size:24px;">📈</span>
+        <div>
+          <div style="font-weight:700;font-size:14px;color:var(--text-1);">Indian Stock Portfolio</div>
+          <div style="font-size:12px;color:var(--text-3);">
+            ${stockCount > 0 ? `${stockCount} Holdings · Value: <b style="color:var(--teal);">${fmtINR(stockVal)}</b> · P&L: <b style="color:${stockPnL>=0?'var(--emerald)':'var(--rose)'};">${stockPnL>=0?'+':''}${fmtINR(stockPnL)} (${stockPnL>=0?'+':''}${stockPnLPct}%)</b>` : 'Real-time live NSE/BSE stock tracking and analytics'}
+          </div>
+        </div>
+      </div>
+      <button class="btn-submit" style="width:auto;padding:8px 16px;font-size:12px;margin:0;" onclick="showPage('stocks')">
+        ${stockCount > 0 ? 'Manage Stocks →' : '+ Open Stock Tracker'}
+      </button>
+    </div>`;
+
+  if (assets.length === 0 && stockCount === 0) {
+    container.innerHTML = summaryBar + stockSpotlight + `
       <div class="empty-state">
         <div class="empty-state-icon">🏦</div>
         <div class="empty-state-text">No assets yet</div>
@@ -421,7 +460,7 @@ const emiLiabilities = (state.emi_loans || []).reduce((s,l)=>s+toNum(l.outstandi
       </div>`;
   }).join('');
 
-  container.innerHTML = summaryBar + `
+  container.innerHTML = summaryBar + stockSpotlight + `
     <!-- Category composition bar -->
     <div class="chart-card" style="margin-bottom:16px;padding:14px 16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
