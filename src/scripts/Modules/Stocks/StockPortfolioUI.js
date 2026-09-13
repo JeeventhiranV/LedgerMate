@@ -214,9 +214,6 @@
           ${renderTabContent(allHoldings, summary)}
         </div>
       </div>
-
-      <!-- ── Modals Container ── -->
-      <div id="stockModalContainer"></div>
     `;
 
     container.innerHTML = html;
@@ -385,11 +382,14 @@
                   </td>
                   <td>
                     <div class="stock-row-actions">
-                      <button class="btn-stock-mini" title="View details & transactions" onclick="window.LM_StockPortfolioUI.openStockDetailModal('${h.id}')">
-                        🔍 View
+                      <button class="btn-stock-mini" title="Edit stock metadata" onclick="window.LM_StockPortfolioUI.openEditHoldingModal('${h.id}')">
+                        ✏️ Edit
                       </button>
                       <button class="btn-stock-mini" title="Add Buy/Sell order for this stock" onclick="window.LM_StockPortfolioUI.openAddTransactionModal({ symbol: '${h.symbol}', exchange: '${h.exchange}', company_name: '${h.company_name.replace(/'/g, "\\'")}', sector: '${h.sector}' })">
                         + Tx
+                      </button>
+                      <button class="btn-stock-mini" title="View details & transactions" onclick="window.LM_StockPortfolioUI.openStockDetailModal('${h.id}')">
+                        🔍 View
                       </button>
                       <button class="btn-stock-mini danger" title="Delete holding" onclick="window.LM_StockPortfolioUI.confirmDeleteHolding('${h.id}')">
                         ✕
@@ -451,7 +451,10 @@
 
               <div class="stock-card-actions">
                 <button class="btn-stock-secondary" onclick="window.LM_StockPortfolioUI.openStockDetailModal('${h.id}')">
-                  🔍 View History
+                  🔍 History
+                </button>
+                <button class="btn-stock-secondary" onclick="window.LM_StockPortfolioUI.openEditHoldingModal('${h.id}')">
+                  ✏️ Edit
                 </button>
                 <button class="btn-stock-primary" onclick="window.LM_StockPortfolioUI.openAddTransactionModal({ symbol: '${h.symbol}', exchange: '${h.exchange}', company_name: '${h.company_name.replace(/'/g, "\\'")}', sector: '${h.sector}' })">
                   + Add Tx
@@ -726,12 +729,25 @@
   }
 
   /**
+   * Helper to ensure the modal container exists directly on document.body for true viewport centering
+   */
+  function ensureModalContainer() {
+    var el = document.getElementById('stockModalContainer');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'stockModalContainer';
+      document.body.appendChild(el);
+    } else if (el.parentElement !== document.body) {
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+
+  /**
    * Open Modal to Add Stock / Transaction
    */
   function openAddTransactionModal(preset) {
-    var modalContainer = document.getElementById('stockModalContainer');
-    if (!modalContainer) return;
-
+    var modalContainer = ensureModalContainer();
     var p = preset || {};
     var defaultDate = new Date().toISOString().split('T')[0];
 
@@ -760,7 +776,7 @@
             <div class="stock-form-field stock-form-full" style="margin-bottom:14px;">
               <label>Indian Stock Symbol / Company Name *</label>
               <div class="stock-autocomplete-box">
-                <input type="text" id="stkSymInput" placeholder="e.g. RELIANCE, TCS, HDFCBANK, Tata Motors" value="${p.symbol || ''}" autocomplete="off" required oninput="window.LM_StockPortfolioUI.handleSymbolSearch(this.value)">
+                <input type="text" id="stkSymInput" placeholder="e.g. RELIANCE, TCS, HDFCBANK, Tata Motors" value="${p.symbol || ''}" autocomplete="off" required oninput="window.LM_StockPortfolioUI.handleSymbolSearch(this.value)" onblur="window.LM_StockPortfolioUI.autofetchStockPrice(this.value)">
                 <div class="stock-suggestions-list" id="stkSuggestions"></div>
               </div>
             </div>
@@ -773,7 +789,7 @@
 
               <div class="stock-form-field">
                 <label>Exchange</label>
-                <select id="stkExInput" class="stock-select">
+                <select id="stkExInput" class="stock-select" onchange="window.LM_StockPortfolioUI.autofetchStockPrice(document.getElementById('stkSymInput')?.value)">
                   <option value="NSE" ${(!p.exchange || p.exchange === 'NSE') ? 'selected' : ''}>NSE (National Stock Exchange)</option>
                   <option value="BSE" ${p.exchange === 'BSE' ? 'selected' : ''}>BSE (Bombay Stock Exchange)</option>
                 </select>
@@ -831,7 +847,7 @@
               </div>
             </div>
 
-            <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
               <button type="button" class="btn-stock-secondary" onclick="window.LM_StockPortfolioUI.closeModal()">Cancel</button>
               <button type="submit" class="btn-stock-primary" id="btnSubmitTx">💾 Save Transaction</button>
             </div>
@@ -842,7 +858,11 @@
 
     setTimeout(function () {
       var symInput = document.getElementById('stkSymInput');
-      if (symInput && !p.symbol) symInput.focus();
+      if (symInput && !p.symbol) {
+        symInput.focus();
+      } else if (p.symbol) {
+        autofetchStockPrice(p.symbol);
+      }
     }, 100);
   }
 
@@ -868,14 +888,14 @@
 
     listEl.innerHTML = results.map(function (s) {
       return `
-        <div class="stock-suggestion-item" onclick="window.LM_StockPortfolioUI.selectStockSuggestion('${s.symbol}', '${s.name.replace(/'/g, "\\'")}', '${s.exchange}', '${s.sector}')">
+        <div class="stock-suggestion-item" onclick="window.LM_StockPortfolioUI.selectStockSuggestion('${s.symbol}', '${(s.name || '').replace(/'/g, "\\'")}', '${s.exchange || 'NSE'}', '${s.sector || 'General'}')">
           <div class="stock-sug-left">
             <span class="stock-sug-sym">${s.symbol}</span>
             <span class="stock-sug-name">${s.name}</span>
           </div>
           <div class="stock-sug-right">
-            <span class="stock-badge-${s.exchange.toLowerCase()}">${s.exchange}</span>
-            <span style="font-size:10px;color:var(--text3,#9ca3af);">${s.sector}</span>
+            <span class="stock-badge-${(s.exchange || 'NSE').toLowerCase()}">${s.exchange || 'NSE'}</span>
+            <span style="font-size:10px;color:var(--text3,#9ca3af);">${s.sector || 'General'}</span>
           </div>
         </div>
       `;
@@ -900,14 +920,46 @@
       listEl.innerHTML = '';
     }
 
-    // Try pre-filling current price if cached
+    autofetchStockPrice(symbol);
+  }
+
+  /**
+   * Automatically fetch and prefill live/reference stock price for any stock name or symbol
+   */
+  async function autofetchStockPrice(symbol) {
+    if (!symbol) return;
+    var sym = symbol.trim().toUpperCase();
+    var exInput = document.getElementById('stkExInput');
+    var exchange = exInput ? exInput.value : 'NSE';
+    var nameInput = document.getElementById('stkNameInput');
+    var priceInput = document.getElementById('stkPriceInput');
+    var sectorInput = document.getElementById('stkSectorInput');
+
+    // If company name empty, auto-fill from registry
+    if (window.LM_StockRegistry && nameInput && (!nameInput.value || nameInput.value === sym)) {
+      var match = window.LM_StockRegistry.getBySymbol(sym, exchange);
+      if (match && match.name && match.name !== sym) {
+        nameInput.value = match.name;
+        if (sectorInput && (!sectorInput.value || sectorInput.value === 'General')) {
+          sectorInput.value = match.sector || 'General';
+        }
+      }
+    }
+
     if (window.LM_MarketDataService) {
-      var quote = window.LM_MarketDataService.getCachedQuote(symbol, exchange);
-      var priceInput = document.getElementById('stkPriceInput');
+      var quote = window.LM_MarketDataService.getCachedQuote(sym, exchange);
       if (quote && quote.price && priceInput && !priceInput.value) {
         priceInput.value = quote.price;
         updateFormPreview();
       }
+
+      window.LM_MarketDataService.fetchQuote(sym, exchange, true).then(function (fresh) {
+        if (fresh && fresh.price && priceInput && (!priceInput.value || priceInput.dataset.autofilled === 'true')) {
+          priceInput.value = fresh.price;
+          priceInput.dataset.autofilled = 'true';
+          updateFormPreview();
+        }
+      }).catch(function () {});
     }
   }
 
@@ -957,7 +1009,7 @@
       var price = document.getElementById('stkPriceInput')?.value;
       var brok = document.getElementById('stkBrokInput')?.value;
       var tax = document.getElementById('stkTaxInput')?.value;
-      var notes = document.getElementById('stkNotesInput')?.value;
+      var notes = document.getElementById('stkNotesInput')?.value || '';
 
       var txTypeRadio = document.querySelector('input[name="txType"]:checked');
       var txType = txTypeRadio ? txTypeRadio.value : 'BUY';
@@ -982,6 +1034,268 @@
       closeModal();
       toast('✅ Transaction for ' + symbol.toUpperCase() + ' saved successfully!', 'success');
       render();
+
+      if (window.LM_MarketDataService) {
+        window.LM_MarketDataService.fetchQuote(symbol, exchange, true).catch(function () {});
+      }
+    } catch (err) {
+      toast('❌ Error: ' + err.message, 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  /**
+   * Open Modal to Edit Stock Holding Info (Company Name, Exchange, Sector, Notes)
+   */
+  function openEditHoldingModal(holdingId) {
+    var service = getService();
+    if (!service) return;
+    var holding = service.getHoldingById(holdingId);
+    if (!holding) {
+      toast('Stock holding not found', 'warning');
+      return;
+    }
+
+    var modalContainer = ensureModalContainer();
+    modalContainer.innerHTML = `
+      <div class="stock-modal-backdrop open" onclick="if(event.target===this) window.LM_StockPortfolioUI.closeModal()">
+        <div class="stock-modal">
+          <div class="stock-modal-head">
+            <div class="stock-modal-title">✏️ Edit Stock: ${holding.symbol}</div>
+            <button class="stock-modal-close" onclick="window.LM_StockPortfolioUI.closeModal()">✕</button>
+          </div>
+
+          <form id="stockEditHoldingForm" onsubmit="window.LM_StockPortfolioUI.submitEditHolding(event, '${holding.id}')">
+            <div class="stock-form-grid">
+              <div class="stock-form-field">
+                <label>Stock Symbol</label>
+                <input type="text" value="${holding.symbol}" disabled style="opacity:0.7;cursor:not-allowed;background:rgba(255,255,255,0.05);">
+              </div>
+
+              <div class="stock-form-field">
+                <label>Exchange *</label>
+                <select id="editHoldExInput" class="stock-select">
+                  <option value="NSE" ${holding.exchange === 'NSE' ? 'selected' : ''}>NSE (National Stock Exchange)</option>
+                  <option value="BSE" ${holding.exchange === 'BSE' ? 'selected' : ''}>BSE (Bombay Stock Exchange)</option>
+                </select>
+              </div>
+
+              <div class="stock-form-field stock-form-full">
+                <label>Company / Stock Name *</label>
+                <input type="text" id="editHoldNameInput" value="${(holding.company_name || '').replace(/"/g, '&quot;')}" placeholder="e.g. Reliance Industries Ltd" required>
+              </div>
+
+              <div class="stock-form-field stock-form-full">
+                <label>Sector / Category</label>
+                <input type="text" id="editHoldSectorInput" value="${(holding.sector || 'General').replace(/"/g, '&quot;')}" placeholder="e.g. IT, Banking, Energy">
+              </div>
+
+              <div class="stock-form-field stock-form-full">
+                <label>Holding Notes</label>
+                <textarea id="editHoldNotesInput" rows="2" placeholder="e.g. Core long-term holding, target price 3500">${(holding.notes || '').replace(/</g, '&lt;')}</textarea>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+              <button type="button" class="btn-stock-secondary" onclick="window.LM_StockPortfolioUI.closeModal()">Cancel</button>
+              <button type="submit" class="btn-stock-primary" id="btnSubmitEditHold">💾 Update Holding</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+  }
+
+  async function submitEditHolding(e, holdingId) {
+    e.preventDefault();
+    var btn = document.getElementById('btnSubmitEditHold');
+    if (btn) btn.disabled = true;
+
+    try {
+      var service = getService();
+      if (!service) throw new Error('Stock service unavailable');
+
+      var name = document.getElementById('editHoldNameInput')?.value;
+      var exchange = document.getElementById('editHoldExInput')?.value;
+      var sector = document.getElementById('editHoldSectorInput')?.value;
+      var notes = document.getElementById('editHoldNotesInput')?.value || '';
+
+      await service.updateHolding(holdingId, {
+        company_name: name,
+        exchange: exchange,
+        sector: sector,
+        notes: notes
+      });
+
+      closeModal();
+      toast('✅ Stock holding updated successfully', 'success');
+      render();
+    } catch (err) {
+      toast('❌ Error: ' + err.message, 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  /**
+   * Open Modal to Edit an Existing Transaction
+   */
+  function openEditTransactionModal(txId) {
+    var service = getService();
+    if (!service) return;
+    var allTxs = service.getAllTransactions();
+    var tx = allTxs.find(t => t.id === txId);
+    if (!tx) {
+      toast('Transaction not found', 'warning');
+      return;
+    }
+
+    var defaultDate = tx.transaction_date || new Date().toISOString().split('T')[0];
+    var modalContainer = ensureModalContainer();
+
+    modalContainer.innerHTML = `
+      <div class="stock-modal-backdrop open" onclick="if(event.target===this) window.LM_StockPortfolioUI.closeModal()">
+        <div class="stock-modal">
+          <div class="stock-modal-head">
+            <div class="stock-modal-title">✏️ Edit Transaction: ${tx.symbol}</div>
+            <button class="stock-modal-close" onclick="window.LM_StockPortfolioUI.closeModal()">✕</button>
+          </div>
+
+          <form id="stockEditTxForm" onsubmit="window.LM_StockPortfolioUI.submitEditTransaction(event, '${tx.id}')">
+            <!-- Transaction Type Switcher -->
+            <div style="display:flex;gap:10px;margin-bottom:16px;">
+              <label style="flex:1;padding:10px;background:var(--bg2,#11151f);border:1px solid var(--border,#1e2436);border-radius:10px;text-align:center;cursor:pointer;">
+                <input type="radio" name="editTxType" value="BUY" ${tx.transaction_type === 'BUY' ? 'checked' : ''} onchange="window.LM_StockPortfolioUI.updateEditFormPreview()">
+                <strong style="color:var(--stock-green,#10b981);margin-left:6px;">BUY (Purchase)</strong>
+              </label>
+              <label style="flex:1;padding:10px;background:var(--bg2,#11151f);border:1px solid var(--border,#1e2436);border-radius:10px;text-align:center;cursor:pointer;">
+                <input type="radio" name="editTxType" value="SELL" ${tx.transaction_type === 'SELL' ? 'checked' : ''} onchange="window.LM_StockPortfolioUI.updateEditFormPreview()">
+                <strong style="color:var(--stock-red,#ef4444);margin-left:6px;">SELL (Book Profit)</strong>
+              </label>
+            </div>
+
+            <div class="stock-form-grid">
+              <div class="stock-form-field">
+                <label>Stock Symbol</label>
+                <input type="text" value="${tx.symbol} (${tx.exchange})" disabled style="opacity:0.7;cursor:not-allowed;background:rgba(255,255,255,0.05);">
+              </div>
+
+              <div class="stock-form-field">
+                <label>Transaction Date *</label>
+                <input type="date" id="editTxDateInput" value="${defaultDate}" required>
+              </div>
+
+              <div class="stock-form-field">
+                <label>Quantity (Shares) *</label>
+                <input type="number" id="editTxQtyInput" step="any" min="0.0001" value="${tx.quantity}" required oninput="window.LM_StockPortfolioUI.updateEditFormPreview()">
+              </div>
+
+              <div class="stock-form-field">
+                <label>Price per Share (₹) *</label>
+                <input type="number" id="editTxPriceInput" step="0.01" min="0.01" value="${tx.price}" required oninput="window.LM_StockPortfolioUI.updateEditFormPreview()">
+              </div>
+
+              <div class="stock-form-field">
+                <label>Brokerage (₹)</label>
+                <input type="number" id="editTxBrokInput" step="0.01" min="0" value="${tx.brokerage || 0}" oninput="window.LM_StockPortfolioUI.updateEditFormPreview()">
+              </div>
+
+              <div class="stock-form-field">
+                <label>Taxes & Charges (₹ STT/GST)</label>
+                <input type="number" id="editTxTaxInput" step="0.01" min="0" value="${tx.taxes || 0}" oninput="window.LM_StockPortfolioUI.updateEditFormPreview()">
+              </div>
+
+              <div class="stock-form-field stock-form-full">
+                <label>Notes (Optional)</label>
+                <textarea id="editTxNotesInput" rows="2" placeholder="e.g. Dividend reinvestment, Profit booked">${(tx.notes || '').replace(/</g, '&lt;')}</textarea>
+              </div>
+            </div>
+
+            <!-- Real-time Cost Calculation Preview Box -->
+            <div class="stock-calc-preview" id="editTxCalcPreview">
+              <div class="stock-calc-row">
+                <span>Gross Amount (Qty × Price):</span>
+                <span id="prevEditGross">₹0.00</span>
+              </div>
+              <div class="stock-calc-row">
+                <span>Total Charges (Brokerage + Tax):</span>
+                <span id="prevEditCharges">₹0.00</span>
+              </div>
+              <div class="stock-calc-row total">
+                <span id="prevEditTotalLabel">Net Outflow / Cost:</span>
+                <span id="prevEditNet">₹0.00</span>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+              <button type="button" class="btn-stock-secondary" onclick="window.LM_StockPortfolioUI.closeModal()">Cancel</button>
+              <button type="submit" class="btn-stock-primary" id="btnSubmitEditTx">💾 Update Transaction</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    setTimeout(updateEditFormPreview, 50);
+  }
+
+  function updateEditFormPreview() {
+    var calc = getCalculations();
+    var qty = Number(document.getElementById('editTxQtyInput')?.value) || 0;
+    var price = Number(document.getElementById('editTxPriceInput')?.value) || 0;
+    var brok = Number(document.getElementById('editTxBrokInput')?.value) || 0;
+    var tax = Number(document.getElementById('editTxTaxInput')?.value) || 0;
+
+    var txTypeRadio = document.querySelector('input[name="editTxType"]:checked');
+    var isBuy = !txTypeRadio || txTypeRadio.value === 'BUY';
+
+    var gross = qty * price;
+    var charges = brok + tax;
+    var net = isBuy ? (gross + charges) : (gross - charges);
+
+    var prevGross = document.getElementById('prevEditGross');
+    var prevCharges = document.getElementById('prevEditCharges');
+    var prevNet = document.getElementById('prevEditNet');
+    var prevTotalLabel = document.getElementById('prevEditTotalLabel');
+
+    if (prevGross) prevGross.textContent = calc.formatINR(gross);
+    if (prevCharges) prevCharges.textContent = calc.formatINR(charges);
+    if (prevNet) prevNet.textContent = calc.formatINR(net);
+    if (prevTotalLabel) prevTotalLabel.textContent = isBuy ? 'Net Outflow / Total Cost:' : 'Net Inflow / Realized Revenue:';
+  }
+
+  async function submitEditTransaction(e, txId) {
+    e.preventDefault();
+    var btn = document.getElementById('btnSubmitEditTx');
+    if (btn) btn.disabled = true;
+
+    try {
+      var service = getService();
+      if (!service) throw new Error('Stock service unavailable');
+
+      var txTypeRadio = document.querySelector('input[name="editTxType"]:checked');
+      var txType = txTypeRadio ? txTypeRadio.value : 'BUY';
+      var txDate = document.getElementById('editTxDateInput')?.value;
+      var qty = document.getElementById('editTxQtyInput')?.value;
+      var price = document.getElementById('editTxPriceInput')?.value;
+      var brok = document.getElementById('editTxBrokInput')?.value;
+      var tax = document.getElementById('editTxTaxInput')?.value;
+      var notes = document.getElementById('editTxNotesInput')?.value || '';
+
+      await service.updateTransaction(txId, {
+        transaction_type: txType,
+        quantity: qty,
+        price: price,
+        brokerage: brok,
+        taxes: tax,
+        transaction_date: txDate,
+        notes: notes
+      });
+
+      closeModal();
+      toast('✅ Transaction updated successfully', 'success');
+      render();
     } catch (err) {
       toast('❌ Error: ' + err.message, 'error');
     } finally {
@@ -1002,8 +1316,7 @@
     var calc = getCalculations();
     var m = holding.metrics;
     var isPlPos = m.unrealizedPL >= 0;
-    var modalContainer = document.getElementById('stockModalContainer');
-    if (!modalContainer) return;
+    var modalContainer = ensureModalContainer();
 
     modalContainer.innerHTML = `
       <div class="stock-modal-backdrop open" onclick="if(event.target===this) window.LM_StockPortfolioUI.closeModal()">
@@ -1017,7 +1330,12 @@
               </div>
               <div style="font-size:12px;color:var(--text3,#9ca3af);margin-top:2px;">${holding.company_name}</div>
             </div>
-            <button class="stock-modal-close" onclick="window.LM_StockPortfolioUI.closeModal()">✕</button>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button class="btn-stock-secondary" style="padding:4px 10px;font-size:12px;" onclick="window.LM_StockPortfolioUI.openEditHoldingModal('${holding.id}')">
+                ✏️ Edit Stock
+              </button>
+              <button class="stock-modal-close" onclick="window.LM_StockPortfolioUI.closeModal()">✕</button>
+            </div>
           </div>
 
           <!-- Performance Metrics Card -->
@@ -1088,7 +1406,14 @@
                       <td style="font-family:'JetBrains Mono',monospace;">${calc.formatINR(tx.price)}</td>
                       <td style="font-family:'JetBrains Mono',monospace;"><strong>${calc.formatINR(net)}</strong></td>
                       <td>
-                        <button class="btn-stock-mini danger" onclick="window.LM_StockPortfolioUI.confirmDeleteTransaction('${tx.id}')">✕</button>
+                        <div class="stock-row-actions">
+                          <button class="btn-stock-mini" title="Edit transaction" onclick="window.LM_StockPortfolioUI.openEditTransactionModal('${tx.id}')">
+                            ✏️ Edit
+                          </button>
+                          <button class="btn-stock-mini danger" title="Delete transaction" onclick="window.LM_StockPortfolioUI.confirmDeleteTransaction('${tx.id}')">
+                            ✕
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   `;
@@ -1211,7 +1536,7 @@
   }
 
   function closeModal() {
-    var modalContainer = document.getElementById('stockModalContainer');
+    var modalContainer = ensureModalContainer();
     if (modalContainer) modalContainer.innerHTML = '';
   }
 
@@ -1258,6 +1583,12 @@
       render();
     },
     openAddTransactionModal: openAddTransactionModal,
+    openEditHoldingModal: openEditHoldingModal,
+    submitEditHolding: submitEditHolding,
+    openEditTransactionModal: openEditTransactionModal,
+    updateEditFormPreview: updateEditFormPreview,
+    submitEditTransaction: submitEditTransaction,
+    autofetchStockPrice: autofetchStockPrice,
     openStockDetailModal: openStockDetailModal,
     handleSymbolSearch: handleSymbolSearch,
     selectStockSuggestion: selectStockSuggestion,

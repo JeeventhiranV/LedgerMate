@@ -127,17 +127,23 @@
           _activePortfolioId = def.id;
         }
       } else {
-        // Create initial default portfolio in Supabase
-        var newPort = {
-          id: generateUUID(),
-          user_id: _userId,
-          name: 'Main Portfolio',
-          currency: 'INR',
-          is_default: true
-        };
-        await sb.from('stock_portfolios').insert(newPort);
-        _portfolios = [newPort];
-        _activePortfolioId = newPort.id;
+        // If local has portfolios, push them up
+        if (_portfolios && _portfolios.length > 0) {
+          for (var p of _portfolios) {
+            await sb.from('stock_portfolios').upsert({ ...p, user_id: _userId });
+          }
+        } else {
+          var newPort = {
+            id: generateUUID(),
+            user_id: _userId,
+            name: 'Main Portfolio',
+            currency: 'INR',
+            is_default: true
+          };
+          await sb.from('stock_portfolios').insert(newPort);
+          _portfolios = [newPort];
+          _activePortfolioId = newPort.id;
+        }
       }
 
       // 2. Fetch holdings
@@ -146,8 +152,12 @@
         .select('*')
         .order('symbol', { ascending: true });
 
-      if (holdRes.data) {
+      if (holdRes.data && holdRes.data.length > 0) {
         _holdings = holdRes.data;
+      } else if (_holdings && _holdings.length > 0) {
+        for (var h of _holdings) {
+          await sb.from('stock_holdings').upsert({ ...h, user_id: _userId }, { onConflict: 'portfolio_id,symbol,exchange' });
+        }
       }
 
       // 3. Fetch transactions
@@ -156,11 +166,16 @@
         .select('*')
         .order('transaction_date', { ascending: true });
 
-      if (txRes.data) {
+      if (txRes.data && txRes.data.length > 0) {
         _transactions = txRes.data;
+      } else if (_transactions && _transactions.length > 0) {
+        for (var tx of _transactions) {
+          await sb.from('stock_transactions').upsert({ ...tx, user_id: _userId });
+        }
       }
 
       saveLocalData();
+      if (window.LM_Bus) window.LM_Bus.emit('lm:stocks:changed');
     } catch (err) {
       console.warn('[StockPortfolioService] Supabase sync fallback to local:', err);
     } finally {
@@ -175,14 +190,19 @@
     var sb = getSupabaseClient();
     if (!sb || !_userId || _userId === 'guest') return;
     try {
-      if (action === 'insert') {
-        await sb.from(table).insert(record);
+      if (action === 'insert' || action === 'upsert') {
+        if (table === 'stock_holdings') {
+          await sb.from(table).upsert(record, { onConflict: 'portfolio_id,symbol,exchange' });
+        } else {
+          await sb.from(table).upsert(record);
+        }
       } else if (action === 'update') {
         var key = matchKey || 'id';
         await sb.from(table).update(record).eq(key, record[key]);
       } else if (action === 'delete') {
         var dKey = matchKey || 'id';
-        await sb.from(table).delete().eq(dKey, record[dKey] || record);
+        var val = typeof record === 'object' && record !== null ? (record[dKey] || record.id) : record;
+        await sb.from(table).delete().eq(dKey, val);
       }
     } catch (e) {
       console.warn('[StockPortfolioService] Supabase push error for ' + table + ':', e);
@@ -551,6 +571,40 @@
       }
 
       return true;
+    },
+
+    /**
+     * Update stock holding details (Company Name, Exchange, Sector, Notes)
+     */
+    updateHolding: async function (holdingId, updates) {
+      var holding = _holdings.find(h => h.id === holdingId);
+      if (!holding) throw new Error('Holding not found');
+
+      if (updates.company_name) holding.company_name = updates.company_name.trim();
+      if (updates.sector) holding.sector = updates.sector.trim();
+      if (updates.exchange) holding.exchange = updates.exchange.toUpperCase().trim();
+      if (typeof updates.notes === 'string') holding.notes = updates.notes.trim();
+      holding.updated_at = new Date().toISOString();
+
+      saveLocalData();
+      pushToSupabase('stock_holdings', 'update', holding);
+
+      // Also register updated info in StockRegistry
+      if (window.LM_StockRegistry) {
+        window.LM_StockRegistry.registerStock({
+          symbol: holding.symbol,
+          name: holding.company_name,
+          exchange: holding.exchange,
+          sector: holding.sector
+        });
+      }
+
+      if (window.LM_Bus) {
+        window.LM_Bus.emit('lm:stocks:changed');
+        window.LM_Bus.emit('lm:data:changed');
+      }
+
+      return holding;
     },
 
     /**

@@ -72,6 +72,18 @@
   function getTickerCode(symbol, exchange) {
     var sym = (symbol || '').trim().toUpperCase();
     var ex = (exchange || 'NSE').trim().toUpperCase();
+
+    // Check if symbol can be resolved to a canonical symbol via StockRegistry
+    if (window.LM_StockRegistry && typeof window.LM_StockRegistry.getBySymbol === 'function') {
+      var found = window.LM_StockRegistry.getBySymbol(sym, ex);
+      if (found && found.symbol) {
+        sym = found.symbol.toUpperCase();
+      }
+    }
+
+    // Strip spaces just in case
+    sym = sym.replace(/\s+/g, '');
+
     if (ex === 'BSE') {
       return sym + '.BO';
     }
@@ -82,7 +94,9 @@
    * Query Indian stock quotes via resilient CORS-enabled bridges & registries
    */
   async function fetchQuoteFromNetwork(symbol, exchange) {
-    var ticker = getTickerCode(symbol, exchange);
+    var sym = (symbol || '').trim().toUpperCase();
+    var ex = (exchange || 'NSE').trim().toUpperCase();
+    var ticker = getTickerCode(sym, ex);
     var yfTarget = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(ticker) + '?interval=1d&range=5d';
     
     var endpoints = [
@@ -150,8 +164,8 @@
           var changePct = prev > 0 ? (change / prev) * 100 : 0;
 
           return {
-            symbol: symbol.toUpperCase(),
-            exchange: (exchange || 'NSE').toUpperCase(),
+            symbol: sym,
+            exchange: ex,
             price: Math.round((regularMarketPrice + Number.EPSILON) * 100) / 100,
             previous_close: Math.round((prev + Number.EPSILON) * 100) / 100,
             change: Math.round((change + Number.EPSILON) * 100) / 100,
@@ -168,13 +182,35 @@
     }
 
     // 2. Check Supabase shared price cache
-    var cachedSb = await fetchFromSupabaseCache(symbol, exchange);
+    var cachedSb = await fetchFromSupabaseCache(sym, ex);
     if (cachedSb) return cachedSb;
 
     // 3. Fallback to StockRegistry baseline reference price
     if (window.LM_StockRegistry && typeof window.LM_StockRegistry.getReferenceQuote === 'function') {
-      var ref = window.LM_StockRegistry.getReferenceQuote(symbol, exchange);
+      var ref = window.LM_StockRegistry.getReferenceQuote(sym, ex);
       if (ref) return ref;
+    }
+
+    // 4. Fallback to latest transaction price in portfolio if available
+    if (window.LM_StockPortfolioService && typeof window.LM_StockPortfolioService.getAllTransactions === 'function') {
+      try {
+        var txs = window.LM_StockPortfolioService.getAllTransactions();
+        var matchTx = txs.find(t => (t.symbol || '').toUpperCase() === sym);
+        if (matchTx && matchTx.price > 0) {
+          return {
+            symbol: sym,
+            exchange: ex,
+            price: matchTx.price,
+            previous_close: matchTx.price,
+            change: 0,
+            change_percent: 0,
+            currency: 'INR',
+            market_status: 'LAST_TRANSACTION',
+            timestamp: Date.now(),
+            isLive: false
+          };
+        }
+      } catch (e) {}
     }
 
     return null;
