@@ -354,8 +354,13 @@
                   <td><span style="font-family:'JetBrains Mono',monospace;">${calc.formatINR(m.averageBuyPrice)}</span></td>
                   <td><span style="font-family:'JetBrains Mono',monospace;">${calc.formatINR(m.investedAmount)}</span></td>
                   <td>
-                    ${m.hasLivePrice ? `
-                      <strong style="font-family:'JetBrains Mono',monospace;">${calc.formatINR(m.currentPrice)}</strong>
+                    ${m.currentPrice ? `
+                      <div style="display:flex;align-items:center;gap:5px;">
+                        <strong style="font-family:'JetBrains Mono',monospace;">${calc.formatINR(m.currentPrice)}</strong>
+                        <span style="font-size:9px;padding:1px 4px;border-radius:3px;font-weight:700;${m.isLive ? 'background:rgba(16,185,129,0.15);color:#10b981;' : 'background:rgba(245,158,11,0.15);color:#f59e0b;'}" title="${m.isLive ? 'Live NSE/BSE quote' : 'Offline / Market closed. Using last buy price.'}">
+                          ${m.isLive ? 'LIVE' : 'LAST BUY'}
+                        </span>
+                      </div>
                     ` : `
                       <span style="font-size:11px;color:var(--text3,#9ca3af);">Unavailable</span>
                     `}
@@ -445,7 +450,13 @@
               <div class="stock-card-row">
                 <span>CMP (Day Chg):</span>
                 <span>
-                  ${m.hasLivePrice ? `${calc.formatINR(m.currentPrice)} (<span class="${isDayPos ? 'stock-pill-gain' : 'stock-pill-loss'}">${calc.formatPercent(m.dayChangePct)}</span>)` : 'Unavailable'}
+                  ${m.currentPrice ? `
+                    <b>${calc.formatINR(m.currentPrice)}</b>
+                    <span style="font-size:9px;padding:1px 4px;border-radius:3px;font-weight:700;${m.isLive ? 'background:rgba(16,185,129,0.15);color:#10b981;' : 'background:rgba(245,158,11,0.15);color:#f59e0b;'}">
+                      ${m.isLive ? 'LIVE' : 'LAST BUY'}
+                    </span>
+                    ${m.isLive ? `(<span class="${isDayPos ? 'stock-pill-gain' : 'stock-pill-loss'}">${calc.formatPercent(m.dayChangePct)}</span>)` : ''}
+                  ` : 'Unavailable'}
                 </span>
               </div>
 
@@ -1546,6 +1557,7 @@
       if (service) {
         service.init().then(function () {
           render();
+          service.refreshMarketQuotes(true);
         });
       }
 

@@ -571,18 +571,69 @@
       markLoanGroupAlerted(groupKey);
     });
 
-    // 3. Process notifications — overdue loans always fire, others only in allowed window
+    // 3. Credit Card bill due alerts & statement reminders
+    let cards = [];
+    if (window.LM_CreditCardsService && typeof window.LM_CreditCardsService.getAllCards === 'function') {
+      try { cards = window.LM_CreditCardsService.getAllCards(); } catch(e) {}
+    } else if (Array.isArray(state.credit_cards)) {
+      cards = state.credit_cards;
+    }
+
+    cards.forEach((card) => {
+      const currentDue = Number(card.current_due || 0);
+      if (currentDue <= 0) return; // Bill already settled
+
+      const dueInfo = window.LM_CreditCardsService?.getDueCountdown?.(card);
+      if (!dueInfo || dueInfo.daysUntilDue === 999) return;
+
+      // Alert if due within 3 days or overdue
+      if (dueInfo.daysUntilDue <= 3) {
+        const cardKey = `cc_${card.id}_due_${dueInfo.nextDueDate}`;
+        const lastAlerted = localStorage.getItem(`lastAlert_${cardKey}`);
+        const alreadyAlertedRecently = lastAlerted && ((now.getTime() - new Date(lastAlerted).getTime()) < (24 * 60 * 60 * 1000));
+
+        if (!alreadyAlertedRecently) {
+          const isOverdue = dueInfo.daysUntilDue < 0;
+          const isToday = dueInfo.daysUntilDue === 0;
+          const isTomorrow = dueInfo.daysUntilDue === 1;
+          const statusLabel = isOverdue
+            ? `${Math.abs(dueInfo.daysUntilDue)} day(s) OVERDUE`
+            : isToday ? 'Due TODAY'
+            : isTomorrow ? 'Due TOMORROW'
+            : `Due in ${dueInfo.daysUntilDue} days`;
+
+          const alertTitle = isOverdue
+            ? `Credit Card Bill Overdue — ${card.card_name || 'Card'}`
+            : `Credit Card Bill Due ${isToday ? 'Today' : 'Soon'} — ${card.card_name || 'Card'}`;
+
+          const msg = `💳 ${card.card_name || 'Card'} (${card.bank_name || 'Bank'}) · ${fmtINR(currentDue)} ${statusLabel} (${dueInfo.nextDueDate})`;
+
+          notifications.push({
+            title: alertTitle,
+            message: msg,
+            type: isOverdue ? 'error' : 'warning',
+            tag: `lm-cc-due-${card.id}`,
+            isOverdue: isOverdue,
+            timestamp: new Date(dueInfo.nextDueDate + 'T00:00:00').getTime()
+          });
+
+          localStorage.setItem(`lastAlert_${cardKey}`, new Date().toISOString());
+        }
+      }
+    });
+
+    // 4. Process notifications — overdue loans/cards always fire, others only in allowed window
     function processNotifications() {
       enableNotifications();
       const batch = notifications.splice(0, 2);
       batch.forEach((n) => {
         showToast(n.message, n.type);
 
-        /* Overdue loans always push regardless of time; everything else is time-gated */
+        /* Overdue loans/cards always push regardless of time; everything else is time-gated */
         const pushAllowed = n.isOverdue || isAllowedAlertTime();
         if (!pushAllowed) return;
 
-        const pushTag = n.tag || (n.title && n.title.includes('Loan') ? 'lm-loan' : 'lm-reminder');
+        const pushTag = n.tag || (n.title && n.title.includes('Loan') ? 'lm-loan' : n.title && n.title.includes('Credit Card') ? 'lm-cc' : 'lm-reminder');
         if (canTriggerBrowserNotification(pushTag)) {
           sendBrowserNotification(n.title, n.message, { tag: pushTag, url: './' });
         }

@@ -155,10 +155,15 @@
     var dayChange = 0;
     var dayChangePct = 0;
     var hasLivePrice = false;
+    var isLive = false;
+    var marketStatus = 'OFFLINE';
 
     if (marketQuote && typeof marketQuote.price === 'number' && marketQuote.price > 0) {
       currentPrice = round2(marketQuote.price);
       hasLivePrice = true;
+      isLive = marketQuote.isLive === true;
+      marketStatus = marketQuote.market_status || (isLive ? 'LIVE' : 'LAST_BUY');
+
       if (typeof marketQuote.previous_close === 'number' && marketQuote.previous_close > 0) {
         previousClose = round2(marketQuote.previous_close);
       }
@@ -172,13 +177,19 @@
       } else if (previousClose && previousClose > 0) {
         dayChangePct = round2((dayChange / previousClose) * 100);
       }
+    } else if (weightedAvgBuyPrice > 0) {
+      // Safe fallback: use purchase price
+      currentPrice = weightedAvgBuyPrice;
+      hasLivePrice = false;
+      isLive = false;
+      marketStatus = 'LAST_BUY';
     }
 
-    var currentValue = hasLivePrice ? round2(qty * currentPrice) : invested;
-    var unrealizedPL = hasLivePrice ? round2(currentValue - invested) : 0;
-    var unrealizedPLPct = (invested > 0 && hasLivePrice) ? round2((unrealizedPL / invested) * 100) : 0;
+    var currentValue = currentPrice !== null ? round2(qty * currentPrice) : invested;
+    var unrealizedPL = (currentPrice !== null && isLive) ? round2(currentValue - invested) : 0;
+    var unrealizedPLPct = (invested > 0 && isLive) ? round2((unrealizedPL / invested) * 100) : 0;
     var totalPL = round2(realizedPL + unrealizedPL);
-    var dayChangeTotal = hasLivePrice ? round2(qty * dayChange) : 0;
+    var dayChangeTotal = isLive ? round2(qty * dayChange) : 0;
 
     return {
       quantity: qty,
@@ -188,6 +199,8 @@
       previousClose: previousClose,
       currentValue: currentValue,
       hasLivePrice: hasLivePrice,
+      isLive: isLive,
+      marketStatus: marketStatus,
       dayChange: dayChange,
       dayChangePct: dayChangePct,
       dayChangeTotal: dayChangeTotal,

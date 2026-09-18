@@ -38,7 +38,7 @@ let db = null;
 async function openDB() {
     return new Promise((resolve, reject) => {
         const DB_NAME    = "ledgermate_db";
-        const DB_VERSION = 16;
+        const DB_VERSION = 17;
 
         const req = indexedDB.open(DB_NAME, DB_VERSION);
 
@@ -110,6 +110,7 @@ async function openDB() {
             ensureStore("fd_rd",               { keyPath: "id", autoIncrement: true }, ["profile"]);
             ensureStore("tx_templates",        { keyPath: "id", autoIncrement: true }, ["profile"]);
             ensureStore("dashboard_config",    { keyPath: "id" });
+            ensureStore("credit_cards",        { keyPath: "id" }, ["profile", "statement_day", "due_day"]);
             console.log("✅ DB schema upgrade complete");
         };
     });
@@ -192,7 +193,8 @@ let state = {
   subscriptions: [],
   fd_rd: [],
   tx_templates: [],
-  dashboard_config: {}
+  dashboard_config: {},
+  credit_cards: []
 };
 
 // Charts
@@ -319,6 +321,11 @@ if (dd.length) {
     state.dashboard_config = dc[0] || { id: 'main', widgets: null };
   } else {
     state.dashboard_config = { id: 'main', widgets: null };
+  }
+  if (db && db.objectStoreNames.contains('credit_cards')) {
+    state.credit_cards = await getAll('credit_cards');
+  } else {
+    state.credit_cards = [];
   }
 
   // restore folder handle if present
@@ -2636,6 +2643,14 @@ async function fullImportJSONText(txt, source = "Unknown"){
         await put('essentials_settings', { key, value });
     }
 
+    /* ── Restore Credit Cards Data ─────────────────── */
+    if (data.credit_cards && Array.isArray(data.credit_cards)) {
+      for (const cc of data.credit_cards) await put('credit_cards', cc);
+      if (window.LM_CreditCardsService && typeof window.LM_CreditCardsService.importData === 'function') {
+        await window.LM_CreditCardsService.importData(data.credit_cards);
+      }
+    }
+
     /* ── Restore appSettings / theme ─────────────────── */
     if (data.appSettings && typeof data.appSettings === 'object') {
       Object.assign(settings, data.appSettings);
@@ -2681,7 +2696,7 @@ async function clearAllStores(){
     'transactions','budgets','loans','reminders','savings','investments',
     'trips','trip_routes','credentials','audit_logs','notes','note_folders',
     'note_attachments','note_versions','emi_loans','net_worth_snapshots',
-    'allocation_targets','sip_plan','essentials_settings'
+    'allocation_targets','sip_plan','essentials_settings','credit_cards'
   ];
 
   for (const s of stores){
@@ -2794,7 +2809,8 @@ function packSnapshot(metaExtra = {}) {
     allocation_targets: state.allocation_targets || [],
     sip_plan: state.sip_plan || [],
     essentials_settings: state.essentials_settings || {},
-    savings_goals: state.savings_goals || []
+    savings_goals: state.savings_goals || [],
+    credit_cards: state.credit_cards || []
   };
 }
 
@@ -2890,6 +2906,16 @@ async function mergeRestore(payload) {
       }
     } catch(e) {
       console.warn('[LM] Error merging stock portfolio data:', e);
+    }
+  }
+
+  /* ── Restore Credit Cards Data ───────────────────────── */
+  await upsertList('credit_cards', payload.credit_cards || []);
+  if (Array.isArray(payload.credit_cards) && window.LM_CreditCardsService && typeof window.LM_CreditCardsService.importData === 'function') {
+    try {
+      await window.LM_CreditCardsService.importData(payload.credit_cards);
+    } catch(e) {
+      console.warn('[LM] Error merging credit cards data:', e);
     }
   }
 
@@ -3589,6 +3615,14 @@ async function FinalJson(){
         return raw ? JSON.parse(raw) : null;
       } catch(e) { return null; }
     })(),
+    credit_cards: (function(){
+      try {
+        if (window.LM_CreditCardsService && typeof window.LM_CreditCardsService.exportData === 'function') {
+          return window.LM_CreditCardsService.exportData();
+        }
+        return state.credit_cards || [];
+      } catch(e) { return state.credit_cards || []; }
+    })(),
     meta: {
       exportedAt   : new Date().toISOString(),
       exportedBy   : window.LM_Auth?.getCurrentUser?.()?.username || 'user',
@@ -3635,6 +3669,15 @@ window.LM_StartApp = async function LM_StartApp() {
         await window.LM_StockPortfolioService.init(uid);
       } catch (e) {
         console.warn('[LM] StockPortfolioService auto-init error:', e);
+      }
+    }
+
+    /* ── Initialize Credit Cards Service ──────────────── */
+    if (window.LM_CreditCardsService) {
+      try {
+        await window.LM_CreditCardsService.init();
+      } catch (e) {
+        console.warn('[LM] CreditCardsService auto-init error:', e);
       }
     }
 
@@ -3828,6 +3871,46 @@ function calculateKPIs() {
 
   const profitLoss = income - expense;
 
+  /* Stock Portfolio Returns (Realized + Unrealized) */
+  let stockPL = 0;
+  let stockInvested = 0;
+  let stockCurrentVal = 0;
+  let stockUnrealizedPL = 0;
+  let stockRealizedPL = 0;
+  let stockCount = 0;
+  if (window.LM_StockPortfolioService && typeof window.LM_StockPortfolioService.getPortfolioSummary === 'function') {
+    try {
+      const spSummary = window.LM_StockPortfolioService.getPortfolioSummary();
+      if (spSummary) {
+        stockPL = Number(spSummary.totalPortfolioPL) || 0;
+        stockInvested = Number(spSummary.totalInvested) || 0;
+        stockCurrentVal = Number(spSummary.currentPortfolioValue) || 0;
+        stockUnrealizedPL = Number(spSummary.totalUnrealizedPL) || 0;
+        stockRealizedPL = Number(spSummary.totalRealizedPL) || 0;
+        stockCount = Number(spSummary.totalHoldingsCount) || 0;
+      }
+    } catch(e) {
+      console.warn('Error reading stock portfolio summary in calculateKPIs:', e);
+    }
+  }
+
+  /* Wealth & Other Investments Returns */
+  let investmentPL = 0;
+  let investmentInvested = 0;
+  let investmentCurrentVal = 0;
+  if (Array.isArray(state.investments) && state.investments.length > 0) {
+    state.investments.forEach(inv => {
+      const cur = typeof getAssetCurrentValue === 'function' ? getAssetCurrentValue(inv) : (parseFloat(inv.currentValue || inv.amount || 0) || 0);
+      const invAmt = typeof getAssetInvestedAmount === 'function' ? getAssetInvestedAmount(inv) : (parseFloat(inv.buyPrice || inv.principal || inv.amount || 0) || 0);
+      investmentInvested += invAmt;
+      investmentCurrentVal += cur;
+      investmentPL += (cur - invAmt);
+    });
+  }
+
+  /* Total Financial Net Gain = Operating Cashflow + Stock Portfolio + Asset Gains */
+  const totalNetGain = Math.round((profitLoss + stockPL + investmentPL) * 100) / 100;
+
   /* Growth calculation */
   let prevStart = new Date(startDate);
   prevStart.setDate(prevStart.getDate() - days);
@@ -3860,18 +3943,21 @@ function calculateKPIs() {
   const recentExpenses = state.transactions.filter((t) => t.type === "out");
   const expenseForecast = calcMonthlyForecast(recentExpenses);
 
-  /* Accounts */
-  const accGroup = groupBy(state.transactions, "account");
-  // const accountSummary = Object.entries(accGroup).map(([acc, tx]) => ({
-  //   account: acc,
-  //   balance: tx.reduce((s, t) => s + (t.type === "in" ? +t.amount : -t.amount), 0),
-  // }));
-
   return {
     balance,
     income,
     expense,
     profitLoss,
+    stockPL,
+    stockInvested,
+    stockCurrentVal,
+    stockUnrealizedPL,
+    stockRealizedPL,
+    stockCount,
+    investmentPL,
+    investmentInvested,
+    investmentCurrentVal,
+    totalNetGain,
     incomeGrowth,
     expenseGrowth,
     topCategories,
@@ -3879,16 +3965,14 @@ function calculateKPIs() {
     avgDailyExpense,
     savingsRate,
     expenseForecast,
-    // accountSummary,
     days,
   };
 }
 
 /* =========================
-   RENDER KPI (ULTRA-COMPACT)
+   RENDER KPI (ULTRA-COMPACT & INTERACTIVE)
    ========================= */
-  function kpiCard(title, value, sub, type, valueColor) {
-
+function kpiCard(title, value, sub, type, valueColor, onclickAttr) {
   const typeMap = {
     blue: "teal",
     green: "emerald",
@@ -3898,23 +3982,20 @@ function calculateKPIs() {
   };
 
   const cls = typeMap[type] || "teal";
+  const clickHandler = onclickAttr ? `onclick="${onclickAttr}" style="cursor:pointer;" title="Click to view details"` : '';
 
   return `
-    <div class="kpi-card ${cls}">
-
+    <div class="kpi-card ${cls}" ${clickHandler}>
       <div class="kpi-icon ${cls}">
         ${getKpiIcon(title)}
       </div>
-
       <div class="kpi-label">${title}</div>
-
       <div class="kpi-value animate-in" style="color:${valueColor || 'var(--text)'};">${value}</div>
-
       <div class="kpi-sub">${sub}</div>
-
     </div>
   `;
 }
+
 function getKpiIcon(title) {
   switch (title) {
     case "Balance": return "💼";
@@ -3950,14 +4031,19 @@ function renderKPIs() {
       </div>`;
   }
 
-  row.innerHTML = `
-  ${kpiCard("Balance",     fmtINR(k.balance),            "All accounts",          "blue",   balanceColor)}
-  ${kpiCard("Income",      fmtINR(k.income),             k.days + " days",        "green",  'var(--emerald)')}
-  ${kpiCard("Expense",     fmtINR(k.expense),            k.days + " days",        "red",    'var(--rose)')}
-  ${kpiCard("Profit/Loss", fmtINR(k.profitLoss),         k.savingsRate + "% saved","purple", profitColor)}
-  ${kpiCard("Forecast",    fmtINR(k.expenseForecast),    "Next 30 days",          "teal",   'var(--gold)')}
-`;
+  // Exact P&L subtitle with net gain indication
+  const hasInvestments = (k.stockPL !== 0 || k.investmentPL !== 0);
+  const plSub = hasInvestments
+    ? `Net Gain: ${fmtINR(k.totalNetGain)} 🔍`
+    : `${k.savingsRate}% saved · Details 🔍`;
 
+  row.innerHTML = `
+  ${kpiCard("Balance",     fmtINR(k.balance),            "All accounts · View txns", "blue",   balanceColor,     "window.LM_filterTxByAccount('ALL')")}
+  ${kpiCard("Income",      fmtINR(k.income),             k.days + " days · Filter",   "green",  'var(--emerald)', "window.LM_filterTxByType('in')")}
+  ${kpiCard("Expense",     fmtINR(k.expense),            k.days + " days · Filter",   "red",    'var(--rose)',    "window.LM_filterTxByType('out')")}
+  ${kpiCard("Profit/Loss", fmtINR(k.profitLoss),         plSub,                      "purple", profitColor,      "window.openProfitLossBreakdownModal()")}
+  ${kpiCard("Forecast",    fmtINR(k.expenseForecast),    "Next 30 days · Summary",    "teal",   'var(--gold)',    "showPage('monthly-summary')")}
+`;
 
   /* Top Categories */
 const topCatEl = document.getElementById("topCategories");
@@ -3976,10 +4062,13 @@ topCatEl.innerHTML = k.topCategories
     const color   = colors[index++ % colors.length];
     const amount  = cat.amount;
     const percent = ((amount / k.expense) * 100).toFixed(1);
+    const safeCat = cat.category.replace(/'/g, "\\'");
 
     return `
       <div class="glass rounded-md p-2 mb-2"
-           style="background:linear-gradient(135deg, ${color}22, ${color}15); border:1px solid ${color}33">
+           onclick="window.LM_filterTxByCategory('${safeCat}')"
+           style="background:linear-gradient(135deg, ${color}22, ${color}15); border:1px solid ${color}33; cursor:pointer;"
+           title="Click to view all ${cat.category} transactions">
 
         <div class="flex justify-between mb-1">
           <span style="color: var(--text); font-weight:600; font-size:14px;">
@@ -4045,6 +4134,224 @@ setTimeout(() => {
     else renderDashboardWealthWidget();
   } catch (e) { console.warn('[LM] wealth widget:', e); }
 }
+
+/* ============================================================
+   DASHBOARD INTERACTIVE NAVIGATION & DRILL-DOWN FILTERS
+   ============================================================ */
+window.LM_filterTxByType = function (type) {
+  showPage('transactions');
+  setTimeout(() => {
+    const searchEl = document.getElementById('searchTx');
+    if (searchEl) {
+      searchEl.value = (type === 'in' || type === 'income') ? 'income' : 'expense';
+      searchEl.dispatchEvent(new Event('input'));
+    }
+    const accEl = document.getElementById('accountFilter');
+    if (accEl) accEl.value = 'all';
+    if (typeof refreshRecentList === 'function') refreshRecentList();
+  }, 60);
+};
+
+window.LM_filterTxByAccount = function (account) {
+  showPage('transactions');
+  setTimeout(() => {
+    const searchEl = document.getElementById('searchTx');
+    if (searchEl) {
+      searchEl.value = '';
+      searchEl.dispatchEvent(new Event('input'));
+    }
+    const accEl = document.getElementById('accountFilter');
+    if (accEl) {
+      accEl.value = (account && account !== 'ALL') ? account : 'all';
+    }
+    if (typeof refreshRecentList === 'function') refreshRecentList();
+  }, 60);
+};
+
+window.LM_filterTxByCategory = function (category) {
+  showPage('transactions');
+  setTimeout(() => {
+    const searchEl = document.getElementById('searchTx');
+    if (searchEl) {
+      searchEl.value = category ? `category:${category}` : '';
+      searchEl.dispatchEvent(new Event('input'));
+    }
+    if (typeof refreshRecentList === 'function') refreshRecentList();
+  }, 60);
+};
+
+/* ============================================================
+   PROFIT & LOSS BREAKDOWN MODAL (EXACT FINANCIAL ANALYSIS)
+   ============================================================ */
+window.openProfitLossBreakdownModal = function () {
+  const k = calculateKPIs();
+  let modalEl = document.getElementById('profitLossModal');
+  if (!modalEl) {
+    modalEl = document.createElement('div');
+    modalEl.id = 'profitLossModal';
+    modalEl.className = 'modal-overlay';
+    document.body.appendChild(modalEl);
+    modalEl.addEventListener('click', (e) => {
+      if (e.target === modalEl) window.closeProfitLossModal();
+    });
+  }
+
+  const netColor = k.totalNetGain >= 0 ? 'var(--emerald)' : 'var(--rose)';
+  const netIcon = k.totalNetGain >= 0 ? '▲' : '▼';
+  const cashflowColor = k.profitLoss >= 0 ? 'var(--emerald)' : 'var(--rose)';
+  const stockColor = k.stockPL >= 0 ? 'var(--emerald)' : 'var(--rose)';
+  const investColor = k.investmentPL >= 0 ? 'var(--emerald)' : 'var(--rose)';
+
+  modalEl.innerHTML = `
+    <div class="modal-box glass" style="max-width: 640px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 24px; border-radius: 18px; border: 1px solid var(--border); box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+        <div>
+          <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0; color: var(--text); display: flex; align-items: center; gap: 8px;">
+            📊 Profit &amp; Loss Financial Analysis
+          </h2>
+          <p style="font-size: 12px; color: var(--text-3); margin: 4px 0 0 0;">
+            Comprehensive breakdown of Cashflow, Stocks, and Wealth Returns (${k.days} days window)
+          </p>
+        </div>
+        <button onclick="window.closeProfitLossModal()" style="background: none; border: none; font-size: 24px; color: var(--text-3); cursor: pointer; line-height: 1; padding: 4px 8px;">&times;</button>
+      </div>
+
+      <!-- Combined Total Net Gain Hero Card -->
+      <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(59, 130, 246, 0.12)); border: 1px solid ${netColor}; border-radius: 14px; padding: 16px; margin-bottom: 18px; text-align: center;">
+        <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3);">Total Financial Net Gain</div>
+        <div style="font-size: 2.1rem; font-weight: 800; color: ${netColor}; margin: 6px 0; font-family: var(--font-m, monospace);">
+          ${netIcon} ${fmtINR(Math.abs(k.totalNetGain))}
+        </div>
+        <div style="font-size: 12px; color: var(--text-2);">
+          Operating Cashflow (${fmtINR(k.profitLoss)}) + Stocks (${fmtINR(k.stockPL)}) + Assets (${fmtINR(k.investmentPL)})
+        </div>
+      </div>
+
+      <!-- Itemized Sections -->
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+
+        <!-- 1. Cashflow Surplus -->
+        <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; color: var(--text);">
+              💵 Operating Cashflow (Income &amp; Expenses)
+            </span>
+            <span style="font-weight: 700; color: ${cashflowColor}; font-size: 14px;">
+              ${fmtINR(k.profitLoss)}
+            </span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; font-size: 12px; background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+            <div>
+              <div style="color: var(--text-3);">Total Income</div>
+              <div style="font-weight: 600; color: var(--emerald);">${fmtINR(k.income)}</div>
+            </div>
+            <div>
+              <div style="color: var(--text-3);">Total Expense</div>
+              <div style="font-weight: 600; color: var(--rose);">${fmtINR(k.expense)}</div>
+            </div>
+            <div>
+              <div style="color: var(--text-3);">Savings Rate</div>
+              <div style="font-weight: 600; color: var(--teal);">${k.savingsRate}%</div>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: flex-end;">
+            <button onclick="window.closeProfitLossModal(); showPage('transactions');" style="background: none; border: none; color: var(--teal); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0;">
+              View Cashflow Transactions →
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Indian Stock Portfolio -->
+        <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; color: var(--text);">
+              📈 Indian Stock Portfolio (${k.stockCount} holdings)
+            </span>
+            <span style="font-weight: 700; color: ${stockColor}; font-size: 14px;">
+              ${fmtINR(k.stockPL)}
+            </span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; font-size: 12px; background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+            <div>
+              <div style="color: var(--text-3);">Invested</div>
+              <div style="font-weight: 600; color: var(--text);">${fmtINR(k.stockInvested)}</div>
+            </div>
+            <div>
+              <div style="color: var(--text-3);">Current Value</div>
+              <div style="font-weight: 600; color: var(--text);">${fmtINR(k.stockCurrentVal)}</div>
+            </div>
+            <div>
+              <div style="color: var(--text-3);">Unrealized P&amp;L</div>
+              <div style="font-weight: 600; color: ${k.stockUnrealizedPL >= 0 ? 'var(--emerald)' : 'var(--rose)'};">${fmtINR(k.stockUnrealizedPL)}</div>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; color: var(--text-3);">Realized Gains: <strong>${fmtINR(k.stockRealizedPL)}</strong></span>
+            <button onclick="window.closeProfitLossModal(); showPage('stocks');" style="background: none; border: none; color: var(--teal); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0;">
+              Open Stock Portfolio →
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Wealth & Other Assets -->
+        <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; color: var(--text);">
+              💎 Wealth &amp; Other Investments (${(state.investments||[]).length} items)
+            </span>
+            <span style="font-weight: 700; color: ${investColor}; font-size: 14px;">
+              ${fmtINR(k.investmentPL)}
+            </span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; font-size: 12px; background: var(--bg); padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+            <div>
+              <div style="color: var(--text-3);">Invested Basis</div>
+              <div style="font-weight: 600; color: var(--text);">${fmtINR(k.investmentInvested)}</div>
+            </div>
+            <div>
+              <div style="color: var(--text-3);">Current Valuation</div>
+              <div style="font-weight: 600; color: var(--text);">${fmtINR(k.investmentCurrentVal)}</div>
+            </div>
+            <div>
+              <div style="color: var(--text-3);">Net Valuation Gain</div>
+              <div style="font-weight: 600; color: ${investColor};">${fmtINR(k.investmentPL)}</div>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: flex-end;">
+            <button onclick="window.closeProfitLossModal(); showPage('wealth');" style="background: none; border: none; color: var(--teal); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0;">
+              Open Wealth &amp; Net Worth →
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="margin-top: 18px; text-align: center;">
+        <button onclick="window.closeProfitLossModal()" class="btn-primary" style="padding: 8px 24px; border-radius: 8px; cursor: pointer;">
+          Close Analysis
+        </button>
+      </div>
+    </div>
+  `;
+
+  modalEl.classList.add('show');
+  modalEl.style.display = 'flex';
+};
+
+window.closeProfitLossModal = function () {
+  const modalEl = document.getElementById('profitLossModal');
+  if (modalEl) {
+    modalEl.classList.remove('show');
+    modalEl.style.display = 'none';
+  }
+};
+
+/* Close P&L modal on ESC key */
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    window.closeProfitLossModal?.();
+  }
+});
 
 /* =========================
    Button Theme Fix

@@ -8,7 +8,7 @@
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v2.22.5';
+const CACHE_VERSION = 'lm-v2.22.6';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
@@ -31,6 +31,7 @@ const STATIC_ASSETS = [
   './src/styles/auth.css',
   './src/styles/responsive-upgrades.css',
   './src/styles/stocks.css',
+  './src/styles/credit-cards.css',
 
   /* Third-party libs */
   './assets/vendor/chart.umd.min.js',
@@ -79,6 +80,8 @@ const STATIC_ASSETS = [
   './src/scripts/Modules/Stocks/MarketDataService.js',
   './src/scripts/Modules/Stocks/StockPortfolioService.js',
   './src/scripts/Modules/Stocks/StockPortfolioUI.js',
+  './src/scripts/Modules/CreditCards/CreditCardsService.js',
+  './src/scripts/Modules/CreditCards/CreditCardsUI.js',
 
   /* Auth (config excluded — see note below) */
   './auth/auth-guard.js',

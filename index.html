@@ -61,6 +61,7 @@
 <link rel="stylesheet" href="./src/styles/Notes.css">
 <link rel="stylesheet" href="./src/styles/responsive-upgrades.css"> 
 <link rel="stylesheet" href="./src/styles/stocks.css">
+<link rel="stylesheet" href="./src/styles/credit-cards.css">
   <script src="./assets/vendor/tailwind.min.js"></script>
   <!-- Cloud auth + sync – MUST load before AuthManager -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -171,6 +172,9 @@
       </button>
       <button class="sidebar-nav-item" onclick="showPage('loans')" data-module="loans">
         <span class="nav-icon">🏦</span> Loans
+      </button>
+      <button class="sidebar-nav-item" onclick="showPage('credit-cards')" id="openCreditCards" data-module="credit-cards">
+        <span class="nav-icon">💳</span> Credit Cards
       </button>
       <button class="sidebar-nav-item" id="openInvestments" data-module="investments">
         <span class="nav-icon">📊</span> Investments
@@ -341,6 +345,21 @@
     <!-- TOPBAR -->
     <header id="topbar">
       <button id="menuBtn" onclick="toggleSidebar()">☰</button>
+      <div class="topbar-brand-wrap">
+        <div class="topbar-brand-title">
+          <span class="topbar-brand-icon">📒</span>
+          <span class="topbar-brand-name">Ledger<em>Mate</em></span>
+        </div>
+        <div class="topbar-status-pill">
+          <span class="topbar-status-dot"></span>
+          <span>LIVE</span>
+        </div>
+      </div>
+      <div class="topbar-quick-search" onclick="window.LM_CommandPalette ? window.LM_CommandPalette.open() : openSearch()" title="Search commands, txs, stocks (⌘K / Ctrl+K)">
+        <span>🔍</span>
+        <span class="srch-placeholder">Search LedgerMate…</span>
+        <span class="srch-kbd">⌘K</span>
+      </div>
       <div class="topbar-actions">
         <!-- hidden account filter -->
         <select id="accFilter" style="display:none;" onchange="renderAll()"><option value="all">All</option></select>
@@ -369,9 +388,8 @@
           🔕
         </button>
 
-        <!-- 🌙 Theme toggle
+        <!-- 🌙 Theme toggle -->
         <button class="icon-btn" onclick="toggleTheme()" id="themeIcon" title="Toggle Theme">🌙</button>
-        -->
         <!-- 👤 User profile (far right) -->
         <div style="position:relative;">
           <div class="topbar-user-chip" id="topbarUserChipWrap" onclick="document.getElementById('userDropdownMenu').classList.toggle('open')" title="Account">
@@ -651,7 +669,7 @@
         <div class="fade-up fade-up-5">
           <div class="section-heading" style="margin-top:24px;">
             <div class="section-title"><span class="dot" style="background:var(--gold)"></span>Budget Status</div>
-            <button class="section-action" id="openBudgets1" onclick="">Manage →</button>
+            <button class="section-action" id="openBudgets1" onclick="showBudgetsModal()">Manage →</button>
           </div>
           <div class="budget-list" id="budgetOverview"></div>
         </div>
@@ -906,6 +924,12 @@
       <div id="page-stocks" style="display:none;">
         <!-- rendered by LM_StockPortfolioUI.render() in StockPortfolioUI.js -->
       </div>
+
+      <!-- ─── CREDIT CARDS MANAGEMENT PAGE ────────── -->
+      <div id="page-credit-cards" style="display:none;">
+        <!-- rendered by LM_CreditCardsUI.init() in CreditCardsUI.js -->
+      </div>
+      <div id="creditCardModals"></div>
 
     </div><!-- /pageContent -->
     <footer>© <span id="year"></span> <span>LedgerMate</span> by Jeeventhiran &nbsp;·&nbsp;</br> All data stored offline</footer>
@@ -1281,6 +1305,13 @@ function showPage(page) {
         }
       } catch (e) { console.warn('[LM] Stocks portfolio error:', e); }
     }
+    if (page === 'credit-cards') {
+      try {
+        if (window.LM_CreditCardsUI) {
+          window.LM_CreditCardsUI.init();
+        }
+      } catch (e) { console.warn('[LM] Credit cards error:', e); }
+    }
     if (page === 'savings-goals') {
       try { renderSavingsGoals(); } catch (e) { console.warn('[LM] Savings goals error:', e); }
     }
@@ -1460,6 +1491,9 @@ function setGreeting() {
   <script src="./src/scripts/Modules/Stocks/MarketDataService.js"></script>
   <script src="./src/scripts/Modules/Stocks/StockPortfolioService.js"></script>
   <script src="./src/scripts/Modules/Stocks/StockPortfolioUI.js"></script>
+  <!-- Credit Cards Management Module -->
+  <script src="./src/scripts/Modules/CreditCards/CreditCardsService.js"></script>
+  <script src="./src/scripts/Modules/CreditCards/CreditCardsUI.js"></script>
   <!-- PWA install prompt — works on any page -->
   <script src="./src/scripts/pwa-install.js"></script>
   <!-- Real-time push notifications -->

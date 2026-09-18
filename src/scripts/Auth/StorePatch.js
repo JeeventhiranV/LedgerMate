@@ -28,7 +28,7 @@
     'emi_loans', 'net_worth_snapshots', 'allocation_targets', 'sip_plan',
     'essentials_settings', 'savings_goals',   /* user-specific config & goals */
     'subscriptions',                           /* subscription tracker */
-    'fd_rd', 'tx_templates'                    /* FD/RD + transaction templates */
+    'fd_rd', 'tx_templates', 'credit_cards'    /* FD/RD + transaction templates + credit cards */
   ]);
 
   /* Stores shared between all users (categories, etc.) */

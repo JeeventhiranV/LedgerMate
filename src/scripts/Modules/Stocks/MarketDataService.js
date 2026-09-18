@@ -101,8 +101,8 @@
     
     var endpoints = [
       {
-        url: 'https://api.allorigins.win/get?url=' + encodeURIComponent(yfTarget),
-        isWrapper: true
+        url: 'https://corsproxy.io/?url=' + encodeURIComponent(yfTarget),
+        isWrapper: false
       },
       {
         url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(yfTarget),
@@ -111,6 +111,14 @@
       {
         url: 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(yfTarget),
         isWrapper: false
+      },
+      {
+        url: 'https://api.allorigins.win/get?url=' + encodeURIComponent(yfTarget),
+        isWrapper: true
+      },
+      {
+        url: yfTarget,
+        isWrapper: false
       }
     ];
 
@@ -118,7 +126,7 @@
       try {
         var ep = endpoints[i];
         var resp = await fetch(ep.url, {
-          signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : undefined
+          signal: AbortSignal.timeout ? AbortSignal.timeout(6000) : undefined
         });
 
         if (!resp.ok) continue;
@@ -148,7 +156,7 @@
         var previousClose = meta.chartPreviousClose || meta.previousClose;
 
         // If price not directly in meta, grab last close from indicators
-        if (!regularMarketPrice && result.indicators && result.indicators.quote && result.indicators.quote[0]) {
+        if ((!regularMarketPrice || regularMarketPrice <= 0) && result.indicators && result.indicators.quote && result.indicators.quote[0]) {
           var closes = result.indicators.quote[0].close || [];
           for (var c = closes.length - 1; c >= 0; c--) {
             if (typeof closes[c] === 'number' && closes[c] > 0) {
@@ -159,7 +167,7 @@
         }
 
         if (typeof regularMarketPrice === 'number' && regularMarketPrice > 0) {
-          var prev = typeof previousClose === 'number' && previousClose > 0 ? previousClose : regularMarketPrice;
+          var prev = (typeof previousClose === 'number' && previousClose > 0) ? previousClose : regularMarketPrice;
           var change = regularMarketPrice - prev;
           var changePct = prev > 0 ? (change / prev) * 100 : 0;
 
@@ -177,21 +185,17 @@
           };
         }
       } catch (err) {
-        // Silently proceed to next gateway
+        // Proceed to next proxy gateway
       }
     }
 
-    // 2. Check Supabase shared price cache
+    // 2. Check Supabase shared price cache if fresh (< 2 hours)
     var cachedSb = await fetchFromSupabaseCache(sym, ex);
-    if (cachedSb) return cachedSb;
-
-    // 3. Fallback to StockRegistry baseline reference price
-    if (window.LM_StockRegistry && typeof window.LM_StockRegistry.getReferenceQuote === 'function') {
-      var ref = window.LM_StockRegistry.getReferenceQuote(sym, ex);
-      if (ref) return ref;
+    if (cachedSb && (Date.now() - (cachedSb.timestamp || 0)) < 7200000) {
+      return cachedSb;
     }
 
-    // 4. Fallback to latest transaction price in portfolio if available
+    // 3. Fallback to latest transaction price in portfolio if available
     if (window.LM_StockPortfolioService && typeof window.LM_StockPortfolioService.getAllTransactions === 'function') {
       try {
         var txs = window.LM_StockPortfolioService.getAllTransactions();
@@ -205,7 +209,7 @@
             change: 0,
             change_percent: 0,
             currency: 'INR',
-            market_status: 'LAST_TRANSACTION',
+            market_status: 'LAST_BUY',
             timestamp: Date.now(),
             isLive: false
           };
@@ -290,6 +294,9 @@
 
       var fresh = await fetchQuoteFromNetwork(symbol, exchange);
       if (fresh) {
+        if (!fresh.isLive) {
+          fresh.timestamp = now - CACHE_TTL_MS + 30000; // 30s TTL for fallbacks
+        }
         memoryCache[key] = fresh;
         lastFetchTimestamp = now;
         saveCache();
@@ -333,6 +340,9 @@
 
           var quote = await fetchQuoteFromNetwork(sym, ex);
           if (quote) {
+            if (!quote.isLive) {
+              quote.timestamp = now - CACHE_TTL_MS + 30000; // 30s TTL for fallbacks
+            }
             memoryCache[key] = quote;
             results[key] = quote;
           } else if (cached) {

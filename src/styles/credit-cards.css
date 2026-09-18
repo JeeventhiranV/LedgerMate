@@ -1,0 +1,571 @@
+/* ============================================================
+   LedgerMate – Credit Cards Module Styles
+   Glassmorphism realistic credit cards, utilization indicators,
+   countdown badges, and payment modals.
+   ============================================================ */
+
+.cc-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 0 32px 0;
+}
+
+/* ─── Header & Actions ─── */
+.cc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.cc-title-area h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cc-title-area p {
+  color: var(--text-3);
+  font-size: 0.875rem;
+  margin: 4px 0 0 0;
+}
+
+/* ─── KPI Summary Grid ─── */
+.cc-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.cc-kpi-card {
+  background: var(--card-bg, var(--bg2));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.cc-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.cc-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--kpi-accent, var(--teal));
+}
+
+.cc-kpi-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-3);
+}
+
+.cc-kpi-val {
+  font-size: 1.45rem;
+  font-weight: 700;
+  font-family: var(--font-m, monospace);
+  color: var(--text);
+}
+
+.cc-kpi-sub {
+  font-size: 0.75rem;
+  color: var(--text-2);
+}
+
+/* ─── Filter & Toolbar ─── */
+.cc-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.cc-filters {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.cc-filter-pill {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.cc-filter-pill:hover {
+  border-color: var(--teal);
+  color: var(--text);
+}
+
+.cc-filter-pill.active {
+  background: var(--teal);
+  color: #fff;
+  border-color: var(--teal);
+}
+
+.cc-add-btn {
+  background: linear-gradient(135deg, var(--teal), #0d9488);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 18px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.cc-add-btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+/* ─── Credit Cards Grid ─── */
+.cc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+}
+
+/* ─── Realistic Card Component ─── */
+.cc-card-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cc-card-art {
+  border-radius: 18px;
+  padding: 22px 24px;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 215px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+
+.cc-card-art:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+}
+
+/* Subtle holographic foil overlay */
+.cc-card-art::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Theme Gradients */
+.theme-midnight  { background: linear-gradient(135deg, #09101d 0%, #1e293b 60%, #0f172a 100%); }
+.theme-sapphire  { background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 55%, #0369a1 100%); }
+.theme-emerald   { background: linear-gradient(135deg, #064e3b 0%, #047857 55%, #0f766e 100%); }
+.theme-ruby      { background: linear-gradient(135deg, #881337 0%, #be123c 55%, #9f1239 100%); }
+.theme-gold      { background: linear-gradient(135deg, #78350f 0%, #b45309 50%, #d97706 100%); }
+.theme-platinum  { background: linear-gradient(135deg, #1f2937 0%, #374151 55%, #4b5563 100%); }
+.theme-amethyst  { background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 55%, #7c3aed 100%); }
+
+/* Card Elements */
+.cc-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+  z-index: 2;
+}
+
+.cc-bank-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.cc-card-model {
+  font-size: 0.75rem;
+  opacity: 0.85;
+  font-weight: 400;
+  margin-top: 1px;
+}
+
+.cc-network-badge {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+}
+
+/* Chip & Contactless */
+.cc-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 8px 0;
+  position: relative;
+  z-index: 2;
+}
+
+.cc-emv-chip {
+  width: 38px;
+  height: 28px;
+  background: linear-gradient(135deg, #fcd34d 0%, #d97706 100%);
+  border-radius: 6px;
+  border: 1px solid #b45309;
+  position: relative;
+  box-shadow: inset 0 0 3px rgba(0,0,0,0.3);
+}
+
+.cc-emv-chip::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #92400e;
+}
+
+.cc-nfc-icon {
+  font-size: 18px;
+  opacity: 0.85;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+}
+
+/* Card Number */
+.cc-number {
+  font-family: 'Courier New', Courier, monospace, var(--font-m);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+  margin: 8px 0;
+  position: relative;
+  z-index: 2;
+}
+
+/* Card Bottom Metadata */
+.cc-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  position: relative;
+  z-index: 2;
+  font-size: 0.72rem;
+}
+
+.cc-holder-label, .cc-dates-label {
+  text-transform: uppercase;
+  opacity: 0.75;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.cc-holder-name {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+}
+
+.cc-dates-val {
+  font-weight: 600;
+  font-family: var(--font-m, monospace);
+  font-size: 0.8rem;
+}
+
+/* ─── Card Info & Actions Footer ─── */
+.cc-details-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cc-dues-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cc-due-amount-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.cc-due-label {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+.cc-due-val {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-family: var(--font-m, monospace);
+  color: var(--text);
+}
+
+.cc-countdown-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-overdue {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--rose);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge-duesoon {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--gold);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-dueok {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--emerald);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-paid {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--text-3);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+/* Utilization Bar */
+.cc-util-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cc-util-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-3);
+}
+
+.cc-util-track {
+  width: 100%;
+  height: 6px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.cc-util-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.util-safe     { background: var(--emerald); }
+.util-moderate { background: var(--gold); }
+.util-danger   { background: var(--rose); }
+
+/* Card Actions */
+.cc-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cc-btn-pay {
+  flex: 1;
+  background: var(--teal);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: opacity 0.2s;
+}
+
+.cc-btn-pay:hover {
+  opacity: 0.9;
+}
+
+.cc-btn-edit, .cc-btn-delete {
+  background: var(--bg);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cc-btn-edit:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.cc-btn-delete:hover {
+  border-color: var(--rose);
+  color: var(--rose);
+}
+
+/* ─── Empty State ─── */
+.cc-empty-state {
+  text-align: center;
+  padding: 48px 16px;
+  background: var(--bg2);
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+  margin: 24px 0;
+}
+
+.cc-empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.cc-empty-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.cc-empty-desc {
+  font-size: 0.875rem;
+  color: var(--text-3);
+  max-width: 420px;
+  margin: 0 auto 20px auto;
+}
+
+/* ─── Modals ─── */
+.cc-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 600px) {
+  .cc-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cc-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cc-form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.cc-form-group label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.cc-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.cc-input:focus {
+  border-color: var(--teal);
+}
+
+.cc-theme-picker {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.cc-theme-opt {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.2s;
+}
+
+.cc-theme-opt:hover {
+  transform: scale(1.1);
+}
+
+.cc-theme-opt.selected {
+  border-color: #fff;
+  box-shadow: 0 0 0 2px var(--teal);
+}

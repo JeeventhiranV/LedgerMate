@@ -105,7 +105,17 @@ function getTotalLiabilities() {
   const takenOutstanding = (state.loans || [])
     .filter(l => l.type === 'taken' && !l.collected)
     .reduce((s, l) => s + toNum(l.amount), 0);
-  return emiLiabilities + takenOutstanding;
+
+  let ccOutstanding = 0;
+  if (window.LM_CreditCardsService && typeof window.LM_CreditCardsService.getTotalOutstandingDue === 'function') {
+    try {
+      ccOutstanding = toNum(window.LM_CreditCardsService.getTotalOutstandingDue() || 0);
+    } catch(e) {}
+  } else if (Array.isArray(state.credit_cards)) {
+    ccOutstanding = state.credit_cards.reduce((s, c) => s + toNum(c.current_due || 0), 0);
+  }
+
+  return emiLiabilities + takenOutstanding + ccOutstanding;
 }
 
 function getNetWorth() {
@@ -532,50 +542,37 @@ function filterWealthAssetsMob() {
    TAB 2 — LIABILITIES (EMI / Formal Loans)
 ───────────────────────────────────────────────────────────── */
 function renderWealthLiabilities(container) {
-  const loans        = state.emi_loans || [];
-  const totalOutst   = loans.reduce((s,l)=>s+toNum(l.outstanding),0);
-  const totalAssets  = getTotalAssets();
-  const debtRatio    = totalAssets > 0 ? ((totalOutst/totalAssets)*100).toFixed(1) : 0;
+  const loans            = state.emi_loans || [];
+  const totalOutst       = getTotalLiabilities();
+  const totalAssets      = getTotalAssets();
+  const debtRatio        = totalAssets > 0 ? ((totalOutst / totalAssets) * 100).toFixed(1) : 0;
+  const personalTaken    = (state.loans || []).filter(l => l.type === 'taken' && !l.collected);
+  const ccCards          = (window.LM_CreditCardsService?.getAllCards?.() || state.credit_cards || []);
+  const ccDueTotal       = ccCards.reduce((s, c) => s + toNum(c.current_due || 0), 0);
 
-  if (loans.length === 0) {
+  const totalItemCount = loans.length + personalTaken.length + ccCards.length;
+
+  if (totalItemCount === 0) {
     container.innerHTML = `
       <div class="chart-card" style="text-align:center;margin-bottom:16px;">
         <div style="font-family:var(--font-m);font-size:28px;font-weight:600;color:var(--emerald);">₹0</div>
         <div class="kpi-label" style="margin-top:4px;">TOTAL LIABILITIES</div>
-        <div style="font-size:12px;color:var(--text-3);margin-top:4px;">0 active loans</div>
+        <div style="font-size:12px;color:var(--text-3);margin-top:4px;">0 active obligations</div>
       </div>
       <div class="empty-state">
         <div class="empty-state-icon">✅</div>
-        <div class="empty-state-text">No formal liabilities!</div>
-        <div class="empty-state-sub">Excellent — debt-free. Track personal loans in the Loans tab.</div>
-        <button class="btn-submit" style="width:auto;padding:10px 24px;margin-top:16px;"
-                onclick="openAddLiabilityModal()">+ Add Liability</button>
+        <div class="empty-state-text">No active liabilities!</div>
+        <div class="empty-state-sub">Excellent — you are completely debt-free. You can track loans or add credit cards anytime.</div>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:16px;">
+          <button class="btn-submit" style="width:auto;padding:10px 20px;" onclick="openAddLiabilityModal()">+ Add Loan</button>
+          <button class="btn-submit" style="width:auto;padding:10px 20px;background:var(--teal);" onclick="showPage('credit-cards')">💳 Credit Cards</button>
+        </div>
       </div>`;
     return;
   }
-  const personalTaken = (state.loans || []).filter(l => l.type === 'taken' && !l.collected);
-if (personalTaken.length > 0) {
-  container.innerHTML += `
-    <div class="section-heading" style="margin-top:24px;">
-      <div class="section-title"><span class="dot" style="background:var(--rose)"></span>Personal Loans (Taken)</div>
-      <button class="section-action" onclick="setTimeout(()=>showPage('loans'),150)">Manage →</button>
-    </div>
-    <div class="tx-card">
-      ${personalTaken.map(l => `
-        <div class="list-item">
-          <div class="tx-icon expense">📥</div>
-          <div>
-            <div class="list-item-name">${escapeHtml(l.person)}</div>
-            <div class="list-item-sub">Due: ${l.dueDate || 'N/A'} · ${l.category || 'Loan'}</div>
-          </div>
-          <div class="list-item-amount" style="color:var(--rose);">${fmtINR(l.amount)}</div>
-        </div>
-      `).join('')}
-    </div>`;
-}
 
-  const cards = loans.map(l => {
-    const pct = totalOutst > 0 ? ((toNum(l.outstanding)/totalOutst)*100).toFixed(1) : 0;
+  const emiCardsHtml = loans.map(l => {
+    const pct = totalOutst > 0 ? ((toNum(l.outstanding) / totalOutst) * 100).toFixed(1) : 0;
     const emi = toNum(l.monthlyEmi);
     return `
       <div class="list-item" style="flex-direction:column;align-items:stretch;gap:8px;">
@@ -583,8 +580,8 @@ if (personalTaken.length > 0) {
           <div style="display:flex;align-items:center;gap:10px;">
             <div class="kpi-icon" style="background:rgba(251,113,133,0.12);font-size:18px;">🏦</div>
             <div>
-              <div class="list-item-name">${l.name||'Loan'}</div>
-              <div class="list-item-sub">${l.type||'Loan'}${l.lender?' · '+l.lender:''}${l.accountNo?' · #'+l.accountNo:''}</div>
+              <div class="list-item-name">${escapeHtml(l.name || 'Loan')}</div>
+              <div class="list-item-sub">${escapeHtml(l.type || 'Loan')}${l.lender ? ' · ' + escapeHtml(l.lender) : ''}${l.accountNo ? ' · #' + escapeHtml(l.accountNo) : ''}</div>
             </div>
           </div>
           <div style="text-align:right;">
@@ -592,14 +589,13 @@ if (personalTaken.length > 0) {
             <div style="font-size:11px;color:var(--text-3);">${pct}% of total</div>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:8px 0;
-                    border-top:1px solid var(--border);">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:8px 0;border-top:1px solid var(--border);">
           <div><div class="kpi-label">INTEREST</div><div style="font-size:13px;font-family:var(--font-m);">${toNum(l.interestRate)}%</div></div>
-          <div><div class="kpi-label">EMI</div><div style="font-size:13px;font-family:var(--font-m);">${emi>0?fmtINR(emi):'—'}</div></div>
-          <div><div class="kpi-label">STARTED</div><div style="font-size:13px;font-family:var(--font-m);">${l.startDate||'—'}</div></div>
+          <div><div class="kpi-label">EMI</div><div style="font-size:13px;font-family:var(--font-m);">${emi > 0 ? fmtINR(emi) : '—'}</div></div>
+          <div><div class="kpi-label">STARTED</div><div style="font-size:13px;font-family:var(--font-m);">${l.startDate || '—'}</div></div>
         </div>
-        ${l.collateral?`<div style="font-size:11px;color:var(--text-3);">Collateral: ${l.collateral}</div>`:''}
-        ${l.notes?`<div style="font-size:11px;color:var(--text-3);">${l.notes}</div>`:''}
+        ${l.collateral ? `<div style="font-size:11px;color:var(--text-3);">Collateral: ${escapeHtml(l.collateral)}</div>` : ''}
+        ${l.notes ? `<div style="font-size:11px;color:var(--text-3);">${escapeHtml(l.notes)}</div>` : ''}
         <div style="display:flex;gap:8px;justify-content:flex-end;">
           <button class="section-action" onclick="openEditLiabilityModal('${l.id}')" style="padding:5px 10px;">✏️ Edit</button>
           <button class="section-action" onclick="deleteLiability('${l.id}')" style="padding:5px 10px;color:var(--rose);">🗑️ Delete</button>
@@ -612,7 +608,7 @@ if (personalTaken.length > 0) {
       <div class="kpi-card rose">
         <div class="kpi-label">TOTAL LIABILITIES</div>
         <div class="kpi-value" style="color:var(--rose);">${fmtINR(totalOutst)}</div>
-        <div class="kpi-change">${loans.length} active loan${loans.length!==1?'s':''}</div>
+        <div class="kpi-change">${totalItemCount} active obligation${totalItemCount !== 1 ? 's' : ''}</div>
       </div>
       <div class="kpi-card violet">
         <div class="kpi-label">DEBT RATIO</div>
@@ -625,11 +621,59 @@ if (personalTaken.length > 0) {
         <div class="kpi-change">Assets − Liabilities</div>
       </div>
     </div>
+
+    <!-- Active Credit Cards Section -->
+    ${ccCards.length > 0 ? `
+      <div class="section-heading" style="margin-top:16px;">
+        <div class="section-title"><span class="dot" style="background:var(--gold)"></span>Credit Cards (${ccCards.length})</div>
+        <button class="section-action" onclick="showPage('credit-cards')">Manage Cards →</button>
+      </div>
+      <div class="tx-card" style="margin-bottom:20px;">
+        ${ccCards.map(c => `
+          <div class="list-item">
+            <div class="tx-icon expense">💳</div>
+            <div>
+              <div class="list-item-name">${escapeHtml(c.card_name || 'Card')} <span style="font-size:11px;color:var(--text-3); font-weight:normal;">(${escapeHtml(c.bank_name || '')} ••${escapeHtml(c.last_4_digits || '0000')})</span></div>
+              <div class="list-item-sub">Due: ${c.due_day ? c.due_day + 'th of month' : 'N/A'} · Limit: ${fmtINR(c.credit_limit || 0)}</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="list-item-amount" style="color:${toNum(c.current_due) > 0 ? 'var(--rose)' : 'var(--emerald)'};">${fmtINR(c.current_due || 0)}</div>
+              <div style="font-size:11px;color:var(--text-3);">${toNum(c.current_due) > 0 ? 'Outstanding' : 'Cleared'}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+
+    <!-- Personal Loans Taken Section -->
+    ${personalTaken.length > 0 ? `
+      <div class="section-heading" style="margin-top:16px;">
+        <div class="section-title"><span class="dot" style="background:var(--rose)"></span>Personal Loans (Taken) (${personalTaken.length})</div>
+        <button class="section-action" onclick="setTimeout(()=>showPage('loans'),150)">Manage →</button>
+      </div>
+      <div class="tx-card" style="margin-bottom:20px;">
+        ${personalTaken.map(l => `
+          <div class="list-item">
+            <div class="tx-icon expense">📥</div>
+            <div>
+              <div class="list-item-name">${escapeHtml(l.person)}</div>
+              <div class="list-item-sub">Due: ${l.dueDate || 'N/A'} · ${escapeHtml(l.category || 'Loan')}</div>
+            </div>
+            <div class="list-item-amount" style="color:var(--rose);">${fmtINR(l.amount)}</div>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+
+    <!-- Formal Loans Section -->
     <div class="section-heading">
-      <div class="section-title"><span class="dot" style="background:var(--rose)"></span>Active Loans</div>
-      <button class="section-action" onclick="openAddLiabilityModal()">+ Add Liability</button>
+      <div class="section-title"><span class="dot" style="background:var(--rose)"></span>Active Loans (${loans.length})</div>
+      <button class="section-action" onclick="openAddLiabilityModal()">+ Add Loan</button>
     </div>
-    <div class="tx-card">${cards}</div>`;
+    <div class="tx-card">
+      ${loans.length > 0 ? emiCardsHtml : '<div style="padding:16px;text-align:center;color:var(--text-3);font-size:13px;">No active formal/bank loans.</div>'}
+    </div>
+  `;
 }
 
 /* ─────────────────────────────────────────────────────────────
