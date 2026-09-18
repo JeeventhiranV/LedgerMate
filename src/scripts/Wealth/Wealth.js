@@ -1313,7 +1313,7 @@ function renderWealthNetWorth(container) {
             </div>
             <div style="text-align:right;">
               <div class="list-item-amount" style="color:${s.netWorth>=0?'var(--teal)':'var(--rose)'};">${fmtINR(s.netWorth)}</div>
-              ${d!==0?`<div style="font-size:11px;color:${d>=0?'var(--emerald)':'var(--rose)'};">${d>=0?'+':''}${fmtINR(d)}</div>`:''}
+              ${d!==0?`<div style="font-size:11px;color:${d>=0?'var(--emerald)':'var(--rose)'};display:inline-flex;align-items:center;gap:2px;">${d>=0?'<span class="live-arrow-up">▲</span> +':''}${fmtINR(d)}</div>`:''}
             </div>
             <button onclick="deleteNetWorthSnapshot('${s.id}')"
                     style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:4px;margin-left:4px;">×</button>

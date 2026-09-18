@@ -915,6 +915,619 @@ body.privacy-mode .net-worth-val:hover {
   box-sizing: border-box !important;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   5. LIVE GLOWING & CONTINUOUS MOVING ARROW ANIMATIONS (GAIN & LOSS)
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Continuous Floating Up Arrow (Single Bobbing & Dual Stream) ── */
+@keyframes liveArrowFloatUp {
+  0% {
+    transform: translateY(4px) scale(0.85);
+    opacity: 0.15;
+    filter: drop-shadow(0 0 1px rgba(16, 185, 129, 0.4));
+  }
+  30% {
+    transform: translateY(0px) scale(1);
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.95));
+  }
+  75% {
+    transform: translateY(-5px) scale(1.05);
+    opacity: 0.85;
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.95));
+  }
+  100% {
+    transform: translateY(-10px) scale(0.8);
+    opacity: 0;
+  }
+}
+
+@keyframes liveArrowBob {
+  0%, 100% {
+    transform: translateY(0);
+    filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.5));
+  }
+  50% {
+    transform: translateY(-3.5px);
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 1));
+  }
+}
+
+.live-arrow-up {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--emerald, #10b981) !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  animation: liveArrowBob 1.4s ease-in-out infinite !important;
+  margin-right: 3px !important;
+  vertical-align: middle !important;
+  user-select: none !important;
+}
+
+.live-arrow-stream {
+  display: inline-block !important;
+  position: relative !important;
+  width: 11px !important;
+  height: 13px !important;
+  vertical-align: middle !important;
+  margin-right: 4px !important;
+  overflow: visible !important;
+  flex-shrink: 0 !important;
+}
+.live-arrow-stream::before,
+.live-arrow-stream::after {
+  content: '▲' !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  font-size: 9px !important;
+  line-height: 1 !important;
+  color: var(--emerald, #10b981) !important;
+  animation: liveArrowFloatUp 1.5s cubic-bezier(0.2, 0.6, 0.35, 1) infinite !important;
+}
+.live-arrow-stream::after {
+  animation-delay: 0.75s !important;
+}
+
+/* ── Continuous Floating Down Arrow (Single Bobbing & Dual Stream) ── */
+@keyframes liveArrowFloatDown {
+  0% {
+    transform: translateY(-4px) scale(0.85);
+    opacity: 0.15;
+    filter: drop-shadow(0 0 1px rgba(244, 63, 94, 0.4));
+  }
+  30% {
+    transform: translateY(0px) scale(1);
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(244, 63, 94, 0.95));
+  }
+  75% {
+    transform: translateY(5px) scale(1.05);
+    opacity: 0.85;
+    filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.95));
+  }
+  100% {
+    transform: translateY(10px) scale(0.8);
+    opacity: 0;
+  }
+}
+
+@keyframes liveArrowBobDown {
+  0%, 100% {
+    transform: translateY(0);
+    filter: drop-shadow(0 0 2px rgba(244, 63, 94, 0.5));
+  }
+  50% {
+    transform: translateY(3.5px);
+    filter: drop-shadow(0 0 8px rgba(244, 63, 94, 1));
+  }
+}
+
+.live-arrow-down {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--rose, #f43f5e) !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  animation: liveArrowBobDown 1.4s ease-in-out infinite !important;
+  margin-right: 3px !important;
+  vertical-align: middle !important;
+  user-select: none !important;
+}
+
+.live-arrow-stream-down {
+  display: inline-block !important;
+  position: relative !important;
+  width: 11px !important;
+  height: 13px !important;
+  vertical-align: middle !important;
+  margin-right: 4px !important;
+  overflow: visible !important;
+  flex-shrink: 0 !important;
+}
+.live-arrow-stream-down::before,
+.live-arrow-stream-down::after {
+  content: '▼' !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  font-size: 9px !important;
+  line-height: 1 !important;
+  color: var(--rose, #f43f5e) !important;
+  animation: liveArrowFloatDown 1.5s cubic-bezier(0.2, 0.6, 0.35, 1) infinite !important;
+}
+.live-arrow-stream-down::after {
+  animation-delay: 0.75s !important;
+}
+
+/* ── Card Ambient Green Glow (Gain) ── */
+@keyframes liveCardGlowEmerald {
+  0%, 100% {
+    border-color: rgba(16, 185, 129, 0.3) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), 0 0 10px rgba(16, 185, 129, 0.16), inset 0 0 14px rgba(16, 185, 129, 0.04) !important;
+  }
+  50% {
+    border-color: rgba(16, 185, 129, 0.7) !important;
+    box-shadow: 0 6px 26px rgba(0, 0, 0, 0.35), 0 0 24px rgba(16, 185, 129, 0.4), inset 0 0 22px rgba(16, 185, 129, 0.09) !important;
+  }
+}
+
+.kpi-card.emerald,
+.kpi-card.live-glow-green,
+.stock-kpi-card.live-glow-green {
+  animation: liveCardGlowEmerald 3.2s ease-in-out infinite !important;
+  position: relative !important;
+}
+
+[data-theme="light"] .kpi-card.emerald,
+[data-theme="light"] .kpi-card.live-glow-green,
+[data-theme="light"] .stock-kpi-card.live-glow-green {
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.22) !important;
+}
+
+/* ── Card Ambient Red Glow (Loss / Expense) ── */
+@keyframes liveCardGlowRose {
+  0%, 100% {
+    border-color: rgba(244, 63, 94, 0.3) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), 0 0 10px rgba(244, 63, 94, 0.16), inset 0 0 14px rgba(244, 63, 94, 0.04) !important;
+  }
+  50% {
+    border-color: rgba(244, 63, 94, 0.7) !important;
+    box-shadow: 0 6px 26px rgba(0, 0, 0, 0.35), 0 0 24px rgba(244, 63, 94, 0.4), inset 0 0 22px rgba(244, 63, 94, 0.09) !important;
+  }
+}
+
+.kpi-card.rose,
+.kpi-card.live-glow-red,
+.stock-kpi-card.live-glow-red {
+  animation: liveCardGlowRose 3.2s ease-in-out infinite !important;
+  position: relative !important;
+}
+
+[data-theme="light"] .kpi-card.rose,
+[data-theme="light"] .kpi-card.live-glow-red,
+[data-theme="light"] .stock-kpi-card.live-glow-red {
+  box-shadow: 0 4px 18px rgba(244, 63, 94, 0.22) !important;
+}
+
+/* ── Green Glowing Text & Values (Gain) ── */
+@keyframes liveTextGlowEmerald {
+  0%, 100% {
+    text-shadow: 0 0 4px rgba(16, 185, 129, 0.3);
+  }
+  50% {
+    text-shadow: 0 0 12px rgba(16, 185, 129, 0.85), 0 0 20px rgba(16, 185, 129, 0.4);
+  }
+}
+
+.live-glow-text-green,
+.kpi-value.live-glow-text-green {
+  animation: liveTextGlowEmerald 2.4s ease-in-out infinite !important;
+  color: var(--emerald, #10b981) !important;
+}
+
+/* ── Red Glowing Text & Values (Loss) ── */
+@keyframes liveTextGlowRose {
+  0%, 100% {
+    text-shadow: 0 0 4px rgba(244, 63, 94, 0.3);
+  }
+  50% {
+    text-shadow: 0 0 12px rgba(244, 63, 94, 0.85), 0 0 20px rgba(244, 63, 94, 0.4);
+  }
+}
+
+.live-glow-text-red,
+.kpi-value.live-glow-text-red {
+  animation: liveTextGlowRose 2.4s ease-in-out infinite !important;
+  color: var(--rose, #f43f5e) !important;
+}
+
+/* ── Live Pulse Badge & Radar Dot (Green & Red) ── */
+.live-pulse-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  font-family: var(--font-m, monospace) !important;
+  letter-spacing: 0.8px !important;
+  text-transform: uppercase !important;
+  padding: 2px 7px !important;
+  border-radius: 99px !important;
+  background: rgba(16, 185, 129, 0.14) !important;
+  color: var(--emerald, #10b981) !important;
+  border: 1px solid rgba(16, 185, 129, 0.32) !important;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.22) !important;
+  animation: liveBadgePulse 2s ease-in-out infinite !important;
+}
+
+@keyframes liveBadgePulse {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.55);
+    border-color: rgba(16, 185, 129, 0.65);
+  }
+}
+
+.live-pulse-badge-red {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  font-family: var(--font-m, monospace) !important;
+  letter-spacing: 0.8px !important;
+  text-transform: uppercase !important;
+  padding: 2px 7px !important;
+  border-radius: 99px !important;
+  background: rgba(244, 63, 94, 0.14) !important;
+  color: var(--rose, #f43f5e) !important;
+  border: 1px solid rgba(244, 63, 94, 0.32) !important;
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.22) !important;
+  animation: liveBadgePulseRed 2s ease-in-out infinite !important;
+}
+
+@keyframes liveBadgePulseRed {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(244, 63, 94, 0.2);
+    border-color: rgba(244, 63, 94, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(244, 63, 94, 0.55);
+    border-color: rgba(244, 63, 94, 0.65);
+  }
+}
+
+.live-radar-dot {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: var(--emerald, #10b981) !important;
+  position: relative !important;
+  display: inline-block !important;
+  box-shadow: 0 0 6px var(--emerald, #10b981) !important;
+}
+.live-radar-dot::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: -3px !important;
+  border-radius: 50% !important;
+  border: 1.5px solid var(--emerald, #10b981) !important;
+  animation: liveRadarPing 1.8s cubic-bezier(0, 0, 0.2, 1) infinite !important;
+}
+
+@keyframes liveRadarPing {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+.live-radar-dot-red {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: var(--rose, #f43f5e) !important;
+  position: relative !important;
+  display: inline-block !important;
+  box-shadow: 0 0 6px var(--rose, #f43f5e) !important;
+}
+.live-radar-dot-red::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: -3px !important;
+  border-radius: 50% !important;
+  border: 1.5px solid var(--rose, #f43f5e) !important;
+  animation: liveRadarPingRed 1.8s cubic-bezier(0, 0, 0.2, 1) infinite !important;
+}
+
+@keyframes liveRadarPingRed {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* ── Transactions: Live Inflow Glow & Animated Up Arrow ── */
+.tx-amount.income {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  color: var(--emerald, #10b981) !important;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.4) !important;
+  font-weight: 700 !important;
+}
+.tx-amount.income::before {
+  content: '▲' !important;
+  display: inline-block !important;
+  font-size: 8px !important;
+  margin-right: 3px !important;
+  animation: liveArrowBob 1.2s ease-in-out infinite !important;
+  color: var(--emerald, #10b981) !important;
+}
+
+.tx-row:has(.tx-amount.income) .tx-icon-dot {
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3) !important;
+}
+
+/* ── Transactions: Live Outflow / Expense Glow & Animated Down Arrow ── */
+.tx-amount.expense {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  color: var(--rose, #f43f5e) !important;
+  text-shadow: 0 0 8px rgba(244, 63, 94, 0.4) !important;
+  font-weight: 700 !important;
+}
+.tx-amount.expense::before {
+  content: '▼' !important;
+  display: inline-block !important;
+  font-size: 8px !important;
+  margin-right: 3px !important;
+  animation: liveArrowBobDown 1.2s ease-in-out infinite !important;
+  color: var(--rose, #f43f5e) !important;
+}
+
+.tx-row:has(.tx-amount.expense) .tx-icon-dot {
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.25) !important;
+}
+
+/* ── Stocks & Wealth Gainers: Live Up Arrow & Neon Glow ── */
+.stock-pill-gain,
+.invest-gain,
+.kpi-change.up {
+  color: var(--emerald, #10b981) !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.45) !important;
+}
+
+.stock-pill-gain::before,
+.invest-gain::before,
+.kpi-change.up::before {
+  content: '▲' !important;
+  font-size: 8px !important;
+  display: inline-block !important;
+  animation: liveArrowBob 1.2s ease-in-out infinite !important;
+  color: var(--emerald, #10b981) !important;
+}
+
+/* ── Stocks & Wealth Losers: Live Down Arrow & Red Glow ── */
+.stock-pill-loss,
+.invest-loss,
+.kpi-change.down {
+  color: var(--stock-red, var(--rose, #f43f5e)) !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  text-shadow: 0 0 8px rgba(244, 63, 94, 0.45) !important;
+}
+
+.stock-pill-loss::before,
+.invest-loss::before,
+.kpi-change.down::before {
+  content: '▼' !important;
+  font-size: 8px !important;
+  display: inline-block !important;
+  animation: liveArrowBobDown 1.2s ease-in-out infinite !important;
+  color: var(--stock-red, var(--rose, #f43f5e)) !important;
+}
+
+/* ── Account Summary Income & Expense Chips ── */
+.chip.income {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.25) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+.chip.income::before {
+  content: '▲' !important;
+  font-size: 7.5px !important;
+  animation: liveArrowBob 1.3s ease-in-out infinite !important;
+  color: var(--emerald, #10b981) !important;
+}
+
+.chip.expense {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.25) !important;
+  border: 1px solid rgba(244, 63, 94, 0.3) !important;
+}
+.chip.expense::before {
+  content: '▼' !important;
+  font-size: 7.5px !important;
+  animation: liveArrowBobDown 1.3s ease-in-out infinite !important;
+  color: var(--rose, #f43f5e) !important;
+}
+
+/* ── Real-Time Dot Enhanced Pulse Ring ── */
+.rt-dot,
+.topbar-status-dot {
+  position: relative !important;
+}
+.rt-dot::after,
+.topbar-status-dot::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: -3px !important;
+  border-radius: 50% !important;
+  border: 1.5px solid var(--emerald, #10b981) !important;
+  animation: liveRadarPing 2s cubic-bezier(0, 0, 0.2, 1) infinite !important;
+}
+
+/* ── Safe Budget Bar Shimmer Sweep ── */
+.budget-bar-fill.safe,
+.goal-bar-fill {
+  position: relative !important;
+  overflow: hidden !important;
+}
+.budget-bar-fill.safe::after,
+.goal-bar-fill::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 0; left: 0; right: 0; bottom: 0 !important;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent) !important;
+  animation: liveGreenShimmer 2.5s infinite !important;
+}
+@keyframes liveGreenShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   6. ACTIVE TABS & PILLS LIVE GLOWING ANIMATIONS
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Active Sidebar Navigation Tab Glow ── */
+@keyframes activeSidebarTabGlow {
+  0%, 100% {
+    background: linear-gradient(90deg, rgba(0, 240, 255, 0.08) 0%, rgba(139, 92, 246, 0.03) 100%) !important;
+    box-shadow: inset 0 0 14px rgba(0, 212, 180, 0.06), 0 0 10px rgba(0, 212, 180, 0.12) !important;
+  }
+  50% {
+    background: linear-gradient(90deg, rgba(0, 240, 255, 0.16) 0%, rgba(139, 92, 246, 0.08) 100%) !important;
+    box-shadow: inset 0 0 20px rgba(0, 212, 180, 0.16), 0 0 18px rgba(0, 212, 180, 0.28) !important;
+  }
+}
+
+@keyframes activeSidebarBarGlow {
+  0%, 100% {
+    box-shadow: 0 0 8px var(--teal), 0 0 14px rgba(0, 212, 180, 0.4);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow: 0 0 16px var(--teal), 0 0 24px rgba(0, 212, 180, 0.85);
+    filter: brightness(1.25);
+  }
+}
+
+.sidebar-nav-item.active {
+  animation: activeSidebarTabGlow 2.8s ease-in-out infinite !important;
+  position: relative !important;
+}
+
+.sidebar-nav-item.active::before {
+  animation: activeSidebarBarGlow 2.8s ease-in-out infinite !important;
+}
+
+/* ── Active Mobile Bottom Nav Tab Glow ── */
+@keyframes activeBottomNavGlow {
+  0%, 100% {
+    background: rgba(0, 240, 255, 0.08) !important;
+    box-shadow: 0 0 8px rgba(0, 212, 180, 0.2), inset 0 0 10px rgba(0, 212, 180, 0.08) !important;
+  }
+  50% {
+    background: rgba(0, 240, 255, 0.18) !important;
+    box-shadow: 0 0 18px rgba(0, 212, 180, 0.5), inset 0 0 14px rgba(0, 212, 180, 0.16) !important;
+  }
+}
+
+.bnav-item.active {
+  animation: activeBottomNavGlow 2.6s ease-in-out infinite !important;
+}
+.bnav-item.active .bnav-icon {
+  filter: drop-shadow(0 0 8px var(--teal)) !important;
+  transform: scale(1.06) !important;
+  transition: transform 0.2s var(--ease-spring);
+}
+
+/* ── Active Range Filter Pills & Quick Filter Chips Glow ── */
+@keyframes activePillGlowPulse {
+  0%, 100% {
+    box-shadow: 0 2px 10px rgba(0, 240, 255, 0.3), 0 0 8px rgba(0, 212, 180, 0.2) !important;
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow: 0 2px 18px rgba(0, 240, 255, 0.65), 0 0 20px rgba(0, 212, 180, 0.55) !important;
+    filter: brightness(1.15);
+  }
+}
+
+.range-pill.active,
+.tx-quick-chip.active,
+.wealth-tab.active,
+.cc-filter-pill.active {
+  animation: activePillGlowPulse 2.4s ease-in-out infinite !important;
+}
+
+/* ── Active Indian Stock Tab Glow ── */
+@keyframes activeStockTabGlow {
+  0%, 100% {
+    border-color: rgba(16, 185, 129, 0.35) !important;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.2), inset 0 0 10px rgba(16, 185, 129, 0.06) !important;
+  }
+  50% {
+    border-color: rgba(16, 185, 129, 0.75) !important;
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.5), inset 0 0 16px rgba(16, 185, 129, 0.14) !important;
+  }
+}
+
+.stock-tab-btn.active {
+  animation: activeStockTabGlow 2.5s ease-in-out infinite !important;
+}
+
+/* ── Active In-Page Section & Modal Tabs Glow ── */
+@keyframes activeSectionTabGlow {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(0, 212, 180, 0.25) !important;
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(0, 212, 180, 0.6) !important;
+  }
+}
+
+.section-tab.active,
+.admin-nav-item.active,
+.mode-tab.active,
+.atx-cat-chip.active,
+.dp-strat-btn.active {
+  animation: activeSectionTabGlow 2.4s ease-in-out infinite !important;
+}
+
+/* ── Light Theme Adjustments ── */
+[data-theme="light"] .sidebar-nav-item.active {
+  background: rgba(2, 132, 199, 0.10) !important;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.15) !important;
+}
+[data-theme="light"] .bnav-item.active {
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.2) !important;
+}
+[data-theme="light"] .range-pill.active,
+[data-theme="light"] .tx-quick-chip.active,
+[data-theme="light"] .wealth-tab.active {
+  box-shadow: 0 2px 12px rgba(2, 132, 199, 0.35) !important;
+}
+
+
 
 
 

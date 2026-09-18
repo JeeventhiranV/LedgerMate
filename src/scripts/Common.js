@@ -4251,15 +4251,24 @@ function kpiCard(title, value, sub, type, valueColor, onclickAttr) {
   };
 
   const cls = typeMap[type] || "teal";
+  const isGreen = (type === "green" || cls === "emerald" || valueColor === 'var(--emerald)');
   const clickHandler = onclickAttr ? `onclick="${onclickAttr}" style="cursor:pointer;" title="Click to view details"` : '';
 
+  const liveArrow = isGreen ? `<span class="live-arrow-stream" title="Live inflow"></span>` : '';
+  const liveBadge = isGreen ? `<span class="live-pulse-badge"><span class="live-radar-dot"></span> LIVE</span>` : '';
+
   return `
-    <div class="kpi-card ${cls}" ${clickHandler}>
-      <div class="kpi-icon ${cls}">
-        ${getKpiIcon(title)}
+    <div class="kpi-card ${cls} ${isGreen ? 'live-glow-green' : ''}" ${clickHandler}>
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:2px;">
+        <div class="kpi-icon ${cls}">
+          ${getKpiIcon(title)}
+        </div>
+        ${liveBadge}
       </div>
       <div class="kpi-label">${title}</div>
-      <div class="kpi-value animate-in" style="color:${valueColor || 'var(--text)'};">${value}</div>
+      <div class="kpi-value animate-in ${isGreen ? 'live-glow-text-green' : ''}" style="color:${valueColor || 'var(--text)'};display:flex;align-items:center;gap:4px;">
+        ${liveArrow}<span>${value}</span>
+      </div>
       <div class="kpi-sub">${sub}</div>
     </div>
   `;
@@ -4287,6 +4296,7 @@ function renderKPIs() {
 
   const balanceColor    = k.balance    >= 0 ? 'var(--teal)'    : 'var(--rose)';
   const profitColor     = k.profitLoss >= 0 ? 'var(--emerald)' : 'var(--rose)';
+  const profitType      = k.profitLoss >= 0 ? 'green'          : 'red';
 
   // Live indicator bar above KPIs
   const liveBar = document.getElementById("dashLiveBar");
@@ -4294,9 +4304,9 @@ function renderKPIs() {
     const now = new Date();
     const ts  = now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
     liveBar.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;padding:6px 10px;background:var(--bg2);border-radius:10px;border:1px solid var(--border);">
-        <div class="rt-live"><div class="rt-dot"></div><span>Real-time dashboard</span></div>
-        <span style="font-size:11px;color:var(--text-3);font-family:var(--font-m);">Updated ${ts} · ${k.days}d window · ${(state.transactions||[]).length} txns</span>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;padding:6px 12px;background:var(--bg2);border-radius:12px;border:1px solid var(--border);box-shadow:0 0 12px rgba(16,185,129,0.08);">
+        <div class="rt-live" style="display:flex;align-items:center;gap:7px;"><span class="live-radar-dot"></span><span style="font-weight:700;letter-spacing:0.3px;">Real-time dashboard</span></div>
+        <span style="font-size:11px;color:var(--text-3);font-family:var(--font-m);"><span class="live-arrow-up">▲</span> Updated ${ts} · ${k.days}d window · ${(state.transactions||[]).length} txns</span>
       </div>`;
   }
 
@@ -4307,11 +4317,11 @@ function renderKPIs() {
     : `${k.savingsRate}% saved · Details 🔍`;
 
   row.innerHTML = `
-  ${kpiCard("Balance",     fmtINR(k.balance),            "All accounts · View txns", "blue",   balanceColor,     "window.LM_filterTxByAccount('ALL')")}
-  ${kpiCard("Income",      fmtINR(k.income),             k.days + " days · Filter",   "green",  'var(--emerald)', "window.LM_filterTxByType('in')")}
-  ${kpiCard("Expense",     fmtINR(k.expense),            k.days + " days · Filter",   "red",    'var(--rose)',    "window.LM_filterTxByType('out')")}
-  ${kpiCard("Profit/Loss", fmtINR(k.profitLoss),         plSub,                      "purple", profitColor,      "window.openProfitLossBreakdownModal()")}
-  ${kpiCard("Forecast",    fmtINR(k.expenseForecast),    "Next 30 days · Summary",    "teal",   'var(--gold)',    "showPage('monthly-summary')")}
+  ${kpiCard("Balance",     fmtINR(k.balance),            "All accounts · View txns", "blue",     balanceColor, "window.LM_filterTxByAccount('ALL')")}
+  ${kpiCard("Income",      fmtINR(k.income),             k.days + " days · Filter",   "green",    'var(--emerald)', "window.LM_filterTxByType('in')")}
+  ${kpiCard("Expense",     fmtINR(k.expense),            k.days + " days · Filter",   "red",      'var(--rose)', "window.LM_filterTxByType('out')")}
+  ${kpiCard("Profit/Loss", fmtINR(k.profitLoss),         plSub,                      profitType, profitColor, "window.openProfitLossBreakdownModal()")}
+  ${kpiCard("Forecast",    fmtINR(k.expenseForecast),    "Next 30 days · Summary",    "teal",     'var(--gold)', "showPage('monthly-summary')")}
 `;
 
   /* Top Categories */
@@ -4868,11 +4878,11 @@ function renderDashboardWealthWidget() {
         </div>
         <div>
           <div class="kpi-label">ASSETS</div>
-          <div style="font-family:var(--font-m);font-size:clamp(18px,3vw,24px);font-weight:700;color:var(--emerald);">${fmtINR(totalAssets)}</div>
+          <div class="live-glow-text-green" style="font-family:var(--font-m);font-size:clamp(18px,3vw,24px);font-weight:700;color:var(--emerald);display:flex;align-items:center;gap:4px;"><span class="live-arrow-up">▲</span> ${fmtINR(totalAssets)}</div>
         </div>
         <div>
           <div class="kpi-label">P&amp;L</div>
-          <div style="font-family:var(--font-m);font-size:16px;font-weight:600;color:${pnl>=0?'var(--emerald)':'var(--rose)'};">${pnl>=0?'+':''}${fmtINR(pnl)} <span style="font-size:11px;">(${pnlP}%)</span></div>
+          <div class="${pnl>=0?'live-glow-text-green':''}" style="font-family:var(--font-m);font-size:16px;font-weight:600;color:${pnl>=0?'var(--emerald)':'var(--rose)'};display:flex;align-items:center;gap:4px;">${pnl>=0?'<span class="live-arrow-up">▲</span> +':''}${fmtINR(pnl)} <span style="font-size:11px;">(${pnlP}%)</span></div>
         </div>
         <div>
           <div class="kpi-label">LIABILITIES</div>

@@ -153,6 +153,22 @@
   border-color: var(--border2, #2d3748);
   transform: translateY(-2px);
 }
+.stock-kpi-card:has(.stock-pill-gain) {
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2), 0 0 14px rgba(16, 185, 129, 0.12);
+}
+.stock-kpi-card:has(.stock-pill-gain):hover {
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(16, 185, 129, 0.25);
+}
+.stock-kpi-card:has(.stock-pill-loss) {
+  border-color: rgba(244, 63, 94, 0.3);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2), 0 0 14px rgba(244, 63, 94, 0.12);
+}
+.stock-kpi-card:has(.stock-pill-loss):hover {
+  border-color: rgba(244, 63, 94, 0.55);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(244, 63, 94, 0.25);
+}
 
 .stock-kpi-lbl {
   font-size: 11px;
@@ -183,14 +199,28 @@
 }
 
 .stock-pill-gain {
-  color: var(--stock-green);
+  color: var(--stock-green, #10b981);
   font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+.stock-pill-gain::before {
+  content: '▲';
+  font-size: 8px;
+  display: inline-block;
+  animation: liveArrowBob 1.2s ease-in-out infinite;
+  color: var(--stock-green, #10b981);
 }
 .stock-pill-loss {
-  color: var(--stock-red);
+  color: var(--stock-red, #f43f5e);
   font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 /* ── Navigation Tabs ─────────────────────────────────────────── */
