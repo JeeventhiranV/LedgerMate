@@ -281,6 +281,21 @@
      */
     getReferenceQuote: function (symbol, exchange) {
       return null;
+    },
+
+    /**
+     * Get user custom stocks for export
+     */
+    getCustomStocks: getCustomStocks,
+
+    /**
+     * Import user custom stocks from backup
+     */
+    importCustomStocks: function (list) {
+      if (!Array.isArray(list)) return;
+      try {
+        localStorage.setItem(CUSTOM_STOCKS_KEY, JSON.stringify(list));
+      } catch (e) {}
     }
   };
 

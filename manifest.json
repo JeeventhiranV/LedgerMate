@@ -3,7 +3,7 @@
   "name": "LedgerMate",
   "short_name": "LedgerMate",
   "launcherName": "LedgerMate",
-  "description": "Smart offline finance tracker to manage expenses, investments, profits and live market insights.",
+  "description": "Smart finance tracker to manage expenses, investments, profits and live market insights with real-time cloud sync.",
   "start_url": "./index.html",
   "scope": "/",
   "display": "standalone",

@@ -97,14 +97,6 @@
         transition: color 0.15s;
       }
       .lm-toast-close:hover { color: #f1f5f9; }
-      @media (max-width: 640px) {
-        #lm-toast-container {
-          bottom: 16px;
-          right: 16px;
-          left: 16px;
-          max-width: none;
-        }
-      }
     `;
     document.head.appendChild(style);
   }
@@ -135,9 +127,17 @@
     toast.className = 'lm-toast-item lm-toast-' + normalizedType;
     var icon = ICONS[type] || ICONS[normalizedType] || '💡';
 
+    // Normalize message & strip leading emoji to prevent duplicate icons (e.g. ✅ ✅)
+    var cleanMsg = String(message).trim();
+    var leadingEmojiMatch = cleanMsg.match(/^([\u2300-\u23FF\u2600-\u27BF\uFE00-\uFE0F\uD83C-\uDBFF\uDC00-\uDFFF\u200D]+)\s*/);
+    if (leadingEmojiMatch) {
+      icon = leadingEmojiMatch[1];
+      cleanMsg = cleanMsg.slice(leadingEmojiMatch[0].length);
+    }
+
     toast.innerHTML = `
       <span class="lm-toast-icon">${icon}</span>
-      <span class="lm-toast-msg">${message}</span>
+      <span class="lm-toast-msg">${cleanMsg}</span>
       <button class="lm-toast-close" aria-label="Dismiss">&times;</button>
     `;
 

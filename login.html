@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
@@ -322,12 +322,17 @@ body {
     showMsg('signinMsg', '⏳ Account pending approval — once the admin approves you, you can sign in.', 'warning');
   } else if (_msgParam === 'noprofile') {
     showMsg('signinMsg', 'Account setup incomplete. Please contact the administrator.', 'error');
+  } else if (_msgParam === 'deployed') {
+    showMsg('signinMsg', '🚀 New update deployed! Please sign in again to access the latest version.', 'info');
   }
 
   /* Clean ?action, ?msg from URL bar without reloading */
   if (_isLogout || _msgParam) history.replaceState(null, '', window.location.pathname);
 
   function redirect() {
+    if (window.LM_DEPLOY_ID) {
+      localStorage.setItem('lm_active_deploy_commit', window.LM_DEPLOY_ID);
+    }
     localStorage.removeItem('lm_oauth_app');
     window.location.replace(APPS[_app].redirectUrl());
   }

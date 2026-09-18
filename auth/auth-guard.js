@@ -478,6 +478,18 @@
   }
 
   // ── 7. Main guard logic ──────────────────────────────────────────────────────
+  var currentDeploy = window.LM_DEPLOY_ID || null;
+  var activeDeploy  = localStorage.getItem('lm_active_deploy_commit');
+  if (currentDeploy && activeDeploy && activeDeploy !== currentDeploy) {
+    localStorage.setItem('lm_active_deploy_commit', currentDeploy);
+    _supabase.auth.signOut().then(function () {
+      _redirect(_getLoginUrl() + '&msg=deployed');
+    }).catch(function () {
+      _redirect(_getLoginUrl() + '&msg=deployed');
+    });
+    return;
+  }
+
   _supabase.auth.getSession().then(function (res) {
     var session = res && res.data && res.data.session;
 

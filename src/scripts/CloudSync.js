@@ -108,7 +108,8 @@
     'note_attachments','note_versions','audit_logs','emi_loans',
     'net_worth_snapshots','allocation_targets','sip_plan',
     'essentials_settings','savings_goals','subscriptions',
-    'fd_rd','tx_templates','users','dropdowns'
+    'fd_rd','tx_templates','users','dropdowns',
+    'credit_cards','dashboard_config','recurringTransactions'
   ];
 
   // Clear all user-data stores so cloud import is always a full replace

@@ -312,7 +312,7 @@
       <button class="sidebar-nav-item" id="btnImport">
         <span class="nav-icon">📥</span> Import Data
       </button>
-      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      <input type="file" id="importFile" accept=".json,.csv" style="display:none" onchange="window.importData&&window.importData(event)">
       <button class="sidebar-nav-item" id="clearData">
         <span class="nav-icon">🗑️</span> Clear All Data
       </button>
@@ -368,9 +368,6 @@
         <!-- ⚡ Command Palette -->
         <button class="icon-btn" title="Command Palette (Ctrl+K)" onclick="window.LM_CommandPalette?.toggle()" style="font-size:14px;font-weight:700;color:var(--teal,#00d4b4);">⚡</button>
 
-        <!-- 🌊 Sankey Cash Flow -->
-        <button class="icon-btn" title="Cash Flow Sankey" onclick="window.LM_Sankey?.showModal()">🌊</button>
-
         <!-- 🔍 Search -->
         <button class="icon-btn srch-trigger-btn" title="Search (Ctrl+K)" onclick="window.LM_CommandPalette ? window.LM_CommandPalette.open() : openSearch()">🔍</button>
 
@@ -384,11 +381,6 @@
         <!-- ☁️ Cloud Sync -->
         <button id="cloudSyncBtn" class="icon-btn" title="Sync to cloud" onclick="LM_manualSync()">☁️</button>
 
-        <!-- 👁️ Privacy / Stealth Mode Toggle -->
-        <button id="btnPrivacyToggle" class="icon-btn" title="Toggle Balance Privacy (Stealth Mode)" onclick="window.LM_togglePrivacyMode()">👁️</button>
-
-        <!-- 🌙 Theme toggle -->
-        <button class="icon-btn" onclick="toggleTheme()" id="themeIcon" title="Toggle Theme">🌙</button>
         <!-- 👤 User profile (far right) -->
         <div style="position:relative;">
           <div class="topbar-user-chip" id="topbarUserChipWrap" onclick="document.getElementById('userDropdownMenu').classList.toggle('open')" title="Account">
@@ -408,6 +400,12 @@
             </button>
             <button class="topbar-user-menu-item" onclick="window.LM_Biometrics?.register(); document.getElementById('userDropdownMenu').classList.remove('open')">
               🔐 Link Biometrics (Touch/Face ID)
+            </button>
+            <button class="topbar-user-menu-item" onclick="document.getElementById('userDropdownMenu').classList.remove('open'); window.LM_togglePrivacyMode()">
+              👁️ Balance Privacy Mode
+            </button>
+            <button class="topbar-user-menu-item" onclick="document.getElementById('userDropdownMenu').classList.remove('open'); toggleTheme()">
+              🌓 Toggle Theme
             </button>
             <button class="topbar-user-menu-item" onclick="document.getElementById('userDropdownMenu').classList.remove('open'); openPreferencesModal()">
               🔔 Preferences
@@ -438,21 +436,35 @@
             <div class="page-greeting" id="greeting">Good morning</div>
             <h1 class="page-title"><em>Financial</em> Overview</h1>
           </div>
-         <div class="range-pills fade-up fade-up-2" id="rangePillsNew">
+          <div class="page-header-right">
+            <!-- 🛠️ Quick Tools: Cashflow Visualizer, Privacy Mode, Theme Toggle -->
+            <div class="overview-quick-tools" id="overviewQuickTools">
+              <button class="overview-tool-btn" onclick="window.LM_Sankey ? window.LM_Sankey.showModal() : (typeof openSankeyModal==='function'&&openSankeyModal())" title="Cashflow Visualizer (Flow Diagram)" aria-label="Cashflow Visualizer">
+                🌊 <span class="overview-tool-label">Flow</span>
+              </button>
+              <button id="btnPrivacyToggle" class="overview-tool-btn" title="Toggle Balance Privacy (Stealth Mode)" onclick="window.LM_togglePrivacyMode()" aria-label="Privacy Mode">
+                👁️ <span class="overview-tool-label">Privacy</span>
+              </button>
+              <button id="themeIcon" class="overview-tool-btn" onclick="toggleTheme()" title="Toggle Dark / Light Theme" aria-label="Toggle Theme">
+                <span class="theme-emoji">🌙</span> <span class="overview-tool-label">Theme</span>
+              </button>
+            </div>
 
-          <button class="range-pill" id="btn-7">7d</button>
-          <button class="range-pill active" id="btn-30">30d</button>
-          <button class="range-pill" id="btn-90">90d</button>
-          <button class="range-pill" id="btn-365">1y</button>
-          <button class="range-pill" id="btn-custom">Custom</button>
-
-        </div>
-        <!-- CUSTOM RANGE -->
-        <div id="customRangeInputs" class="grid-2 fade-up fade-up-2" style="display:none; margin-top:10px;">
-          <input type="date" id="customStart" class="form-input">
-          <input type="date" id="customEnd" class="form-input">
-        </div>
-                </div>  
+            <!-- 📅 Range Filter Pills -->
+            <div class="range-pills fade-up fade-up-2" id="rangePillsNew">
+              <button class="range-pill" id="btn-7">7d</button>
+              <button class="range-pill active" id="btn-30">30d</button>
+              <button class="range-pill" id="btn-90">90d</button>
+              <button class="range-pill" id="btn-365">1y</button>
+              <button class="range-pill" id="btn-custom">Custom</button>
+            </div>
+          </div>
+          <!-- CUSTOM RANGE -->
+          <div id="customRangeInputs" class="grid-2 fade-up fade-up-2" style="display:none; margin-top:10px; width:100%;">
+            <input type="date" id="customStart" class="form-input">
+            <input type="date" id="customEnd" class="form-input">
+          </div>
+        </div>  
 
         <!-- ⚡ DASHBOARD QUICK ACTION SPEED DIAL -->
         <div class="dash-quick-actions-wrap fade-up fade-up-2">
@@ -969,7 +981,7 @@
       <div id="creditCardModals"></div>
 
     </div><!-- /pageContent -->
-    <footer>© <span id="year"></span> <span>LedgerMate</span> by Jeeventhiran &nbsp;·&nbsp;</br> All data stored offline</footer>
+    <footer>© <span id="year"></span> <span>LedgerMate</span> by Jeeventhiran</footer>
   </main>
 </div>
 
@@ -1222,7 +1234,7 @@
           <p>• Use 🔍 search to quickly find transactions</p>
           <p>• Export data anytime for backup</p>
           <p>• Toggle theme (dark/light) from top-right</p>
-          <p>• Everything works offline</p>
+          <p>• Real-time cloud sync with Supabase</p>
         </div>
       </div>
 

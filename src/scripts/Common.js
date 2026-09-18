@@ -274,8 +274,24 @@ if (dd.length) {
   const theme = settings.theme || 'dark';
   document.documentElement.setAttribute('data-theme', theme);
   document.body.setAttribute('data-theme', theme);
-  const iconEl = document.getElementById('themeIcon');
-  if (iconEl) iconEl.textContent = theme === 'dark' ? '🌙' : '☀️';
+  function updateThemeIconElements(themeVal) {
+    const iconValue = themeVal === 'dark' ? '🌙' : '☀️';
+    ['themeIcon', 'themeBtn'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const emojiSpan = el.querySelector('.theme-emoji');
+      const label = el.querySelector('.overview-tool-label');
+      if (emojiSpan) {
+        emojiSpan.textContent = iconValue;
+      } else if (label) {
+        el.innerHTML = `<span class="theme-emoji">${iconValue}</span> <span class="overview-tool-label">Theme</span>`;
+      } else {
+        el.textContent = iconValue;
+      }
+    });
+  }
+  window.updateThemeIconElements = updateThemeIconElements;
+  updateThemeIconElements(theme);
   state.users = await getAll('users');
   state.savings = await getAll('savings');
   state.investments = await getAll('investments');
@@ -353,6 +369,26 @@ function autoSortDropdowns(data) {
 // ----------------------------
 // UI Bindings
 // ----------------------------
+// File Import Handler
+// ----------------------------
+window.importData = async function(e) {
+  const file = e?.target?.files?.[0];
+  if (!file) return;
+  try {
+    const txt = await file.text();
+    if (file.name.toLowerCase().endsWith('.csv')) {
+      await importCSVText(txt);
+    } else {
+      await fullImportJSONText(txt, 'Manual');
+    }
+  } catch(err) {
+    console.error('[LM] importData error:', err);
+    if (typeof showToast === 'function') showToast('❌ Import error: ' + (err?.message || err), 'error');
+  } finally {
+    if (e.target) e.target.value = '';
+  }
+};
+
 function bindUI(){
   document.getElementById('btnSetFolder').onclick = setDataFolder;
   document.getElementById('btnFullExport').onclick = fullExport;
@@ -362,17 +398,7 @@ function bindUI(){
   document.getElementById('btnImport').onclick = () => importFileEl?.click();
   if (importFileEl && !importFileEl.dataset.bound) {
     importFileEl.dataset.bound = '1';
-    importFileEl.addEventListener('change', async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const txt = await file.text();
-      if (file.name.endsWith('.csv')) {
-        await importCSVText(txt);
-      } else {
-        await fullImportJSONText(txt, 'Manual');
-      }
-      e.target.value = ''; /* reset so same file can be re-imported */
-    });
+    importFileEl.addEventListener('change', window.importData);
   }
   // document.getElementById('kpiRange').onchange = onKpiRangeChange;
   //document.getElementById('btnQuickAdd').onclick = () => openAddTransactionModal();
@@ -2155,6 +2181,9 @@ let activeToasts = 0;  // Count active toasts
 const MAX_TOASTS = 2;  //  Max toasts visible at a time
 
 function showToast(message, type = 'info', duration = 3000) {
+  if (window.LMToast && typeof window.LMToast.show === 'function') {
+    return window.LMToast.show(message, type, duration);
+  }
   /* Ensure container exists */
   let container = document.getElementById('toastContainer');
   if (!container) {
@@ -2649,7 +2678,8 @@ async function fullImportJSONText(txt, source = "Unknown"){
     if (data.savings)     for (const s of data.savings)                 await put('savings', s);
     if (data.investments) for (const inv of data.investments)           await put('investments', inv);
     if (data.trips)       for (const trip of data.trips)                await put('trips', trip);
-    if (data.routes)      for (const route of data.routes)              await put('trip_routes', route);
+    const routesList = data.routes || data.trip_routes || [];
+    for (const route of routesList)                                     await put('trip_routes', route);
     if (data.credentials) for (const cred of data.credentials)          await put('credentials', cred);
     if (data.notes)       for (const note of data.notes)                await put('notes', note);
     if (data.note_folders)      for (const f of data.note_folders)      await put('note_folders', f);
@@ -2663,6 +2693,36 @@ async function fullImportJSONText(txt, source = "Unknown"){
     if (data.essentials_settings) {
       for (const [key, value] of Object.entries(data.essentials_settings))
         await put('essentials_settings', { key, value });
+    }
+
+    /* ── Restore Savings Goals ────────────────────────── */
+    if (Array.isArray(data.savings_goals)) {
+      for (const sg of data.savings_goals) await put('savings_goals', sg);
+    }
+
+    /* ── Restore Subscriptions ────────────────────────── */
+    if (Array.isArray(data.subscriptions)) {
+      for (const sub of data.subscriptions) await put('subscriptions', sub);
+    }
+
+    /* ── Restore FD / RD Deposits ─────────────────────── */
+    if (Array.isArray(data.fd_rd)) {
+      for (const fd of data.fd_rd) await put('fd_rd', fd);
+    }
+
+    /* ── Restore Transaction Templates ────────────────── */
+    if (Array.isArray(data.tx_templates)) {
+      for (const tmpl of data.tx_templates) await put('tx_templates', tmpl);
+    }
+
+    /* ── Restore Dashboard Config ─────────────────────── */
+    if (data.dashboard_config && typeof data.dashboard_config === 'object') {
+      await put('dashboard_config', data.dashboard_config);
+    }
+
+    /* ── Restore Recurring Transactions ──────────────── */
+    if (Array.isArray(data.recurringTransactions)) {
+      for (const rec of data.recurringTransactions) await put('recurringTransactions', rec);
     }
 
     /* ── Restore Credit Cards Data ─────────────────── */
@@ -2683,9 +2743,7 @@ async function fullImportJSONText(txt, source = "Unknown"){
       const theme = settings.theme || 'dark';
       document.documentElement.setAttribute('data-theme', theme);
       document.body.setAttribute('data-theme', theme);
-      const iconValue = theme === 'dark' ? '🌙' : '☀️';
-      const icon = document.getElementById('themeIcon');
-      if (icon) icon.textContent = iconValue;
+      if (typeof updateThemeIconElements === 'function') updateThemeIconElements(theme);
     }
 
     /* ── Restore Stock Portfolio Data ─────────────────── */
@@ -2701,10 +2759,52 @@ async function fullImportJSONText(txt, source = "Unknown"){
       }
     }
 
-    if(source !== "Drive"){
+    /* ── Restore Category Rules ───────────────────────── */
+    if (Array.isArray(data.category_rules)) {
+      if (window.LM_CategoryRules && typeof window.LM_CategoryRules.saveRules === 'function') {
+        window.LM_CategoryRules.saveRules(data.category_rules);
+      } else {
+        const uid = window.LM_Auth?.getCurrentUserId?.() || 'default';
+        localStorage.setItem(`lm_u_${uid}_category_rules_v1`, JSON.stringify(data.category_rules));
+      }
+    }
+
+    /* ── Restore Custom Stocks ────────────────────────── */
+    if (Array.isArray(data.custom_stocks)) {
+      if (window.LM_StockRegistry && typeof window.LM_StockRegistry.importCustomStocks === 'function') {
+        window.LM_StockRegistry.importCustomStocks(data.custom_stocks);
+      } else {
+        try { localStorage.setItem('lm_custom_stocks', JSON.stringify(data.custom_stocks)); } catch(e){}
+      }
+    }
+
+    /* ── Restore Emergency Fund & Gold Data ───────────── */
+    const currentUid = window.LM_Auth?.getCurrentUserId?.() || 'default';
+    if (data.emergency_fund) {
+      try { localStorage.setItem(`lm_u_${currentUid}_ef`, JSON.stringify(data.emergency_fund)); } catch(e){}
+    }
+    if (data.gold_data) {
+      try { localStorage.setItem(`lm_u_${currentUid}_gold_data`, JSON.stringify(data.gold_data)); } catch(e){}
+    }
+
+    if (source !== "Drive"){
       await loadAllFromDB();
-      renderAll();
-      showToast('✅ Import complete', 'success');
+      if (typeof renderAll === 'function') renderAll();
+      showToast('✅ Import complete! All data restored.', 'success');
+    }
+
+    /* ── CRITICAL: Persist newly imported data to Supabase Cloud ── */
+    if (window.LM_CloudSync && source !== 'CloudSync') {
+      try {
+        await window.LM_CloudSync.save();
+        console.log('[LM] Imported data synced to Supabase cloud successfully');
+      } catch(syncErr) {
+        console.warn('[LM] Cloud sync after import failed:', syncErr);
+      }
+    }
+    if (window.LM_Bus) {
+      window.LM_Bus.emit('lm:data:changed');
+      window.LM_Bus.emit('lm:import:complete');
     }
   } catch(err) {
     console.error('[LM] Import failed:', err);
@@ -2718,7 +2818,9 @@ async function clearAllStores(){
     'transactions','budgets','loans','reminders','savings','investments',
     'trips','trip_routes','credentials','audit_logs','notes','note_folders',
     'note_attachments','note_versions','emi_loans','net_worth_snapshots',
-    'allocation_targets','sip_plan','essentials_settings','credit_cards'
+    'allocation_targets','sip_plan','essentials_settings','credit_cards',
+    'savings_goals','subscriptions','fd_rd','tx_templates','dashboard_config',
+    'recurringTransactions'
   ];
 
   for (const s of stores){
@@ -2832,6 +2934,10 @@ function packSnapshot(metaExtra = {}) {
     sip_plan: state.sip_plan || [],
     essentials_settings: state.essentials_settings || {},
     savings_goals: state.savings_goals || [],
+    subscriptions: state.subscriptions || [],
+    fd_rd:         state.fd_rd || [],
+    tx_templates:  state.tx_templates || [],
+    dashboard_config: state.dashboard_config || {},
     credit_cards: state.credit_cards || []
   };
 }
@@ -2898,6 +3004,15 @@ async function mergeRestore(payload) {
   await upsertList('net_worth_snapshots', payload.net_worth_snapshots || []);
   await upsertList('allocation_targets',  payload.allocation_targets || []);
   await upsertList('sip_plan',            payload.sip_plan || []);
+  await upsertList('savings_goals',       payload.savings_goals || []);
+  await upsertList('subscriptions',       payload.subscriptions || []);
+  await upsertList('fd_rd',               payload.fd_rd || []);
+  await upsertList('tx_templates',        payload.tx_templates || []);
+  await upsertList('recurringTransactions', payload.recurringTransactions || []);
+
+  if (payload.dashboard_config && typeof payload.dashboard_config === 'object') {
+    try { await put('dashboard_config', payload.dashboard_config); } catch(e){}
+  }
 
   if (payload.essentials_settings && typeof payload.essentials_settings === 'object') {
     for (const [key, value] of Object.entries(payload.essentials_settings)) {
@@ -2914,8 +3029,7 @@ async function mergeRestore(payload) {
     const theme = settings.theme || 'dark';
     document.documentElement.setAttribute('data-theme', theme);
     document.body.setAttribute('data-theme', theme);
-    const icon = document.getElementById('themeIcon');
-    if (icon) icon.textContent = theme === 'dark' ? '🌙' : '☀️';
+    if (typeof updateThemeIconElements === 'function') updateThemeIconElements(theme);
   }
 
   /* ── Restore Stock Portfolio Data ───────────────────── */
@@ -2941,8 +3055,48 @@ async function mergeRestore(payload) {
     }
   }
 
+  /* ── Restore Category Rules ───────────────────────── */
+  if (Array.isArray(payload.category_rules)) {
+    if (window.LM_CategoryRules && typeof window.LM_CategoryRules.saveRules === 'function') {
+      window.LM_CategoryRules.saveRules(payload.category_rules);
+    } else {
+      const uid = window.LM_Auth?.getCurrentUserId?.() || 'default';
+      localStorage.setItem(`lm_u_${uid}_category_rules_v1`, JSON.stringify(payload.category_rules));
+    }
+  }
+
+  /* ── Restore Custom Stocks ────────────────────────── */
+  if (Array.isArray(payload.custom_stocks)) {
+    if (window.LM_StockRegistry && typeof window.LM_StockRegistry.importCustomStocks === 'function') {
+      window.LM_StockRegistry.importCustomStocks(payload.custom_stocks);
+    } else {
+      try { localStorage.setItem('lm_custom_stocks', JSON.stringify(payload.custom_stocks)); } catch(e){}
+    }
+  }
+
+  /* ── Restore Emergency Fund & Gold Data ───────────── */
+  const currentUid = window.LM_Auth?.getCurrentUserId?.() || 'default';
+  if (payload.emergency_fund) {
+    try { localStorage.setItem(`lm_u_${currentUid}_ef`, JSON.stringify(payload.emergency_fund)); } catch(e){}
+  }
+  if (payload.gold_data) {
+    try { localStorage.setItem(`lm_u_${currentUid}_gold_data`, JSON.stringify(payload.gold_data)); } catch(e){}
+  }
+
   /* ── Refresh in-memory state ─────────────────────────── */
   if (db) await loadAllFromDB();
+
+  /* ── Persist to CloudSync if available ───────────────── */
+  if (window.LM_CloudSync) {
+    try {
+      await window.LM_CloudSync.save();
+    } catch(e) {
+      console.warn('[LM] Cloud sync after mergeRestore failed:', e);
+    }
+  }
+  if (window.LM_Bus) {
+    window.LM_Bus.emit('lm:data:changed');
+  }
 }
 
 // ---- Write targets ----
@@ -3200,11 +3354,15 @@ function onKpiRangeChange(e) {
   if (window.state) state.settings = { ...(state.settings || {}), theme: newTheme };
 
   /* Update icon */
-  const iconValue = newTheme === 'dark' ? '🌙' : '☀️';
-  ['themeIcon','themeBtn'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = iconValue;
-  });
+  if (typeof updateThemeIconElements === 'function') {
+    updateThemeIconElements(newTheme);
+  } else {
+    const iconValue = newTheme === 'dark' ? '🌙' : '☀️';
+    ['themeIcon','themeBtn'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = iconValue;
+    });
+  }
 
   saveSettingsToStore();
 }
@@ -3216,7 +3374,13 @@ window.LM_togglePrivacyMode = function() {
   const isPrivacy = document.body.classList.toggle('privacy-mode');
   const btn = document.getElementById('btnPrivacyToggle');
   if (btn) {
-    btn.textContent = isPrivacy ? '🙈' : '👁️';
+    const icon = isPrivacy ? '🙈' : '👁️';
+    const label = btn.querySelector('.overview-tool-label');
+    if (label) {
+      btn.innerHTML = `${icon} <span class="overview-tool-label">Privacy</span>`;
+    } else {
+      btn.textContent = icon;
+    }
     btn.title = isPrivacy ? 'Stealth Mode Active (Balances Masked)' : 'Toggle Balance Privacy (Stealth Mode)';
   }
   localStorage.setItem('lm_privacy_mode', isPrivacy ? '1' : '0');
@@ -3232,7 +3396,12 @@ window.LM_togglePrivacyMode = function() {
     const updateIcon = () => {
       const btn = document.getElementById('btnPrivacyToggle');
       if (btn) {
-        btn.textContent = '🙈';
+        const label = btn.querySelector('.overview-tool-label');
+        if (label) {
+          btn.innerHTML = `🙈 <span class="overview-tool-label">Privacy</span>`;
+        } else {
+          btn.textContent = '🙈';
+        }
         btn.title = 'Stealth Mode Active (Balances Masked)';
       }
     };
@@ -3639,30 +3808,43 @@ async function syncDriveToIndexedDB(driveData) {
 }
 async function FinalJson(){
   const userId = window.LM_Auth?.getCurrentUserId?.() || 'default';
+  let recurring = [];
+  try {
+    if (typeof getAll === 'function' && window.db && window.db.objectStoreNames.contains('recurringTransactions')) {
+      recurring = await getAll('recurringTransactions');
+    }
+  } catch(e) {}
+
   const payload = {
-    transactions       : state.transactions,
-    budgets            : state.budgets,
-    loans              : state.loans,
-    reminders          : state.reminders,
-    dropdowns          : state.dropdowns,
-    settings           : state.settings,
+    transactions       : state.transactions || [],
+    budgets            : state.budgets || [],
+    loans              : state.loans || [],
+    reminders          : state.reminders || [],
+    dropdowns          : state.dropdowns || {},
+    settings           : state.settings || {},
     appSettings        : settings,       /* theme + kpiRange */
-    users              : state.users,
-    savings            : state.savings,
-    investments        : state.investments,
-    trips              : state.trips,
-    routes             : state.routes,
-    credentials        : state.credentials,
-    notes              : state.notes,
-    note_folders       : state.note_folders,
-    note_attachments   : state.note_attachments,
-    note_versions      : state.note_versions,
-    emi_loans          : state.emi_loans,
-    net_worth_snapshots: state.net_worth_snapshots,
-    allocation_targets : state.allocation_targets,
-    sip_plan           : state.sip_plan,
-    essentials_settings: state.essentials_settings,
-    audit_logs         : state.audit_logs,
+    users              : state.users || [],
+    savings            : state.savings || [],
+    investments        : state.investments || [],
+    trips              : state.trips || [],
+    routes             : state.routes || state.trip_routes || [],
+    credentials        : state.credentials || [],
+    notes              : state.notes || [],
+    note_folders       : state.note_folders || [],
+    note_attachments   : state.note_attachments || [],
+    note_versions      : state.note_versions || [],
+    emi_loans          : state.emi_loans || [],
+    net_worth_snapshots: state.net_worth_snapshots || [],
+    allocation_targets : state.allocation_targets || [],
+    sip_plan           : state.sip_plan || [],
+    essentials_settings: state.essentials_settings || {},
+    savings_goals      : state.savings_goals || [],
+    subscriptions      : state.subscriptions || [],
+    fd_rd              : state.fd_rd || [],
+    tx_templates       : state.tx_templates || [],
+    dashboard_config   : state.dashboard_config || {},
+    recurringTransactions: recurring || [],
+    audit_logs         : state.audit_logs || [],
     stock_portfolio_data: (function(){
       try {
         if (window.LM_StockPortfolioService && typeof window.LM_StockPortfolioService.exportData === 'function') {
@@ -3679,6 +3861,36 @@ async function FinalJson(){
         }
         return state.credit_cards || [];
       } catch(e) { return state.credit_cards || []; }
+    })(),
+    category_rules: (function(){
+      try {
+        if (window.LM_CategoryRules && typeof window.LM_CategoryRules.getRules === 'function') {
+          return window.LM_CategoryRules.getRules();
+        }
+        var r = localStorage.getItem('lm_u_' + userId + '_category_rules_v1') || localStorage.getItem('category_rules_v1');
+        return r ? JSON.parse(r) : [];
+      } catch(e) { return []; }
+    })(),
+    custom_stocks: (function(){
+      try {
+        if (window.LM_StockRegistry && typeof window.LM_StockRegistry.getCustomStocks === 'function') {
+          return window.LM_StockRegistry.getCustomStocks();
+        }
+        var s = localStorage.getItem('lm_custom_stocks');
+        return s ? JSON.parse(s) : [];
+      } catch(e) { return []; }
+    })(),
+    emergency_fund: (function(){
+      try {
+        var ef = localStorage.getItem('lm_u_' + userId + '_ef') || localStorage.getItem('lm_emergency_fund');
+        return ef ? JSON.parse(ef) : null;
+      } catch(e) { return null; }
+    })(),
+    gold_data: (function(){
+      try {
+        var gd = localStorage.getItem('lm_u_' + userId + '_gold_data') || localStorage.getItem('lm_gold_data');
+        return gd ? JSON.parse(gd) : null;
+      } catch(e) { return null; }
     })(),
     meta: {
       exportedAt   : new Date().toISOString(),
@@ -4513,9 +4725,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.setAttribute('data-theme', theme);
 
   /* Sync icon */
-  const iconValue = theme === 'dark' ? '🌙' : '☀️';
-  const icon = document.getElementById('themeIcon');
-  if (icon) icon.textContent = iconValue;
+  if (typeof updateThemeIconElements === 'function') {
+    updateThemeIconElements(theme);
+  } else {
+    const iconValue = theme === 'dark' ? '🌙' : '☀️';
+    const icon = document.getElementById('themeIcon');
+    if (icon) icon.textContent = iconValue;
+  }
 });
 
 

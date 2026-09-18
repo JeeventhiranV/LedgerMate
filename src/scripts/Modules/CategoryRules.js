@@ -199,6 +199,7 @@
 
   window.LM_CategoryRules = {
     getRules: getRules,
+    saveRules: saveRules,
     suggestCategory: suggestCategory,
     learnFromTransaction: learnFromTransaction,
     addRule: addRule,

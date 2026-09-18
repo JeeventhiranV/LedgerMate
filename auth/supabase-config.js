@@ -8,6 +8,8 @@
 
 var SUPABASE_URL1  = 'SUPABASE_URL';
 var SUPABASE_ANON1 = 'SUPABASE_ANON'; // ← paste your anon/public key from Supabase Dashboard → Settings → API 
+var LM_DEPLOY_ID   = 'lm-v20260919.f032c7d';
+window.LM_DEPLOY_ID = LM_DEPLOY_ID;
  
 var _supabase = (function () {
   if (!SUPABASE_URL1.startsWith('https://') || SUPABASE_ANON1.length < 20) {
