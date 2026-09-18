@@ -26,27 +26,25 @@
     style.textContent = `
       #lm-toast-container {
         position: fixed;
-        top: calc(14px + env(safe-area-inset-top, 0px));
-        left: 50%;
-        transform: translateX(-50%);
+        top: calc(58px + env(safe-area-inset-top, 0px));
+        right: 12px;
+        left: auto;
         bottom: auto;
-        right: auto;
+        transform: none;
         z-index: 999999;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        gap: 10px;
+        align-items: flex-end;
+        gap: 6px;
         pointer-events: none;
-        max-width: 420px;
-        width: calc(100% - 32px);
+        max-width: 280px;
+        width: auto;
       }
-      @media (min-width: 1024px) {
+      @media (max-width: 480px) {
         #lm-toast-container {
-          top: 20px;
-          right: 24px;
-          left: auto;
-          transform: none;
-          align-items: flex-end;
+          top: calc(56px + env(safe-area-inset-top, 0px));
+          right: 10px;
+          max-width: 260px;
         }
       }
       .lm-toast-item {
@@ -54,30 +52,32 @@
         backdrop-filter: blur(16px);
         border: 1px solid rgba(255, 255, 255, 0.12);
         color: #f1f5f9;
-        border-radius: 14px;
-        padding: 12px 16px;
+        border-radius: 12px;
+        padding: 8px 12px;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 500;
-        line-height: 1.4;
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+        line-height: 1.35;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
         pointer-events: auto;
         opacity: 0;
-        transform: translateY(-16px) scale(0.96);
+        transform: translateX(30px) scale(0.96);
         transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        width: 100%;
+        min-width: 180px;
+        max-width: 270px;
+        width: auto;
         box-sizing: border-box;
       }
       .lm-toast-item.lm-toast-show {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translateX(0) scale(1);
       }
       .lm-toast-item.lm-toast-hide {
         opacity: 0;
-        transform: translateY(-16px) scale(0.94);
+        transform: translateX(30px) scale(0.94);
       }
       .lm-toast-success { border-left: 4px solid #10b981; }
       .lm-toast-error   { border-left: 4px solid #f43f5e; }

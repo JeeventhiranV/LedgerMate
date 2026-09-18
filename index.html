@@ -384,10 +384,8 @@
         <!-- ☁️ Cloud Sync -->
         <button id="cloudSyncBtn" class="icon-btn" title="Sync to cloud" onclick="LM_manualSync()">☁️</button>
 
-        <!-- 🔔 Push enable (shown until granted) -->
-        <button id="lmPushEnableBtn" class="icon-btn" title="Enable push notifications" onclick="window.LMPush&&LMPush.request()" style="display:none;position:relative;" aria-label="Enable notifications">
-          🔕
-        </button>
+        <!-- 👁️ Privacy / Stealth Mode Toggle -->
+        <button id="btnPrivacyToggle" class="icon-btn" title="Toggle Balance Privacy (Stealth Mode)" onclick="window.LM_togglePrivacyMode()">👁️</button>
 
         <!-- 🌙 Theme toggle -->
         <button class="icon-btn" onclick="toggleTheme()" id="themeIcon" title="Toggle Theme">🌙</button>
@@ -413,6 +411,9 @@
             </button>
             <button class="topbar-user-menu-item" onclick="document.getElementById('userDropdownMenu').classList.remove('open'); openPreferencesModal()">
               🔔 Preferences
+            </button>
+            <button class="topbar-user-menu-item" id="menuEnablePushBtn" style="display:none;" onclick="document.getElementById('userDropdownMenu').classList.remove('open'); window.LMPush&&window.LMPush.request()">
+              📲 Enable Push Notifications
             </button>
             <button class="topbar-user-menu-item pwa-install-trigger" style="display:none;color:var(--teal,#00d4b4);" onclick="document.getElementById('userDropdownMenu').classList.remove('open'); window.LM_PWA?.install()">
               ⬇️ Install App
@@ -452,7 +453,32 @@
           <input type="date" id="customEnd" class="form-input">
         </div>
                 </div>  
-  <!-- KPI GRID (REPLACES SCROLL CARDS) -->
+
+        <!-- ⚡ DASHBOARD QUICK ACTION SPEED DIAL -->
+        <div class="dash-quick-actions-wrap fade-up fade-up-2">
+          <button class="dash-action-btn" onclick="openAddTransactionModal({type:'out'})" title="Log an expense">
+            <span class="dash-action-icon expense">💸</span>
+            <span class="dash-action-label">Expense</span>
+          </button>
+          <button class="dash-action-btn" onclick="openAddTransactionModal({type:'in'})" title="Record income">
+            <span class="dash-action-icon income">💰</span>
+            <span class="dash-action-label">Income</span>
+          </button>
+          <button class="dash-action-btn" onclick="openAddTransactionModal({type:'transfer'})" title="Transfer between accounts">
+            <span class="dash-action-icon transfer">🔄</span>
+            <span class="dash-action-label">Transfer</span>
+          </button>
+          <button class="dash-action-btn" onclick="showPage('stocks');setTimeout(()=>window.LM_StockPortfolioUI?.openAddTransactionModal(),100)" title="Log stock buy/sell order">
+            <span class="dash-action-icon stocks">📈</span>
+            <span class="dash-action-label">Log Stock</span>
+          </button>
+          <button class="dash-action-btn" onclick="showPage('credit-cards')" title="Manage credit cards & bill dues">
+            <span class="dash-action-icon cards">💳</span>
+            <span class="dash-action-label">Cards</span>
+          </button>
+        </div>
+
+        <!-- KPI GRID (REPLACES SCROLL CARDS) -->
         <div id="kpiCards" class="kpi-grid fade-up fade-up-3">
           <!-- JS will render cards here -->
         </div>
@@ -839,6 +865,16 @@
   <!-- Suggestions -->
   <div id="searchSuggestions"
        class="absolute left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-lg z-50 hidden max-h-48 overflow-y-auto">
+  </div>
+
+  <!-- 🏷️ 1-TAP QUICK FILTER CHIPS -->
+  <div class="tx-quick-chips-wrap mb-3" id="txQuickFilterChips">
+    <button type="button" class="tx-quick-chip active" data-filter="all" onclick="applyTxQuickFilter('all')">All</button>
+    <button type="button" class="tx-quick-chip" data-filter="out" onclick="applyTxQuickFilter('out')">💸 Expenses</button>
+    <button type="button" class="tx-quick-chip" data-filter="in" onclick="applyTxQuickFilter('in')">💰 Income</button>
+    <button type="button" class="tx-quick-chip" data-filter="transfer" onclick="applyTxQuickFilter('transfer')">🔄 Transfers</button>
+    <button type="button" class="tx-quick-chip" data-filter="high" onclick="applyTxQuickFilter('high')">⚡ &gt; ₹5,000</button>
+    <button type="button" class="tx-quick-chip" data-filter="recent7" onclick="applyTxQuickFilter('recent7')">📅 Last 7 Days</button>
   </div>
 
   <!-- LIST (IMPORTANT: ID SAME) -->
@@ -1506,16 +1542,18 @@ function setGreeting() {
   <!-- Real-time push notifications -->
   <script src="./src/scripts/pwa-push.js"></script>
   <script>
-  /* Show 🔕 button in topbar until user grants push permission */
+  /* Manage push notifications opt-in in user dropdown menu */
   (function () {
     function _syncPushBtn() {
-      var btn = document.getElementById('lmPushEnableBtn');
-      if (!btn) return;
+      var topBtn = document.getElementById('lmPushEnableBtn');
+      if (topBtn) topBtn.style.display = 'none';
+      var menuBtn = document.getElementById('menuEnablePushBtn');
+      if (!menuBtn) return;
       var perm = typeof Notification !== 'undefined' ? Notification.permission : 'unsupported';
-      btn.style.display = (perm === 'default') ? '' : 'none';
+      menuBtn.style.display = (perm === 'default') ? 'flex' : 'none';
     }
     document.addEventListener('DOMContentLoaded', _syncPushBtn);
-    /* Re-check after user grants permission via the bell */
+    /* Re-check after user grants permission */
     if (typeof Notification !== 'undefined') {
       var _origReq = Notification.requestPermission.bind(Notification);
       Notification.requestPermission = function () {

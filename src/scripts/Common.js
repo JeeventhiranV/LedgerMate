@@ -1729,6 +1729,15 @@ function renderHeatmap() {
   }
 }
 
+window._lmTxQuickFilter = 'all';
+window.applyTxQuickFilter = function(filter) {
+  window._lmTxQuickFilter = filter || 'all';
+  document.querySelectorAll('.tx-quick-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.filter === filter);
+  });
+  refreshRecentList();
+};
+
 function refreshRecentList() {
   const searchEl = document.getElementById('searchTx');
   const listEl   = document.getElementById('recentList');
@@ -1764,6 +1773,19 @@ if (!q) {
     .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
     .filter((t) => {
       if (acc !== 'all' && acc && acc !== t.account) return false;
+
+      // Quick filter chip check
+      if (window._lmTxQuickFilter && window._lmTxQuickFilter !== 'all') {
+        if (window._lmTxQuickFilter === 'out' && t.type !== 'out') return false;
+        if (window._lmTxQuickFilter === 'in' && t.type !== 'in') return false;
+        if (window._lmTxQuickFilter === 'transfer' && t.type !== 'transfer') return false;
+        if (window._lmTxQuickFilter === 'high' && parseFloat(t.amount || 0) < 5000) return false;
+        if (window._lmTxQuickFilter === 'recent7') {
+          const txDate = new Date(t.date || t.createdAt);
+          const diffMs = today.getTime() - txDate.getTime();
+          if (diffMs > 7 * 24 * 60 * 60 * 1000) return false;
+        }
+      }
 
       let match = true;
 
@@ -3186,6 +3208,41 @@ function onKpiRangeChange(e) {
 
   saveSettingsToStore();
 }
+
+/* ═══════════════════════════════════════════════
+   STEALTH PRIVACY MODE (BALANCE MASKING)
+═══════════════════════════════════════════════ */
+window.LM_togglePrivacyMode = function() {
+  const isPrivacy = document.body.classList.toggle('privacy-mode');
+  const btn = document.getElementById('btnPrivacyToggle');
+  if (btn) {
+    btn.textContent = isPrivacy ? '🙈' : '👁️';
+    btn.title = isPrivacy ? 'Stealth Mode Active (Balances Masked)' : 'Toggle Balance Privacy (Stealth Mode)';
+  }
+  localStorage.setItem('lm_privacy_mode', isPrivacy ? '1' : '0');
+  if (typeof showToast === 'function') {
+    showToast(isPrivacy ? '🙈 Stealth Mode: Balances Masked' : '👁️ Balance Privacy Disabled', 'info', 2200);
+  }
+};
+
+// Initialize Stealth Privacy State on Startup
+(function initPrivacyState() {
+  if (localStorage.getItem('lm_privacy_mode') === '1') {
+    document.body.classList.add('privacy-mode');
+    const updateIcon = () => {
+      const btn = document.getElementById('btnPrivacyToggle');
+      if (btn) {
+        btn.textContent = '🙈';
+        btn.title = 'Stealth Mode Active (Balances Masked)';
+      }
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', updateIcon);
+    } else {
+      updateIcon();
+    }
+  }
+})();
 
 function saveSettingsToStore() {
   const merged = { ...(state.settings || {}), ...settings, theme: settings.theme || state.settings?.theme || 'dark' };
