@@ -227,50 +227,60 @@ html, body {
   transform: scale(1.08) !important;
 }
 
-/* Mobile topbar compact */
-@media (max-width: 640px) {
+/* Mobile topbar compact & Profile Visibility */
+@media (max-width: 768px) {
   #topbar, .topbar {
-    padding: 8px 12px !important;
+    padding: 8px 10px !important;
     gap: 6px !important;
     height: 52px !important;
+    overflow: visible !important;
+    justify-content: space-between !important;
+  }
+  /* Remove text LedgerMate so all icons and profile chip will be visible */
+  .topbar-brand-name {
+    display: none !important;
   }
   .topbar-status-pill {
     display: none !important;
   }
-  .topbar-brand-title {
-    font-size: 15px !important;
+  .topbar-brand-wrap {
+    gap: 4px !important;
+    flex-shrink: 0 !important;
+  }
+  .topbar-brand-icon {
+    font-size: 18px !important;
   }
   .topbar-actions {
-    gap: 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 3.5px !important;
+    margin-left: auto !important;
+    flex-shrink: 0 !important;
   }
   .topbar-actions .icon-btn,
   #menuBtn {
     width: 32px !important;
     height: 32px !important;
-    font-size: 14px !important;
+    font-size: 13.5px !important;
     border-radius: 8px !important;
+    flex-shrink: 0 !important;
+    padding: 0 !important;
   }
-  .topbar-user-chip {
+  .topbar-user-chip,
+  #topbarUserChipWrap {
     width: 32px !important;
     height: 32px !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-left: 2px !important;
   }
   .topbar-user-avatar {
     width: 30px !important;
     height: 30px !important;
     font-size: 12px !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .topbar-actions button[title*="Command Palette"],
-  .topbar-actions button[title*="Sankey"] {
-    display: none !important;
-  }
-}
-
-@media (max-width: 360px) {
-  .topbar-brand-name {
-    display: none !important;
+    flex-shrink: 0 !important;
   }
 }
 
@@ -476,4 +486,110 @@ textarea {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+/* ─── Page-Level Live Scroll & Interactive Animations ────────── */
+
+/* Smooth scroll behavior on viewports */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Dynamic Glowing Scroll Progress Bar */
+#scrollProgressBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--teal), var(--emerald), var(--violet));
+  z-index: 99999;
+  pointer-events: none;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.7);
+  transition: width 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Topbar dynamic scroll elevation & frosted depth */
+#topbar.topbar-scrolled,
+.topbar.topbar-scrolled {
+  background: rgba(7, 9, 20, 0.94) !important;
+  backdrop-filter: blur(28px) !important;
+  -webkit-backdrop-filter: blur(28px) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5) !important;
+  border-bottom-color: rgba(0, 240, 255, 0.22) !important;
+}
+[data-theme="light"] #topbar.topbar-scrolled,
+[data-theme="light"] .topbar.topbar-scrolled {
+  background: rgba(255, 255, 255, 0.96) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+  border-bottom-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+/* Page Transition Entrance Animation */
+.page-enter {
+  animation: pageEnter 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scroll-Driven Reveal Animations for Cards, Sections & Tables */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.scroll-reveal.in-view {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+
+/* Micro-shimmer on cards */
+.kpi-card {
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    60deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.035) 50%,
+    transparent 60%
+  );
+  transform: rotate(25deg);
+  pointer-events: none;
+  transition: transform 0.6s ease;
+}
+.kpi-card:hover::after {
+  transform: rotate(25deg) translate(20%, 20%);
+}
+
+/* Live breathing pulse on status dots */
+.pulse-live {
+  animation: pulseLive 2s infinite ease-in-out;
+}
+@keyframes pulseLive {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+}
+
 

@@ -26,35 +26,50 @@
     style.textContent = `
       #lm-toast-container {
         position: fixed;
-        bottom: 24px;
-        right: 24px;
+        top: calc(14px + env(safe-area-inset-top, 0px));
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: auto;
+        right: auto;
         z-index: 999999;
         display: flex;
-        flex-direction: column-reverse;
+        flex-direction: column;
+        align-items: center;
         gap: 10px;
         pointer-events: none;
-        max-width: 380px;
-        width: calc(100% - 48px);
+        max-width: 420px;
+        width: calc(100% - 32px);
+      }
+      @media (min-width: 1024px) {
+        #lm-toast-container {
+          top: 20px;
+          right: 24px;
+          left: auto;
+          transform: none;
+          align-items: flex-end;
+        }
       }
       .lm-toast-item {
         background: rgba(18, 22, 34, 0.95);
-        backdrop-filter: blur(12px);
+        backdrop-filter: blur(16px);
         border: 1px solid rgba(255, 255, 255, 0.12);
         color: #f1f5f9;
-        border-radius: 12px;
+        border-radius: 14px;
         padding: 12px 16px;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         font-size: 13px;
         font-weight: 500;
         line-height: 1.4;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
         display: flex;
         align-items: center;
         gap: 10px;
         pointer-events: auto;
         opacity: 0;
-        transform: translateY(12px) scale(0.96);
+        transform: translateY(-16px) scale(0.96);
         transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        width: 100%;
+        box-sizing: border-box;
       }
       .lm-toast-item.lm-toast-show {
         opacity: 1;
@@ -62,7 +77,7 @@
       }
       .lm-toast-item.lm-toast-hide {
         opacity: 0;
-        transform: translateY(8px) scale(0.94);
+        transform: translateY(-16px) scale(0.94);
       }
       .lm-toast-success { border-left: 4px solid #10b981; }
       .lm-toast-error   { border-left: 4px solid #f43f5e; }

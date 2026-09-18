@@ -88,8 +88,9 @@
 </head>
 <body>
 
-<!-- ─── PAGE LOAD BAR ────────────────────────────────── -->
+<!-- ─── PAGE LOAD BAR & SCROLL PROGRESS BAR ──────────── -->
 <div id="pageLoadBar"></div>
+<div id="scrollProgressBar"></div>
 
 <!-- ─── LOGIN SCREEN ──────────────────────────────────── -->
 <div id="loginScreen">
@@ -1248,7 +1249,13 @@ function showPage(page) {
   // 1. Show / hide pages
   document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
   const pageEl = document.getElementById('page-' + page);
-  if (pageEl) pageEl.style.display = 'block';
+  if (pageEl) {
+    pageEl.style.display = 'block';
+    pageEl.classList.remove('page-enter');
+    void pageEl.offsetWidth; // force reflow for smooth re-entry
+    pageEl.classList.add('page-enter');
+    if (window.LM_attachScrollObserver) setTimeout(window.LM_attachScrollObserver, 60);
+  }
 
   // 2. Sidebar active
   document.querySelectorAll('.sidebar-nav-item').forEach(i => i.classList.remove('active'));
@@ -1903,6 +1910,81 @@ function setGreeting() {
     document.addEventListener('DOMContentLoaded', setup);
   } else {
     setup();
+  }
+})();
+</script>
+
+<!-- ─── LIVE SCROLL & PAGE ANIMATION ENGINE ────────────── -->
+<script>
+(function() {
+  'use strict';
+  function initLiveScrollEngine() {
+    const scrollBar = document.getElementById('scrollProgressBar');
+    const topbar = document.getElementById('topbar');
+
+    function handleScroll() {
+      const mainEl = document.getElementById('main');
+      const scrollTop = window.scrollY || document.documentElement.scrollTop || (mainEl ? mainEl.scrollTop : 0);
+      const scrollHeight = Math.max(
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight,
+        mainEl ? mainEl.scrollHeight : 0
+      ) - window.innerHeight;
+
+      if (scrollBar && scrollHeight > 0) {
+        const progress = Math.min(100, Math.max(0, (scrollTop / scrollHeight) * 100));
+        scrollBar.style.width = progress + '%';
+      }
+
+      if (topbar) {
+        if (scrollTop > 10) {
+          topbar.classList.add('topbar-scrolled');
+        } else {
+          topbar.classList.remove('topbar-scrolled');
+        }
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    const main = document.getElementById('main');
+    if (main) main.addEventListener('scroll', handleScroll, { passive: true });
+
+    // IntersectionObserver for scroll-driven reveals
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry, idx) => {
+          if (entry.isIntersecting) {
+            // Add subtle stagger if multiple items enter at once
+            setTimeout(() => {
+              entry.target.classList.add('in-view');
+            }, Math.min(idx * 40, 200));
+            observer.unobserve(entry.target);
+          }
+        });
+      }, {
+        threshold: 0.08,
+        rootMargin: '0px 0px -25px 0px'
+      });
+
+      function attachScrollObserver() {
+        const targets = document.querySelectorAll('.kpi-card, .chart-card, .card, .tx-item, .budget-card, .tx-row');
+        targets.forEach(el => {
+          if (!el.classList.contains('scroll-reveal') && !el.classList.contains('in-view')) {
+            el.classList.add('scroll-reveal');
+            observer.observe(el);
+          }
+        });
+      }
+
+      window.LM_attachScrollObserver = attachScrollObserver;
+      setTimeout(attachScrollObserver, 150);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initLiveScrollEngine);
+  } else {
+    initLiveScrollEngine();
   }
 })();
 </script>

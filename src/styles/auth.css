@@ -614,45 +614,61 @@
    TOAST IMPROVEMENTS
 ═══════════════════════════════════════════════ */
 #toastContainer {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 99999;
-  display: flex;
-  flex-direction: column-reverse;
-  gap: 8px;
-  pointer-events: none;
+  position: fixed !important;
+  top: calc(14px + env(safe-area-inset-top, 0px)) !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  bottom: auto !important;
+  right: auto !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 8px !important;
+  pointer-events: none !important;
+  max-width: 440px !important;
+  width: calc(100% - 32px) !important;
+}
+@media (min-width: 1024px) {
+  #toastContainer {
+    top: 20px !important;
+    right: 24px !important;
+    left: auto !important;
+    transform: none !important;
+    align-items: flex-end !important;
+  }
 }
 .toast {
   pointer-events: auto;
   min-width: 220px;
-  max-width: 360px;
+  max-width: 420px;
+  width: 100%;
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--r);
   padding: 12px 16px;
   font-size: 13px;
   color: var(--text);
-  box-shadow: var(--shadow);
-  animation: toastIn 0.25s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(-16px) scale(0.96);
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.toast.show {
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
 }
 .toast.success { border-left: 3px solid var(--emerald); }
 .toast.error   { border-left: 3px solid var(--rose);    }
 .toast.info    { border-left: 3px solid var(--blue);    }
 .toast.warn    { border-left: 3px solid var(--gold);    }
 .toast-out {
-  animation: toastOut 0.2s ease forwards;
-}
-@keyframes toastIn  {
-  from { opacity:0; transform:translateX(20px); }
-  to   { opacity:1; transform:translateX(0);    }
-}
-@keyframes toastOut {
-  from { opacity:1; transform:translateX(0);    }
-  to   { opacity:0; transform:translateX(20px); }
+  opacity: 0 !important;
+  transform: translateY(-16px) scale(0.96) !important;
+  transition: opacity 0.2s ease, transform 0.2s ease !important;
 }
 
 /* ═══════════════════════════════════════════════
@@ -705,10 +721,8 @@ select:focus:not(:focus-visible) {
 }
 
 /* ═══════════════════════════════════════════════
-   TOAST SHOW STATE (added to existing .toast rules)
+   TOAST THEME OVERRIDES
 ═══════════════════════════════════════════════ */
-.toast { opacity: 0; transform: translateX(20px); }
-.toast.show { opacity: 1; transform: translateX(0); transition: opacity 0.25s ease, transform 0.25s ease; }
 
 /* Light theme overrides for toasts */
 [data-theme="light"] .toast {

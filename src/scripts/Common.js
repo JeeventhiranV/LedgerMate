@@ -4492,12 +4492,14 @@ function renderBudgetOverview() {
 function toggleSidebar() {
   const sb = document.getElementById('sidebar');
   const ov = document.getElementById('sidebarOverlay');
-  sb.classList.toggle('open');
+  const isOpen = sb.classList.toggle('open');
   ov.classList.toggle('show');
+  document.body.classList.toggle('sidebar-open', isOpen);
 }
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarOverlay').classList.remove('show');
+  document.body.classList.remove('sidebar-open');
 }
 document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
 document.addEventListener('click', function (e) {
