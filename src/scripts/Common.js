@@ -3735,6 +3735,7 @@ function getAccountSummaries() {
 function renderAccountSummaries() {
   const summaries = getAccountSummaries();
   const container = document.getElementById('accountSummaries');
+  if (!container) return;
   container.innerHTML = '';
 
   for (const account in summaries) {
@@ -3746,19 +3747,19 @@ function renderAccountSummaries() {
     card.innerHTML = `
       <div class="kpi-icon teal">💼</div>
 
-      <div class="kpi-label">${account}</div>
+      <div class="kpi-label">${typeof escapeHTML === 'function' ? escapeHTML(account) : account}</div>
 
-      <div class="kpi-value amount masked" data-value="${summary.balance}">
-        ***
+      <div class="kpi-value acc-bal" data-amount="${summary.balance}">
+        ${fmtINR(summary.balance)}
       </div>
 
       <div class="kpi-sub">
         <span class="chip income">
-          + <span class="amount masked" data-value="${summary.income}">***</span>
+          + <span class="acc-bal" data-amount="${summary.income}">${fmtINR(summary.income)}</span>
         </span>
 
         <span class="chip expense ml-1">
-          - <span class="amount masked" data-value="${summary.expense}">***</span>
+          - <span class="acc-bal" data-amount="${summary.expense}">${fmtINR(summary.expense)}</span>
         </span>
       </div>
     `;
@@ -3766,26 +3767,6 @@ function renderAccountSummaries() {
     container.appendChild(card);
   }
 }
-
-let amountsVisible = false; // tracks global state
-
-document.getElementById('toggleAllAmounts').onclick = () => {
-  amountsVisible = !amountsVisible; // toggle state
-  const amounts = document.querySelectorAll('#accountSummaries .amount');
-
-  amounts.forEach(a => {
-    if (amountsVisible) {
-      a.textContent = fmtINR(a.dataset.value);
-      a.classList.remove('masked');
-    } else {
-      a.textContent = '***';
-      a.classList.add('masked');
-    }
-  });
-
-  // Update button text
- // document.getElementById('toggleAllAmounts').textContent = amountsVisible ? '🙈 Hide All Amounts' : '👁 Show All Amounts';
-};
 // ====================== STEP 7: Sync Drive to IndexedDB ======================
 async function syncDriveToIndexedDB(driveData) {
   try {
@@ -4857,7 +4838,23 @@ function renderDashboardWealthWidget() {
     } catch(e) {}
   }
 
-  const totalAssets      = investments.reduce((s,a) => {
+  const activeInvestments = investments.filter(a => {
+    if (typeof isAssetClosedOrMatured === 'function') return !isAssetClosedOrMatured(a);
+    if (a.status === 'closed' || a.status === 'matured' || a.isClosed || a.closed) return false;
+    const t = (a.type || '').toUpperCase();
+    if ((t === 'FD' || t === 'RD') && a.startDate && a.tenureMonths) {
+      const start = new Date(a.startDate);
+      if (!isNaN(start.getTime())) {
+        start.setMonth(start.getMonth() + (parseInt(a.tenureMonths, 10) || 0));
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (start < today) return false;
+      }
+    }
+    return true;
+  });
+
+  const totalAssets      = activeInvestments.reduce((s,a) => {
     const qty    = parseFloat(a.qty || a.stockQty || 0) || 0;
     const buyP   = parseFloat(a.buyPrice || a.avgCost || a.stockBuyPrice || 0) || 0;
     const curP   = parseFloat(a.currentPrice || a.ltp || a.stockCurrentPrice || buyP) || 0;
@@ -4868,7 +4865,7 @@ function renderDashboardWealthWidget() {
   }, 0) + stockAssets;
   const totalLiabilities = emiLoans.reduce((s,l) => s + (parseFloat(l.outstanding) || 0), 0);
   const netWorth         = totalAssets - totalLiabilities;
-  const invested         = investments.reduce((s,a) => {
+  const invested         = activeInvestments.reduce((s,a) => {
     const qty  = parseFloat(a.qty || a.stockQty || 0) || 0;
     const buyP = parseFloat(a.buyPrice || a.avgCost || a.stockBuyPrice || 0) || 0;
     const t    = (a.type || '').toUpperCase();

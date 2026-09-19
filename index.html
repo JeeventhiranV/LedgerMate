@@ -391,9 +391,6 @@
         <!-- hidden account filter -->
         <select id="accFilter" style="display:none;" onchange="renderAll()"><option value="all">All</option></select>
 
-        <!-- ⚡ Command Palette -->
-        <button class="icon-btn" title="Command Palette (Ctrl+K)" onclick="window.LM_CommandPalette?.toggle()" style="font-size:14px;font-weight:700;color:var(--teal,#00d4b4);">⚡</button>
-
         <!-- 🌊 Cashflow Visualizer -->
         <button class="icon-btn" title="Cashflow Visualizer (Flow Diagram)" onclick="window.LM_Sankey ? window.LM_Sankey.showModal() : (typeof openSankeyModal==='function'&&openSankeyModal())" style="font-size:14px;">🌊</button>
 
@@ -550,9 +547,6 @@
               <span class="dot"></span>
               Account Summary
             </div> 
-            <button id="toggleAllAmounts" class="section-action" style="padding: 2%;">
-              👁 Toggle
-            </button>
           </div> 
           <!-- Grid Container -->
           <div id="accountSummaries" class="kpi-grid"></div>

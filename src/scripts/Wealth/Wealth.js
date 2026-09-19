@@ -37,9 +37,30 @@ function getAssetCategory(inv) {
   return inv.wealthCategory || 'Commodities';
 }
 
-// ─── FIXED: current value (SIP qty×price works correctly) ─────
+function isAssetClosedOrMatured(inv) {
+  if (!inv) return false;
+  const status = (inv.status || '').toLowerCase();
+  if (status === 'closed' || status === 'matured' || inv.isClosed === true || inv.closed === true) {
+    return true;
+  }
+  const t = (inv.type || '').toUpperCase();
+  if (t === 'FD' || t === 'RD') {
+    if (inv.startDate && inv.tenureMonths) {
+      const start = new Date(inv.startDate);
+      if (!isNaN(start.getTime())) {
+        start.setMonth(start.getMonth() + toNum(inv.tenureMonths));
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (start < today) return true;
+      }
+    }
+  }
+  return false;
+}
+
+// ─── FIXED: current value (SIP qty×price works correctly, excludes closed/matured FDs) ─────
 function getAssetCurrentValue(inv) {
-  if (!inv) return 0;
+  if (!inv || isAssetClosedOrMatured(inv)) return 0;
   const t         = (inv.type || '').toUpperCase();
   const qty       = toNum(inv.qty || inv.stockQty || 0);
   const curPrice  = toNum(inv.currentPrice || inv.ltp || inv.stockCurrentPrice || 0);
@@ -57,9 +78,9 @@ function getAssetCurrentValue(inv) {
   return toNum(inv.principal || inv.currentValue || inv.amount || 0);
 }
 
-// ─── FIXED: invested amount (SIP qty×buyPrice works correctly) ─
+// ─── FIXED: invested amount (SIP qty×buyPrice works correctly, excludes closed/matured FDs) ─
 function getAssetInvestedAmount(inv) {
-  if (!inv) return 0;
+  if (!inv || isAssetClosedOrMatured(inv)) return 0;
   const t        = (inv.type || '').toUpperCase();
   const qty      = toNum(inv.qty || inv.stockQty || 0);
   const buyPrice = toNum(inv.buyPrice || inv.avgCost || inv.stockBuyPrice || 0);

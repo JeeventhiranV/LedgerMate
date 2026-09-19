@@ -134,6 +134,26 @@
     return diff >= 0 ? diff : 0;
   }
 
+  function isClosedOrMatured(inv) {
+    if (!inv) return false;
+    var status = (inv.status || '').toLowerCase();
+    if (status === 'closed' || status === 'matured' || inv.isClosed === true || inv.closed === true) {
+      return true;
+    }
+    if (inv.type === 'FD' || inv.type === 'RD') {
+      var matDate = calculateMaturityDate(inv);
+      if (matDate) {
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+        var mat = new Date(matDate);
+        if (!isNaN(mat.getTime()) && mat < today) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   function calculateInvestedSoFar(inv) {
     if (!inv) return 0;
     var P = _toNum(inv.principal || inv.amount);
@@ -236,38 +256,47 @@
 
       var invs = Array.isArray(state.investments) ? state.investments : [];
 
-      // Calculate Portfolio Totals
+      // Calculate Portfolio Totals (Only Active Investments count towards invested capital)
       var totalInvested = 0;
       var totalMaturity = 0;
       var totalInterestSoFar = 0;
       var monthlySIPInflow = 0;
       var tax80CTotal = 0;
+      var activeCount = 0;
+      var maturedCount = 0;
 
       var categoryMap = { 'Equities': 0, 'Fixed Income': 0, 'Commodities': 0, 'Retirement': 0, 'Alternates': 0 };
 
       invs.forEach(function (inv) {
+        var isClosed = isClosedOrMatured(inv);
         var invested = calculateInvestedSoFar(inv);
         var mat = calculateMaturity(inv);
         var interest = calculateInterestSoFar(inv);
 
-        totalInvested += invested;
-        totalMaturity += mat;
-        totalInterestSoFar += interest;
+        if (isClosed) {
+          maturedCount++;
+        } else {
+          activeCount++;
+          // Only active investments are counted in active invested capital & valuation
+          totalInvested += invested;
+          totalMaturity += mat;
+          totalInterestSoFar += interest;
 
-        if (inv.type === 'SIP') {
-          monthlySIPInflow += _toNum(inv.sipMonthly || inv.additionalDeposit || inv.principal);
-        } else if (inv.type === 'RD') {
-          monthlySIPInflow += _toNum(inv.additionalDeposit);
+          if (inv.type === 'SIP') {
+            monthlySIPInflow += _toNum(inv.sipMonthly || inv.additionalDeposit || inv.principal);
+          } else if (inv.type === 'RD') {
+            monthlySIPInflow += _toNum(inv.additionalDeposit);
+          }
+
+          // 80C Tax-Saver estimation (active only)
+          if (inv.is80C || inv.type === 'PPF' || inv.type === 'EPF' || (inv.name && /elss|tax saver|ppf|epf/i.test(inv.name))) {
+            tax80CTotal += invested;
+          }
+
+          var meta = ASSET_TYPES[inv.type] || ASSET_TYPES.OTHER;
+          var cat = meta.category || 'Alternates';
+          categoryMap[cat] = (categoryMap[cat] || 0) + (mat > 0 ? mat : invested);
         }
-
-        // 80C Tax-Saver estimation
-        if (inv.is80C || inv.type === 'PPF' || inv.type === 'EPF' || (inv.name && /elss|tax saver|ppf|epf/i.test(inv.name))) {
-          tax80CTotal += invested;
-        }
-
-        var meta = ASSET_TYPES[inv.type] || ASSET_TYPES.OTHER;
-        var cat = meta.category || 'Alternates';
-        categoryMap[cat] = (categoryMap[cat] || 0) + (mat > 0 ? mat : invested);
       });
 
       var currentPortfolioValue = totalInvested + totalInterestSoFar;
@@ -278,11 +307,15 @@
 
       // Filter and Search
       var filteredInvs = invs.filter(function (inv) {
+        var isClosed = isClosedOrMatured(inv);
+        if (_activeFilter === 'active' && isClosed) return false;
+        if (_activeFilter === 'closed' && !isClosed) return false;
         if (_activeFilter === 'sip' && inv.type !== 'SIP') return false;
         if (_activeFilter === 'fd_rd' && inv.type !== 'FD' && inv.type !== 'RD') return false;
         if (_activeFilter === 'gold' && inv.type !== 'GOLD' && inv.type !== 'SGB') return false;
         if (_activeFilter === 'ppf' && inv.type !== 'PPF' && inv.type !== 'EPF' && inv.type !== 'NPS') return false;
         if (_activeFilter === 'maturing_soon') {
+          if (isClosed) return false;
           var days = calculateDaysLeft(calculateMaturityDate(inv));
           if (days > 60 || days === 0) return false;
         }
@@ -321,23 +354,23 @@
           <div class="inv-kpi-grid">
             <div class="inv-kpi-card" style="--kpi-accent: var(--teal);">
               <div class="inv-kpi-header">
-                <span class="inv-kpi-label">Current Portfolio Value</span>
+                <span class="inv-kpi-label">Active Portfolio Value</span>
                 <span class="inv-kpi-icon">💼</span>
               </div>
               <div class="inv-kpi-val">${_fmtINR(currentPortfolioValue)}</div>
               <div class="inv-kpi-sub">
                 <span class="inv-badge-pill ${gainCls}">${gainSign}${_fmtINR(netProfit)} (${gainSign}${avgROI}%)</span>
-                <span>all-time returns</span>
+                <span>active returns</span>
               </div>
             </div>
 
             <div class="inv-kpi-card" style="--kpi-accent: var(--blue, #38bdf8);">
               <div class="inv-kpi-header">
-                <span class="inv-kpi-label">Total Invested Capital</span>
+                <span class="inv-kpi-label">Active Invested Capital</span>
                 <span class="inv-kpi-icon">💰</span>
               </div>
               <div class="inv-kpi-val">${_fmtINR(totalInvested)}</div>
-              <div class="inv-kpi-sub">Across ${invs.length} active assets</div>
+              <div class="inv-kpi-sub">Across ${activeCount} active assets ${maturedCount > 0 ? `(${maturedCount} matured)` : ''}</div>
             </div>
 
             <div class="inv-kpi-card" style="--kpi-accent: var(--emerald);">
@@ -371,8 +404,8 @@
             <!-- Asset Allocation Donut -->
             <div class="inv-analytics-card">
               <div class="inv-card-header">
-                <div class="inv-card-title"><span>🥧</span> Asset Class Diversification</div>
-                <span style="font-size:12px; color:var(--text-3);">${invs.length} holdings</span>
+                <div class="inv-card-title"><span>🥧</span> Active Asset Diversification</div>
+                <span style="font-size:12px; color:var(--text-3);">${activeCount} active holdings</span>
               </div>
               <div class="inv-chart-container">
                 <canvas id="invAssetChart" style="max-height: 220px;"></canvas>
@@ -419,21 +452,29 @@
               <button class="inv-filter-pill ${_activeFilter === 'all' ? 'active' : ''}" onclick="window.LM_InvestmentsUI.setFilter('all')">
                 All (${invs.length})
               </button>
+              <button class="inv-filter-pill ${_activeFilter === 'active' ? 'active' : ''}" onclick="window.LM_InvestmentsUI.setFilter('active')">
+                ✅ Active (${activeCount})
+              </button>
               <button class="inv-filter-pill ${_activeFilter === 'sip' ? 'active' : ''}" onclick="window.LM_InvestmentsUI.setFilter('sip')">
-                📈 Mutual Funds &amp; SIP
+                📈 SIP &amp; MF
               </button>
               <button class="inv-filter-pill ${_activeFilter === 'fd_rd' ? 'active' : ''}" onclick="window.LM_InvestmentsUI.setFilter('fd_rd')">
-                🏛️ Fixed &amp; Recurring Deposits
+                🏛️ FD / RD
               </button>
               <button class="inv-filter-pill ${_activeFilter === 'gold' ? 'active' : ''}" onclick="window.LM_InvestmentsUI.setFilter('gold')">
                 🥇 Gold &amp; SGB
               </button>
               <button class="inv-filter-pill ${_activeFilter === 'ppf' ? 'active' : ''}" onclick="window.LM_InvestmentsUI.setFilter('ppf')">
-                🛡️ PPF / EPF / NPS
+                🛡️ PPF / EPF
               </button>
               <button class="inv-filter-pill ${_activeFilter === 'maturing_soon' ? 'active' : ''}" onclick="window.LM_InvestmentsUI.setFilter('maturing_soon')">
                 ⏳ Maturing Soon
               </button>
+              ${maturedCount > 0 ? `
+                <button class="inv-filter-pill ${_activeFilter === 'closed' ? 'active' : ''}" onclick="window.LM_InvestmentsUI.setFilter('closed')">
+                  🔒 Closed / Matured (${maturedCount})
+                </button>
+              ` : ''}
             </div>
 
             <div class="inv-search-wrap">
@@ -581,6 +622,7 @@
     renderUpcomingMaturitiesHTML: function (invs) {
       var upcoming = [];
       invs.forEach(function (inv) {
+        if (isClosedOrMatured(inv)) return; // Skip already closed or matured
         var matDate = calculateMaturityDate(inv);
         var days = calculateDaysLeft(matDate);
         if (days > 0 && days <= 90) {
@@ -589,7 +631,7 @@
       });
 
       if (upcoming.length === 0) {
-        return `<div style="font-size:12px; color:var(--text-3); padding:4px 0;">No deposits or bonds maturing in next 90 days. All schemes healthy.</div>`;
+        return `<div style="font-size:12px; color:var(--text-3); padding:4px 0;">No active deposits or bonds maturing in next 90 days. All schemes healthy.</div>`;
       }
 
       upcoming.sort(function (a, b) { return a.days - b.days; });
@@ -616,6 +658,7 @@
      */
     renderInvestmentCardHTML: function (inv) {
       var meta = ASSET_TYPES[inv.type] || ASSET_TYPES.OTHER;
+      var isClosed = isClosedOrMatured(inv);
       var invested = calculateInvestedSoFar(inv);
       var maturity = calculateMaturity(inv);
       var interest = calculateInterestSoFar(inv);
@@ -637,26 +680,32 @@
       var institution = inv.institution || inv.bank || (inv.type === 'FD' || inv.type === 'RD' ? 'Bank Deposit' : 'Portfolio Asset');
 
       return `
-        <div class="inv-card">
+        <div class="inv-card ${isClosed ? 'inv-card-closed' : ''}" style="${isClosed ? 'opacity: 0.82; border-color: rgba(239,68,68,0.25);' : ''}">
           <div>
             <div class="inv-card-top">
               <div class="inv-card-badge-wrap">
                 <div class="inv-type-avatar">${meta.icon}</div>
                 <div>
                   <h3 class="inv-card-name">${_escape(titleName)}</h3>
-                  <div class="inv-card-sub">${_escape(institution)} · <span class="inv-type-badge ${meta.badgeCls}">${meta.label}</span></div>
+                  <div class="inv-card-sub">
+                    ${_escape(institution)} · 
+                    ${isClosed 
+                      ? '<span class="inv-type-badge type-badge-closed" style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;">🔒 Matured / Closed</span>' 
+                      : `<span class="inv-type-badge ${meta.badgeCls}">${meta.label}</span>`}
+                  </div>
                 </div>
               </div>
-              <span class="inv-badge-pill ${interest >= 0 ? 'badge-gain' : 'badge-loss'}">
-                ${rateDisplay}
+              <span class="inv-badge-pill ${isClosed ? 'badge-loss' : (interest >= 0 ? 'badge-gain' : 'badge-loss')}">
+                ${isClosed ? 'Closed / Matured' : rateDisplay}
               </span>
             </div>
 
             <!-- Financial Metrics Grid -->
             <div class="inv-card-metrics" style="margin-top:14px;">
               <div>
-                <div class="inv-metric-label">Invested Amount</div>
-                <div class="inv-metric-val">${_fmtINR(invested)}</div>
+                <div class="inv-metric-label">Invested Capital</div>
+                <div class="inv-metric-val" style="${isClosed ? 'color:var(--text-3);text-decoration:line-through;' : ''}">${_fmtINR(invested)}</div>
+                ${isClosed ? '<div style="font-size:10px;color:var(--rose,#fb7185);font-weight:600;margin-top:2px;">₹0 Active (Closed)</div>' : ''}
               </div>
               <div>
                 <div class="inv-metric-label">Maturity / Current</div>
@@ -677,10 +726,10 @@
               <div class="inv-progress-wrap" style="margin-top:12px;">
                 <div class="inv-progress-header">
                   <span>Tenure Progress: ${progress}%</span>
-                  <span>${daysLeft > 0 ? daysLeft + ' days left' : 'Matured'}</span>
+                  <span>${isClosed ? '🔒 Matured / Closed' : (daysLeft > 0 ? daysLeft + ' days left' : 'Matured')}</span>
                 </div>
                 <div class="inv-progress-track">
-                  <div class="inv-progress-fill" style="width: ${progress}%;"></div>
+                  <div class="inv-progress-fill" style="width: ${progress}%; ${isClosed ? 'background:var(--rose,#fb7185);' : ''}"></div>
                 </div>
               </div>
             ` : ''}
@@ -695,9 +744,12 @@
           <!-- Actions -->
           <div class="inv-card-actions">
             <span style="font-size:11px; color:var(--text-3);">${inv.startDate ? 'Started: ' + inv.startDate : ''}</span>
-            <div style="display:flex; gap:6px;">
+            <div style="display:flex; gap:6px; align-items:center;">
+              <button type="button" class="inv-action-btn" onclick="window.LM_InvestmentsUI.toggleStatus('${inv.id}')" title="${isClosed ? 'Reactivate Investment' : 'Mark as Closed / Matured'}" style="font-size:11px; padding:4px 8px;">
+                ${isClosed ? '🔓 Activate' : '🔒 Close'}
+              </button>
               <button type="button" class="inv-action-btn" onclick="window.LM_InvestmentsUI.showAddEditModal('${inv.id}')" title="Edit Investment">
-                ✏️ Edit
+                ✏️
               </button>
               <button type="button" class="inv-action-btn delete" onclick="window.LM_InvestmentsUI.confirmDelete('${inv.id}')" title="Delete Investment">
                 🗑️
@@ -916,6 +968,14 @@
                   <input type="number" id="invAdditional" class="inv-input" step="100" min="0" placeholder="e.g. 5000" value="${inv?.additionalDeposit || inv?.sipMonthly || ''}" oninput="window.LM_InvestmentsUI.updateModalPreview()">
                 </div>
 
+                <div class="inv-form-group">
+                  <label for="invStatus">Holding Status</label>
+                  <select id="invStatus" class="inv-input">
+                    <option value="active" ${(!inv?.status || inv?.status === 'active') && !isClosedOrMatured(inv) ? 'selected' : ''}>✅ Active Holding</option>
+                    <option value="closed" ${(inv?.status === 'closed' || inv?.status === 'matured' || (inv && isClosedOrMatured(inv))) ? 'selected' : ''}>🔒 Closed / Matured</option>
+                  </select>
+                </div>
+
                 <div class="inv-form-group full-width">
                   <label for="invNotes">Notes / Folio / Account No. (Optional)</label>
                   <input type="text" id="invNotes" class="inv-input" placeholder="e.g. Folio 9182312, 80C Tax saving deduction" value="${_escape(inv?.notes || '')}">
@@ -1044,6 +1104,7 @@
       var compounding = document.getElementById('invCompounding')?.value || 'quarterly';
       var additional = parseFloat(document.getElementById('invAdditional')?.value) || 0;
       var startDate = document.getElementById('invStartDate')?.value || new Date().toISOString().split('T')[0];
+      var status = document.getElementById('invStatus')?.value || 'active';
       var notes = document.getElementById('invNotes')?.value?.trim();
 
       if (!name) {
@@ -1054,6 +1115,8 @@
         if (typeof showToast === 'function') showToast('❌ Please enter a valid Investment Amount', 'error');
         return;
       }
+
+      var isClosed = status === 'closed' || status === 'matured';
 
       var invData = {
         id: invId ? (isNaN(invId) ? invId : Number(invId)) : Date.now(),
@@ -1071,6 +1134,8 @@
         additionalDeposit: additional,
         sipMonthly: type === 'SIP' ? additional : 0,
         startDate: startDate,
+        status: status,
+        isClosed: isClosed,
         notes: notes,
         updatedAt: new Date().toISOString()
       };
@@ -1102,9 +1167,46 @@
         if (typeof renderDashboardWealthWidget === 'function') {
           renderDashboardWealthWidget();
         }
+        if (typeof renderAll === 'function') {
+          renderAll();
+        }
       } catch (err) {
         console.error('[InvestmentsUI] Save error:', err);
         if (typeof showToast === 'function') showToast('❌ Error saving investment: ' + err.message, 'error');
+      }
+    },
+
+    /**
+     * Toggle status between active and closed/matured
+     */
+    toggleStatus: async function (invId) {
+      if (!Array.isArray(state.investments)) return;
+      var inv = state.investments.find(i => String(i.id) === String(invId));
+      if (!inv) return;
+      var wasClosed = isClosedOrMatured(inv);
+      inv.status = wasClosed ? 'active' : 'closed';
+      inv.isClosed = !wasClosed;
+      inv.updatedAt = new Date().toISOString();
+
+      try {
+        if (typeof window.put === 'function') {
+          await window.put('investments', inv);
+        }
+        if (window.LM_Bus) {
+          window.LM_Bus.emit('lm:data:changed', { store: 'investments' });
+        }
+        if (typeof showToast === 'function') {
+          showToast(inv.status === 'active' ? '✅ Investment marked as Active' : '🔒 Investment marked as Closed / Matured', 'info');
+        }
+        this.render();
+        if (typeof renderDashboardWealthWidget === 'function') {
+          renderDashboardWealthWidget();
+        }
+        if (typeof renderAll === 'function') {
+          renderAll();
+        }
+      } catch (err) {
+        console.error('[InvestmentsUI] Error toggling status:', err);
       }
     },
 
@@ -1131,6 +1233,9 @@
 
         if (typeof renderDashboardWealthWidget === 'function') {
           renderDashboardWealthWidget();
+        }
+        if (typeof renderAll === 'function') {
+          renderAll();
         }
       } catch (err) {
         console.error('[InvestmentsUI] Delete error:', err);
