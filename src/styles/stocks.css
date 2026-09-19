@@ -221,6 +221,14 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
+  text-shadow: 0 0 8px rgba(244, 63, 94, 0.4);
+}
+.stock-pill-loss::before {
+  content: '▼';
+  font-size: 8px;
+  display: inline-block;
+  animation: liveArrowBobDown 1.2s ease-in-out infinite;
+  color: var(--stock-red, #f43f5e);
 }
 
 /* ── Navigation Tabs ─────────────────────────────────────────── */

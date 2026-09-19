@@ -250,3 +250,246 @@
   src: url(https://fonts.gstatic.com/s/sora/v17/xMQbuFFYT72XzQUpDg.woff2) format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
+
+/* ═════════════════════════════════════════════════════════════════
+   LEDGERMATE ANIMATED PAGE LOADER
+   ═════════════════════════════════════════════════════════════════ */
+.lm-page-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #070913;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: all;
+  user-select: none;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', 'Inter', sans-serif;
+}
+
+[data-theme="light"] .lm-page-loader {
+  background: #f4f6fb;
+}
+
+.lm-page-loader.lm-loader-hidden {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: scale(1.04);
+}
+
+.lm-loader-backdrop {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 45%, rgba(0, 212, 180, 0.1) 0%, rgba(79, 142, 247, 0.07) 35%, rgba(139, 92, 246, 0.05) 60%, transparent 80%);
+  pointer-events: none;
+  animation: lmLoaderAuraPulse 3.5s ease-in-out infinite alternate;
+}
+
+[data-theme="light"] .lm-loader-backdrop {
+  background: radial-gradient(circle at 50% 45%, rgba(0, 212, 180, 0.14) 0%, rgba(79, 142, 247, 0.09) 35%, rgba(139, 92, 246, 0.06) 60%, transparent 80%);
+}
+
+.lm-loader-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  max-width: 90vw;
+  animation: lmLoaderFloat 3s ease-in-out infinite alternate;
+}
+
+.lm-loader-orb-wrap {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+
+.lm-loader-glow-ring {
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 212, 180, 0.35) 0%, rgba(79, 142, 247, 0.25) 50%, transparent 70%);
+  filter: blur(14px);
+  animation: lmLoaderGlowPulse 2.2s ease-in-out infinite alternate;
+}
+
+.lm-loader-spin-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  padding: 2.5px;
+  background: linear-gradient(135deg, #00d4b4, #4f8ef7, #8b5cf6, #00d4b4);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: lmLoaderSpin 1.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+  box-shadow: 0 0 20px rgba(0, 212, 180, 0.3);
+}
+
+.lm-loader-spin-ring-inner {
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(79, 142, 247, 0.4);
+  animation: lmLoaderSpinReverse 5s linear infinite;
+}
+
+.lm-loader-badge {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: rgba(18, 24, 43, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  z-index: 2;
+  transition: transform 0.2s ease;
+}
+
+[data-theme="light"] .lm-loader-badge {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+.lm-loader-icon {
+  font-size: 30px;
+  line-height: 1;
+  display: inline-block;
+  animation: lmLoaderIconBounce 2s ease-in-out infinite alternate;
+  filter: drop-shadow(0 4px 10px rgba(0, 212, 180, 0.3));
+}
+
+.lm-loader-brand {
+  margin-bottom: 20px;
+}
+
+.lm-loader-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: #f1f4fd;
+  background: linear-gradient(135deg, #ffffff 30%, #00d4b4 70%, #4f8ef7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 5px;
+}
+
+[data-theme="light"] .lm-loader-title {
+  color: #0f172a;
+  background: linear-gradient(135deg, #0f172a 30%, #0d9488 70%, #2563eb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.lm-loader-subtitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: #7b88aa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+[data-theme="light"] .lm-loader-subtitle {
+  color: #64748b;
+}
+
+.lm-loader-dots span {
+  display: inline-block;
+  animation: lmLoaderDots 1.4s infinite ease-in-out both;
+  color: #00d4b4;
+  font-weight: 700;
+}
+
+.lm-loader-dots span:nth-child(1) { animation-delay: 0s; }
+.lm-loader-dots span:nth-child(2) { animation-delay: 0.2s; }
+.lm-loader-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+.lm-loader-bar-wrap {
+  width: 170px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .lm-loader-bar-wrap {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.lm-loader-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #00d4b4, #4f8ef7, #8b5cf6);
+  animation: lmLoaderBarSlide 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  box-shadow: 0 0 12px rgba(0, 212, 180, 0.6);
+}
+
+@keyframes lmLoaderSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes lmLoaderSpinReverse {
+  0% { transform: rotate(360deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes lmLoaderGlowPulse {
+  0% { transform: scale(0.85); opacity: 0.4; }
+  100% { transform: scale(1.15); opacity: 0.85; }
+}
+
+@keyframes lmLoaderAuraPulse {
+  0% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+@keyframes lmLoaderFloat {
+  0% { transform: translateY(0px); }
+  100% { transform: translateY(-4px); }
+}
+
+@keyframes lmLoaderIconBounce {
+  0% { transform: scale(0.95); }
+  100% { transform: scale(1.06); }
+}
+
+@keyframes lmLoaderDots {
+  0%, 80%, 100% { opacity: 0.2; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-2px); }
+}
+
+@keyframes lmLoaderBarSlide {
+  0% { left: -50%; width: 30%; }
+  50% { left: 25%; width: 60%; }
+  100% { left: 100%; width: 30%; }
+}

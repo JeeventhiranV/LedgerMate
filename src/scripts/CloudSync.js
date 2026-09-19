@@ -23,6 +23,9 @@
 
   // ── Supabase user ID ────────────────────────────────────────
   function _uid() {
+    if (typeof _supabase === 'undefined' || !_supabase || !_supabase.auth) {
+      return Promise.resolve(null);
+    }
     return _supabase.auth.getSession().then(function (r) {
       return (r.data && r.data.session && r.data.session.user)
         ? r.data.session.user.id : null;

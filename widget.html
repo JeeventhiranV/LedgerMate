@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -36,6 +36,41 @@
       min-height:100dvh;
       background: radial-gradient(ellipse at top, #0d1535 0%, #07091a 60%);
     }
+
+    /* ── Animated Page Loader ── */
+    .lm-page-loader { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999999; display: flex; align-items: center; justify-content: center; background: #070913; opacity: 1; visibility: visible; transition: opacity .45s cubic-bezier(.16,1,.3,1), transform .45s cubic-bezier(.16,1,.3,1), visibility .45s cubic-bezier(.16,1,.3,1); pointer-events: all; user-select: none; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    [data-theme="light"] .lm-page-loader { background: #f4f6fb; }
+    .lm-page-loader.lm-loader-hidden { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; transform: scale(1.04); }
+    .lm-loader-backdrop { position: absolute; inset: 0; background: radial-gradient(circle at 50% 45%, rgba(0,212,180,.1) 0%, rgba(79,142,247,.07) 35%, rgba(139,92,246,.05) 60%, transparent 80%); pointer-events: none; animation: lmLoaderAuraPulse 3.5s ease-in-out infinite alternate; }
+    [data-theme="light"] .lm-loader-backdrop { background: radial-gradient(circle at 50% 45%, rgba(0,212,180,.14) 0%, rgba(79,142,247,.09) 35%, rgba(139,92,246,.06) 60%, transparent 80%); }
+    .lm-loader-content { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; max-width: 90vw; animation: lmLoaderFloat 3s ease-in-out infinite alternate; }
+    .lm-loader-orb-wrap { position: relative; width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; margin-bottom: 22px; }
+    .lm-loader-glow-ring { position: absolute; inset: -12px; border-radius: 50%; background: radial-gradient(circle, rgba(0,212,180,.35) 0%, rgba(79,142,247,.25) 50%, transparent 70%); filter: blur(14px); animation: lmLoaderGlowPulse 2.2s ease-in-out infinite alternate; }
+    .lm-loader-spin-ring { position: absolute; inset: 0; border-radius: 50%; padding: 2.5px; background: linear-gradient(135deg, #00d4b4, #4f8ef7, #8b5cf6, #00d4b4); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: lmLoaderSpin 1.8s cubic-bezier(.68,-.55,.27,1.55) infinite; box-shadow: 0 0 20px rgba(0,212,180,.3); }
+    .lm-loader-spin-ring-inner { position: absolute; inset: 6px; border-radius: 50%; border: 1.5px dashed rgba(79,142,247,.4); animation: lmLoaderSpinReverse 5s linear infinite; }
+    .lm-loader-badge { width: 64px; height: 64px; border-radius: 20px; background: rgba(18,24,43,.85); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 30px rgba(0,0,0,.4), inset 0 1px 1px rgba(255,255,255,.2); z-index: 2; }
+    [data-theme="light"] .lm-loader-badge { background: rgba(255,255,255,.9); border-color: rgba(0,0,0,.08); box-shadow: 0 12px 30px rgba(0,0,0,.08), inset 0 1px 1px rgba(255,255,255,.8); }
+    .lm-loader-icon { font-size: 30px; line-height: 1; display: inline-block; animation: lmLoaderIconBounce 2s ease-in-out infinite alternate; filter: drop-shadow(0 4px 10px rgba(0,212,180,.3)); }
+    .lm-loader-brand { margin-bottom: 20px; }
+    .lm-loader-title { font-size: 20px; font-weight: 700; letter-spacing: -.3px; color: #f1f4fd; background: linear-gradient(135deg, #ffffff 30%, #00d4b4 70%, #4f8ef7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 5px; }
+    [data-theme="light"] .lm-loader-title { color: #0f172a; background: linear-gradient(135deg, #0f172a 30%, #0d9488 70%, #2563eb 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .lm-loader-subtitle { font-size: 13px; font-weight: 500; color: #7b88aa; display: flex; align-items: center; justify-content: center; gap: 2px; }
+    [data-theme="light"] .lm-loader-subtitle { color: #64748b; }
+    .lm-loader-dots span { display: inline-block; animation: lmLoaderDots 1.4s infinite ease-in-out both; color: #00d4b4; font-weight: 700; }
+    .lm-loader-dots span:nth-child(1) { animation-delay: 0s; }
+    .lm-loader-dots span:nth-child(2) { animation-delay: .2s; }
+    .lm-loader-dots span:nth-child(3) { animation-delay: .4s; }
+    .lm-loader-bar-wrap { width: 170px; height: 4px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; position: relative; box-shadow: inset 0 1px 2px rgba(0,0,0,.3); }
+    [data-theme="light"] .lm-loader-bar-wrap { background: rgba(0,0,0,.08); }
+    .lm-loader-bar { position: absolute; top: 0; bottom: 0; width: 50%; border-radius: 99px; background: linear-gradient(90deg, #00d4b4, #4f8ef7, #8b5cf6); animation: lmLoaderBarSlide 1.5s cubic-bezier(.4,0,.2,1) infinite; box-shadow: 0 0 12px rgba(0,212,180,.6); }
+    @keyframes lmLoaderSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes lmLoaderSpinReverse { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
+    @keyframes lmLoaderGlowPulse { 0% { transform: scale(.85); opacity: .4; } 100% { transform: scale(1.15); opacity: .85; } }
+    @keyframes lmLoaderAuraPulse { 0% { opacity: .5; } 100% { opacity: 1; } }
+    @keyframes lmLoaderFloat { 0% { transform: translateY(0px); } 100% { transform: translateY(-4px); } }
+    @keyframes lmLoaderIconBounce { 0% { transform: scale(.95); } 100% { transform: scale(1.06); } }
+    @keyframes lmLoaderDots { 0%,80%,100% { opacity: .2; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
+    @keyframes lmLoaderBarSlide { 0% { left: -50%; width: 30%; } 50% { left: 25%; width: 60%; } 100% { left: 100%; width: 30%; } }
 
     /* ── Top bar ── */
     .w-topbar {
@@ -141,6 +176,29 @@
   </style>
 </head>
 <body>
+
+<!-- ─── ANIMATED PAGE LOADER ──────────────────────────── -->
+<div id="lmPageLoader" class="lm-page-loader" aria-hidden="false">
+  <div class="lm-loader-backdrop"></div>
+  <div class="lm-loader-content">
+    <div class="lm-loader-orb-wrap">
+      <div class="lm-loader-glow-ring"></div>
+      <div class="lm-loader-spin-ring"></div>
+      <div class="lm-loader-spin-ring-inner"></div>
+      <div class="lm-loader-badge">
+        <span class="lm-loader-icon">⚡</span>
+      </div>
+    </div>
+    <div class="lm-loader-brand">
+      <div class="lm-loader-title">LedgerMate Widget</div>
+      <div class="lm-loader-subtitle">Loading quick glance<span class="lm-loader-dots"><span>.</span><span>.</span><span>.</span></span></div>
+    </div>
+    <div class="lm-loader-bar-wrap">
+      <div class="lm-loader-bar"></div>
+    </div>
+  </div>
+</div>
+
   <div class="w-topbar">
     <div class="w-brand">
       <div class="w-brand-dot"></div>
@@ -280,10 +338,24 @@
         <div style="font-size:12px;color:var(--text-3)">${err.message}</div>
         <div style="margin-top:16px;"><a href="index.html" style="color:var(--teal)">Open LedgerMate →</a></div>
       </div>`;
+    } finally {
+      var l = document.getElementById('lmPageLoader');
+      if (l && !l.classList.contains('lm-loader-hidden')) {
+        l.classList.add('lm-loader-hidden');
+        setTimeout(function () {
+          if (l && l.parentNode) l.parentNode.removeChild(l);
+        }, 550);
+      }
     }
   }
 
   renderWidget();
+  setTimeout(function () {
+    var l = document.getElementById('lmPageLoader');
+    if (l && !l.classList.contains('lm-loader-hidden')) {
+      l.classList.add('lm-loader-hidden');
+    }
+  }, 1500);
   // Auto-refresh every 60 seconds
   setInterval(renderWidget, 60000);
   </script>

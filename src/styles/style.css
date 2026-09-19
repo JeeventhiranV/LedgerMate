@@ -141,7 +141,7 @@ body::before {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
-#sidebar.open { transform: translateX(0); }
+#sidebar.open { transform: translateX(0) !important; }
 
 @media (min-width: 1024px) {
   #sidebar {
@@ -162,7 +162,7 @@ body::before {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
-#sidebarOverlay.show { display: block; }
+#sidebarOverlay.show { display: block !important; }
 
 /* Safe bottom spacing for the last options in sidebar */
 #sidebar .sidebar-section:last-child {

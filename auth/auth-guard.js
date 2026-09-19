@@ -11,10 +11,62 @@
 
 (function () {
 
-  // ── 1. Hide body immediately ─────────────────────────────────────────────────
+  // ── 1. Animated Loader & Hide body immediately ──────────────────────────────
   var _hideStyle = document.createElement('style');
   _hideStyle.textContent = 'body{visibility:hidden!important}';
   document.head.appendChild(_hideStyle);
+
+  function _injectLoader() {
+    if (document.getElementById('lmPageLoader')) return;
+    var l = document.createElement('div');
+    l.id = 'lmPageLoader';
+    l.className = 'lm-page-loader';
+    l.setAttribute('aria-hidden', 'false');
+    l.innerHTML = [
+      '<div class="lm-loader-backdrop"></div>',
+      '<div class="lm-loader-content">',
+      '  <div class="lm-loader-orb-wrap">',
+      '    <div class="lm-loader-glow-ring"></div>',
+      '    <div class="lm-loader-spin-ring"></div>',
+      '    <div class="lm-loader-spin-ring-inner"></div>',
+      '    <div class="lm-loader-badge">',
+      '      <span class="lm-loader-icon">📚</span>',
+      '    </div>',
+      '  </div>',
+      '  <div class="lm-loader-brand">',
+      '    <div class="lm-loader-title">Study Resources</div>',
+      '    <div class="lm-loader-subtitle">Loading study workspace<span class="lm-loader-dots"><span>.</span><span>.</span><span>.</span></span></div>',
+      '  </div>',
+      '  <div class="lm-loader-bar-wrap">',
+      '    <div class="lm-loader-bar"></div>',
+      '  </div>',
+      '</div>'
+    ].join('');
+
+    var target = document.body || document.documentElement;
+    if (target) {
+      target.appendChild(l);
+    } else {
+      document.addEventListener('DOMContentLoaded', function () {
+        if (!document.getElementById('lmPageLoader')) {
+          (document.body || document.documentElement).appendChild(l);
+        }
+      });
+    }
+  }
+
+  function _dismissLoader() {
+    var l = document.getElementById('lmPageLoader');
+    if (l && !l.classList.contains('lm-loader-hidden')) {
+      l.classList.add('lm-loader-hidden');
+      setTimeout(function () {
+        if (l && l.parentNode) l.parentNode.removeChild(l);
+      }, 550);
+    }
+  }
+
+  _injectLoader();
+  setTimeout(_dismissLoader, 2500);
 
   // ── 2. Path helpers ──────────────────────────────────────────────────────────
   function _getLoginUrl() {
@@ -59,6 +111,41 @@
   // ── 3. Inject shared styles ──────────────────────────────────────────────────
   var _style = document.createElement('style');
   _style.textContent = [
+    /* ── Animated Page Loader ── */
+    '.lm-page-loader{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999999;display:flex;align-items:center;justify-content:center;background:#070913;opacity:1;visibility:visible;transition:opacity .45s cubic-bezier(.16,1,.3,1),transform .45s cubic-bezier(.16,1,.3,1),visibility .45s cubic-bezier(.16,1,.3,1);pointer-events:all;user-select:none;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Plus Jakarta Sans","Inter",sans-serif}',
+    '[data-theme="light"] .lm-page-loader{background:#f4f6fb}',
+    '.lm-page-loader.lm-loader-hidden{opacity:0!important;visibility:hidden!important;pointer-events:none!important;transform:scale(1.04)}',
+    '.lm-loader-backdrop{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,rgba(139,92,246,.12) 0%,rgba(79,142,247,.08) 35%,rgba(0,212,180,.05) 60%,transparent 80%);pointer-events:none;animation:lmLoaderAuraPulse 3.5s ease-in-out infinite alternate}',
+    '[data-theme="light"] .lm-loader-backdrop{background:radial-gradient(circle at 50% 45%,rgba(139,92,246,.15) 0%,rgba(79,142,247,.1) 35%,rgba(0,212,180,.07) 60%,transparent 80%)}',
+    '.lm-loader-content{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;max-width:90vw;animation:lmLoaderFloat 3s ease-in-out infinite alternate}',
+    '.lm-loader-orb-wrap{position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center;margin-bottom:22px}',
+    '.lm-loader-glow-ring{position:absolute;inset:-12px;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,.35) 0%,rgba(79,142,247,.25) 50%,transparent 70%);filter:blur(14px);animation:lmLoaderGlowPulse 2.2s ease-in-out infinite alternate}',
+    '.lm-loader-spin-ring{position:absolute;inset:0;border-radius:50%;padding:2.5px;background:linear-gradient(135deg,#8b5cf6,#4f8ef7,#00d4b4,#8b5cf6);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:lmLoaderSpin 1.8s cubic-bezier(.68,-.55,.27,1.55) infinite;box-shadow:0 0 20px rgba(139,92,246,.3)}',
+    '.lm-loader-spin-ring-inner{position:absolute;inset:6px;border-radius:50%;border:1.5px dashed rgba(139,92,246,.4);animation:lmLoaderSpinReverse 5s linear infinite}',
+    '.lm-loader-badge{width:64px;height:64px;border-radius:20px;background:rgba(18,24,43,.85);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;box-shadow:0 12px 30px rgba(0,0,0,.4),inset 0 1px 1px rgba(255,255,255,.2);z-index:2;transition:transform .2s ease}',
+    '[data-theme="light"] .lm-loader-badge{background:rgba(255,255,255,.9);border-color:rgba(0,0,0,.08);box-shadow:0 12px 30px rgba(0,0,0,.08),inset 0 1px 1px rgba(255,255,255,.8)}',
+    '.lm-loader-icon{font-size:30px;line-height:1;display:inline-block;animation:lmLoaderIconBounce 2s ease-in-out infinite alternate;filter:drop-shadow(0 4px 10px rgba(139,92,246,.3))}',
+    '.lm-loader-brand{margin-bottom:20px}',
+    '.lm-loader-title{font-size:20px;font-weight:700;letter-spacing:-.3px;color:#f1f4fd;background:linear-gradient(135deg,#ffffff 30%,#8b5cf6 70%,#4f8ef7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:5px}',
+    '[data-theme="light"] .lm-loader-title{color:#0f172a;background:linear-gradient(135deg,#0f172a 30%,#7c3aed 70%,#2563eb 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}',
+    '.lm-loader-subtitle{font-size:13px;font-weight:500;color:#7b88aa;display:flex;align-items:center;justify-content:center;gap:2px}',
+    '[data-theme="light"] .lm-loader-subtitle{color:#64748b}',
+    '.lm-loader-dots span{display:inline-block;animation:lmLoaderDots 1.4s infinite ease-in-out both;color:#8b5cf6;font-weight:700}',
+    '.lm-loader-dots span:nth-child(1){animation-delay:0s}',
+    '.lm-loader-dots span:nth-child(2){animation-delay:.2s}',
+    '.lm-loader-dots span:nth-child(3){animation-delay:.4s}',
+    '.lm-loader-bar-wrap{width:170px;height:4px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;position:relative;box-shadow:inset 0 1px 2px rgba(0,0,0,.3)}',
+    '[data-theme="light"] .lm-loader-bar-wrap{background:rgba(0,0,0,.08)}',
+    '.lm-loader-bar{position:absolute;top:0;bottom:0;width:50%;border-radius:99px;background:linear-gradient(90deg,#8b5cf6,#4f8ef7,#00d4b4);animation:lmLoaderBarSlide 1.5s cubic-bezier(.4,0,.2,1) infinite;box-shadow:0 0 12px rgba(139,92,246,.6)}',
+    '@keyframes lmLoaderSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}',
+    '@keyframes lmLoaderSpinReverse{0%{transform:rotate(360deg)}100%{transform:rotate(0deg)}}',
+    '@keyframes lmLoaderGlowPulse{0%{transform:scale(.85);opacity:.4}100%{transform:scale(1.15);opacity:.85}}',
+    '@keyframes lmLoaderAuraPulse{0%{opacity:.5}100%{opacity:1}}',
+    '@keyframes lmLoaderFloat{0%{transform:translateY(0)}100%{transform:translateY(-4px)}}',
+    '@keyframes lmLoaderIconBounce{0%{transform:scale(.95)}100%{transform:scale(1.06)}}',
+    '@keyframes lmLoaderDots{0%,80%,100%{opacity:.2;transform:translateY(0)}40%{opacity:1;transform:translateY(-2px)}}',
+    '@keyframes lmLoaderBarSlide{0%{left:-50%;width:30%}50%{left:25%;width:60%}100%{left:100%;width:30%}}',
+
     /* ── Auth sidebar footer (appended to existing #sidebar or #authNav) ── */
     '.agf{padding:14px 16px 22px;border-top:1px solid var(--border,#1e2436)}',
 
@@ -478,95 +565,127 @@
   }
 
   // ── 7. Main guard logic ──────────────────────────────────────────────────────
+  var hasSupabase = typeof _supabase !== 'undefined' && _supabase && _supabase.auth;
   var currentDeploy = window.LM_DEPLOY_ID || null;
   var activeDeploy  = localStorage.getItem('lm_active_deploy_commit');
   if (currentDeploy && activeDeploy && activeDeploy !== currentDeploy) {
     localStorage.setItem('lm_active_deploy_commit', currentDeploy);
-    _supabase.auth.signOut().then(function () {
+    if (hasSupabase) {
+      try {
+        _supabase.auth.signOut().then(function () {
+          _redirect(_getLoginUrl() + '&msg=deployed');
+        }).catch(function () {
+          _redirect(_getLoginUrl() + '&msg=deployed');
+        });
+      } catch (e) {
+        _redirect(_getLoginUrl() + '&msg=deployed');
+      }
+    } else {
       _redirect(_getLoginUrl() + '&msg=deployed');
-    }).catch(function () {
-      _redirect(_getLoginUrl() + '&msg=deployed');
-    });
+    }
     return;
   }
 
-  _supabase.auth.getSession().then(function (res) {
-    var session = res && res.data && res.data.session;
+  function _doReveal(session) {
+    // Dispatch before showing so hub page can lock cards without a flash
+    document.dispatchEvent(new CustomEvent('studyAccessReady', {
+      detail: { profile: window._studyProfile || null }
+    }));
+    _hideStyle.textContent = '';
+    document.body.style.visibility = 'visible';
+    _injectChip(session);
+    _loadTimer();
+    _dismissLoader();
+  }
 
-    if (!session) {
-      _redirect(_getLoginUrl());
-      return;
+  function _revealWhenReady(session) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function () { _doReveal(session); });
+    } else {
+      _doReveal(session);
     }
+  }
 
-    function _doReveal() {
-      // Dispatch before showing so hub page can lock cards without a flash
-      document.dispatchEvent(new CustomEvent('studyAccessReady', {
-        detail: { profile: window._studyProfile || null }
-      }));
-      _hideStyle.textContent = '';
-      document.body.style.visibility = 'visible';
-      _injectChip(session);
-      _loadTimer();
-    }
+  if (hasSupabase) {
+    _supabase.auth.getSession().then(function (res) {
+      var session = res && res.data && res.data.session;
 
-    function _revealWhenReady() {
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', _doReveal);
-      } else {
-        _doReveal();
+      if (!session) {
+        _redirect(_getLoginUrl());
+        return;
       }
-    }
 
-    // Check active status + study module access on every page load
-    _supabase.from('user_profiles')
-      .select('active,role,study_modules')
-      .eq('id', session.user.id)
-      .single()
-      .then(function (profRes) {
-        var profile = profRes.data;
+      // Check active status + study module access on every page load
+      _supabase.from('user_profiles')
+        .select('active,role,study_modules')
+        .eq('id', session.user.id)
+        .single()
+        .then(function (profRes) {
+          var profile = profRes.data;
 
-        // Inactive or missing profile → sign out + pending message
-        if (!profile || !profile.active) {
+          // Inactive or missing profile → sign out + pending message
+          if (!profile || !profile.active) {
+            _supabase.auth.signOut().then(function () {
+              _redirect(_getPendingUrl());
+            });
+            return;
+          }
+
+          // Module-level access check (admins always bypass)
+          var modKey = _currentModule();
+          if (profile.role !== 'admin' && !_canAccess(profile.study_modules, modKey)) {
+            _redirect(_getHubUrl() + '?msg=noaccess');
+            return;
+          }
+
+          // Expose profile so hub page can lock inaccessible resource cards
+          window._studyProfile = {
+            active:        profile.active,
+            role:          profile.role,
+            study_modules: profile.study_modules
+          };
+
+          _revealWhenReady(session);
+        })
+        .catch(function () {
+          // Network error — fail-closed: sign out and redirect rather than grant access
           _supabase.auth.signOut().then(function () {
-            _redirect(_getPendingUrl());
+            _redirect(_getLoginUrl());
+          }).catch(function () {
+            _redirect(_getLoginUrl());
           });
-          return;
-        }
-
-        // Module-level access check (admins always bypass)
-        var modKey = _currentModule();
-        if (profile.role !== 'admin' && !_canAccess(profile.study_modules, modKey)) {
-          _redirect(_getHubUrl() + '?msg=noaccess');
-          return;
-        }
-
-        // Expose profile so hub page can lock inaccessible resource cards
-        window._studyProfile = {
-          active:        profile.active,
-          role:          profile.role,
-          study_modules: profile.study_modules
-        };
-
-        _revealWhenReady();
-      })
-      .catch(function () {
-        // Network error — fail-closed: sign out and redirect rather than grant access
-        _supabase.auth.signOut().then(function () {
-          _redirect(_getLoginUrl());
-        }).catch(function () {
-          _redirect(_getLoginUrl());
         });
-      });
 
-  }).catch(function () {
-    _redirect(_getLoginUrl());
-  });
+    }).catch(function () {
+      _redirect(_getLoginUrl());
+    });
 
-  // ── 8. Cross-tab sign-out sync ────────────────────────────────────────────
-  _supabase.auth.onAuthStateChange(function (event) {
-    if (event === 'SIGNED_OUT') {
+    // ── 8. Cross-tab sign-out sync ────────────────────────────────────────────
+    _supabase.auth.onAuthStateChange(function (event) {
+      if (event === 'SIGNED_OUT') {
+        _redirect(_getLoginUrl());
+      }
+    });
+  } else {
+    // Local / Offline mode fallback
+    var localSess = null;
+    try { localSess = JSON.parse(localStorage.getItem('lm_session')); } catch(e) {}
+    if (localSess && localSess.userId) {
+      var fakeSession = {
+        user: {
+          id: localSess.userId,
+          email: localSess.username || 'local@user.com'
+        }
+      };
+      window._studyProfile = {
+        active: true,
+        role: localSess.role || 'admin',
+        study_modules: null
+      };
+      _revealWhenReady(fakeSession);
+    } else {
       _redirect(_getLoginUrl());
     }
-  });
+  }
 
 }());

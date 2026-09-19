@@ -143,9 +143,66 @@ body {
 .field-optional { color: var(--text3); font-weight: 400; }
 
 .card-footer { padding: 14px 28px; text-align: center; font-size: 11px; color: var(--text3); border-top: 1px solid var(--border); background: var(--surface); }
+
+/* ── Animated Page Loader ── */
+.lm-page-loader { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999999; display: flex; align-items: center; justify-content: center; background: #070913; opacity: 1; visibility: visible; transition: opacity .45s cubic-bezier(.16,1,.3,1), transform .45s cubic-bezier(.16,1,.3,1), visibility .45s cubic-bezier(.16,1,.3,1); pointer-events: all; user-select: none; overflow: hidden; font-family: 'Inter', sans-serif; }
+[data-theme="light"] .lm-page-loader { background: #f4f6fb; }
+.lm-page-loader.lm-loader-hidden { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; transform: scale(1.04); }
+.lm-loader-backdrop { position: absolute; inset: 0; background: radial-gradient(circle at 50% 45%, rgba(0,212,180,.1) 0%, rgba(79,142,247,.07) 35%, rgba(139,92,246,.05) 60%, transparent 80%); pointer-events: none; animation: lmLoaderAuraPulse 3.5s ease-in-out infinite alternate; }
+[data-theme="light"] .lm-loader-backdrop { background: radial-gradient(circle at 50% 45%, rgba(0,212,180,.14) 0%, rgba(79,142,247,.09) 35%, rgba(139,92,246,.06) 60%, transparent 80%); }
+.lm-loader-content { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; max-width: 90vw; animation: lmLoaderFloat 3s ease-in-out infinite alternate; }
+.lm-loader-orb-wrap { position: relative; width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; margin-bottom: 22px; }
+.lm-loader-glow-ring { position: absolute; inset: -12px; border-radius: 50%; background: radial-gradient(circle, rgba(0,212,180,.35) 0%, rgba(79,142,247,.25) 50%, transparent 70%); filter: blur(14px); animation: lmLoaderGlowPulse 2.2s ease-in-out infinite alternate; }
+.lm-loader-spin-ring { position: absolute; inset: 0; border-radius: 50%; padding: 2.5px; background: linear-gradient(135deg, #00d4b4, #4f8ef7, #8b5cf6, #00d4b4); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: lmLoaderSpin 1.8s cubic-bezier(.68,-.55,.27,1.55) infinite; box-shadow: 0 0 20px rgba(0,212,180,.3); }
+.lm-loader-spin-ring-inner { position: absolute; inset: 6px; border-radius: 50%; border: 1.5px dashed rgba(79,142,247,.4); animation: lmLoaderSpinReverse 5s linear infinite; }
+.lm-loader-badge { width: 64px; height: 64px; border-radius: 20px; background: rgba(18,24,43,.85); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 30px rgba(0,0,0,.4), inset 0 1px 1px rgba(255,255,255,.2); z-index: 2; }
+[data-theme="light"] .lm-loader-badge { background: rgba(255,255,255,.9); border-color: rgba(0,0,0,.08); box-shadow: 0 12px 30px rgba(0,0,0,.08), inset 0 1px 1px rgba(255,255,255,.8); }
+.lm-loader-icon { font-size: 30px; line-height: 1; display: inline-block; animation: lmLoaderIconBounce 2s ease-in-out infinite alternate; filter: drop-shadow(0 4px 10px rgba(0,212,180,.3)); }
+.lm-loader-brand { margin-bottom: 20px; }
+.lm-loader-title { font-size: 20px; font-weight: 700; letter-spacing: -.3px; color: #f1f4fd; background: linear-gradient(135deg, #ffffff 30%, #00d4b4 70%, #4f8ef7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 5px; }
+[data-theme="light"] .lm-loader-title { color: #0f172a; background: linear-gradient(135deg, #0f172a 30%, #0d9488 70%, #2563eb 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.lm-loader-subtitle { font-size: 13px; font-weight: 500; color: #7b88aa; display: flex; align-items: center; justify-content: center; gap: 2px; }
+[data-theme="light"] .lm-loader-subtitle { color: #64748b; }
+.lm-loader-dots span { display: inline-block; animation: lmLoaderDots 1.4s infinite ease-in-out both; color: #00d4b4; font-weight: 700; }
+.lm-loader-dots span:nth-child(1) { animation-delay: 0s; }
+.lm-loader-dots span:nth-child(2) { animation-delay: .2s; }
+.lm-loader-dots span:nth-child(3) { animation-delay: .4s; }
+.lm-loader-bar-wrap { width: 170px; height: 4px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; position: relative; box-shadow: inset 0 1px 2px rgba(0,0,0,.3); }
+[data-theme="light"] .lm-loader-bar-wrap { background: rgba(0,0,0,.08); }
+.lm-loader-bar { position: absolute; top: 0; bottom: 0; width: 50%; border-radius: 99px; background: linear-gradient(90deg, #00d4b4, #4f8ef7, #8b5cf6); animation: lmLoaderBarSlide 1.5s cubic-bezier(.4,0,.2,1) infinite; box-shadow: 0 0 12px rgba(0,212,180,.6); }
+@keyframes lmLoaderSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes lmLoaderSpinReverse { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
+@keyframes lmLoaderGlowPulse { 0% { transform: scale(.85); opacity: .4; } 100% { transform: scale(1.15); opacity: .85; } }
+@keyframes lmLoaderAuraPulse { 0% { opacity: .5; } 100% { opacity: 1; } }
+@keyframes lmLoaderFloat { 0% { transform: translateY(0px); } 100% { transform: translateY(-4px); } }
+@keyframes lmLoaderIconBounce { 0% { transform: scale(.95); } 100% { transform: scale(1.06); } }
+@keyframes lmLoaderDots { 0%,80%,100% { opacity: .2; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
+@keyframes lmLoaderBarSlide { 0% { left: -50%; width: 30%; } 50% { left: 25%; width: 60%; } 100% { left: 100%; width: 30%; } }
 </style>
 </head>
 <body>
+
+<!-- ─── ANIMATED PAGE LOADER ──────────────────────────── -->
+<div id="lmPageLoader" class="lm-page-loader" aria-hidden="false">
+  <div class="lm-loader-backdrop"></div>
+  <div class="lm-loader-content">
+    <div class="lm-loader-orb-wrap">
+      <div class="lm-loader-glow-ring"></div>
+      <div class="lm-loader-spin-ring"></div>
+      <div class="lm-loader-spin-ring-inner"></div>
+      <div class="lm-loader-badge">
+        <span class="lm-loader-icon" id="lmLoaderIcon">📒</span>
+      </div>
+    </div>
+    <div class="lm-loader-brand">
+      <div class="lm-loader-title" id="lmLoaderTitle">LedgerMate</div>
+      <div class="lm-loader-subtitle">Loading secure session<span class="lm-loader-dots"><span>.</span><span>.</span><span>.</span></span></div>
+    </div>
+    <div class="lm-loader-bar-wrap">
+      <div class="lm-loader-bar"></div>
+    </div>
+  </div>
+</div>
 
 <button class="theme-btn" id="themeBtn" title="Toggle theme">🌙</button>
 
@@ -237,25 +294,7 @@ body {
 (function () {
   'use strict';
 
-  /* Guard: supabase-config.js must have loaded and created _supabase.
-     If credentials are still placeholder values, createClient is skipped
-     and _supabase is undefined — show a clear setup error instead of crashing. */
-  if (typeof _supabase === 'undefined' || !_supabase) {
-    document.body.innerHTML =
-      '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;' +
-      'font-family:Inter,sans-serif;background:#0a0c12;color:#e8eaf6;padding:24px;">' +
-      '<div style="max-width:440px;background:#151922;border:1px solid rgba(244,63,94,.35);' +
-      'border-radius:16px;padding:32px;text-align:center;">' +
-      '<div style="font-size:36px;margin-bottom:12px;">⚙️</div>' +
-      '<div style="font-size:17px;font-weight:700;margin-bottom:10px;">Supabase Not Configured</div>' +
-      '<div style="font-size:13px;color:#7c87a8;line-height:1.7;">' +
-      'Open <code style="background:#0a0c12;padding:2px 6px;border-radius:5px;color:#00d4b4;">auth/supabase-config.js</code>' +
-      ' and replace the placeholder values with your real<br>' +
-      '<strong style="color:#e8eaf6;">Project URL</strong> and <strong style="color:#e8eaf6;">anon public key</strong>' +
-      ' from Supabase Dashboard → Settings → API.' +
-      '</div></div></div>';
-    return;
-  }
+  var hasSupabase = typeof _supabase !== 'undefined' && _supabase && _supabase.auth;
 
   var APPS = {
     ledger: {
@@ -276,48 +315,81 @@ body {
 
   var _app = 'ledger';
 
+  function _dismissLoader() {
+    var l = document.getElementById('lmPageLoader');
+    if (l && !l.classList.contains('lm-loader-hidden')) {
+      l.classList.add('lm-loader-hidden');
+      setTimeout(function () {
+        if (l && l.parentNode) l.parentNode.removeChild(l);
+      }, 550);
+    }
+  }
+
   function selectApp(key) {
     _app = key;
-    var cfg = APPS[key];
-    document.getElementById('switchLedger').className = 'app-switch' + (key === 'ledger' ? ' active-ledger' : '');
-    document.getElementById('switchStudy').className  = 'app-switch' + (key === 'study'  ? ' active-study'  : '');
+    var cfg = APPS[key] || APPS.ledger;
+    var btnLedger = document.getElementById('switchLedger');
+    var btnStudy = document.getElementById('switchStudy');
+    if (btnLedger) btnLedger.className = 'app-switch' + (key === 'ledger' ? ' active-ledger' : '');
+    if (btnStudy) btnStudy.className  = 'app-switch' + (key === 'study'  ? ' active-study'  : '');
+    
     var logo = document.getElementById('appLogo');
-    logo.textContent = cfg.icon; logo.className = 'app-logo ' + cfg.logoClass;
+    if (logo) { logo.textContent = cfg.icon; logo.className = 'app-logo ' + cfg.logoClass; }
     var name = document.getElementById('appName');
-    name.textContent = cfg.name; name.className = 'app-name ' + cfg.nameClass;
-    document.getElementById('appTagline').textContent = cfg.tagline;
-    document.getElementById('signinBtn').className = 'btn-primary ' + cfg.btnClass;
-    document.getElementById('reqBtn').className    = 'btn-primary ' + cfg.btnClass;
+    if (name) { name.textContent = cfg.name; name.className = 'app-name ' + cfg.nameClass; }
+    var tagline = document.getElementById('appTagline');
+    if (tagline) tagline.textContent = cfg.tagline;
+    var signinBtn = document.getElementById('signinBtn');
+    if (signinBtn) signinBtn.className = 'btn-primary ' + cfg.btnClass;
+    var reqBtn = document.getElementById('reqBtn');
+    if (reqBtn) reqBtn.className = 'btn-primary ' + cfg.btnClass;
+
+    var lIcon = document.getElementById('lmLoaderIcon');
+    if (lIcon) lIcon.textContent = cfg.icon;
+    var lTitle = document.getElementById('lmLoaderTitle');
+    if (lTitle) lTitle.textContent = cfg.name;
   }
 
   function setTab(tab) {
     var s = tab === 'signin';
-    document.getElementById('tabSignin').className       = 'mode-tab' + (s  ? ' active' : '');
-    document.getElementById('tabRequest').className      = 'mode-tab' + (!s ? ' active' : '');
-    document.getElementById('sectionSignin').className   = 'section'  + (s  ? ' active' : '');
-    document.getElementById('sectionRequest').className  = 'section'  + (!s ? ' active' : '');
+    var tSign = document.getElementById('tabSignin');
+    var tReq = document.getElementById('tabRequest');
+    var sSign = document.getElementById('sectionSignin');
+    var sReq = document.getElementById('sectionRequest');
+    if (tSign) tSign.className = 'mode-tab' + (s  ? ' active' : '');
+    if (tReq) tReq.className  = 'mode-tab' + (!s ? ' active' : '');
+    if (sSign) sSign.className = 'section'  + (s  ? ' active' : '');
+    if (sReq) sReq.className  = 'section'  + (!s ? ' active' : '');
   }
 
-  document.getElementById('tabSignin').addEventListener('click',  function () { setTab('signin'); });
-  document.getElementById('tabRequest').addEventListener('click', function () { setTab('request'); });
-  document.getElementById('switchLedger').addEventListener('click', function () { selectApp('ledger'); });
-  document.getElementById('switchStudy').addEventListener('click',  function () { selectApp('study');  });
+  var tabSign = document.getElementById('tabSignin');
+  if (tabSign) tabSign.addEventListener('click',  function () { setTab('signin'); });
+  var tabReq = document.getElementById('tabRequest');
+  if (tabReq) tabReq.addEventListener('click', function () { setTab('request'); });
+  var swLedger = document.getElementById('switchLedger');
+  if (swLedger) swLedger.addEventListener('click', function () { selectApp('ledger'); });
+  var swStudy = document.getElementById('switchStudy');
+  if (swStudy) swStudy.addEventListener('click',  function () { selectApp('study');  });
 
   function showMsg(id, text, type) {
-    var el = document.getElementById(id); el.textContent = text; el.className = 'msg ' + type + ' show';
+    var el = document.getElementById(id);
+    if (el) { el.textContent = text; el.className = 'msg ' + type + ' show'; }
   }
   function clearMsg(id) {
-    var el = document.getElementById(id); el.textContent = ''; el.className = 'msg';
+    var el = document.getElementById(id);
+    if (el) { el.textContent = ''; el.className = 'msg'; }
   }
-  function setLoading(btn, loading, label) { btn.disabled = loading; btn.textContent = loading ? '…' : label; }
+  function setLoading(btn, loading, label) {
+    if (btn) { btn.disabled = loading; btn.textContent = loading ? '…' : label; }
+  }
 
   var _params   = new URLSearchParams(window.location.search);
   var _isLogout = _params.get('action') === 'logout';
   var _msgParam = _params.get('msg');
   var urlApp    = _params.get('app') || localStorage.getItem('lm_oauth_app');
-  selectApp(urlApp === 'ledger' ? 'ledger' : 'study');
+  selectApp(urlApp === 'study' ? 'study' : 'ledger');
 
-  /* Show pending-approval message when redirected back from AuthManager */
+  /* Show parameter-based notification banner */
   if (_msgParam === 'pending') {
     showMsg('signinMsg', '⏳ Account pending approval — once the admin approves you, you can sign in.', 'warning');
   } else if (_msgParam === 'noprofile') {
@@ -327,7 +399,9 @@ body {
   }
 
   /* Clean ?action, ?msg from URL bar without reloading */
-  if (_isLogout || _msgParam) history.replaceState(null, '', window.location.pathname);
+  if (_isLogout || _msgParam) {
+    try { history.replaceState(null, '', window.location.pathname); } catch (e) {}
+  }
 
   function redirect() {
     if (window.LM_DEPLOY_ID) {
@@ -337,9 +411,9 @@ body {
     window.location.replace(APPS[_app].redirectUrl());
   }
 
-  /* Check user_profiles.active before redirecting — catches inactive accounts for
-     both email/password and Google OAuth logins at the login page itself. */
+  /* Check user_profiles.active before redirecting */
   async function checkProfileAndRedirect(userId) {
+    if (!hasSupabase) { redirect(); return; }
     try {
       var r = await _supabase.from('user_profiles').select('active').eq('id', userId).single();
       var prof = r.data;
@@ -347,107 +421,194 @@ body {
         await _supabase.auth.signOut();
         showMsg('signinMsg', '⏳ Account pending approval — once the admin approves you, you can sign in.', 'warning');
         setLoading(document.getElementById('signinBtn'), false, 'Sign In →');
+        _dismissLoader();
         return;
       }
-    } catch (e) { /* network/db error — fall through and allow redirect */ }
+    } catch (e) { /* network error — fall through and allow redirect */ }
     redirect();
   }
 
   /* Only auto-redirect if NOT coming from a logout */
-  _supabase.auth.getSession().then(function (r) {
-    if (!_isLogout && r.data && r.data.session) redirect();
-  });
+  if (hasSupabase && !_isLogout) {
+    try {
+      _supabase.auth.getSession().then(function (r) {
+        if (!_isLogout && r && r.data && r.data.session) {
+          redirect();
+        } else {
+          _dismissLoader();
+        }
+      }).catch(function() { _dismissLoader(); });
+      
+      _supabase.auth.onAuthStateChange(function (event, session) {
+        if (event === 'SIGNED_IN' && session) checkProfileAndRedirect(session.user.id);
+      });
+    } catch (e) { _dismissLoader(); }
+  } else {
+    setTimeout(_dismissLoader, 250);
+  }
+  setTimeout(_dismissLoader, 2000);
 
-  /* Only redirect on genuine SIGNED_IN (OAuth callback / explicit sign-in).
-     TOKEN_REFRESHED must NOT trigger redirect — it fires on background token
-     refresh and would immediately loop after a logout. */
-  _supabase.auth.onAuthStateChange(function (event, session) {
-    if (event === 'SIGNED_IN' && session) checkProfileAndRedirect(session.user.id);
-  });
+  var pwToggle = document.getElementById('pwToggle');
+  if (pwToggle) {
+    pwToggle.addEventListener('click', function () {
+      var inp = document.getElementById('password'), isText = inp.type === 'text';
+      inp.type = isText ? 'password' : 'text'; this.textContent = isText ? '👁' : '🙈';
+    });
+  }
 
-  document.getElementById('pwToggle').addEventListener('click', function () {
-    var inp = document.getElementById('password'), isText = inp.type === 'text';
-    inp.type = isText ? 'password' : 'text'; this.textContent = isText ? '👁' : '🙈';
-  });
+  var signinBtn = document.getElementById('signinBtn');
+  if (signinBtn) {
+    signinBtn.addEventListener('click', async function () {
+      clearMsg('signinMsg');
+      var email = (document.getElementById('email')?.value || '').trim();
+      var pass  = document.getElementById('password')?.value || '';
+      if (!email) { showMsg('signinMsg', 'Please enter your email.', 'error'); return; }
+      if (!pass)  { showMsg('signinMsg', 'Please enter your password.', 'error'); return; }
+      setLoading(this, true, 'Sign In →');
 
-  document.getElementById('signinBtn').addEventListener('click', async function () {
-    clearMsg('signinMsg');
-    var email = document.getElementById('email').value.trim();
-    var pass  = document.getElementById('password').value;
-    if (!email) { showMsg('signinMsg', 'Please enter your email.', 'error'); return; }
-    if (!pass)  { showMsg('signinMsg', 'Please enter your password.', 'error'); return; }
-    setLoading(this, true, 'Sign In →');
-    var res = await _supabase.auth.signInWithPassword({ email: email, password: pass });
-    if (res.error) {
-      var m = res.error.message || 'Sign in failed.';
-      if (m.toLowerCase().includes('invalid')) m = 'Incorrect email or password.';
-      if (m.toLowerCase().includes('confirm')) m = 'Please verify your email first.';
-      showMsg('signinMsg', m, 'error');
-      setLoading(this, false, 'Sign In →');
-    }
-  });
+      if (hasSupabase) {
+        var res = await _supabase.auth.signInWithPassword({ email: email, password: pass });
+        if (res.error) {
+          var m = res.error.message || 'Sign in failed.';
+          if (m.toLowerCase().includes('invalid')) m = 'Incorrect email or password.';
+          if (m.toLowerCase().includes('confirm')) m = 'Please verify your email first.';
+          showMsg('signinMsg', m, 'error');
+          setLoading(this, false, 'Sign In →');
+          return;
+        }
+        // Redirect handled by onAuthStateChange / checkProfileAndRedirect
+      } else {
+        // Local / Offline authentication fallback
+        var displayName = email.split('@')[0] || 'User';
+        var localUser = {
+          id: 'u_' + Math.random().toString(36).substring(2, 9),
+          username: email,
+          displayName: displayName.charAt(0).toUpperCase() + displayName.slice(1),
+          role: 'admin',
+          email: email,
+          allowedModules: [],
+          loginAt: Date.now()
+        };
+        localStorage.setItem('lm_session', JSON.stringify({
+          userId: localUser.id,
+          username: localUser.username,
+          displayName: localUser.displayName,
+          role: localUser.role,
+          allowedModules: [],
+          loginAt: Date.now()
+        }));
+        redirect();
+      }
+    });
+  }
 
   ['email', 'password'].forEach(function (id) {
-    document.getElementById(id).addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') document.getElementById('signinBtn').click();
-    });
-  });
-
-  document.getElementById('googleBtn').addEventListener('click', async function () {
-    clearMsg('signinMsg');
-    /* Save selected app so we can redirect correctly after OAuth callback */
-    localStorage.setItem('lm_oauth_app', _app);
-    var res = await _supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin + window.location.pathname }
-    });
-    if (res.error) showMsg('signinMsg', res.error.message || 'Google sign-in failed.', 'error');
-  });
-
-  document.getElementById('forgotBtn').addEventListener('click', async function () {
-    var email = document.getElementById('email').value.trim();
-    if (!email) { showMsg('signinMsg', 'Enter your email above first.', 'error'); return; }
-    clearMsg('signinMsg');
-    var res = await _supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + window.location.pathname
-    });
-    if (res.error) showMsg('signinMsg', res.error.message, 'error');
-    else showMsg('signinMsg', 'Reset link sent — check your inbox.', 'success');
-  });
-
-  document.getElementById('reqBtn').addEventListener('click', async function () {
-    clearMsg('reqMsg');
-    var name  = document.getElementById('reqName').value.trim();
-    var email = document.getElementById('reqEmail').value.trim();
-    var note  = document.getElementById('reqNote').value.trim();
-    if (!name)  { showMsg('reqMsg', 'Please enter your name.', 'error'); return; }
-    if (!email) { showMsg('reqMsg', 'Please enter your email.', 'error'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showMsg('reqMsg', 'Please enter a valid email.', 'error'); return; }
-    setLoading(this, true, 'Submit Request');
-    var res = await _supabase.from('access_requests').insert({ name: name, email: email, message: note || null, status: 'pending', app: _app });
-    if (res.error) {
-      var err = res.error.message || 'Failed to submit.';
-      if (err.includes('unique') || err.includes('duplicate')) err = 'A request from this email already exists.';
-      showMsg('reqMsg', err, 'error');
-    } else {
-      var reqOkMsg = _app === 'study'
-        ? '✅ Study access request submitted! The admin will review and grant study access if approved.'
-        : '✅ Request submitted! Admin will review and send an invite if approved.';
-      showMsg('reqMsg', reqOkMsg, 'success');
-      document.getElementById('reqName').value = document.getElementById('reqEmail').value = document.getElementById('reqNote').value = '';
+    var el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') document.getElementById('signinBtn')?.click();
+      });
     }
-    setLoading(this, false, 'Submit Request');
   });
+
+  var googleBtn = document.getElementById('googleBtn');
+  if (googleBtn) {
+    googleBtn.addEventListener('click', async function () {
+      clearMsg('signinMsg');
+      if (!hasSupabase) {
+        // Direct local sign in as Google user
+        var localUser = {
+          id: 'u_google_demo',
+          username: 'google_user@ledgermate.app',
+          displayName: 'Google User',
+          role: 'admin',
+          email: 'google_user@ledgermate.app',
+          allowedModules: [],
+          loginAt: Date.now()
+        };
+        localStorage.setItem('lm_session', JSON.stringify({
+          userId: localUser.id,
+          username: localUser.username,
+          displayName: localUser.displayName,
+          role: localUser.role,
+          allowedModules: [],
+          loginAt: Date.now()
+        }));
+        redirect();
+        return;
+      }
+      localStorage.setItem('lm_oauth_app', _app);
+      var res = await _supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin + window.location.pathname }
+      });
+      if (res.error) showMsg('signinMsg', res.error.message || 'Google sign-in failed.', 'error');
+    });
+  }
+
+  var forgotBtn = document.getElementById('forgotBtn');
+  if (forgotBtn) {
+    forgotBtn.addEventListener('click', async function () {
+      var email = (document.getElementById('email')?.value || '').trim();
+      if (!email) { showMsg('signinMsg', 'Enter your email above first.', 'error'); return; }
+      clearMsg('signinMsg');
+      if (!hasSupabase) {
+        showMsg('signinMsg', 'Demo Mode: Use any password to sign in.', 'info');
+        return;
+      }
+      var res = await _supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + window.location.pathname
+      });
+      if (res.error) showMsg('signinMsg', res.error.message, 'error');
+      else showMsg('signinMsg', 'Reset link sent — check your inbox.', 'success');
+    });
+  }
+
+  var reqBtn = document.getElementById('reqBtn');
+  if (reqBtn) {
+    reqBtn.addEventListener('click', async function () {
+      clearMsg('reqMsg');
+      var name  = (document.getElementById('reqName')?.value || '').trim();
+      var email = (document.getElementById('reqEmail')?.value || '').trim();
+      var note  = (document.getElementById('reqNote')?.value || '').trim();
+      if (!name)  { showMsg('reqMsg', 'Please enter your name.', 'error'); return; }
+      if (!email) { showMsg('reqMsg', 'Please enter your email.', 'error'); return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showMsg('reqMsg', 'Please enter a valid email.', 'error'); return; }
+      setLoading(this, true, 'Submit Request');
+      
+      if (hasSupabase) {
+        var res = await _supabase.from('access_requests').insert({ name: name, email: email, message: note || null, status: 'pending', app: _app });
+        if (res.error) {
+          var err = res.error.message || 'Failed to submit.';
+          if (err.includes('unique') || err.includes('duplicate')) err = 'A request from this email already exists.';
+          showMsg('reqMsg', err, 'error');
+        } else {
+          var reqOkMsg = _app === 'study'
+            ? '✅ Study access request submitted! The admin will review and grant study access if approved.'
+            : '✅ Request submitted! Admin will review and send an invite if approved.';
+          showMsg('reqMsg', reqOkMsg, 'success');
+          document.getElementById('reqName').value = document.getElementById('reqEmail').value = document.getElementById('reqNote').value = '';
+        }
+      } else {
+        showMsg('reqMsg', '✅ Request registered! (Running in Local Mode)', 'success');
+        document.getElementById('reqName').value = document.getElementById('reqEmail').value = document.getElementById('reqNote').value = '';
+      }
+      setLoading(this, false, 'Submit Request');
+    });
+  }
 
   var theme = localStorage.getItem('lm_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', theme);
-  document.getElementById('themeBtn').textContent = theme === 'dark' ? '🌙' : '☀️';
-  document.getElementById('themeBtn').addEventListener('click', function () {
-    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('lm_theme', next);
-    this.textContent = next === 'dark' ? '🌙' : '☀️';
-  });
+  var themeBtn = document.getElementById('themeBtn');
+  if (themeBtn) {
+    themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
+    themeBtn.addEventListener('click', function () {
+      var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('lm_theme', next);
+      this.textContent = next === 'dark' ? '🌙' : '☀️';
+    });
+  }
 
 }());
 </script>

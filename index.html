@@ -88,6 +88,28 @@
 </head>
 <body>
 
+<!-- ─── ANIMATED PAGE LOADER ──────────────────────────── -->
+<div id="lmPageLoader" class="lm-page-loader" aria-hidden="false">
+  <div class="lm-loader-backdrop"></div>
+  <div class="lm-loader-content">
+    <div class="lm-loader-orb-wrap">
+      <div class="lm-loader-glow-ring"></div>
+      <div class="lm-loader-spin-ring"></div>
+      <div class="lm-loader-spin-ring-inner"></div>
+      <div class="lm-loader-badge">
+        <span class="lm-loader-icon">📒</span>
+      </div>
+    </div>
+    <div class="lm-loader-brand">
+      <div class="lm-loader-title">LedgerMate</div>
+      <div class="lm-loader-subtitle">Loading your financial hub<span class="lm-loader-dots"><span>.</span><span>.</span><span>.</span></span></div>
+    </div>
+    <div class="lm-loader-bar-wrap">
+      <div class="lm-loader-bar"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ─── PAGE LOAD BAR & SCROLL PROGRESS BAR ──────────── -->
 <div id="pageLoadBar"></div>
 <div id="scrollProgressBar"></div>
@@ -1299,7 +1321,8 @@ function updateFabVisibility(page) {
    PAGE NAVIGATION
 ───────────────────────────────────────────── */
 function showPage(page) {
-    updateFabVisibility(page);
+  if (typeof window.closeSidebar === 'function') window.closeSidebar();
+  updateFabVisibility(page);
   // 1. Show / hide pages
   document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
   const pageEl = document.getElementById('page-' + page);
@@ -1639,14 +1662,29 @@ function setGreeting() {
   const hintEl = document.getElementById('loginDefaultHint');
   if (users.some(u => u.loginCount > 0) && hintEl) hintEl.style.display = 'none';
 
+  /* ── Page Loader Dismissal ──────────────────────── */
+  window.LM_hidePageLoader = function () {
+    const loader = document.getElementById('lmPageLoader');
+    if (loader && !loader.classList.contains('lm-loader-hidden')) {
+      loader.classList.add('lm-loader-hidden');
+      setTimeout(() => {
+        if (loader && loader.parentNode) loader.parentNode.removeChild(loader);
+      }, 550);
+    }
+  };
+
+  /* Safety fallback so loader never blocks the UI */
+  setTimeout(window.LM_hidePageLoader, 2500);
+
   /* ── Patch LM_StartApp to emit events + load bar ── */
   const _origStartApp = window.LM_StartApp;
   window.LM_StartApp = async function() {
     showBar();
     try {
-      await _origStartApp();
+      if (typeof _origStartApp === 'function') await _origStartApp();
     } finally {
       hideBar();
+      window.LM_hidePageLoader();
     }
     /* Apply store patch after DB opens */
     if (typeof window.LM_applyStorePatch === 'function') window.LM_applyStorePatch();
@@ -1666,9 +1704,16 @@ function setGreeting() {
   }
 
   /* ── Bootstrap auth on DOMContentLoaded ─────────── */
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', async function() {
     if (window.LM_Auth && typeof window.LM_Auth.init === 'function') {
-      window.LM_Auth.init();
+      try {
+        await window.LM_Auth.init();
+      } finally {
+        /* If login screen is showing or auth done, ensure loader fades out */
+        setTimeout(window.LM_hidePageLoader, 300);
+      }
+    } else {
+      window.LM_hidePageLoader();
     }
   });
 })();

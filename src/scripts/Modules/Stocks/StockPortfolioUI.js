@@ -417,14 +417,11 @@
                   </td>
                   <td>
                     <div class="stock-row-actions">
-                      <button class="btn-stock-mini" title="Edit stock metadata" onclick="window.LM_StockPortfolioUI.openEditHoldingModal('${h.id}')">
-                        ✏️ Edit
+                      <button class="btn-stock-mini" title="View details & transactions" onclick="window.LM_StockPortfolioUI.openStockDetailModal('${h.id}')">
+                        🔍 View
                       </button>
                       <button class="btn-stock-mini" title="Add Buy/Sell order for this stock" onclick="window.LM_StockPortfolioUI.openAddTransactionModal({ symbol: '${h.symbol}', exchange: '${h.exchange}', company_name: '${h.company_name.replace(/'/g, "\\'")}', sector: '${h.sector}' })">
                         + Tx
-                      </button>
-                      <button class="btn-stock-mini" title="View details & transactions" onclick="window.LM_StockPortfolioUI.openStockDetailModal('${h.id}')">
-                        🔍 View
                       </button>
                       <button class="btn-stock-mini danger" title="Delete holding" onclick="window.LM_StockPortfolioUI.confirmDeleteHolding('${h.id}')">
                         ✕
@@ -492,10 +489,7 @@
 
               <div class="stock-card-actions">
                 <button class="btn-stock-secondary" onclick="window.LM_StockPortfolioUI.openStockDetailModal('${h.id}')">
-                  🔍 History
-                </button>
-                <button class="btn-stock-secondary" onclick="window.LM_StockPortfolioUI.openEditHoldingModal('${h.id}')">
-                  ✏️ Edit
+                  🔍 View History
                 </button>
                 <button class="btn-stock-primary" onclick="window.LM_StockPortfolioUI.openAddTransactionModal({ symbol: '${h.symbol}', exchange: '${h.exchange}', company_name: '${h.company_name.replace(/'/g, "\\'")}', sector: '${h.sector}' })">
                   + Add Tx
@@ -769,6 +763,11 @@
     }
   }
 
+  /**
+   * Open Modal to Add Stock / Transaction
+   */
+  function openAddTransactionModal(preset) {
+    var modalContainer = document.getElementById('stockModalContainer');
   /**
    * Helper to ensure the modal container exists directly on document.body for true viewport centering
    */

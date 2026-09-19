@@ -4002,19 +4002,6 @@ window._LM_restoreLastPage = function() {
   const lastPage = localStorage.getItem(uKey) || localStorage.getItem('ledgerMate_lastPage') || 'dashboard';
   if (typeof showPage === 'function') showPage(lastPage);
 };
-const sidebar = document.getElementById("sidebar");
-const sidebarOverlay = document.getElementById("sidebarOverlay");
-const menuBtn = document.getElementById("menuBtn");
-
-menuBtn.addEventListener("click", () => {
-  sidebar.classList.toggle("-translate-x-full");
-  sidebarOverlay.classList.toggle("hidden");
-});
-
-sidebarOverlay.addEventListener("click", () => {
-  sidebar.classList.add("-translate-x-full");
-  sidebarOverlay.classList.add("hidden");
-});
 document.getElementById("year").textContent = new Date().getFullYear();
 const helpModal = document.getElementById("helpModal");
 const closeHelpModal = document.getElementById("closeHelpModal");
@@ -4796,49 +4783,60 @@ function renderBudgetOverview() {
 function toggleSidebar() {
   const sb = document.getElementById('sidebar');
   const ov = document.getElementById('sidebarOverlay');
+  if (!sb) return;
   const isOpen = sb.classList.toggle('open');
-  ov.classList.toggle('show');
+  if (ov) ov.classList.toggle('show', isOpen);
   document.body.classList.toggle('sidebar-open', isOpen);
 }
 function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebarOverlay').classList.remove('show');
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebarOverlay');
+  if (sb) sb.classList.remove('open');
+  if (ov) ov.classList.remove('show');
   document.body.classList.remove('sidebar-open');
 }
-document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+
+window.toggleSidebar = toggleSidebar;
+window.closeSidebar = closeSidebar;
+
+const _sbOv = document.getElementById('sidebarOverlay');
+if (_sbOv) _sbOv.addEventListener('click', closeSidebar);
+
 document.addEventListener('click', function (e) {
   const sidebar = document.getElementById('sidebar');
-  const menuBtn = document.getElementById('menuBtn');
-  const moreBtn = document.getElementById('bnav-more');    
- 
-  if (
-    !sidebar.contains(e.target) &&
-    !menuBtn.contains(e.target) &&
-    !moreBtn.contains(e.target)
-  ) {
+  if (!sidebar || !sidebar.classList.contains('open')) return;
+  
+  const isMenuClick = !!e.target.closest('#menuBtn');
+  const isMoreClick = !!e.target.closest('#bnav-more');
+  const isSidebarClick = !!e.target.closest('#sidebar');
+
+  if (!isSidebarClick && !isMenuClick && !isMoreClick) {
     closeSidebar();
   }
 });
 
-document.getElementById('bottomNav').addEventListener('click', function(e) {
-  const btn = e.target.closest('.bnav-item');
-  if (!btn) return;
+const _bottomNavEl = document.getElementById('bottomNav');
+if (_bottomNavEl) {
+  _bottomNavEl.addEventListener('click', function(e) {
+    const btn = e.target.closest('.bnav-item');
+    if (!btn) return;
 
-  const page = btn.id.replace('bnav-', '');
+    const page = btn.id.replace('bnav-', '');
 
-  // The "More" button just toggles the sidebar, not a page
-  if (page === 'more') {
-    toggleSidebar();
-    return;
-  }
+    // The "More" button just toggles the sidebar, not a page
+    if (page === 'more') {
+      toggleSidebar();
+      return;
+    }
 
-  // Update bottom‑nav active state immediately
-  document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+    // Update bottom-nav active state immediately
+    document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
 
-  // Now switch the page
-  showPage(page);
-});
+    // Now switch the page
+    showPage(page);
+  });
+}
 
 // ── Dashboard Wealth Summary Widget ──────────────────────────
 function renderDashboardWealthWidget() {
@@ -8045,89 +8043,20 @@ window.LM_initPaletteGlidingCursor = function() {
 // Initialize mobile gestures & card physics on DOM Ready
 document.addEventListener('DOMContentLoaded', () => {
   window.LM_initBottomSheetGestures?.();
-  window.LM_initModalObserver?.();
 });
 
 /**
- * 7. Global Reactive Modal & Popup Manager: Auto-Hide Bottom Menu
- * Ensures the bottom navigation dock is cleanly hidden across ALL modules
- * whenever any popup/modal/overlay is open so it never blocks action buttons.
+ * 7. Global Bottom Nav Helper (Non-blocking lightweight controls)
  */
 window.LM_hideBottomNav = function() {
-  document.body.classList.add('modal-open');
   const bnav = document.getElementById('bottomNav');
-  if (bnav) {
-    bnav.classList.add('modal-hidden');
-    bnav.style.setProperty('display', 'none', 'important');
-    bnav.style.setProperty('visibility', 'hidden', 'important');
-    bnav.style.setProperty('pointer-events', 'none', 'important');
-  }
+  if (bnav) bnav.style.display = 'none';
 };
 
 window.LM_showBottomNav = function() {
-  document.body.classList.remove('modal-open');
   const bnav = document.getElementById('bottomNav');
-  if (bnav) {
-    bnav.classList.remove('modal-hidden');
-    bnav.style.removeProperty('display');
-    bnav.style.removeProperty('visibility');
-    bnav.style.removeProperty('pointer-events');
-  }
+  if (bnav) bnav.style.display = '';
 };
 
-window.LM_syncModalState = function() {
-  // Check if any modal or popup overlay is actively open / visible
-  const modalCandidates = document.querySelectorAll(
-    '.modal-overlay, .modal, .popup-overlay, .cd-modal-overlay, #creditCardModals > *, #modals > *, #stockModalContainer > *'
-  );
-  
-  let hasOpenModal = false;
-  for (let i = 0; i < modalCandidates.length; i++) {
-    const el = modalCandidates[i];
-    // Skip empty containers or elements not rendered
-    if (!el || el.id === 'modals' || el.id === 'creditCardModals' || el.id === 'stockModalContainer') continue;
-    
-    const style = window.getComputedStyle(el);
-    const isVisible = style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
-    const hasShowClass = el.classList.contains('show') || el.classList.contains('open') || el.classList.contains('active');
-    
-    if (isVisible && (hasShowClass || el.style.display === 'flex' || el.style.display === 'block' || el.offsetParent !== null)) {
-      hasOpenModal = true;
-      break;
-    }
-  }
-
-  if (hasOpenModal) {
-    window.LM_hideBottomNav();
-  } else {
-    window.LM_showBottomNav();
-  }
-};
-
-window.LM_initModalObserver = function() {
-  if (window._lmModalObserverAttached) return;
-  window._lmModalObserverAttached = true;
-
-  // Run initial check
-  window.LM_syncModalState();
-
-  // Observe DOM additions, removals, and class/style modifications
-  const observer = new MutationObserver(() => {
-    window.LM_syncModalState();
-  });
-
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['class', 'style', 'hidden']
-  });
-
-  // Also hook into global window events
-  window.addEventListener('resize', window.LM_syncModalState);
-};
-
-// Also trigger immediately in case DOM is already loaded
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  window.LM_initModalObserver?.();
-}
+window.LM_syncModalState = function() {};
+window.LM_initModalObserver = function() {};

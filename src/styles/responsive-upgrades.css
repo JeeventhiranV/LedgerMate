@@ -32,6 +32,14 @@ html, body {
   box-sizing: border-box !important;
   min-width: 0 !important;
   overflow-x: hidden !important;
+  padding-bottom: calc(105px + env(safe-area-inset-bottom, 20px)) !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 1024px) {
+  #main {
+    padding-bottom: 30px !important;
+  }
 }
 
 /* Ultra-Wide Constraints (Prevents Awkward Stretching on 2K/4K) */
@@ -563,38 +571,28 @@ html, body {
     }
   }
 
-  /* ─── Automatically Hide Bottom Navigation when ANY Modal / Popup is Open ─── */
-  body.modal-open #bottomNav,
-  body:has(.modal-overlay.show) #bottomNav,
-  body:has(.modal-overlay[style*="display: flex"]) #bottomNav,
-  body:has(.modal-overlay[style*="display:flex"]) #bottomNav,
-  body:has(.modal-overlay:not([style*="display: none"]):not([style*="display:none"]):not(:empty)) #bottomNav,
-  body:has(.modal.show) #bottomNav,
-  body:has(.modal.open) #bottomNav,
-  body:has(#creditCardModals:not(:empty)) #bottomNav,
-  body:has(#ccFormModal) #bottomNav,
-  body:has(#ccPayModal) #bottomNav,
-  body:has(#modals:not(:empty)) #bottomNav,
-  body:has(#addTxOverlay:not(.hidden):not([style*="display: none"]):not([style*="display:none"])) #bottomNav,
-  body:has(#editTxOverlay:not(.hidden):not([style*="display: none"]):not([style*="display:none"])) #bottomNav,
-  body:has(#stockModalContainer:not(:empty)) #bottomNav,
-  body:has(#lm-sankey-modal) #bottomNav,
-  #bottomNav.hidden-nav,
-  #bottomNav.modal-hidden {
-    display: none !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-    transform: translateY(150%) !important;
-  }
-
-  /* Ensure modal overlays always have highest z-index across all modules */
+  /* ─── Modal Overlays & Bottom Nav Layering ─── */
+  /* Ensure all modals & popups across all modules display with highest z-index cleanly above bottomNav */
   .modal-overlay,
+  .popup-overlay,
+  .cd-modal-overlay,
   #creditCardModals .modal-overlay,
   #stockModalContainer .modal-overlay,
   #lm-sankey-modal,
   #addTxOverlay,
   #editTxOverlay,
+  #commandPaletteModal,
+  #helpModal,
+  #savingsGoalModal,
+  #emiCalculatorModal,
+  #whatIfModal,
+  #tripPlannerModal,
+  #dropdownManagerModal,
+  #categoryRulesModal,
+  #dashboardCustomizerModal,
+  #adminPanelOverlay,
+  #ccFormModal,
+  #ccPayModal,
   #modals {
     z-index: 99999 !important;
   }
@@ -602,6 +600,14 @@ html, body {
   .modal,
   .modal-box {
     z-index: 100000 !important;
+  }
+
+  /* Safe bottomNav hidden class (only if explicitly triggered) */
+  #bottomNav.hidden-nav {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
   }
 
   /* Tables horizontal touch scrolling */

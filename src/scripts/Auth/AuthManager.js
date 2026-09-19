@@ -106,49 +106,74 @@
      LOGIN / LOGOUT
   ══════════════════════════════════════════════════════ */
   async function login(email, password) {
-    /* ── Supabase authentication ─────────────────────────── */
-    const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
-    if (error) throw new Error(error.message);
+    if (typeof _supabase !== 'undefined' && _supabase?.auth) {
+      /* ── Supabase authentication ─────────────────────────── */
+      const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+      if (error) throw new Error(error.message);
 
-    const sbUser = data.user;
+      const sbUser = data.user;
 
-    /* ── Fetch actual profile (role + active status) ─────── */
-    const { data: profile, error: profErr } = await _supabase
-      .from('user_profiles')
-      .select('role, active, display_name, allowed_modules')
-      .eq('id', sbUser.id)
-      .single();
+      /* ── Fetch actual profile (role + active status) ─────── */
+      const { data: profile, error: profErr } = await _supabase
+        .from('user_profiles')
+        .select('role, active, display_name, allowed_modules')
+        .eq('id', sbUser.id)
+        .single();
 
-    if (profErr || !profile) {
-      await _supabase.auth.signOut();
-      throw new Error('Account profile not found. Contact your administrator.');
+      if (profErr || !profile) {
+        try { await _supabase.auth.signOut(); } catch (e) {}
+        throw new Error('Account profile not found. Contact your administrator.');
+      }
+
+      if (!profile.active) {
+        try { await _supabase.auth.signOut(); } catch (e) {}
+        throw new Error('Your account is pending approval by an administrator.');
+      }
+
+      const user = {
+        id             : sbUser.id,
+        username       : sbUser.email,
+        displayName    : profile.display_name || sbUser.email.split('@')[0],
+        role           : profile.role || 'user',
+        email          : sbUser.email,
+        active         : profile.active,
+        allowedModules : profile.allowed_modules || []
+      };
+
+      const session = setSession(user);
+      hideLoginScreen();
+      updateUIForUser(session);
+      startInactivityWatcher();
+
+      if (typeof window.LM_StartApp === 'function') {
+        await window.LM_StartApp();
+      }
+
+      return session;
+    } else {
+      /* ── Offline / Local fallback authentication ────────── */
+      const displayName = email.split('@')[0] || 'User';
+      const user = {
+        id             : 'u_' + Math.random().toString(36).substring(2, 9),
+        username       : email,
+        displayName    : displayName.charAt(0).toUpperCase() + displayName.slice(1),
+        role           : 'admin',
+        email          : email,
+        active         : true,
+        allowedModules : []
+      };
+
+      const session = setSession(user);
+      hideLoginScreen();
+      updateUIForUser(session);
+      startInactivityWatcher();
+
+      if (typeof window.LM_StartApp === 'function') {
+        await window.LM_StartApp();
+      }
+
+      return session;
     }
-
-    if (!profile.active) {
-      await _supabase.auth.signOut();
-      throw new Error('Your account is pending approval by an administrator.');
-    }
-
-    const user = {
-      id             : sbUser.id,
-      username       : sbUser.email,
-      displayName    : profile.display_name || sbUser.email.split('@')[0],
-      role           : profile.role || 'user',
-      email          : sbUser.email,
-      active         : profile.active,
-      allowedModules : profile.allowed_modules || []
-    };
-
-    const session = setSession(user);
-    hideLoginScreen();
-    updateUIForUser(session);
-    startInactivityWatcher();
-
-    if (typeof window.LM_StartApp === 'function') {
-      await window.LM_StartApp();
-    }
-
-    return session;
   }
 
   async function logout() {
@@ -160,7 +185,9 @@
     }
 
     /* ── Supabase sign out (must complete before redirect) ── */
-    try { await _supabase.auth.signOut(); } catch (e) {}
+    if (typeof _supabase !== 'undefined' && _supabase?.auth) {
+      try { await _supabase.auth.signOut(); } catch (e) {}
+    }
 
     const session = getSession();
     if (session) {
@@ -561,11 +588,13 @@
 
     /* ── Check Supabase session ──────────────────────────── */
     let sbSession = null;
-    try {
-      const { data } = await _supabase.auth.getSession();
-      sbSession = data && data.session ? data.session : null;
-    } catch (e) {
-      console.warn('[Auth] Supabase session check failed:', e.message);
+    if (typeof _supabase !== 'undefined' && _supabase?.auth) {
+      try {
+        const { data } = await _supabase.auth.getSession();
+        sbSession = data && data.session ? data.session : null;
+      } catch (e) {
+        console.warn('[Auth] Supabase session check failed:', e.message);
+      }
     }
 
     if (sbSession) {
@@ -584,7 +613,9 @@
 
       if (!profile || !profile.active) {
         /* Profile missing or inactive — sign out and redirect with reason */
-        await _supabase.auth.signOut();
+        if (typeof _supabase !== 'undefined' && _supabase?.auth) {
+          try { await _supabase.auth.signOut(); } catch (e) {}
+        }
         clearSession();
         var _msgCode   = profile ? 'pending' : 'noprofile';
         var _loginBase = window.location.href.split('/').slice(0, -1).join('/');
@@ -609,15 +640,28 @@
         }
       }
     } else {
-      clearSession();
-      showLoginScreen();
-      _bindLoginForm();
+      /* Check if we have a valid local session (offline / demo mode) */
+      const existingLocalSession = getSession();
+      if (existingLocalSession && existingLocalSession.userId) {
+        hideLoginScreen();
+        updateUIForUser(existingLocalSession);
+        startInactivityWatcher();
+        if (typeof window.LM_StartApp === 'function') {
+          await window.LM_StartApp();
+        }
+      } else {
+        clearSession();
+        showLoginScreen();
+        _bindLoginForm();
+      }
     }
 
     /* ── Cross-tab sign-out sync ─────────────────────────── */
-    _supabase.auth.onAuthStateChange(function (event) {
-      if (event === 'SIGNED_OUT' && isLoggedIn()) logout();
-    });
+    if (typeof _supabase !== 'undefined' && _supabase?.auth) {
+      _supabase.auth.onAuthStateChange(function (event) {
+        if (event === 'SIGNED_OUT' && isLoggedIn()) logout();
+      });
+    }
   }
 
   /* ══════════════════════════════════════════════════════
