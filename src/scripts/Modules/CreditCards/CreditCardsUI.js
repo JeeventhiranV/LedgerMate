@@ -345,7 +345,7 @@
 
       modalContainer.innerHTML = `
         <div class="modal-overlay show" id="ccFormModal" style="display:flex;">
-          <div class="modal-box glass" style="max-width: 540px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 24px; border-radius: 18px;">
+          <div class="modal-box glass" style="max-width: 540px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 24px; border-radius: 18px; margin-bottom: env(safe-area-inset-bottom, 20px);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
               <h2 style="font-size: 1.25rem; font-weight:700; color:var(--text); margin:0;">
                 ${isEdit ? '✏️ Edit Credit Card' : '＋ Add New Credit Card'}
@@ -653,6 +653,12 @@
       if (el) {
         el.classList.remove('show');
         el.style.display = 'none';
+        try { el.remove(); } catch(e) {}
+      }
+      var container = document.getElementById('creditCardModals');
+      if (container) container.innerHTML = '';
+      if (window.LM_syncModalState) {
+        window.LM_syncModalState();
       }
     }
   };

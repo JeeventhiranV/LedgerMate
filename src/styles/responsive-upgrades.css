@@ -298,10 +298,6 @@ html, body {
 }
 
 @media (max-width: 480px) {
-  /* On compact mobile screens, hide secondary flow diagram shortcut (available in nav menu & search) */
-  button[onclick*="openSankeyModal"] {
-    display: none !important;
-  }
   .topbar-actions {
     gap: 3px !important;
   }
@@ -562,12 +558,53 @@ html, body {
     left: 50% !important;
     transform: translateX(-50%) !important;
   }
-  [data-theme="light"] .modal-header::before {
-    background: rgba(15, 23, 42, 0.20) !important;
+    [data-theme="light"] .modal-header::before {
+      background: rgba(15, 23, 42, 0.20) !important;
+    }
   }
-}
 
-/* Tables horizontal touch scrolling */
+  /* ─── Automatically Hide Bottom Navigation when ANY Modal / Popup is Open ─── */
+  body.modal-open #bottomNav,
+  body:has(.modal-overlay.show) #bottomNav,
+  body:has(.modal-overlay[style*="display: flex"]) #bottomNav,
+  body:has(.modal-overlay[style*="display:flex"]) #bottomNav,
+  body:has(.modal-overlay:not([style*="display: none"]):not([style*="display:none"]):not(:empty)) #bottomNav,
+  body:has(.modal.show) #bottomNav,
+  body:has(.modal.open) #bottomNav,
+  body:has(#creditCardModals:not(:empty)) #bottomNav,
+  body:has(#ccFormModal) #bottomNav,
+  body:has(#ccPayModal) #bottomNav,
+  body:has(#modals:not(:empty)) #bottomNav,
+  body:has(#addTxOverlay:not(.hidden):not([style*="display: none"]):not([style*="display:none"])) #bottomNav,
+  body:has(#editTxOverlay:not(.hidden):not([style*="display: none"]):not([style*="display:none"])) #bottomNav,
+  body:has(#stockModalContainer:not(:empty)) #bottomNav,
+  body:has(#lm-sankey-modal) #bottomNav,
+  #bottomNav.hidden-nav,
+  #bottomNav.modal-hidden {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transform: translateY(150%) !important;
+  }
+
+  /* Ensure modal overlays always have highest z-index across all modules */
+  .modal-overlay,
+  #creditCardModals .modal-overlay,
+  #stockModalContainer .modal-overlay,
+  #lm-sankey-modal,
+  #addTxOverlay,
+  #editTxOverlay,
+  #modals {
+    z-index: 99999 !important;
+  }
+
+  .modal,
+  .modal-box {
+    z-index: 100000 !important;
+  }
+
+  /* Tables horizontal touch scrolling */
 .table-responsive,
 table {
   max-width: 100%;

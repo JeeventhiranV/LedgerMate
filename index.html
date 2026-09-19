@@ -219,7 +219,10 @@
 
     <!-- ── REPORTS ────────────────────────────────────────── -->
     <div class="sidebar-section">
-      <div class="sidebar-section-label">Reports</div>
+      <div class="sidebar-section-label">Reports &amp; Analytics</div>
+      <button class="sidebar-nav-item" onclick="window.LM_Sankey ? window.LM_Sankey.showModal() : (typeof openSankeyModal==='function'&&openSankeyModal())" data-module="analytics">
+        <span class="nav-icon">🌊</span> Cashflow Visualizer (Flow)
+      </button>
       <button class="sidebar-nav-item" id="openMonthlySummary" data-module="analytics">
         <span class="nav-icon">📅</span> Monthly Summary
       </button>
@@ -368,6 +371,9 @@
         <!-- ⚡ Command Palette -->
         <button class="icon-btn" title="Command Palette (Ctrl+K)" onclick="window.LM_CommandPalette?.toggle()" style="font-size:14px;font-weight:700;color:var(--teal,#00d4b4);">⚡</button>
 
+        <!-- 🌊 Cashflow Visualizer -->
+        <button class="icon-btn" title="Cashflow Visualizer (Flow Diagram)" onclick="window.LM_Sankey ? window.LM_Sankey.showModal() : (typeof openSankeyModal==='function'&&openSankeyModal())" style="font-size:14px;">🌊</button>
+
         <!-- 🔍 Search -->
         <button class="icon-btn srch-trigger-btn" title="Search (Ctrl+K)" onclick="window.LM_CommandPalette ? window.LM_CommandPalette.open() : openSearch()">🔍</button>
 
@@ -448,8 +454,8 @@
 
             <!-- 🛠️ Quick Tools: Cashflow Visualizer, Privacy Mode, Theme Toggle (Right Side) -->
             <div class="overview-quick-tools" id="overviewQuickTools">
-              <button class="overview-tool-btn" onclick="window.LM_Sankey ? window.LM_Sankey.showModal() : (typeof openSankeyModal==='function'&&openSankeyModal())" title="Cashflow Visualizer (Flow Diagram)" aria-label="Cashflow Visualizer">
-                🌊 <span class="overview-tool-label">Flow</span>
+              <button class="overview-tool-btn flow-visualizer-btn" id="btnFlowVisualizer" onclick="window.LM_Sankey ? window.LM_Sankey.showModal() : (typeof openSankeyModal==='function'&&openSankeyModal())" title="Cashflow Visualizer (Flow Diagram)" aria-label="Cashflow Visualizer">
+                🌊 <span class="overview-tool-label">Visualizer</span>
               </button>
               <button id="btnPrivacyToggle" class="overview-tool-btn privacy-toggle-btn" title="Toggle Balance Privacy (Stealth Mode)" onclick="window.LM_togglePrivacyMode()" aria-label="Privacy Mode">
                 👁️ <span class="overview-tool-label">Privacy</span>

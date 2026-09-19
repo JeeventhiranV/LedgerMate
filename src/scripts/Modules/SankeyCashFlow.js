@@ -228,22 +228,32 @@
     var modal = document.createElement('div');
     modal.id = 'lm-sankey-modal';
     modal.className = 'modal-overlay show';
-    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:12px;backdrop-filter:blur(4px);';
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.82);z-index:99999;display:flex;align-items:center;justify-content:center;padding:12px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);';
 
     modal.innerHTML = `
-      <div style="background:var(--card,#151922);border:1px solid var(--border,#262f45);border-radius:16px;max-width:840px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.6);color:var(--text,#e8eaf6);font-family:Inter,sans-serif;">
-        <div style="padding:14px 18px;border-bottom:1px solid var(--border,#262f45);display:flex;justify-content:space-between;align-items:center;">
-          <h3 style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:6px;">🌊 Cash Flow Sankey Visualizer</h3>
-          <button id="lm-sankey-close" style="background:none;border:none;color:var(--text2,#8896b8);font-size:22px;cursor:pointer;">&times;</button>
+      <div class="modal-box glass" style="background:var(--card,#151922);border:1px solid var(--border,#262f45);border-radius:18px;max-width:860px;width:96%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.6);color:var(--text,#e8eaf6);font-family:Inter,sans-serif;margin-bottom:env(safe-area-inset-bottom, 12px);">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border,#262f45);display:flex;justify-content:space-between;align-items:center;">
+          <h3 style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;margin:0;">🌊 Cash Flow Sankey Visualizer</h3>
+          <button id="lm-sankey-close" style="background:none;border:none;color:var(--text2,#8896b8);font-size:24px;cursor:pointer;line-height:1;" title="Close">&times;</button>
         </div>
-        <div id="lm-sankey-body" style="padding:14px 18px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <div id="lm-sankey-body" style="padding:16px 20px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;">
           <!-- SVG rendered here -->
         </div>
       </div>
     `;
 
     document.body.appendChild(modal);
-    document.getElementById('lm-sankey-close').onclick = () => modal.remove();
+    if (window.LM_hideBottomNav) window.LM_hideBottomNav();
+
+    function closeModal() {
+      modal.remove();
+      if (window.LM_syncModalState) window.LM_syncModalState();
+    }
+
+    document.getElementById('lm-sankey-close').onclick = closeModal;
+    modal.onclick = function(e) {
+      if (e.target === modal) closeModal();
+    };
 
     var currentMonth = new Date().toISOString().slice(0, 7);
     renderSankeySVG('lm-sankey-body', currentMonth);
@@ -253,6 +263,8 @@
     render: renderSankeySVG,
     showModal: showSankeyModal
   };
+  window.openSankeyModal = showSankeyModal;
+  window.LM_openCashFlowVisualizer = showSankeyModal;
 
   console.log('[LM] SankeyCashFlow module initialized.');
 })();

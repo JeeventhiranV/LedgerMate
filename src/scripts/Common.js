@@ -8045,4 +8045,89 @@ window.LM_initPaletteGlidingCursor = function() {
 // Initialize mobile gestures & card physics on DOM Ready
 document.addEventListener('DOMContentLoaded', () => {
   window.LM_initBottomSheetGestures?.();
+  window.LM_initModalObserver?.();
 });
+
+/**
+ * 7. Global Reactive Modal & Popup Manager: Auto-Hide Bottom Menu
+ * Ensures the bottom navigation dock is cleanly hidden across ALL modules
+ * whenever any popup/modal/overlay is open so it never blocks action buttons.
+ */
+window.LM_hideBottomNav = function() {
+  document.body.classList.add('modal-open');
+  const bnav = document.getElementById('bottomNav');
+  if (bnav) {
+    bnav.classList.add('modal-hidden');
+    bnav.style.setProperty('display', 'none', 'important');
+    bnav.style.setProperty('visibility', 'hidden', 'important');
+    bnav.style.setProperty('pointer-events', 'none', 'important');
+  }
+};
+
+window.LM_showBottomNav = function() {
+  document.body.classList.remove('modal-open');
+  const bnav = document.getElementById('bottomNav');
+  if (bnav) {
+    bnav.classList.remove('modal-hidden');
+    bnav.style.removeProperty('display');
+    bnav.style.removeProperty('visibility');
+    bnav.style.removeProperty('pointer-events');
+  }
+};
+
+window.LM_syncModalState = function() {
+  // Check if any modal or popup overlay is actively open / visible
+  const modalCandidates = document.querySelectorAll(
+    '.modal-overlay, .modal, .popup-overlay, .cd-modal-overlay, #creditCardModals > *, #modals > *, #stockModalContainer > *'
+  );
+  
+  let hasOpenModal = false;
+  for (let i = 0; i < modalCandidates.length; i++) {
+    const el = modalCandidates[i];
+    // Skip empty containers or elements not rendered
+    if (!el || el.id === 'modals' || el.id === 'creditCardModals' || el.id === 'stockModalContainer') continue;
+    
+    const style = window.getComputedStyle(el);
+    const isVisible = style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+    const hasShowClass = el.classList.contains('show') || el.classList.contains('open') || el.classList.contains('active');
+    
+    if (isVisible && (hasShowClass || el.style.display === 'flex' || el.style.display === 'block' || el.offsetParent !== null)) {
+      hasOpenModal = true;
+      break;
+    }
+  }
+
+  if (hasOpenModal) {
+    window.LM_hideBottomNav();
+  } else {
+    window.LM_showBottomNav();
+  }
+};
+
+window.LM_initModalObserver = function() {
+  if (window._lmModalObserverAttached) return;
+  window._lmModalObserverAttached = true;
+
+  // Run initial check
+  window.LM_syncModalState();
+
+  // Observe DOM additions, removals, and class/style modifications
+  const observer = new MutationObserver(() => {
+    window.LM_syncModalState();
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['class', 'style', 'hidden']
+  });
+
+  // Also hook into global window events
+  window.addEventListener('resize', window.LM_syncModalState);
+};
+
+// Also trigger immediately in case DOM is already loaded
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  window.LM_initModalObserver?.();
+}
