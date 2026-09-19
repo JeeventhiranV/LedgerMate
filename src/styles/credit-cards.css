@@ -97,40 +97,66 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 20px;
+  width: 100%;
 }
 
 .cc-filters {
   display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  overflow-y: hidden;
+  padding: 4px 2px 8px 2px;
+  max-width: 100%;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.cc-filters::-webkit-scrollbar {
+  display: none;
 }
 
 .cc-filter-pill {
-  background: var(--bg2);
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+  user-select: none;
+  background: var(--surface-card, var(--bg2));
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 6px 14px;
+  padding: 7px 15px;
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-2);
   cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .cc-filter-pill:hover {
   border-color: var(--teal);
   color: var(--text);
+  background: var(--surface-h, rgba(255,255,255,0.05));
+  transform: translateY(-1px);
+}
+
+.cc-filter-pill:active {
+  transform: scale(0.96);
 }
 
 .cc-filter-pill.active {
   background: var(--teal);
   color: #fff;
   border-color: var(--teal);
+  box-shadow: 0 2px 10px rgba(0, 240, 255, 0.35);
 }
 
 .cc-add-btn {
@@ -642,3 +668,108 @@
     border-radius: 10px;
   }
 }
+
+/* ─── Mobile Layout for Credit Cards Page & Toolbar Filters ─── */
+@media (max-width: 768px) {
+  .cc-container {
+    padding: 10px 0 24px 0;
+  }
+
+  .cc-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .cc-header > div:last-child {
+    display: flex !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .cc-header .cc-add-btn {
+    flex: 1 !important;
+    justify-content: center !important;
+    padding: 9px 14px !important;
+  }
+
+  .cc-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .cc-kpi-card {
+    padding: 12px !important;
+  }
+
+  .cc-kpi-val {
+    font-size: 1.15rem !important;
+  }
+
+  .cc-toolbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+    width: 100% !important;
+  }
+
+  .cc-filters {
+    width: 100% !important;
+    min-width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 2px 2px 8px 2px !important;
+    gap: 8px !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  .cc-filters::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .cc-filter-pill {
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    padding: 8px 14px !important;
+    font-size: 0.78rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .cc-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .cc-card-art {
+    padding: 18px 16px !important;
+    min-height: 195px !important;
+    border-radius: 16px !important;
+  }
+
+  .cc-number {
+    font-size: 1.05rem !important;
+    letter-spacing: 0.14em !important;
+    margin: 16px 0 10px 0 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .cc-kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cc-filter-pill {
+    padding: 7px 12px !important;
+    font-size: 0.75rem !important;
+  }
+}
+
