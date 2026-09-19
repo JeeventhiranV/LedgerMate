@@ -136,26 +136,35 @@
 
   function isClosedOrMatured(inv) {
     if (!inv) return false;
-    var status = (inv.status || '').toLowerCase();
-    if (status === 'closed' || status === 'matured' || inv.isClosed === true || inv.closed === true) {
+    var status = String(inv.status || '').toLowerCase().trim();
+    if (['closed', 'matured', 'liquidated', 'redeemed', 'completed', 'inactive', 'sold', 'exited'].includes(status)) {
       return true;
     }
-    if (inv.type === 'FD' || inv.type === 'RD') {
-      var matDate = calculateMaturityDate(inv);
-      if (matDate) {
-        var today = new Date();
-        today.setHours(0, 0, 0, 0);
-        var mat = new Date(matDate);
-        if (!isNaN(mat.getTime()) && mat < today) {
-          return true;
-        }
+    if (inv.isClosed === true || inv.closed === true || inv.isMatured === true || inv.matured === true) {
+      return true;
+    }
+    var matDate = inv.maturityDate || calculateMaturityDate(inv);
+    if (!matDate && inv.startDate && inv.tenureMonths) {
+      var start = new Date(inv.startDate);
+      if (!isNaN(start.getTime())) {
+        start.setMonth(start.getMonth() + _toNum(inv.tenureMonths));
+        matDate = start.toISOString().split('T')[0];
+      }
+    }
+    if (matDate) {
+      var today = new Date();
+      today.setHours(0, 0, 0, 0);
+      var mat = new Date(matDate);
+      if (!isNaN(mat.getTime()) && mat < today) {
+        return true;
       }
     }
     return false;
   }
 
-  function calculateInvestedSoFar(inv) {
+  function calculateInvestedSoFar(inv, allowClosed) {
     if (!inv) return 0;
+    if (!allowClosed && isClosedOrMatured(inv)) return 0;
     var P = _toNum(inv.principal || inv.amount);
     var add = _toNum(inv.additionalDeposit);
     var months = _toNum(inv.tenureMonths);
@@ -167,6 +176,10 @@
     if (inv.type === 'GOLD' || inv.type === 'SGB') return _toNum(inv.goldGrams || inv.qty || 1) * _toNum(inv.stockBuyPrice || P);
     if (inv.type === 'PPF' || inv.type === 'EPF' || inv.type === 'NPS') return P + (add * (months / 12));
     return P;
+  }
+
+  function calculateHistoricalInvested(inv) {
+    return calculateInvestedSoFar(inv, true);
   }
 
   function calculateInterestSoFar(inv) {
@@ -679,6 +692,8 @@
       var titleName = inv.name || inv.bankName || inv.fundName || (meta.label + ' Item');
       var institution = inv.institution || inv.bank || (inv.type === 'FD' || inv.type === 'RD' ? 'Bank Deposit' : 'Portfolio Asset');
 
+      var historicalInvested = calculateHistoricalInvested(inv);
+
       return `
         <div class="inv-card ${isClosed ? 'inv-card-closed' : ''}" style="${isClosed ? 'opacity: 0.82; border-color: rgba(239,68,68,0.25);' : ''}">
           <div>
@@ -704,7 +719,7 @@
             <div class="inv-card-metrics" style="margin-top:14px;">
               <div>
                 <div class="inv-metric-label">Invested Capital</div>
-                <div class="inv-metric-val" style="${isClosed ? 'color:var(--text-3);text-decoration:line-through;' : ''}">${_fmtINR(invested)}</div>
+                <div class="inv-metric-val" style="${isClosed ? 'color:var(--text-3);text-decoration:line-through;' : ''}">${_fmtINR(isClosed ? historicalInvested : invested)}</div>
                 ${isClosed ? '<div style="font-size:10px;color:var(--rose,#fb7185);font-weight:600;margin-top:2px;">₹0 Active (Closed)</div>' : ''}
               </div>
               <div>

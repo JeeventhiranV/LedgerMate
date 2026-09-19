@@ -39,20 +39,27 @@ function getAssetCategory(inv) {
 
 function isAssetClosedOrMatured(inv) {
   if (!inv) return false;
-  const status = (inv.status || '').toLowerCase();
-  if (status === 'closed' || status === 'matured' || inv.isClosed === true || inv.closed === true) {
+  const status = String(inv.status || '').toLowerCase().trim();
+  if (['closed', 'matured', 'liquidated', 'redeemed', 'completed', 'inactive', 'sold', 'exited'].includes(status)) {
     return true;
   }
-  const t = (inv.type || '').toUpperCase();
-  if (t === 'FD' || t === 'RD') {
-    if (inv.startDate && inv.tenureMonths) {
-      const start = new Date(inv.startDate);
-      if (!isNaN(start.getTime())) {
-        start.setMonth(start.getMonth() + toNum(inv.tenureMonths));
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (start < today) return true;
-      }
+  if (inv.isClosed === true || inv.closed === true || inv.isMatured === true || inv.matured === true) {
+    return true;
+  }
+  let matDate = inv.maturityDate;
+  if (!matDate && inv.startDate && inv.tenureMonths) {
+    const start = new Date(inv.startDate);
+    if (!isNaN(start.getTime())) {
+      start.setMonth(start.getMonth() + toNum(inv.tenureMonths));
+      matDate = start.toISOString().split('T')[0];
+    }
+  }
+  if (matDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const mat = new Date(matDate);
+    if (!isNaN(mat.getTime()) && mat < today) {
+      return true;
     }
   }
   return false;

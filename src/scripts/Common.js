@@ -4138,12 +4138,41 @@ function calculateKPIs() {
     }
   }
 
+window.LM_isClosedOrMatured = function(inv) {
+  if (!inv) return false;
+  const status = String(inv.status || '').toLowerCase().trim();
+  if (['closed', 'matured', 'liquidated', 'redeemed', 'completed', 'inactive', 'sold', 'exited'].includes(status)) {
+    return true;
+  }
+  if (inv.isClosed === true || inv.closed === true || inv.isMatured === true || inv.matured === true) {
+    return true;
+  }
+  let matDate = inv.maturityDate;
+  if (!matDate && inv.startDate && inv.tenureMonths) {
+    const start = new Date(inv.startDate);
+    if (!isNaN(start.getTime())) {
+      start.setMonth(start.getMonth() + (parseInt(inv.tenureMonths, 10) || 0));
+      matDate = start.toISOString().split('T')[0];
+    }
+  }
+  if (matDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const mat = new Date(matDate);
+    if (!isNaN(mat.getTime()) && mat < today) {
+      return true;
+    }
+  }
+  return false;
+};
+
   /* Wealth & Other Investments Returns */
   let investmentPL = 0;
   let investmentInvested = 0;
   let investmentCurrentVal = 0;
   if (Array.isArray(state.investments) && state.investments.length > 0) {
     state.investments.forEach(inv => {
+      if (window.LM_isClosedOrMatured(inv)) return; // Exclude closed/matured investments
       const cur = typeof getAssetCurrentValue === 'function' ? getAssetCurrentValue(inv) : (parseFloat(inv.currentValue || inv.amount || 0) || 0);
       const invAmt = typeof getAssetInvestedAmount === 'function' ? getAssetInvestedAmount(inv) : (parseFloat(inv.buyPrice || inv.principal || inv.amount || 0) || 0);
       investmentInvested += invAmt;
@@ -4839,18 +4868,9 @@ function renderDashboardWealthWidget() {
   }
 
   const activeInvestments = investments.filter(a => {
+    if (typeof window.LM_isClosedOrMatured === 'function') return !window.LM_isClosedOrMatured(a);
     if (typeof isAssetClosedOrMatured === 'function') return !isAssetClosedOrMatured(a);
     if (a.status === 'closed' || a.status === 'matured' || a.isClosed || a.closed) return false;
-    const t = (a.type || '').toUpperCase();
-    if ((t === 'FD' || t === 'RD') && a.startDate && a.tenureMonths) {
-      const start = new Date(a.startDate);
-      if (!isNaN(start.getTime())) {
-        start.setMonth(start.getMonth() + (parseInt(a.tenureMonths, 10) || 0));
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (start < today) return false;
-      }
-    }
     return true;
   });
 
@@ -5943,7 +5963,11 @@ function calcXIRR(cashflows, dates, guess = 0.1) {
 }
 
 function getPortfolioXIRR() {
-  const investments = state.investments || [];
+  const investments = (state.investments || []).filter(inv => {
+    if (typeof window.LM_isClosedOrMatured === 'function') return !window.LM_isClosedOrMatured(inv);
+    if (typeof isAssetClosedOrMatured === 'function') return !isAssetClosedOrMatured(inv);
+    return true;
+  });
   if (!investments.length) return null;
   const flows = [], dates = [];
   investments.forEach(inv => {
@@ -7568,7 +7592,16 @@ function renderWealthGoalsPage() {
   const el = document.getElementById('wealthGoalsContent');
   if (!el) return;
 
-  const totalAssets = (state.investments||[]).reduce((s,i) => s + parseFloat(i.currentValue||i.amount||0), 0);
+  const totalAssets = (state.investments||[]).filter(i => {
+    if (typeof window !== 'undefined' && typeof window.LM_isClosedOrMatured === 'function') {
+      return !window.LM_isClosedOrMatured(i);
+    }
+    if (typeof isAssetClosedOrMatured === 'function') return !isAssetClosedOrMatured(i);
+    return true;
+  }).reduce((s,i) => {
+    const val = typeof getAssetCurrentValue === 'function' ? getAssetCurrentValue(i) : parseFloat(i.currentValue||i.amount||0);
+    return s + (val || 0);
+  }, 0);
   const totalLoans  = (state.loans||[]).reduce((s,l) => s + parseFloat(l.amount||0), 0);
   const netWorth    = totalAssets - totalLoans;
 

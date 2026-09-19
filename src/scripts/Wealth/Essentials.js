@@ -63,8 +63,13 @@ const DataEngine = {
     // From investments (most accurate)
     const cashTypes = ['CASH','SAVINGS','LIQUID','EPF','PPF'];
     const fromInvestments = (state.investments || [])
-      .filter(inv => cashTypes.includes((inv.type || '').toUpperCase()) ||
-                     (inv.wealthCategory === 'Cash & Savings'))
+      .filter(inv => {
+        if (typeof isAssetClosedOrMatured === 'function' && isAssetClosedOrMatured(inv)) return false;
+        if (typeof window !== 'undefined' && typeof window.LM_isClosedOrMatured === 'function' && window.LM_isClosedOrMatured(inv)) return false;
+        if (inv.status === 'closed' || inv.status === 'matured' || inv.isClosed || inv.closed) return false;
+        return cashTypes.includes((inv.type || '').toUpperCase()) ||
+               (inv.wealthCategory === 'Cash & Savings');
+      })
       .reduce((s, inv) => {
         if (typeof getAssetCurrentValue === 'function') return s + getAssetCurrentValue(inv);
         return s + toNum(inv.principal || inv.currentValue || inv.amount || 0);
