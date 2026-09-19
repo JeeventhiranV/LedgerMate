@@ -1512,80 +1512,271 @@ function toggleLoanHistory(loanId) {
 }
 
 // ------------------------------------------------------------
-// 3. LIVE INTEREST PREVIEW CALCULATOR
+// 3. MODAL INTERACTIVE CONTROLS FOR ADD / EDIT LOAN
 // ------------------------------------------------------------
-function updateLoanLiveInterestPreview(prefix = '') {
-  const amountInput = document.getElementById(prefix + 'loanAmount') || document.getElementById(prefix + 'loanAmountPopup');
-  const rateInput = document.getElementById(prefix + 'loanInterestRate');
-  const startInput = document.getElementById(prefix + 'loanStartDate');
-  const dueInput = document.getElementById(prefix + 'loanDueDate') || document.getElementById(prefix + 'loanDueDatePopup');
-  const previewBox = document.getElementById(prefix + 'loanInterestPreviewBox');
-  if (!previewBox) return;
+function selectLoanModalType(type, prefix = '') {
+  const typeInput = document.getElementById(prefix + 'loanTypePopup') || document.getElementById(prefix + 'edit_loanTypePopup');
+  if (typeInput) typeInput.value = type;
+
+  const cardGiven = document.getElementById(prefix + 'loanTypeCard_given');
+  const cardTaken = document.getElementById(prefix + 'loanTypeCard_taken');
+  if (cardGiven && cardTaken) {
+    cardGiven.classList.toggle('active', type === 'given');
+    cardTaken.classList.toggle('active', type === 'taken');
+  }
+
+  const iconEl = document.getElementById(prefix + 'loanModalHeaderIcon');
+  if (iconEl) iconEl.textContent = type === 'given' ? '💸' : '📥';
+
+  updateLoanFormState(prefix);
+}
+
+function toggleLoanContactChip(person, prefix = '') {
+  const wrap = document.getElementById(prefix + 'loanContactChipsWrap');
+  if (!wrap) return;
+  const chip = wrap.querySelector(`.loan-contact-chip[data-person="${CSS.escape(person)}"]`);
+  if (chip) {
+    chip.classList.toggle('active');
+  }
+  updateLoanFormState(prefix);
+}
+
+function filterLoanContactChips(prefix = '') {
+  const searchInput = document.getElementById(prefix + 'loanContactSearchInput');
+  const q = (searchInput ? searchInput.value : '').toLowerCase().trim();
+  const wrap = document.getElementById(prefix + 'loanContactChipsWrap');
+  if (!wrap) return;
+  wrap.querySelectorAll('.loan-contact-chip').forEach(chip => {
+    const name = (chip.getAttribute('data-person') || '').toLowerCase();
+    chip.style.display = !q || name.includes(q) ? 'inline-flex' : 'none';
+  });
+}
+
+function handleLoanContactInputKeydown(e, prefix = '') {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    addNewContactChipFromInput(prefix);
+  }
+}
+
+async function addNewContactChipFromInput(prefix = '') {
+  const searchInput = document.getElementById(prefix + 'loanContactSearchInput');
+  const name = (searchInput ? searchInput.value : '').trim();
+  if (!name) return;
+
+  const wrap = document.getElementById(prefix + 'loanContactChipsWrap');
+  if (!wrap) return;
+
+  let chip = wrap.querySelector(`.loan-contact-chip[data-person="${CSS.escape(name)}"]`);
+  if (!chip) {
+    chip = document.createElement('div');
+    chip.className = 'loan-contact-chip active';
+    chip.setAttribute('data-person', name);
+    chip.onclick = () => toggleLoanContactChip(name, prefix);
+    chip.innerHTML = `
+      <span class="loan-contact-avatar">${name.charAt(0).toUpperCase()}</span>
+      <span class="loan-contact-name">${escapeHtml(name)}</span>
+      <span class="loan-contact-check">✓</span>
+    `;
+    wrap.prepend(chip);
+
+    state.dropdowns.persons = state.dropdowns.persons || [];
+    if (!state.dropdowns.persons.includes(name)) {
+      state.dropdowns.persons.push(name);
+      if (typeof put === 'function') await put('dropdowns', state.dropdowns);
+    }
+  } else {
+    chip.classList.add('active');
+    chip.style.display = 'inline-flex';
+  }
+
+  if (searchInput) searchInput.value = '';
+  filterLoanContactChips(prefix);
+  updateLoanFormState(prefix);
+}
+
+function addLoanAmountPreset(delta, prefix = '') {
+  const input = document.getElementById(prefix + 'loanAmountPopup') || document.getElementById(prefix + 'editLoanAmount');
+  if (!input) return;
+  const current = toNum(input.value);
+  input.value = (current + delta).toFixed(2);
+  updateLoanFormState(prefix);
+}
+
+function setLoanRatePreset(rate, prefix = '') {
+  const input = document.getElementById(prefix + 'loanInterestRate') || document.getElementById(prefix + 'edit_loanInterestRate');
+  if (input) {
+    input.value = rate > 0 ? rate : '';
+  }
+  const presetContainer = document.getElementById(prefix + 'loanRatePresets') || document.getElementById(prefix + 'edit_loanRatePresets');
+  if (presetContainer) {
+    presetContainer.querySelectorAll('.loan-chip-btn').forEach(btn => {
+      const btnRate = parseFloat(btn.getAttribute('data-rate'));
+      btn.classList.toggle('active', btnRate === rate);
+    });
+  }
+  updateLoanFormState(prefix);
+}
+
+function setLoanTenurePreset(days, prefix = '') {
+  const startInput = document.getElementById(prefix + 'loanStartDate') || document.getElementById(prefix + 'edit_loanStartDate');
+  const dueInput = document.getElementById(prefix + 'loanDueDatePopup') || document.getElementById(prefix + 'editLoanDueDate');
+  
+  let start = new Date(startInput && startInput.value ? startInput.value : Date.now());
+  if (isNaN(start.getTime())) start = new Date();
+  
+  const due = new Date(start);
+  due.setDate(due.getDate() + days);
+  
+  if (dueInput) {
+    dueInput.value = due.toISOString().split('T')[0];
+  }
+  
+  const tenureContainer = document.getElementById(prefix + 'loanTenurePresets') || document.getElementById(prefix + 'edit_loanTenurePresets');
+  if (tenureContainer) {
+    tenureContainer.querySelectorAll('.loan-chip-btn').forEach(btn => {
+      const btnDays = parseInt(btn.getAttribute('data-days'), 10);
+      btn.classList.toggle('active', btnDays === days);
+    });
+  }
+  
+  updateLoanFormState(prefix);
+}
+
+function toggleLoanAdvancedOptions(prefix = '') {
+  const body = document.getElementById(prefix + 'loanAdvancedBody') || document.getElementById(prefix + 'edit_loanAdvancedBody');
+  const icon = document.getElementById(prefix + 'loanAdvancedIcon') || document.getElementById(prefix + 'edit_loanAdvancedIcon');
+  if (!body) return;
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'block' : 'none';
+  if (icon) icon.textContent = isHidden ? '▲' : '▼';
+}
+
+function updateLoanFormState(prefix = '') {
+  const amountInput = document.getElementById(prefix + 'loanAmountPopup') || document.getElementById(prefix + 'editLoanAmount');
+  const rateInput = document.getElementById(prefix + 'loanInterestRate') || document.getElementById(prefix + 'edit_loanInterestRate');
+  const startInput = document.getElementById(prefix + 'loanStartDate') || document.getElementById(prefix + 'edit_loanStartDate');
+  const dueInput = document.getElementById(prefix + 'loanDueDatePopup') || document.getElementById(prefix + 'editLoanDueDate');
+  const typeInput = document.getElementById(prefix + 'loanTypePopup') || document.getElementById(prefix + 'edit_loanTypePopup');
+  const previewBox = document.getElementById(prefix + 'loanInterestPreviewBox') || document.getElementById(prefix + 'edit_loanInterestPreviewBox');
+  const splitIndicator = document.getElementById(prefix + 'loanSplitIndicator');
+  const countLabel = document.getElementById(prefix + 'loanPersonSelectedCount');
+  const daysBadge = document.getElementById(prefix + 'loanDaysBadge') || document.getElementById(prefix + 'edit_loanDaysBadge');
+  const submitBtnText = document.getElementById(prefix + 'loanSubmitBtnText') || document.getElementById(prefix + 'edit_loanSubmitBtnText');
 
   const P = toNum(amountInput ? amountInput.value : 0);
   const r = toNum(rateInput ? rateInput.value : 0);
+  const type = typeInput ? typeInput.value : 'given';
+  const isGiven = type === 'given';
 
-  if (P <= 0 || r <= 0) {
-    previewBox.style.display = 'none';
-    return;
+  const wrap = document.getElementById(prefix + 'loanContactChipsWrap');
+  const selectedChips = wrap ? wrap.querySelectorAll('.loan-contact-chip.active') : [];
+  const selectedCount = selectedChips.length;
+
+  if (countLabel) {
+    countLabel.textContent = selectedCount === 0 ? '0 selected' : `${selectedCount} contact${selectedCount > 1 ? 's' : ''} selected`;
+    countLabel.style.color = selectedCount > 0 ? 'var(--teal)' : 'var(--text-3)';
   }
 
-  previewBox.style.display = 'block';
-  const monthlyInt = (P * (r / 100)) / 12;
-  const annualInt = P * (r / 100);
-
-  let tenureDays = 0;
-  let tenureInt = 0;
-  let tenureText = '';
-
-  const startVal = startInput ? startInput.value : '';
-  const dueVal = dueInput ? dueInput.value : '';
-
-  if (startVal && dueVal) {
-    const s = new Date(startVal);
-    const d = new Date(dueVal);
-    if (!isNaN(s.getTime()) && !isNaN(d.getTime()) && d >= s) {
-      tenureDays = Math.max(0, Math.floor((d - s) / (1000 * 60 * 60 * 24)));
-      tenureInt = P * (r / 100) * (tenureDays / 365);
-      tenureText = `(${tenureDays} days)`;
+  if (splitIndicator) {
+    if (selectedCount > 1 && P > 0) {
+      const splitVal = (P / selectedCount).toFixed(2);
+      splitIndicator.style.display = 'block';
+      splitIndicator.innerHTML = `👥 Split between <strong>${selectedCount} people</strong>: <span style="color:var(--emerald);font-weight:700;">${fmtINR(splitVal)} each</span>`;
+    } else {
+      splitIndicator.style.display = 'none';
     }
   }
 
-  const totalExpected = P + (tenureInt > 0 ? tenureInt : annualInt);
+  let tenureDays = 0;
+  const startVal = startInput ? startInput.value : '';
+  const dueVal = dueInput ? dueInput.value : '';
+  if (startVal && dueVal) {
+    const s = new Date(startVal);
+    const d = new Date(dueVal);
+    if (!isNaN(s.getTime()) && !isNaN(d.getTime())) {
+      s.setHours(0,0,0,0);
+      d.setHours(0,0,0,0);
+      tenureDays = Math.round((d - s) / (1000 * 60 * 60 * 24));
+    }
+  }
 
-  previewBox.innerHTML = `
-    <div style="background:rgba(20,184,166,0.08);border:1px solid rgba(20,184,166,0.25);border-radius:10px;padding:10px 12px;font-size:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <span style="font-weight:600;color:var(--teal);">✨ Interest Preview (${r}% p.a.)</span>
-        <span style="color:var(--text-3);font-size:11px;">Simple Interest</span>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:11.5px;">
-        <div>
-          <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Monthly Interest</div>
-          <div style="font-weight:600;color:var(--text);">${fmtINR(monthlyInt)} / mo</div>
+  if (daysBadge) {
+    if (tenureDays > 0) {
+      daysBadge.style.display = 'inline-flex';
+      daysBadge.style.background = 'rgba(20, 184, 166, 0.12)';
+      daysBadge.style.color = 'var(--teal)';
+      daysBadge.textContent = `⏳ ${tenureDays} days`;
+    } else if (tenureDays === 0 && startVal && dueVal) {
+      daysBadge.style.display = 'inline-flex';
+      daysBadge.style.background = 'rgba(234, 179, 8, 0.12)';
+      daysBadge.style.color = 'var(--gold)';
+      daysBadge.textContent = '⏳ Due Today';
+    } else if (tenureDays < 0) {
+      daysBadge.style.display = 'inline-flex';
+      daysBadge.style.background = 'rgba(251, 113, 133, 0.12)';
+      daysBadge.style.color = 'var(--rose)';
+      daysBadge.textContent = `⚠️ ${Math.abs(tenureDays)}d past due`;
+    } else {
+      daysBadge.style.display = 'none';
+    }
+  }
+
+  if (previewBox) {
+    if (P > 0 && r > 0) {
+      previewBox.style.display = 'block';
+      const monthlyInt = (P * (r / 100)) / 12;
+      const annualInt = P * (r / 100);
+      const tenureInt = tenureDays > 0 ? P * (r / 100) * (tenureDays / 365) : annualInt;
+      const totalPayable = P + tenureInt;
+
+      previewBox.innerHTML = `
+        <div class="loan-calc-container">
+          <div class="loan-calc-header">
+            <span class="loan-calc-badge">✨ ${r}% p.a. Simple Interest</span>
+            <span style="font-size:11px;color:var(--text-3);">${tenureDays > 0 ? `${tenureDays} days tenure` : 'Annual estimate'}</span>
+          </div>
+          <div class="loan-calc-grid">
+            <div class="loan-calc-tile">
+              <span class="loan-calc-tile-label">Monthly Interest</span>
+              <span class="loan-calc-tile-val">${fmtINR(monthlyInt)} <small>/mo</small></span>
+            </div>
+            <div class="loan-calc-tile">
+              <span class="loan-calc-tile-label">Annual Interest</span>
+              <span class="loan-calc-tile-val">${fmtINR(annualInt)} <small>/yr</small></span>
+            </div>
+            <div class="loan-calc-tile">
+              <span class="loan-calc-tile-label">Interest to Due Date</span>
+              <span class="loan-calc-tile-val" style="color:var(--gold);">+${fmtINR(tenureInt)}</span>
+            </div>
+            <div class="loan-calc-tile highlight">
+              <span class="loan-calc-tile-label">Total ${isGiven ? 'Receivable' : 'Repayable'}</span>
+              <span class="loan-calc-tile-val" style="color:var(--emerald);font-size:14.5px;">${fmtINR(totalPayable)}</span>
+            </div>
+          </div>
+          <div class="loan-calc-footer">
+            <span>Principal: <strong>${fmtINR(P)}</strong></span>
+            <span>+</span>
+            <span>Interest: <strong>${fmtINR(tenureInt)}</strong></span>
+            <span>=</span>
+            <span style="color:var(--emerald);font-weight:700;">${fmtINR(totalPayable)}</span>
+          </div>
         </div>
-        <div>
-          <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Annual Interest</div>
-          <div style="font-weight:600;color:var(--text);">${fmtINR(annualInt)} / yr</div>
-        </div>
-        ${tenureDays > 0 ? `
-          <div>
-            <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Interest to Due Date ${tenureText}</div>
-            <div style="font-weight:600;color:var(--gold);">${fmtINR(tenureInt)}</div>
-          </div>
-          <div>
-            <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Total Expected ${tenureText}</div>
-            <div style="font-weight:700;color:var(--emerald);">${fmtINR(totalExpected)}</div>
-          </div>
-        ` : `
-          <div style="grid-column: span 2;">
-            <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Principal + 1 Year Interest</div>
-            <div style="font-weight:700;color:var(--emerald);">${fmtINR(P + annualInt)}</div>
-          </div>
-        `}
-      </div>
-    </div>
-  `;
+      `;
+    } else {
+      previewBox.style.display = 'none';
+    }
+  }
+
+  if (submitBtnText) {
+    if (prefix.includes('edit')) {
+      submitBtnText.textContent = `💾 Save Changes ${P > 0 ? '· ' + fmtINR(P) : ''}`;
+    } else {
+      submitBtnText.textContent = isGiven
+        ? `💸 Record Lent Money ${P > 0 ? '· ' + fmtINR(P) : ''}`
+        : `📥 Record Borrowed Money ${P > 0 ? '· ' + fmtINR(P) : ''}`;
+    }
+  }
 }
 
 // ------------------------------------------------------------
@@ -1607,16 +1798,20 @@ function openRepayLoanModal(loanId) {
 
   const modalHtml = `
     <div class="modal-overlay show" id="repayLoanModalOverlay">
-      <div class="modal" style="max-width: 520px;">
-        <div class="modal-header">
-          <h3 class="modal-title">💳 ${actionName}</h3>
-          <button class="modal-close" onclick="closeRepayLoanModal()">×</button>
+      <div class="modal loan-modal-box">
+        <div class="loan-modal-header">
+          <div class="loan-modal-header-icon">${isGiven ? '💸' : '📥'}</div>
+          <div class="loan-modal-header-text">
+            <h3 class="loan-modal-title">💳 ${actionName}</h3>
+            <p class="loan-modal-subtitle">Record partial or full repayment on reducing balance</p>
+          </div>
+          <button type="button" class="loan-modal-close-btn" onclick="closeRepayLoanModal()">×</button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body loan-modal-body">
           <!-- Loan Info Strip -->
-          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:16px;">
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <div style="font-weight:700;font-size:15px;color:var(--text);display:flex;align-items:center;gap:6px;">
+              <div style="font-weight:700;font-size:15px;color:var(--text);display:flex;align-items:center;gap:8px;">
                 <span>${escapeHtml(loan.person)}</span>
                 <span class="loan-badge ${isGiven ? 'badge-given' : 'badge-taken'}">${typeLabel}</span>
               </div>
@@ -1638,14 +1833,14 @@ function openRepayLoanModal(loanId) {
             </div>
             <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);display:flex;justify-content:space-between;align-items:center;">
               <span style="font-size:12px;font-weight:600;color:var(--text-2);">Outstanding Balance:</span>
-              <span style="font-family:var(--font-m);font-size:18px;font-weight:700;color:${isGiven ? 'var(--emerald)' : 'var(--rose)'};">${fmtINR(fin.totalBalance)}</span>
+              <span style="font-family:var(--font-m);font-size:18px;font-weight:800;color:${isGiven ? 'var(--emerald)' : 'var(--rose)'};">${fmtINR(fin.totalBalance)}</span>
             </div>
           </div>
 
           <form id="repayLoanForm" class="space-y-4">
             <!-- Quick Preset Buttons -->
             <div>
-              <label class="text-xs text-slate-400 uppercase mb-1.5 block font-semibold">Quick Amounts</label>
+              <label class="loan-form-label mb-1.5 block">QUICK AMOUNTS</label>
               <div style="display:flex;gap:6px;flex-wrap:wrap;">
                 <button type="button" class="loan-preset-btn" onclick="setRepayAmount(${fin.totalBalance})">Full (₹${fin.totalBalance.toFixed(0)})</button>
                 ${fin.unpaidInterest > 0 ? `<button type="button" class="loan-preset-btn" onclick="setRepayAmount(${fin.unpaidInterest})">Interest (₹${fin.unpaidInterest.toFixed(0)})</button>` : ''}
@@ -1655,41 +1850,52 @@ function openRepayLoanModal(loanId) {
 
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="text-xs text-slate-400 uppercase mb-1 block font-semibold">Repayment Amount (₹) *</label>
-                <input id="repayAmount" type="number" min="0.01" step="0.01" value="${fin.totalBalance > 0 ? fin.totalBalance : ''}" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm font-semibold" oninput="handleRepayAmountChange(${fin.totalBalance})" />
+                <label class="loan-form-label block mb-1">REPAYMENT AMOUNT (₹) *</label>
+                <input id="repayAmount" type="number" min="0.01" step="0.01" value="${fin.totalBalance > 0 ? fin.totalBalance : ''}" required class="loan-input font-bold" oninput="handleRepayAmountChange(${fin.totalBalance})" />
               </div>
               <div>
-                <label class="text-xs text-slate-400 uppercase mb-1 block font-semibold">Payment Date *</label>
-                <input id="repayDate" type="date" value="${todayStr}" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" />
+                <label class="loan-form-label block mb-1">PAYMENT DATE *</label>
+                <input id="repayDate" type="date" value="${todayStr}" required class="loan-input" />
               </div>
             </div>
 
             <div>
-              <label class="text-xs text-slate-400 uppercase mb-1 block font-semibold">Payment Account</label>
-              <select id="repayAccount" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">
-                ${loanAccounts.map(a => `<option value="${a}" ${loan.loanAccount === a ? 'selected' : ''}>${a}</option>`).join('')}
+              <label class="loan-form-label block mb-1">PAYMENT ACCOUNT</label>
+              <select id="repayAccount" class="loan-select">
+                ${loanAccounts.map(a => `<option value="${a}" ${loan.loanAccount === a ? 'selected' : ''}>🏦 ${a}</option>`).join('')}
               </select>
             </div>
 
             <div>
-              <label class="text-xs text-slate-400 uppercase mb-1 block font-semibold">Note / Remarks</label>
-              <input id="repayNote" placeholder="e.g. Partial collection via UPI / Cash" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" />
+              <label class="loan-form-label block mb-1">NOTE / REMARKS</label>
+              <input id="repayNote" placeholder="e.g. Partial collection via UPI / Cash" class="loan-input" />
             </div>
 
             <div class="space-y-2 pt-2 border-t border-[var(--border)]">
-              <label class="flex items-center gap-2 text-xs cursor-pointer">
-                <input type="checkbox" id="repayRecordTx" checked />
-                <span>💰 Record transaction in Ledger (${isGiven ? 'Income / In' : 'Expense / Out'})</span>
+              <label class="loan-toggle-label">
+                <input type="checkbox" id="repayRecordTx" class="loan-toggle-input" checked />
+                <span class="loan-toggle-switch"></span>
+                <span class="loan-toggle-text">
+                  <strong>💰 Record transaction in Ledger</strong>
+                  <small style="color:var(--text-3);display:block;">${isGiven ? 'Income / Cash In' : 'Expense / Cash Out'}</small>
+                </span>
               </label>
-              <label class="flex items-center gap-2 text-xs cursor-pointer">
-                <input type="checkbox" id="repayMarkSettled" ${fin.totalBalance <= 0.5 ? 'checked' : ''} />
-                <span>✅ Mark Loan as Fully Settled</span>
+              <label class="loan-toggle-label">
+                <input type="checkbox" id="repayMarkSettled" class="loan-toggle-input" ${fin.totalBalance <= 0.5 ? 'checked' : ''} />
+                <span class="loan-toggle-switch"></span>
+                <span class="loan-toggle-text">
+                  <strong>✅ Mark Loan as Fully Settled</strong>
+                  <small style="color:var(--text-3);display:block;">Closes the loan if balance is cleared</small>
+                </span>
               </label>
             </div>
 
-            <button type="submit" class="w-full py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-900 font-bold text-sm transition shadow-md mt-2">
-              💾 Record Repayment
-            </button>
+            <div class="loan-modal-footer">
+              <button type="button" class="loan-btn-cancel" onclick="closeRepayLoanModal()">Cancel</button>
+              <button type="submit" class="loan-btn-submit">
+                💾 Record Repayment
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -1865,7 +2071,7 @@ function openEditLoanModalById(loanId) {
 }
 
 // ------------------------------------------------------------
-// 6. MODAL: ADD LOAN (Upgraded with Interest % & Live Preview)
+// 6. MODAL: ADD LOAN (Next-Gen Interactive UI)
 // ------------------------------------------------------------
 function openAddLoanModal(prefill = {}) {
   ensureDropdownKey('persons');
@@ -1879,105 +2085,205 @@ function openAddLoanModal(prefill = {}) {
   const recurrences = (state.dropdowns.recurrences && state.dropdowns.recurrences.length)
     ? state.dropdowns.recurrences : ['None', 'daily', 'weekly', 'monthly', 'yearly'];
   const todayStr = nowISO1().split('T')[0];
+  const defaultDue = new Date();
+  defaultDue.setDate(defaultDue.getDate() + 30);
+  const defaultDueStr = defaultDue.toISOString().split('T')[0];
 
   const modalHtml = `
     <div class="modal-overlay show" id="addLoanModalOverlay">
-      <div class="modal" style="max-width: 520px;">
-        <div class="modal-header">
-          <h3 class="modal-title">➕ Add Personal Loan</h3>
-          <button class="modal-close" onclick="closeAddLoanModal()">×</button>
+      <div class="modal loan-modal-box">
+        <!-- Header -->
+        <div class="loan-modal-header">
+          <div class="loan-modal-header-icon" id="loanModalHeaderIcon">💸</div>
+          <div class="loan-modal-header-text">
+            <h3 class="loan-modal-title">Add Personal Loan</h3>
+            <p class="loan-modal-subtitle">Track money given or taken with auto interest &amp; partial repayments</p>
+          </div>
+          <button type="button" class="loan-modal-close-btn" onclick="closeAddLoanModal()">×</button>
         </div>
-        <div class="modal-body">
+
+        <div class="modal-body loan-modal-body">
           <form id="addLoanFormPopup" class="space-y-4">
-            <!-- Type Selector -->
-            <div class="flex gap-2">
-              <button type="button" class="type-btn given flex-1 py-2 rounded-lg text-sm font-bold border border-emerald-500/50 bg-emerald-500/20 text-emerald-400" data-type="given">💸 Given (You Lent)</button>
-              <button type="button" class="type-btn taken flex-1 py-2 rounded-lg text-sm font-semibold border border-[var(--border)] text-slate-400" data-type="taken">📥 Taken (You Borrowed)</button>
+            <!-- 1. Hero Type Selector -->
+            <div class="loan-type-grid">
+              <div class="loan-type-card active" id="loanTypeCard_given" onclick="selectLoanModalType('given', '')">
+                <div class="loan-type-card-radio"></div>
+                <div class="loan-type-card-icon">💸</div>
+                <div class="loan-type-card-info">
+                  <div class="loan-type-card-title">I Gave (Lent)</div>
+                  <div class="loan-type-card-sub">You will receive this back (+ interest)</div>
+                </div>
+              </div>
+              <div class="loan-type-card" id="loanTypeCard_taken" onclick="selectLoanModalType('taken', '')">
+                <div class="loan-type-card-radio"></div>
+                <div class="loan-type-card-icon">📥</div>
+                <div class="loan-type-card-info">
+                  <div class="loan-type-card-title">I Took (Borrowed)</div>
+                  <div class="loan-type-card-sub">You need to repay this (+ interest)</div>
+                </div>
+              </div>
             </div>
             <input type="hidden" id="loanTypePopup" value="given" />
 
-            <!-- Person Selection -->
-            <div>
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                <label class="text-xs text-slate-400 uppercase font-semibold">Person(s)</label>
-                <span style="font-size:11px;color:var(--text-3);">Select existing or enter new</span>
+            <!-- 2. Contact Selection -->
+            <div class="loan-form-section">
+              <div class="loan-section-header">
+                <label class="loan-form-label">SELECT CONTACT / PERSON(S) *</label>
+                <span class="loan-section-hint" id="loanPersonSelectedCount">0 selected</span>
               </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <div id="loanPersonCheckboxesPopup" class="max-h-36 overflow-y-auto p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] space-y-1">
-                  ${persons.map(p => `<label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" value="${escapeHtml(p)}" class="personCheckbox"> ${escapeHtml(p)}</label>`).join('')}
+              
+              <div class="loan-contact-input-wrap">
+                <span class="loan-contact-search-icon">🔍</span>
+                <input type="text" id="loanContactSearchInput" class="loan-contact-search-input" placeholder="Search contact or type new name..." oninput="filterLoanContactChips('')" onkeydown="handleLoanContactInputKeydown(event, '')" />
+                <button type="button" class="loan-add-contact-pill-btn" onclick="addNewContactChipFromInput('')">+ Add</button>
+              </div>
+
+              <div class="loan-contact-chips-wrap" id="loanContactChipsWrap">
+                ${persons.map(p => `
+                  <div class="loan-contact-chip" data-person="${escapeHtml(p)}" onclick="toggleLoanContactChip('${escapeHtml(p)}', '')">
+                    <span class="loan-contact-avatar">${(p || '?').charAt(0).toUpperCase()}</span>
+                    <span class="loan-contact-name">${escapeHtml(p)}</span>
+                    <span class="loan-contact-check">✓</span>
+                  </div>
+                `).join('')}
+              </div>
+
+              <div id="loanSplitIndicator" class="loan-split-indicator" style="display:none;"></div>
+            </div>
+
+            <!-- 3. Principal Amount & Quick Presets -->
+            <div class="loan-form-section">
+              <label class="loan-form-label">PRINCIPAL AMOUNT (₹) *</label>
+              <div class="loan-amount-input-wrap">
+                <span class="loan-currency-symbol">₹</span>
+                <input id="loanAmountPopup" type="number" min="1" step="0.01" placeholder="0.00" required class="loan-amount-input" oninput="updateLoanFormState('')" />
+              </div>
+              
+              <div class="loan-amount-presets">
+                <button type="button" class="loan-chip-btn" onclick="addLoanAmountPreset(1000, '')">+₹1K</button>
+                <button type="button" class="loan-chip-btn" onclick="addLoanAmountPreset(5000, '')">+₹5K</button>
+                <button type="button" class="loan-chip-btn" onclick="addLoanAmountPreset(10000, '')">+₹10K</button>
+                <button type="button" class="loan-chip-btn" onclick="addLoanAmountPreset(25000, '')">+₹25K</button>
+                <button type="button" class="loan-chip-btn" onclick="addLoanAmountPreset(50000, '')">+₹50K</button>
+                <button type="button" class="loan-chip-btn" onclick="addLoanAmountPreset(100000, '')">+₹1L</button>
+              </div>
+            </div>
+
+            <!-- 4. Interest Rate & Live Preview -->
+            <div class="loan-form-section">
+              <div class="loan-section-header">
+                <label class="loan-form-label">INTEREST RATE (% P.A.)</label>
+                <span class="loan-section-hint">Optional · Default 0%</span>
+              </div>
+              
+              <div class="loan-interest-input-wrap">
+                <input id="loanInterestRate" type="number" min="0" max="100" step="0.01" placeholder="0.00" class="loan-rate-input" oninput="updateLoanFormState('')" />
+                <span class="loan-rate-unit">% p.a.</span>
+              </div>
+
+              <div class="loan-rate-presets" id="loanRatePresets">
+                <button type="button" class="loan-chip-btn active" data-rate="0" onclick="setLoanRatePreset(0, '')">0% (Interest-Free)</button>
+                <button type="button" class="loan-chip-btn" data-rate="6" onclick="setLoanRatePreset(6, '')">6%</button>
+                <button type="button" class="loan-chip-btn" data-rate="10" onclick="setLoanRatePreset(10, '')">10%</button>
+                <button type="button" class="loan-chip-btn" data-rate="12" onclick="setLoanRatePreset(12, '')">12%</button>
+                <button type="button" class="loan-chip-btn" data-rate="18" onclick="setLoanRatePreset(18, '')">18%</button>
+                <button type="button" class="loan-chip-btn" data-rate="24" onclick="setLoanRatePreset(24, '')">24%</button>
+              </div>
+
+              <div id="loanInterestPreviewBox" class="loan-calculation-card" style="display:none;"></div>
+            </div>
+
+            <!-- 5. Timeline (Start & Due Date) -->
+            <div class="loan-form-section">
+              <div class="loan-dates-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                  <label class="loan-form-label">START DATE</label>
+                  <input id="loanStartDate" type="date" value="${todayStr}" class="loan-input" oninput="updateLoanFormState('')" />
                 </div>
                 <div>
-                  <input id="loanNewPersonInput" type="text" placeholder="+ Type new person name" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs mb-2" />
-                  <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Account</label>
-                  <select id="loanAccountPopup" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs">
-                    ${loanAccounts.map(a => `<option value="${a}">${a}</option>`).join('')}
+                  <label class="loan-form-label">DUE DATE *</label>
+                  <input id="loanDueDatePopup" type="date" value="${defaultDueStr}" required class="loan-input" oninput="updateLoanFormState('')" />
+                </div>
+              </div>
+
+              <div class="loan-tenure-presets" id="loanTenurePresets">
+                <span style="font-size:11px;color:var(--text-3);align-self:center;">Quick Due:</span>
+                <button type="button" class="loan-chip-btn" data-days="15" onclick="setLoanTenurePreset(15, '')">15d</button>
+                <button type="button" class="loan-chip-btn active" data-days="30" onclick="setLoanTenurePreset(30, '')">1 Mo</button>
+                <button type="button" class="loan-chip-btn" data-days="90" onclick="setLoanTenurePreset(90, '')">3 Mo</button>
+                <button type="button" class="loan-chip-btn" data-days="180" onclick="setLoanTenurePreset(180, '')">6 Mo</button>
+                <button type="button" class="loan-chip-btn" data-days="365" onclick="setLoanTenurePreset(365, '')">1 Yr</button>
+                <span id="loanDaysBadge" class="loan-days-badge" style="display:none;"></span>
+              </div>
+            </div>
+
+            <!-- 6. Account & Category -->
+            <div class="loan-form-section" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div>
+                <label class="loan-form-label">PAYMENT ACCOUNT</label>
+                <select id="loanAccountPopup" class="loan-select">
+                  ${loanAccounts.map(a => `<option value="${a}">🏦 ${a}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="loan-form-label">CATEGORY</label>
+                <select id="loanCategoryPopup" class="loan-select">
+                  ${['Personal', 'Friends', 'Family', 'Business', 'Emergency', 'Rent', 'Travel', 'Shopping', 'Education', 'Medical', 'Other'].map(c => `
+                    <option value="${c}">🏷️ ${c}</option>
+                  `).join('')}
+                </select>
+              </div>
+            </div>
+
+            <!-- 7. Note -->
+            <div>
+              <label class="loan-form-label">NOTE / PURPOSE (OPTIONAL)</label>
+              <input id="loanNotePopup" placeholder="e.g. Travel tickets, Emergency fund, Shopping split..." class="loan-input" />
+            </div>
+
+            <!-- 8. Advanced Settings (Recurrence, Reminders, Ledger) -->
+            <div class="loan-advanced-box">
+              <div class="loan-advanced-header" onclick="toggleLoanAdvancedOptions('')">
+                <span class="loan-advanced-title">⚙️ More Settings (Recurrence, Reminders &amp; Ledger)</span>
+                <span class="loan-advanced-icon" id="loanAdvancedIcon">▼</span>
+              </div>
+              <div class="loan-advanced-body" id="loanAdvancedBody" style="display:none;">
+                <div style="margin-bottom:12px;">
+                  <label class="loan-form-label">RECURRENCE</label>
+                  <select id="loanRecurrencePopup" class="loan-select">
+                    ${recurrences.map(r => `<option value="${r.toLowerCase()}" ${r.toLowerCase() === 'none' ? 'selected' : ''}>${r}</option>`).join('')}
                   </select>
+                </div>
+                
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                  <label class="loan-toggle-label">
+                    <input type="checkbox" id="addReminderPopup" class="loan-toggle-input" />
+                    <span class="loan-toggle-switch"></span>
+                    <span class="loan-toggle-text">
+                      <strong>🔔 Create Calendar Reminder</strong>
+                      <small style="color:var(--text-3);display:block;">Alert me before due date</small>
+                    </span>
+                  </label>
+                  
+                  <label class="loan-toggle-label">
+                    <input type="checkbox" id="AddTransactionPopup" class="loan-toggle-input" checked />
+                    <span class="loan-toggle-switch"></span>
+                    <span class="loan-toggle-text">
+                      <strong>💰 Record in Transactions Ledger</strong>
+                      <small style="color:var(--text-3);display:block;">Automatically log initial cash transfer</small>
+                    </span>
+                  </label>
                 </div>
               </div>
             </div>
 
-            <!-- Amount & Interest Rate -->
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Principal Amount (₹) *</label>
-                <input id="loanAmountPopup" type="number" min="1" step="0.01" placeholder="0.00" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm font-semibold" oninput="updateLoanLiveInterestPreview('')" />
-              </div>
-              <div>
-                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Interest Rate (% p.a.)</label>
-                <input id="loanInterestRate" type="number" min="0" max="100" step="0.01" placeholder="0% (Optional)" value="" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" oninput="updateLoanLiveInterestPreview('')" />
-              </div>
+            <!-- Modal Footer -->
+            <div class="loan-modal-footer">
+              <button type="button" class="loan-btn-cancel" onclick="closeAddLoanModal()">Cancel</button>
+              <button type="submit" id="loanSubmitBtn" class="loan-btn-submit">
+                <span id="loanSubmitBtnText">➕ Save Loan</span>
+              </button>
             </div>
-
-            <!-- Live Interest Calculation Preview Box -->
-            <div id="loanInterestPreviewBox" style="display:none;"></div>
-
-            <!-- Dates -->
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Start Date</label>
-                <input id="loanStartDate" type="date" value="${todayStr}" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs" oninput="updateLoanLiveInterestPreview('')" />
-              </div>
-              <div>
-                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Due Date *</label>
-                <input id="loanDueDatePopup" type="date" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs" oninput="updateLoanLiveInterestPreview('')" />
-              </div>
-            </div>
-
-            <!-- Category & Recurrence -->
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Category</label>
-                <select id="loanCategoryPopup" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs">
-                  ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
-                </select>
-              </div>
-              <div>
-                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Recurrence</label>
-                <select id="loanRecurrencePopup" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs">
-                  ${recurrences.map(r => `<option value="${r.toLowerCase()}" ${r.toLowerCase() === 'none' ? 'selected' : ''}>${r}</option>`).join('')}
-                </select>
-              </div>
-            </div>
-
-            <!-- Note -->
-            <div>
-              <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Note / Purpose</label>
-              <input id="loanNotePopup" placeholder="e.g. Emergency funds / Travel loan" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs" />
-            </div>
-
-            <!-- Options -->
-            <div class="flex flex-wrap gap-4 pt-1">
-              <label class="flex items-center gap-1.5 text-xs cursor-pointer">
-                <input type="checkbox" id="addReminderPopup" /> 🔔 Create Reminder
-              </label>
-              <label class="flex items-center gap-1.5 text-xs cursor-pointer">
-                <input type="checkbox" id="AddTransactionPopup" checked /> 💰 Record in Transactions
-              </label>
-            </div>
-
-            <button type="submit" class="w-full py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-900 font-bold text-sm transition shadow-md">
-              ➕ Save Loan
-            </button>
           </form>
         </div>
       </div>
@@ -1992,31 +2298,15 @@ function openAddLoanModal(prefill = {}) {
   }
   container.innerHTML = modalHtml;
 
-  // Type toggle
-  document.querySelectorAll('#addLoanModalOverlay .type-btn').forEach(btn => {
-    btn.onclick = () => {
-      document.getElementById('loanTypePopup').value = btn.dataset.type;
-      document.querySelectorAll('#addLoanModalOverlay .type-btn').forEach(b => {
-        b.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/50');
-        b.classList.add('text-slate-400');
-      });
-      btn.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/50');
-    };
-  });
+  // Trigger initial form state calculation
+  updateLoanFormState('');
 
-  // Submit handler
+  // Submit Handler
   document.getElementById('addLoanFormPopup').onsubmit = async (e) => {
     e.preventDefault();
     const type = document.getElementById('loanTypePopup').value;
-    let selectedPersons = Array.from(document.querySelectorAll('#loanPersonCheckboxesPopup .personCheckbox:checked')).map(cb => cb.value);
-    const newPersonName = (document.getElementById('loanNewPersonInput').value || '').trim();
-    if (newPersonName && !selectedPersons.includes(newPersonName)) {
-      selectedPersons.push(newPersonName);
-      if (!state.dropdowns.persons.includes(newPersonName)) {
-        state.dropdowns.persons.push(newPersonName);
-        if (typeof put === 'function') await put('dropdowns', state.dropdowns);
-      }
-    }
+    const chipsWrap = document.getElementById('loanContactChipsWrap');
+    let selectedPersons = Array.from(chipsWrap ? chipsWrap.querySelectorAll('.loan-contact-chip.active') : []).map(el => el.getAttribute('data-person'));
 
     const amount = Number(document.getElementById('loanAmountPopup').value);
     const interestRate = Number(document.getElementById('loanInterestRate').value) || 0;
@@ -2029,8 +2319,16 @@ function openAddLoanModal(prefill = {}) {
     const addReminder = document.getElementById('addReminderPopup').checked;
     const addTransaction = document.getElementById('AddTransactionPopup').checked;
 
-    if (!selectedPersons.length || !amount || !dueDate) {
-      if (typeof showToast === 'function') showToast('Select person(s), amount and due date', 'error');
+    if (!selectedPersons.length) {
+      if (typeof showToast === 'function') showToast('Please select at least one contact/person', 'error');
+      return;
+    }
+    if (!amount || amount <= 0) {
+      if (typeof showToast === 'function') showToast('Please enter a valid loan amount', 'error');
+      return;
+    }
+    if (!dueDate) {
+      if (typeof showToast === 'function') showToast('Please select a due date', 'error');
       return;
     }
 
@@ -2086,7 +2384,7 @@ function openAddLoanModal(prefill = {}) {
 
     if (typeof handleRecurringLoans === 'function') await handleRecurringLoans();
     if (typeof autoBackup === 'function') autoBackup();
-    if (typeof showToast === 'function') showToast('Loan(s) added successfully!', 'success');
+    if (typeof showToast === 'function') showToast(`Successfully added ${selectedPersons.length > 1 ? selectedPersons.length + ' loans' : 'loan'}!`, 'success');
     closeAddLoanModal();
 
     const wealthContainer = document.querySelector('#wealth-tab-content') || document.querySelector('#loansOverview');
@@ -2104,7 +2402,7 @@ function closeAddLoanModal() {
 }
 
 // ------------------------------------------------------------
-// 7. MODAL: EDIT LOAN (Upgraded with Interest % & Live Preview)
+// 7. MODAL: EDIT LOAN (Next-Gen Interactive UI)
 // ------------------------------------------------------------
 function openEditLoanModal(loan, onSaveCallback) {
   const persons = state.dropdowns.persons || [];
@@ -2116,98 +2414,176 @@ function openEditLoanModal(loan, onSaveCallback) {
 
   const editModalHtml = `
     <div class="modal-overlay show" id="editLoanModalOverlay">
-      <div class="modal" style="max-width: 520px;">
-        <div class="modal-header">
-          <h3 class="modal-title">✏️ Edit Personal Loan</h3>
-          <button class="modal-close" onclick="closeEditLoanModal()">×</button>
+      <div class="modal loan-modal-box">
+        <!-- Header -->
+        <div class="loan-modal-header">
+          <div class="loan-modal-header-icon" id="edit_loanModalHeaderIcon">${loan.type === 'given' ? '💸' : '📥'}</div>
+          <div class="loan-modal-header-text">
+            <h3 class="loan-modal-title">Edit Personal Loan</h3>
+            <p class="loan-modal-subtitle">Modify loan details, terms, interest rate, or due date</p>
+          </div>
+          <button type="button" class="loan-modal-close-btn" onclick="closeEditLoanModal()">×</button>
         </div>
-        <div class="modal-body">
+
+        <div class="modal-body loan-modal-body">
           <form id="editLoanFormPopup" class="space-y-4">
-            <div class="flex gap-2">
-              <button type="button" class="edit-type-btn given flex-1 py-2 rounded-lg text-sm font-bold border ${loan.type === 'given' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'border-[var(--border)] text-slate-400'}" data-type="given">💸 Given</button>
-              <button type="button" class="edit-type-btn taken flex-1 py-2 rounded-lg text-sm font-bold border ${loan.type === 'taken' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'border-[var(--border)] text-slate-400'}" data-type="taken">📥 Taken</button>
+            <!-- 1. Hero Type Selector -->
+            <div class="loan-type-grid">
+              <div class="loan-type-card ${loan.type === 'given' ? 'active' : ''}" id="edit_loanTypeCard_given" onclick="selectLoanModalType('given', 'edit_')">
+                <div class="loan-type-card-radio"></div>
+                <div class="loan-type-card-icon">💸</div>
+                <div class="loan-type-card-info">
+                  <div class="loan-type-card-title">I Gave (Lent)</div>
+                  <div class="loan-type-card-sub">You will receive this back</div>
+                </div>
+              </div>
+              <div class="loan-type-card ${loan.type === 'taken' ? 'active' : ''}" id="edit_loanTypeCard_taken" onclick="selectLoanModalType('taken', 'edit_')">
+                <div class="loan-type-card-radio"></div>
+                <div class="loan-type-card-icon">📥</div>
+                <div class="loan-type-card-info">
+                  <div class="loan-type-card-title">I Took (Borrowed)</div>
+                  <div class="loan-type-card-sub">You need to repay this</div>
+                </div>
+              </div>
             </div>
-            <input type="hidden" id="editLoanType" value="${loan.type}" />
+            <input type="hidden" id="edit_loanTypePopup" value="${loan.type}" />
 
-            <div class="grid grid-cols-2 gap-3">
+            <!-- 2. Person Selector -->
+            <div class="loan-form-section">
+              <label class="loan-form-label">BORROWER / LENDER NAME *</label>
+              <select id="editLoanPerson" class="loan-select">
+                ${persons.map(p => `<option value="${p}" ${loan.person === p ? 'selected' : ''}>👤 ${p}</option>`).join('')}
+                ${!persons.includes(loan.person) ? `<option value="${loan.person}" selected>👤 ${loan.person}</option>` : ''}
+              </select>
+            </div>
+
+            <!-- 3. Principal Amount & Presets -->
+            <div class="loan-form-section">
+              <label class="loan-form-label">PRINCIPAL AMOUNT (₹) *</label>
+              <div class="loan-amount-input-wrap">
+                <span class="loan-currency-symbol">₹</span>
+                <input id="editLoanAmount" type="number" min="1" step="0.01" value="${loan.amount}" required class="loan-amount-input" oninput="updateLoanFormState('edit_')" />
+              </div>
+              <div class="loan-amount-presets">
+                <button type="button" class="loan-chip-btn" onclick="addLoanAmountPreset(1000, 'edit_')">+₹1K</button>
+                <button type="button" class="loan-chip-btn" onclick="addLoanAmountPreset(5000, 'edit_')">+₹5K</button>
+                <button type="button" class="loan-chip-btn" onclick="addLoanAmountPreset(10000, 'edit_')">+₹10K</button>
+                <button type="button" class="loan-chip-btn" onclick="addLoanAmountPreset(25000, 'edit_')">+₹25K</button>
+                <button type="button" class="loan-chip-btn" onclick="addLoanAmountPreset(50000, 'edit_')">+₹50K</button>
+              </div>
+            </div>
+
+            <!-- 4. Interest Rate & Live Preview -->
+            <div class="loan-form-section">
+              <div class="loan-section-header">
+                <label class="loan-form-label">INTEREST RATE (% P.A.)</label>
+                <span class="loan-section-hint">Default 0%</span>
+              </div>
+              <div class="loan-interest-input-wrap">
+                <input id="edit_loanInterestRate" type="number" min="0" max="100" step="0.01" placeholder="0.00" value="${loan.interestRate || ''}" class="loan-rate-input" oninput="updateLoanFormState('edit_')" />
+                <span class="loan-rate-unit">% p.a.</span>
+              </div>
+              <div class="loan-rate-presets" id="edit_loanRatePresets">
+                <button type="button" class="loan-chip-btn ${!loan.interestRate ? 'active' : ''}" data-rate="0" onclick="setLoanRatePreset(0, 'edit_')">0% (Interest-Free)</button>
+                <button type="button" class="loan-chip-btn ${loan.interestRate === 6 ? 'active' : ''}" data-rate="6" onclick="setLoanRatePreset(6, 'edit_')">6%</button>
+                <button type="button" class="loan-chip-btn ${loan.interestRate === 10 ? 'active' : ''}" data-rate="10" onclick="setLoanRatePreset(10, 'edit_')">10%</button>
+                <button type="button" class="loan-chip-btn ${loan.interestRate === 12 ? 'active' : ''}" data-rate="12" onclick="setLoanRatePreset(12, 'edit_')">12%</button>
+                <button type="button" class="loan-chip-btn ${loan.interestRate === 18 ? 'active' : ''}" data-rate="18" onclick="setLoanRatePreset(18, 'edit_')">18%</button>
+                <button type="button" class="loan-chip-btn ${loan.interestRate === 24 ? 'active' : ''}" data-rate="24" onclick="setLoanRatePreset(24, 'edit_')">24%</button>
+              </div>
+              <div id="edit_loanInterestPreviewBox" class="loan-calculation-card" style="display:none;"></div>
+            </div>
+
+            <!-- 5. Dates -->
+            <div class="loan-form-section">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                  <label class="loan-form-label">START DATE</label>
+                  <input id="edit_loanStartDate" type="date" value="${startVal}" class="loan-input" oninput="updateLoanFormState('edit_')" />
+                </div>
+                <div>
+                  <label class="loan-form-label">DUE DATE *</label>
+                  <input id="editLoanDueDate" type="date" value="${loan.dueDate || ''}" required class="loan-input" oninput="updateLoanFormState('edit_')" />
+                </div>
+              </div>
+              <div class="loan-tenure-presets" id="edit_loanTenurePresets">
+                <span style="font-size:11px;color:var(--text-3);align-self:center;">Quick Due:</span>
+                <button type="button" class="loan-chip-btn" data-days="15" onclick="setLoanTenurePreset(15, 'edit_')">15d</button>
+                <button type="button" class="loan-chip-btn" data-days="30" onclick="setLoanTenurePreset(30, 'edit_')">1 Mo</button>
+                <button type="button" class="loan-chip-btn" data-days="90" onclick="setLoanTenurePreset(90, 'edit_')">3 Mo</button>
+                <button type="button" class="loan-chip-btn" data-days="180" onclick="setLoanTenurePreset(180, 'edit_')">6 Mo</button>
+                <button type="button" class="loan-chip-btn" data-days="365" onclick="setLoanTenurePreset(365, 'edit_')">1 Yr</button>
+                <span id="edit_loanDaysBadge" class="loan-days-badge" style="display:none;"></span>
+              </div>
+            </div>
+
+            <!-- 6. Account & Category -->
+            <div class="loan-form-section" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
               <div>
-                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Person</label>
-                <select id="editLoanPerson" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs">
-                  ${persons.map(p => `<option value="${p}" ${loan.person === p ? 'selected' : ''}>${p}</option>`).join('')}
+                <label class="loan-form-label">PAYMENT ACCOUNT</label>
+                <select id="editLoanAccount" class="loan-select">
+                  ${loanAccounts.map(a => `<option value="${a}" ${loan.loanAccount === a ? 'selected' : ''}>🏦 ${a}</option>`).join('')}
                 </select>
               </div>
               <div>
-                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Account</label>
-                <select id="editLoanAccount" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs">
-                  ${loanAccounts.map(a => `<option value="${a}" ${loan.loanAccount === a ? 'selected' : ''}>${a}</option>`).join('')}
+                <label class="loan-form-label">CATEGORY</label>
+                <select id="editLoanCategory" class="loan-select">
+                  ${['Personal', 'Friends', 'Family', 'Business', 'Emergency', 'Rent', 'Travel', 'Shopping', 'Education', 'Medical', 'Other'].map(c => `
+                    <option value="${c}" ${loan.category === c ? 'selected' : ''}>🏷️ ${c}</option>
+                  `).join('')}
                 </select>
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Principal Amount (₹) *</label>
-                <input id="editLoanAmount" type="number" min="1" step="0.01" value="${loan.amount}" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm font-semibold" oninput="updateLoanLiveInterestPreview('edit_')" />
-              </div>
-              <div>
-                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Interest Rate (% p.a.)</label>
-                <input id="edit_loanInterestRate" type="number" min="0" max="100" step="0.01" placeholder="0.00" value="${loan.interestRate || 0}" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" oninput="updateLoanLiveInterestPreview('edit_')" />
-              </div>
-            </div>
-
-            <!-- Live Interest Preview -->
-            <div id="edit_loanInterestPreviewBox" style="display:none;"></div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Start Date</label>
-                <input id="edit_loanStartDate" type="date" value="${startVal}" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs" oninput="updateLoanLiveInterestPreview('edit_')" />
-              </div>
-              <div>
-                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Due Date *</label>
-                <input id="editLoanDueDate" type="date" value="${loan.dueDate || ''}" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs" oninput="updateLoanLiveInterestPreview('edit_')" />
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Category</label>
-                <select id="editLoanCategory" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs">
-                  ${categories.map(c => `<option value="${c}" ${loan.category === c ? 'selected' : ''}>${c}</option>`).join('')}
-                </select>
-              </div>
-              <div>
-                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Recurrence</label>
-                <select id="editLoanRecurrence" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs">
-                  ${recurrences.map(r => `<option value="${r.toLowerCase()}" ${loan.recurrence === r.toLowerCase() ? 'selected' : ''}>${r}</option>`).join('')}
-                </select>
-              </div>
-            </div>
-
+            <!-- 7. Note -->
             <div>
-              <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Note</label>
-              <input id="editLoanNote" value="${escapeHtml(loan.note || '')}" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs" />
+              <label class="loan-form-label">NOTE / PURPOSE</label>
+              <input id="editLoanNote" value="${escapeHtml(loan.note || '')}" class="loan-input" />
             </div>
 
-            ${loan.recurrence && loan.recurrence !== 'None' ? `
-              <div>
-                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Scope</label>
-                <select id="editScope" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs">
-                  <option value="this">Only This Loan</option>
-                  <option value="future">This and Future Loans</option>
-                  <option value="all">All Loans in Series</option>
-                </select>
+            <!-- 8. Advanced & Settlement -->
+            <div class="loan-advanced-box">
+              <div class="loan-advanced-header" onclick="toggleLoanAdvancedOptions('edit_')">
+                <span class="loan-advanced-title">⚙️ Recurrence &amp; Settlement Status</span>
+                <span class="loan-advanced-icon" id="edit_loanAdvancedIcon">▼</span>
               </div>
-            ` : ''}
+              <div class="loan-advanced-body" id="edit_loanAdvancedBody" style="display:none;">
+                <div style="margin-bottom:12px;">
+                  <label class="loan-form-label">RECURRENCE</label>
+                  <select id="editLoanRecurrence" class="loan-select">
+                    ${recurrences.map(r => `<option value="${r.toLowerCase()}" ${loan.recurrence === r.toLowerCase() ? 'selected' : ''}>${r}</option>`).join('')}
+                  </select>
+                </div>
+                
+                ${loan.recurrence && loan.recurrence !== 'None' ? `
+                  <div style="margin-bottom:12px;">
+                    <label class="loan-form-label">SERIES SCOPE</label>
+                    <select id="editScope" class="loan-select">
+                      <option value="this">Only This Loan</option>
+                      <option value="future">This and Future Loans</option>
+                      <option value="all">All Loans in Series</option>
+                    </select>
+                  </div>
+                ` : ''}
 
-            <label class="flex items-center gap-2 text-xs cursor-pointer">
-              <input type="checkbox" id="editLoanCollected" ${loan.collected ? 'checked' : ''} />
-              <span>✅ Mark as Fully Settled / Collected</span>
-            </label>
+                <label class="loan-toggle-label">
+                  <input type="checkbox" id="editLoanCollected" class="loan-toggle-input" ${loan.collected ? 'checked' : ''} />
+                  <span class="loan-toggle-switch"></span>
+                  <span class="loan-toggle-text">
+                    <strong>✅ Mark as Fully Settled / Collected</strong>
+                    <small style="color:var(--text-3);display:block;">Closes the loan and zeros outstanding balance</small>
+                  </span>
+                </label>
+              </div>
+            </div>
 
-            <button type="submit" class="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold text-sm transition">
-              💾 Save Changes
-            </button>
+            <!-- Modal Footer -->
+            <div class="loan-modal-footer">
+              <button type="button" class="loan-btn-cancel" onclick="closeEditLoanModal()">Cancel</button>
+              <button type="submit" id="edit_loanSubmitBtn" class="loan-btn-submit">
+                <span id="edit_loanSubmitBtnText">💾 Save Changes</span>
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -2222,28 +2598,24 @@ function openEditLoanModal(loan, onSaveCallback) {
   }
   container.innerHTML = editModalHtml;
 
-  // Type toggle
-  document.querySelectorAll('#editLoanModalOverlay .edit-type-btn').forEach(btn => {
-    btn.onclick = () => {
-      document.getElementById('editLoanType').value = btn.dataset.type;
-      document.querySelectorAll('#editLoanModalOverlay .edit-type-btn').forEach(b => {
-        b.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/50');
-        b.classList.add('text-slate-400');
-      });
-      btn.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/50');
-    };
-  });
-
-  // Initial preview trigger
-  updateLoanLiveInterestPreview('edit_');
+  // Initial calculation
+  updateLoanFormState('edit_');
 
   document.getElementById('editLoanFormPopup').onsubmit = async (e) => {
     e.preventDefault();
+    const type = document.getElementById('edit_loanTypePopup').value;
+    const person = document.getElementById('editLoanPerson').value;
+    const amount = Number(document.getElementById('editLoanAmount').value);
+    const interestRate = Number(document.getElementById('edit_loanInterestRate').value) || 0;
+    const startDate = document.getElementById('edit_loanStartDate').value;
+    const dueDate = document.getElementById('editLoanDueDate').value;
+    const note = document.getElementById('editLoanNote').value.trim();
+    const category = document.getElementById('editLoanCategory').value || 'Loan';
+    const recurrence = document.getElementById('editLoanRecurrence').value || 'None';
+    const collected = document.getElementById('editLoanCollected').checked;
+    const loanAccount = document.getElementById('editLoanAccount').value || 'Cash';
+
     const updates = {
-      type: document.getElementById('editLoanType').value,
-      person: document.getElementById('editLoanPerson').value,
-      amount: Number(document.getElementById('editLoanAmount').value),
-      interestRate: Number(document.getElementById('edit_loanInterestRate').value) || 0,
       startDate: document.getElementById('edit_loanStartDate').value,
       dueDate: document.getElementById('editLoanDueDate').value,
       note: document.getElementById('editLoanNote').value,
