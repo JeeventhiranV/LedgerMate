@@ -65,38 +65,167 @@ function isAssetClosedOrMatured(inv) {
   return false;
 }
 
-// ─── FIXED: current value (SIP qty×price works correctly, excludes closed/matured FDs) ─────
-function getAssetCurrentValue(inv) {
-  if (!inv || isAssetClosedOrMatured(inv)) return 0;
-  const t         = (inv.type || '').toUpperCase();
-  const qty       = toNum(inv.qty || inv.stockQty || 0);
-  const curPrice  = toNum(inv.currentPrice || inv.ltp || inv.stockCurrentPrice || 0);
-  const buyPrice  = toNum(inv.buyPrice || inv.avgCost || inv.stockBuyPrice || 0);
-
-  // Qty-based types: Stock, SIP, MF, Gold, Silver, Commodity
-  if (['STOCK','SIP','MUTUAL_FUND','GOLD','SILVER','PHYSICAL','COMMODITY'].includes(t)) {
-    return qty * (curPrice > 0 ? curPrice : buyPrice);
+// ─── Financial Calculation Engine ─────────────────────────────────
+function _getCompoundingFrequency(freq) {
+  switch ((freq || '').toLowerCase()) {
+    case 'monthly': return 12;
+    case 'quarterly': return 4;
+    case 'half-yearly': return 2;
+    case 'yearly': return 1;
+    default: return 4; // default Indian bank FD = quarterly compounding
   }
-  if (['REAL_ESTATE','PROPERTY'].includes(t)) return toNum(inv.currentValue || inv.buyPrice || 0);
-  if (['FD','RD','BOND','EPF'].includes(t) && typeof calculateMaturity === 'function') {
-    const mat = calculateMaturity(inv);
-    return mat > 0 ? mat : toNum(inv.principal || 0);
-  }
-  return toNum(inv.principal || inv.currentValue || inv.amount || 0);
 }
 
-// ─── FIXED: invested amount (SIP qty×buyPrice works correctly, excludes closed/matured FDs) ─
-function getAssetInvestedAmount(inv) {
+function calculateAssetMaturityValue(inv) {
+  if (!inv) return 0;
+  if (window.LM_InvestmentsUI && typeof window.LM_InvestmentsUI.calculateMaturity === 'function') {
+    const m = window.LM_InvestmentsUI.calculateMaturity(inv);
+    if (m > 0) return m;
+  }
+  const t = (inv.type || '').toUpperCase();
+  const P = toNum(inv.principal || inv.amount);
+  const r = toNum(inv.rate || inv.sipReturn || inv.interestRate || 0) / 100;
+  const months = Math.max(0, toNum(inv.tenureMonths));
+  const tenureYears = months / 12;
+  const add = toNum(inv.additionalDeposit || inv.sipMonthly);
+
+  if (t === 'FD') {
+    const n = _getCompoundingFrequency(inv.compounding || 'quarterly');
+    const effYears = tenureYears > 0 ? tenureYears : 1;
+    const effRate = r > 0 ? r : 0.07;
+    const matFD = P * Math.pow(1 + effRate / n, n * effYears);
+    return Number(matFD.toFixed(2));
+  }
+
+  if (t === 'RD') {
+    const nRD = 12;
+    const deposit = add > 0 ? add : P;
+    if (deposit <= 0) return 0;
+    const effMonths = months > 0 ? months : 12;
+    const effRate = (r > 0 ? r : 0.07) / nRD;
+    const matRD = deposit * ((Math.pow(1 + effRate, effMonths) - 1) / effRate) * (1 + effRate);
+    return Number(matRD.toFixed(2));
+  }
+
+  if (t === 'SIP') {
+    const qty = toNum(inv.qty || inv.stockQty);
+    const curPrice = toNum(inv.currentPrice || inv.ltp || inv.stockCurrentPrice);
+    const buyPrice = toNum(inv.buyPrice || inv.avgCost || inv.stockBuyPrice);
+    if (qty > 0 && (curPrice > 0 || buyPrice > 0)) {
+      return Number((qty * (curPrice > 0 ? curPrice : buyPrice)).toFixed(2));
+    }
+    const sip = toNum(inv.sipMonthly || add || P);
+    const expRet = r > 0 ? r : 0.12;
+    const i = expRet / 12;
+    const effMonths = months > 0 ? months : 12;
+    if (sip <= 0) return P > 0 ? P : 0;
+    const fv = sip * ((Math.pow(1 + i, effMonths) - 1) / i) * (1 + i);
+    const lump = P > 0 && add > 0 ? P * Math.pow(1 + expRet, effMonths / 12) : 0;
+    return Number((fv + lump).toFixed(2));
+  }
+
+  if (['GOLD','SILVER','PHYSICAL','COMMODITY','SGB'].includes(t)) {
+    const grams = toNum(inv.goldGrams || inv.qty || 1);
+    const buyPrice = toNum(inv.stockBuyPrice || inv.buyPrice || inv.avgCost || inv.principal || 6500);
+    const curPrice = toNum(inv.stockCurrentPrice || inv.currentPrice || inv.ltp || buyPrice);
+    let goldVal = grams * (curPrice > 0 ? curPrice : buyPrice);
+    if (t === 'SGB' && tenureYears > 0) {
+      goldVal += (grams * buyPrice * 0.025 * tenureYears);
+    }
+    return Number(goldVal.toFixed(2));
+  }
+
+  if (['PPF','EPF','NPS'].includes(t)) {
+    const annual = toNum(inv.additionalDeposit || inv.principal);
+    const ratePPF = r > 0 ? r : 0.071;
+    const effYears = tenureYears > 0 ? Math.ceil(tenureYears) : 1;
+    let fvPPF = P;
+    for (let y = 1; y <= effYears; y++) {
+      fvPPF = (fvPPF + annual) * (1 + ratePPF);
+    }
+    return Number(fvPPF.toFixed(2));
+  }
+
+  if (['STOCK','MUTUAL_FUND'].includes(t)) {
+    const qty = toNum(inv.stockQty || inv.qty);
+    const cur = toNum(inv.stockCurrentPrice || inv.currentPrice || inv.ltp);
+    const buy = toNum(inv.stockBuyPrice || inv.buyPrice || inv.avgCost);
+    if (qty > 0) {
+      return Number((qty * (cur > 0 ? cur : buy)).toFixed(2));
+    }
+    if (cur > 0 && buy > 0 && P > 0) {
+      return Number((P * (cur / buy)).toFixed(2));
+    }
+    return toNum(inv.currentValue || P);
+  }
+
+  if (inv.currentValue) return toNum(inv.currentValue);
+  const defVal = P * (1 + (r > 0 ? r : 0.06) * (tenureYears > 0 ? tenureYears : 1));
+  return Number(defVal.toFixed(2));
+}
+
+// ─── Current value (Excludes closed/matured FDs & properly evaluates returns) ─────
+function getAssetCurrentValue(inv) {
   if (!inv || isAssetClosedOrMatured(inv)) return 0;
-  const t        = (inv.type || '').toUpperCase();
-  const qty      = toNum(inv.qty || inv.stockQty || 0);
+  const t = (inv.type || '').toUpperCase();
+  const qty = toNum(inv.qty || inv.stockQty || 0);
+  const curPrice = toNum(inv.currentPrice || inv.ltp || inv.stockCurrentPrice || 0);
   const buyPrice = toNum(inv.buyPrice || inv.avgCost || inv.stockBuyPrice || 0);
 
-  if (['STOCK','SIP','MUTUAL_FUND','GOLD','SILVER','PHYSICAL','COMMODITY'].includes(t)) {
-    return qty * buyPrice;
+  // Qty-based price tracking (Stocks, Gold, Silver, Commodity, MF if units given)
+  if (qty > 0 && (curPrice > 0 || buyPrice > 0)) {
+    return Number((qty * (curPrice > 0 ? curPrice : buyPrice)).toFixed(2));
   }
-  if (['REAL_ESTATE','PROPERTY'].includes(t)) return toNum(inv.buyPrice || inv.principal || 0);
+
+  if (['REAL_ESTATE','PROPERTY'].includes(t)) {
+    return toNum(inv.currentValue || inv.buyPrice || inv.principal || 0);
+  }
+
+  if (inv.currentValue && toNum(inv.currentValue) > 0) {
+    return toNum(inv.currentValue);
+  }
+
+  // Compound / Maturity / Future valuation for FD, RD, SIP, PPF, EPF, SGB, Bond
+  const mat = calculateAssetMaturityValue(inv);
+  if (mat > 0) return mat;
+
   return toNum(inv.principal || inv.amount || 0);
+}
+
+// ─── Invested amount (Excludes closed/matured FDs) ─────────────────
+function getAssetInvestedAmount(inv) {
+  if (!inv || isAssetClosedOrMatured(inv)) return 0;
+  if (window.LM_InvestmentsUI && typeof window.LM_InvestmentsUI.calculateInvestedSoFar === 'function') {
+    const invAmt = window.LM_InvestmentsUI.calculateInvestedSoFar(inv);
+    if (invAmt > 0) return invAmt;
+  }
+  const t = (inv.type || '').toUpperCase();
+  const qty = toNum(inv.qty || inv.stockQty || 0);
+  const buyPrice = toNum(inv.buyPrice || inv.avgCost || inv.stockBuyPrice || 0);
+  const P = toNum(inv.principal || inv.amount || 0);
+  const add = toNum(inv.additionalDeposit || inv.sipMonthly || 0);
+  const months = toNum(inv.tenureMonths || 0);
+
+  if (qty > 0 && buyPrice > 0) {
+    return Number((qty * buyPrice).toFixed(2));
+  }
+  if (t === 'FD') return P;
+  if (t === 'RD') return (add > 0 ? add : P) * (months > 0 ? months : 1);
+  if (t === 'SIP') {
+    const sip = toNum(inv.sipMonthly || add || P);
+    return (sip * (months > 0 ? months : 1)) + (add > 0 && P > 0 ? P : 0);
+  }
+  if (['PPF', 'EPF', 'NPS'].includes(t)) {
+    return P + (add * ((months > 0 ? months : 12) / 12));
+  }
+  if (['GOLD','SILVER','PHYSICAL','COMMODITY','SGB'].includes(t)) {
+    const grams = toNum(inv.goldGrams || inv.qty || 1);
+    return Number((grams * (buyPrice > 0 ? buyPrice : (P > 0 ? P : 6500))).toFixed(2));
+  }
+  if (['REAL_ESTATE','PROPERTY'].includes(t)) {
+    return toNum(inv.buyPrice || inv.principal || inv.amount || 0);
+  }
+  return P > 0 ? P : toNum(inv.buyPrice || 0);
 }
 
 function getAssetCategoryFromType(type) {
@@ -249,9 +378,9 @@ function showWealthPage() {
         <div class="wkpi-sub">${(state.emi_loans||[]).length} active loans</div>
       </div>
       <div class="wkpi stagger-4 ${pnl>=0?'live-glow-green':'live-glow-red'}" onclick="switchWealthTab('allocation')" style="cursor:pointer;">
-        <div class="wkpi-label">P&amp;L</div>
+        <div class="wkpi-label">P&amp;L (PROFIT &amp; LOSS)</div>
         <div class="wkpi-val ${pnl>=0?'live-glow-text-green':'live-glow-text-red'}" style="color:${pnlColor};" id="wkpi-pnl">${pnl>=0?'+':''}${fmtINR(pnl)}</div>
-        <div class="wkpi-sub">Unrealised</div>
+        <div class="wkpi-sub">${invested > 0 ? `${pnl>=0?'+':''}${((pnl/invested)*100).toFixed(1)}% return` : 'Unrealised'}</div>
       </div>
     </div>
 
@@ -348,12 +477,16 @@ function renderWealthAssets(container) {
           <div style="font-family:var(--font-m);font-size:14px;font-weight:600;color:var(--emerald);">
             ${fmtINR(totalCurrent)}
           </div>
+          <div style="font-size:11px;color:${pnlColor};font-weight:600;margin-top:2px;">
+            ${totalPnL>=0?'+':''}${fmtINR(totalPnL)} (${totalPnL>=0?'+':''}${pnlPct}%)
+          </div>
         </div>
         <div>
           <div class="kpi-label">INDIAN STOCKS</div>
           <div style="font-family:var(--font-m);font-size:14px;font-weight:600;color:${stockVal>0?'var(--teal)':'var(--text-3)'};">
             ${fmtINR(stockVal)} <span style="font-size:10px;font-weight:normal;opacity:0.8;">(${stockCount})</span>
           </div>
+          ${stockCount > 0 ? `<div style="font-size:11px;color:${stockPnL>=0?'var(--emerald)':'var(--rose)'};font-weight:600;margin-top:2px;">${stockPnL>=0?'+':''}${fmtINR(stockPnL)} (${stockPnL>=0?'+':''}${stockPnLPct}%)</div>` : ''}
         </div>
         <div>
           <div class="kpi-label">GIVEN LOANS</div>
@@ -410,8 +543,8 @@ function renderWealthAssets(container) {
     const catInfo  = ASSET_CATEGORIES[cat] || { icon: '💼', color: 'var(--teal)' };
     const invested = getAssetInvestedAmount(a);
     const curVal   = getAssetCurrentValue(a);
-    const historicalInvested = toNum(a.buyPrice || a.principal || a.amount || 0);
-    const historicalCurrent = toNum(a.currentValue || (typeof calculateMaturity === 'function' ? calculateMaturity(Object.assign({}, a, { status: 'active', isClosed: false, isMatured: false })) : historicalInvested));
+    const historicalInvested = toNum(a.buyPrice || a.principal || a.amount || 0) || (window.LM_InvestmentsUI?.calculateHistoricalInvested ? window.LM_InvestmentsUI.calculateHistoricalInvested(a) : 0);
+    const historicalCurrent = toNum(a.currentValue || calculateAssetMaturityValue(Object.assign({}, a, { status: 'active', isClosed: false, isMatured: false })) || historicalInvested);
     const pnl      = isClosed ? (historicalCurrent - historicalInvested) : (curVal - invested);
     const pct      = totalCurrent > 0 ? ((curVal/totalCurrent)*100).toFixed(1) : 0;
     const qty      = toNum(a.qty || a.stockQty || 0);
@@ -420,8 +553,8 @@ function renderWealthAssets(container) {
     const t        = (a.type||'').toUpperCase();
     const isQtyType = ['GOLD','SILVER','PHYSICAL','COMMODITY','STOCK','SIP','MUTUAL_FUND'].includes(t);
     const qtyDisp  = isQtyType && qty > 0 ? qty.toFixed(qty < 10 ? 3 : 2) : '—';
-    const avgDisp  = avgCost > 0 ? fmtINR(avgCost) : '—';
-    const ltpDisp  = ltp > 0    ? fmtINR(ltp)      : '—';
+    const avgDisp  = avgCost > 0 ? fmtINR(avgCost) : (isQtyType ? '—' : fmtINR(isClosed ? historicalInvested : invested));
+    const ltpDisp  = ltp > 0    ? fmtINR(ltp)      : (isQtyType ? '—' : fmtINR(isClosed ? historicalCurrent : curVal));
     const pnlInvPct = (isClosed ? historicalInvested : invested) > 0 ? ((pnl/(isClosed ? historicalInvested : invested))*100).toFixed(1) : 0;
 
     return `
@@ -499,8 +632,8 @@ function renderWealthAssets(container) {
     const catInfo  = ASSET_CATEGORIES[cat] || { icon: '💼', color: 'var(--teal)' };
     const invested = getAssetInvestedAmount(a);
     const curVal   = getAssetCurrentValue(a);
-    const historicalInvested = toNum(a.buyPrice || a.principal || a.amount || 0);
-    const historicalCurrent = toNum(a.currentValue || (typeof calculateMaturity === 'function' ? calculateMaturity(Object.assign({}, a, { status: 'active', isClosed: false, isMatured: false })) : historicalInvested));
+    const historicalInvested = toNum(a.buyPrice || a.principal || a.amount || 0) || (window.LM_InvestmentsUI?.calculateHistoricalInvested ? window.LM_InvestmentsUI.calculateHistoricalInvested(a) : 0);
+    const historicalCurrent = toNum(a.currentValue || calculateAssetMaturityValue(Object.assign({}, a, { status: 'active', isClosed: false, isMatured: false })) || historicalInvested);
     const pnl      = isClosed ? (historicalCurrent - historicalInvested) : (curVal - invested);
     const pct      = totalCurrent > 0 ? ((curVal/totalCurrent)*100).toFixed(1) : 0;
     const pnlInvPct = (isClosed ? historicalInvested : invested) > 0 ? ((pnl/(isClosed ? historicalInvested : invested))*100).toFixed(1) : 0;
@@ -2246,6 +2379,8 @@ window.renderWealthLoans = renderWealthLoans;
 window.isAssetClosedOrMatured = isAssetClosedOrMatured;
 window.getAssetCurrentValue = getAssetCurrentValue;
 window.getAssetInvestedAmount = getAssetInvestedAmount;
+window.calculateAssetMaturityValue = calculateAssetMaturityValue;
+window.calculateMaturity = window.calculateMaturity || calculateAssetMaturityValue;
 window.getAssetCategory = getAssetCategory;
 window.getTotalAssets = getTotalAssets;
 window.ASSET_CATEGORIES = ASSET_CATEGORIES;
@@ -2253,6 +2388,7 @@ window.LM_Wealth = {
   isAssetClosedOrMatured,
   getAssetCurrentValue,
   getAssetInvestedAmount,
+  calculateAssetMaturityValue,
   getAssetCategory,
   getTotalAssets,
   ASSET_CATEGORIES
