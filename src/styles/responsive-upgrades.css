@@ -1635,6 +1635,459 @@ body.privacy-mode [data-amount]:active {
   box-shadow: 0 2px 12px rgba(2, 132, 199, 0.35) !important;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   7. REAL-TIME MARKET TICKER, PRICE FLASHES & SPARKLINE DRAW
+   ══════════════════════════════════════════════════════════════ */
+
+/* Live Real-Time Price Highlight Flashes */
+@keyframes priceFlashGreen {
+  0% {
+    background-color: rgba(16, 185, 129, 0.45);
+    color: #10b981;
+    transform: scale(1.04);
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.6);
+  }
+  50% {
+    background-color: rgba(16, 185, 129, 0.2);
+    transform: scale(1.02);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+  }
+  100% {
+    background-color: transparent;
+    transform: scale(1);
+    box-shadow: none;
+  }
+}
+
+@keyframes priceFlashRed {
+  0% {
+    background-color: rgba(244, 63, 94, 0.45);
+    color: #f43f5e;
+    transform: scale(1.04);
+    box-shadow: 0 0 16px rgba(244, 63, 94, 0.6);
+  }
+  50% {
+    background-color: rgba(244, 63, 94, 0.2);
+    transform: scale(1.02);
+    box-shadow: 0 0 10px rgba(244, 63, 94, 0.35);
+  }
+  100% {
+    background-color: transparent;
+    transform: scale(1);
+    box-shadow: none;
+  }
+}
+
+.price-tick-up {
+  animation: priceFlashGreen 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  border-radius: 6px;
+  display: inline-block;
+  will-change: transform, background-color;
+}
+
+.price-tick-down {
+  animation: priceFlashRed 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  border-radius: 6px;
+  display: inline-block;
+  will-change: transform, background-color;
+}
+
+/* Continuous Animated Marquee Ticker Tape */
+.market-marquee-container {
+  width: 100%;
+  overflow: hidden;
+  background: rgba(13, 17, 28, 0.85);
+  border: 1px solid var(--border, #1e2436);
+  border-radius: 12px;
+  padding: 8px 0;
+  margin: 14px 0 20px 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+[data-theme="light"] .market-marquee-container {
+  background: rgba(248, 250, 252, 0.95);
+  border-color: rgba(226, 232, 240, 0.9);
+}
+
+.market-marquee-container::before,
+.market-marquee-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 48px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.market-marquee-container::before {
+  left: 0;
+  background: linear-gradient(90deg, rgba(13, 17, 28, 0.95), transparent);
+}
+.market-marquee-container::after {
+  right: 0;
+  background: linear-gradient(270deg, rgba(13, 17, 28, 0.95), transparent);
+}
+
+[data-theme="light"] .market-marquee-container::before {
+  background: linear-gradient(90deg, rgba(248, 250, 252, 0.95), transparent);
+}
+[data-theme="light"] .market-marquee-container::after {
+  background: linear-gradient(270deg, rgba(248, 250, 252, 0.95), transparent);
+}
+
+.market-marquee-track {
+  display: flex;
+  white-space: nowrap;
+  gap: 28px;
+  animation: tickerMarquee 40s linear infinite;
+  will-change: transform;
+}
+
+.market-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes tickerMarquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.2s ease;
+}
+
+.ticker-item:hover {
+  background: rgba(0, 240, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.ticker-symbol {
+  color: var(--text, #e6eaf3);
+  font-weight: 700;
+}
+
+.ticker-price {
+  color: var(--text-2, #94a3b8);
+}
+
+.ticker-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.ticker-badge.up {
+  color: var(--emerald, #10b981);
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.2);
+}
+
+.ticker-badge.down {
+  color: var(--rose, #f43f5e);
+  background: rgba(244, 63, 94, 0.14);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  box-shadow: 0 0 6px rgba(244, 63, 94, 0.2);
+}
+
+/* SVG Sparkline Draw-in Animation */
+.sparkline-animated path {
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+  animation: sparklineDraw 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes sparklineDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   8. NUMBER ODOMETER & SMOOTH COUNTER STYLES
+   ══════════════════════════════════════════════════════════════ */
+.odometer-digit {
+  display: inline-block;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform, opacity;
+}
+
+.kpi-animating {
+  animation: kpiPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes kpiPop {
+  0% { transform: scale(0.96); opacity: 0.8; }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   9. INTERACTIVE CASHFLOW & SANKEY GLOWING STREAM DYNAMICS
+   ══════════════════════════════════════════════════════════════ */
+.sankey-glow-particle {
+  fill: var(--teal, #00d4b4);
+  filter: drop-shadow(0 0 6px var(--teal, #00d4b4));
+  animation: sankeyEnergyTravel 3s linear infinite;
+}
+
+@keyframes sankeyEnergyTravel {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.flow-stream-line {
+  stroke-dasharray: 8, 4;
+  animation: flowStreamDash 1.2s linear infinite;
+}
+
+@keyframes flowStreamDash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+/* Liquid Wave Ripple Progress Bars */
+.liquid-wave-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.liquid-wave-bar::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.28) 0%, transparent 65%);
+  animation: liquidWaveSpin 4s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes liquidWaveSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   10. CREDIT CARDS 3D HOLOGRAPHIC TILT & URGENT DUE PULSE
+   ══════════════════════════════════════════════════════════════ */
+.cc-card-art {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
+  position: relative;
+  overflow: hidden;
+  will-change: transform;
+}
+
+.cc-card-art::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(
+    circle at var(--glare-x, 50%) var(--glare-y, 50%),
+    rgba(255, 255, 255, var(--glare-opacity, 0)) 0%,
+    rgba(0, 240, 255, calc(var(--glare-opacity, 0) * 0.4)) 40%,
+    transparent 80%
+  );
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.2s ease-out;
+}
+
+.cc-card-art:hover {
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.45), 0 0 24px rgba(0, 212, 180, 0.3) !important;
+}
+
+/* Urgent Due Date Heartbeat Pulse (<48h or Overdue) */
+@keyframes ccHeartbeat {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.5);
+  }
+  25% {
+    transform: scale(1.05);
+    box-shadow: 0 0 12px 2px rgba(244, 63, 94, 0.7);
+  }
+  35% {
+    transform: scale(1.02);
+  }
+  45% {
+    transform: scale(1.06);
+    box-shadow: 0 0 16px 4px rgba(244, 63, 94, 0.85);
+  }
+}
+
+.badge-overdue,
+.badge-duesoon {
+  animation: ccHeartbeat 1.8s ease-in-out infinite !important;
+  will-change: transform, box-shadow;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   11. DYNAMIC CHART LASER TRACER & RADIAL ELASTIC GAUGES
+   ══════════════════════════════════════════════════════════════ */
+.laser-tracer-glow {
+  filter: drop-shadow(0 0 8px #00f0ff) drop-shadow(0 0 16px #00d4b4);
+  animation: laserPulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes laserPulse {
+  0% { transform: scale(1); opacity: 0.85; }
+  100% { transform: scale(1.25); opacity: 1; }
+}
+
+.laser-drop-beam {
+  stroke: rgba(0, 240, 255, 0.4);
+  stroke-dasharray: 4, 3;
+  animation: laserBeamGlow 1s ease-in-out infinite alternate;
+}
+
+@keyframes laserBeamGlow {
+  0% { stroke-opacity: 0.3; }
+  100% { stroke-opacity: 0.85; }
+}
+
+/* Radial Gauge Spring Animation */
+.gauge-meter-spring {
+  transition: stroke-dashoffset 1.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   12. GAMIFICATION CANVAS CONFETTI & SPRING RIPPLES
+   ══════════════════════════════════════════════════════════════ */
+#lm-confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 999999;
+}
+
+.btn-spring-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-spring-ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.4);
+  opacity: 0;
+  border-radius: 100%;
+  transform: scale(1, 1) translate(-50%);
+  transform-origin: 50% 50%;
+}
+
+.btn-spring-ripple:active::after {
+  animation: btnRippleWave 0.6s ease-out;
+}
+
+@keyframes btnRippleWave {
+  0% {
+    transform: scale(0, 0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(30, 30);
+    opacity: 0;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   13. MOBILE SHEET DRAG-TO-DISMISS & SKELETON SHIMMERS
+   ══════════════════════════════════════════════════════════════ */
+.modal.bottom-sheet-dragging .modal-content,
+.modal-overlay.bottom-sheet-dragging .modal-box {
+  transition: none !important;
+}
+
+.modal-grab-handle {
+  width: 36px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  margin: 0 auto 12px;
+  cursor: grab;
+}
+
+[data-theme="light"] .modal-grab-handle {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Skeleton Loading Shimmer */
+@keyframes shimmerLoading {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  ) !important;
+  background-size: 200% 100% !important;
+  animation: shimmerLoading 1.8s infinite !important;
+  border-radius: 8px;
+}
+
+[data-theme="light"] .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.04) 25%,
+    rgba(0, 0, 0, 0.09) 50%,
+    rgba(0, 0, 0, 0.04) 75%
+  ) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   14. COMMAND PALETTE (⌘K) GLIDING HIGHLIGHT CURSOR
+   ══════════════════════════════════════════════════════════════ */
+.palette-gliding-highlight {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 42px;
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.12), rgba(139, 92, 246, 0.08));
+  border: 1px solid rgba(0, 212, 180, 0.35);
+  border-radius: 8px;
+  pointer-events: none;
+  transition: top 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease;
+  z-index: 1;
+  box-shadow: 0 0 14px rgba(0, 212, 180, 0.25);
+}
+
+
 
 
 

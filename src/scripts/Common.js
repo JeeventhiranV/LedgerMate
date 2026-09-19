@@ -7784,3 +7784,265 @@ function applyDashboardConfig() {
     if (target) target.style.display = visible ? '' : 'none';
   });
 }
+
+/* ══════════════════════════════════════════════════════════════
+   FINTECH ANIMATIONS & MOTION ENGINE SUITE
+   ══════════════════════════════════════════════════════════════ */
+
+/**
+ * 1. Smooth Spring Number Counting / Odometer Animation
+ */
+window.LM_animateValue = function(element, startVal, endVal, duration = 800, isCurrency = true, prefix = '') {
+  if (!element) return;
+  const start = Number(startVal) || 0;
+  const end = Number(endVal) || 0;
+  if (start === end) {
+    element.textContent = isCurrency ? fmtINR(end) : (prefix + end.toLocaleString('en-IN'));
+    return;
+  }
+
+  const startTime = performance.now();
+  element.classList.add('kpi-animating');
+
+  function update(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    
+    // Ease-out cubic formula
+    const easeOut = 1 - Math.pow(1 - progress, 3);
+    const current = start + (end - start) * easeOut;
+
+    element.textContent = isCurrency ? fmtINR(Math.round(current)) : (prefix + Math.round(current).toLocaleString('en-IN'));
+
+    if (progress < 1) {
+      requestAnimationFrame(update);
+    } else {
+      element.textContent = isCurrency ? fmtINR(end) : (prefix + end.toLocaleString('en-IN'));
+      setTimeout(() => element.classList.remove('kpi-animating'), 300);
+      
+      // Flash green or red based on delta
+      if (end > start) {
+        window.LM_flashPrice(element, true);
+      } else if (end < start) {
+        window.LM_flashPrice(element, false);
+      }
+    }
+  }
+
+  requestAnimationFrame(update);
+};
+
+/**
+ * 2. Real-Time Price Highlight Flasher
+ */
+window.LM_flashPrice = function(element, isPositive) {
+  if (!element) return;
+  const cls = isPositive ? 'price-tick-up' : 'price-tick-down';
+  element.classList.remove('price-tick-up', 'price-tick-down');
+  void element.offsetWidth; // Trigger DOM reflow
+  element.classList.add(cls);
+  setTimeout(() => element.classList.remove(cls), 1300);
+};
+
+/**
+ * 3. Lightweight Canvas Confetti / Fireworks Particle Emitter
+ */
+window.LM_triggerConfetti = function(originX, originY) {
+  try {
+    let canvas = document.getElementById('lm-confetti-canvas');
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvas.id = 'lm-confetti-canvas';
+      document.body.appendChild(canvas);
+    }
+    const ctx = canvas.getContext('2d');
+    const width = (canvas.width = window.innerWidth);
+    const height = (canvas.height = window.innerHeight);
+
+    const x = originX !== undefined ? originX : width / 2;
+    const y = originY !== undefined ? originY : height / 3;
+
+    const colors = ['#00d4b4', '#10b981', '#00f0ff', '#8b5cf6', '#f59e0b', '#ec4899'];
+    const particles = [];
+    const count = 75;
+
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5);
+      const speed = Math.random() * 8 + 4;
+      particles.push({
+        x: x,
+        y: y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 3,
+        size: Math.random() * 7 + 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 12,
+        opacity: 1,
+        gravity: 0.22,
+        drag: 0.96
+      });
+    }
+
+    let animId;
+    function renderParticles() {
+      ctx.clearRect(0, 0, width, height);
+      let alive = false;
+
+      particles.forEach(p => {
+        p.vx *= p.drag;
+        p.vy = p.vy * p.drag + p.gravity;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rotation += p.rotSpeed;
+        p.opacity -= 0.014;
+
+        if (p.opacity > 0) {
+          alive = true;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rotation * Math.PI) / 180);
+          ctx.globalAlpha = Math.max(0, p.opacity);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+          ctx.restore();
+        }
+      });
+
+      if (alive) {
+        animId = requestAnimationFrame(renderParticles);
+      } else {
+        cancelAnimationFrame(animId);
+        ctx.clearRect(0, 0, width, height);
+      }
+    }
+
+    renderParticles();
+  } catch (err) {
+    console.warn('Confetti error:', err);
+  }
+};
+
+/**
+ * 4. Credit Cards 3D Interactive Cursor-Tracking Physics & Holographic Glare
+ */
+window.LM_attachCardPhysics = function() {
+  const cards = document.querySelectorAll('.cc-card-art');
+  cards.forEach(card => {
+    if (card._hasPhysicsAttached) return;
+    card._hasPhysicsAttached = true;
+
+    card.addEventListener('mousemove', e => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      
+      const rotateX = ((y - centerY) / centerY) * -12;
+      const rotateY = ((x - centerX) / centerX) * 14;
+
+      card.style.transform = `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale3d(1.03, 1.03, 1.03)`;
+      card.style.setProperty('--glare-x', `${(x / rect.width) * 100}%`);
+      card.style.setProperty('--glare-y', `${(y / rect.height) * 100}%`);
+      card.style.setProperty('--glare-opacity', '0.45');
+    });
+
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+      card.style.setProperty('--glare-opacity', '0');
+    });
+  });
+};
+
+/**
+ * 5. Mobile Bottom Sheet Gesture Drag-to-Dismiss Physics
+ */
+window.LM_initBottomSheetGestures = function() {
+  document.addEventListener('touchstart', e => {
+    if (window.innerWidth > 768) return;
+    const modalBox = e.target.closest('.modal-box, .modal-content, .bnav-sheet');
+    if (!modalBox) return;
+
+    let startY = e.touches[0].clientY;
+    let currentY = startY;
+    let isDragging = false;
+
+    function onTouchMove(moveEvent) {
+      currentY = moveEvent.touches[0].clientY;
+      const deltaY = currentY - startY;
+
+      if (deltaY > 10 && modalBox.scrollTop <= 0) {
+        isDragging = true;
+        modalBox.closest('.modal, .modal-overlay')?.classList.add('bottom-sheet-dragging');
+        modalBox.style.transform = `translateY(${deltaY}px)`;
+        modalBox.style.opacity = `${Math.max(0.4, 1 - deltaY / 400)}`;
+      }
+    }
+
+    function onTouchEnd() {
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onTouchEnd);
+
+      const deltaY = currentY - startY;
+      modalBox.closest('.modal, .modal-overlay')?.classList.remove('bottom-sheet-dragging');
+      modalBox.style.transform = '';
+      modalBox.style.opacity = '';
+
+      if (isDragging && deltaY > 120) {
+        // Dismiss modal
+        const closeBtn = modalBox.querySelector('.modal-close, button[onclick*="closeModal"], button[onclick*="hideModal"]');
+        if (closeBtn) closeBtn.click();
+        else {
+          const overlay = modalBox.closest('.modal, .modal-overlay');
+          if (overlay) {
+            overlay.classList.remove('open', 'show');
+            overlay.style.display = 'none';
+          }
+        }
+      }
+    }
+
+    document.addEventListener('touchmove', onTouchMove, { passive: true });
+    document.addEventListener('touchend', onTouchEnd);
+  }, { passive: true });
+};
+
+/**
+ * 6. Command Palette Gliding Highlight
+ */
+window.LM_initPaletteGlidingCursor = function() {
+  const palette = document.querySelector('#cmdPalette, #quickSearchModal, .cmd-palette-box');
+  if (!palette) return;
+
+  let glidingHighlight = palette.querySelector('.palette-gliding-highlight');
+  if (!glidingHighlight) {
+    glidingHighlight = document.createElement('div');
+    glidingHighlight.className = 'palette-gliding-highlight';
+    glidingHighlight.style.opacity = '0';
+    const listContainer = palette.querySelector('.cmd-palette-list, #quickSearchResults');
+    if (listContainer) {
+      listContainer.style.position = 'relative';
+      listContainer.insertBefore(glidingHighlight, listContainer.firstChild);
+    }
+  }
+
+  palette.addEventListener('mouseover', e => {
+    const item = e.target.closest('.cmd-item, .search-result-item');
+    if (item && glidingHighlight) {
+      glidingHighlight.style.top = `${item.offsetTop}px`;
+      glidingHighlight.style.height = `${item.offsetHeight}px`;
+      glidingHighlight.style.opacity = '1';
+    }
+  });
+
+  palette.addEventListener('mouseleave', () => {
+    if (glidingHighlight) glidingHighlight.style.opacity = '0';
+  });
+};
+
+// Initialize mobile gestures & card physics on DOM Ready
+document.addEventListener('DOMContentLoaded', () => {
+  window.LM_initBottomSheetGestures?.();
+});

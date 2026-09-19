@@ -143,15 +143,40 @@
 
           <!-- Paths / Ribbons -->
           <!-- Income to Central Hub -->
+          <path id="flow-path-in1" d="M 120 70 C 220 70, 220 150, 320 150" fill="none" stroke="rgba(16, 185, 129, 0.2)" stroke-width="20" stroke-linecap="round"/>
           <path d="M 120 70 C 220 70, 220 150, 320 150 L 320 170 C 220 170, 220 90, 120 90 Z" fill="url(#grad-in-mid)"/>
+          
+          <path id="flow-path-in2" d="M 120 180 C 220 180, 220 160, 320 160" fill="none" stroke="rgba(16, 185, 129, 0.2)" stroke-width="16" stroke-linecap="round"/>
           <path d="M 120 180 C 220 180, 220 160, 320 160 L 320 175 C 220 175, 220 195, 120 195 Z" fill="url(#grad-in-mid)"/>
 
           <!-- Central Hub to Needs -->
+          <path id="flow-path-needs" d="M 370 132 C 460 132, 460 72, 560 72" fill="none" stroke="rgba(245, 158, 11, 0.2)" stroke-width="22" stroke-linecap="round"/>
           <path d="M 370 120 C 460 120, 460 60, 560 60 L 560 85 C 460 85, 460 145, 370 145 Z" fill="url(#grad-mid-needs)"/>
+          
           <!-- Central Hub to Wants -->
+          <path id="flow-path-wants" d="M 370 160 C 460 160, 460 185, 560 185" fill="none" stroke="rgba(244, 63, 94, 0.2)" stroke-width="24" stroke-linecap="round"/>
           <path d="M 370 145 C 460 145, 460 170, 560 170 L 560 200 C 460 200, 460 175, 370 175 Z" fill="url(#grad-mid-wants)"/>
+          
           <!-- Central Hub to Savings -->
+          <path id="flow-path-save" d="M 370 187 C 460 187, 460 282, 560 282" fill="none" stroke="rgba(0, 212, 180, 0.2)" stroke-width="22" stroke-linecap="round"/>
           <path d="M 370 175 C 460 175, 460 270, 560 270 L 560 295 C 460 295, 460 200, 370 200 Z" fill="url(#grad-mid-save)"/>
+
+          <!-- Glowing Energy Particle Streams -->
+          <circle r="4" fill="#10b981" filter="drop-shadow(0 0 8px #10b981)">
+            <animateMotion dur="2.2s" repeatCount="indefinite" path="M 120 70 C 220 70, 220 150, 320 150"/>
+          </circle>
+          <circle r="3.5" fill="#10b981" filter="drop-shadow(0 0 6px #10b981)">
+            <animateMotion dur="2.5s" repeatCount="indefinite" path="M 120 180 C 220 180, 220 160, 320 160"/>
+          </circle>
+          <circle r="4.5" fill="#f59e0b" filter="drop-shadow(0 0 8px #f59e0b)">
+            <animateMotion dur="2.4s" repeatCount="indefinite" path="M 370 132 C 460 132, 460 72, 560 72"/>
+          </circle>
+          <circle r="4.5" fill="#f43f5e" filter="drop-shadow(0 0 8px #f43f5e)">
+            <animateMotion dur="2.1s" repeatCount="indefinite" path="M 370 160 C 460 160, 460 185, 560 185"/>
+          </circle>
+          <circle r="5" fill="#00d4b4" filter="drop-shadow(0 0 10px #00d4b4)">
+            <animateMotion dur="1.9s" repeatCount="indefinite" path="M 370 187 C 460 187, 460 282, 560 282"/>
+          </circle>
 
           <!-- Level 1 Nodes: Inflow Sources -->
           <g transform="translate(10, 45)">

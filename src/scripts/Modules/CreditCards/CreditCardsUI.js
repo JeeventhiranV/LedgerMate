@@ -178,6 +178,9 @@
       `;
 
       container.innerHTML = html;
+      if (window.LM_attachCardPhysics) {
+        setTimeout(window.LM_attachCardPhysics, 50);
+      }
     },
 
     /**

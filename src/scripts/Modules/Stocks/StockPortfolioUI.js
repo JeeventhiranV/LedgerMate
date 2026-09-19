@@ -101,6 +101,33 @@
           </div>
         </div>
 
+        <!-- ── Real-Time Animated Market Marquee Ticker Tape ── -->
+        <div class="market-marquee-container" id="stocksMarqueeTicker">
+          <div class="market-marquee-track">
+            <div class="ticker-item"><span class="ticker-symbol">NIFTY 50</span><span class="ticker-price">24,850.30</span><span class="ticker-badge up">▲ +0.65%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">SENSEX</span><span class="ticker-price">81,920.40</span><span class="ticker-badge up">▲ +0.58%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">BANK NIFTY</span><span class="ticker-price">52,180.15</span><span class="ticker-badge down">▼ -0.22%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">NIFTY IT</span><span class="ticker-price">36,420.80</span><span class="ticker-badge up">▲ +1.12%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">RELIANCE</span><span class="ticker-price">₹2,985.40</span><span class="ticker-badge up">▲ +0.82%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">TATA MOTORS</span><span class="ticker-price">₹980.50</span><span class="ticker-badge up">▲ +2.15%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">HDFC BANK</span><span class="ticker-price">₹1,642.00</span><span class="ticker-badge down">▼ -0.40%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">INFOSYS</span><span class="ticker-price">₹1,780.25</span><span class="ticker-badge up">▲ +1.45%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">TCS</span><span class="ticker-price">₹4,120.00</span><span class="ticker-badge up">▲ +0.90%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">ICICI BANK</span><span class="ticker-price">₹1,215.30</span><span class="ticker-badge up">▲ +0.75%</span></div>
+            <!-- Duplicate loop for seamless continuous marquee -->
+            <div class="ticker-item"><span class="ticker-symbol">NIFTY 50</span><span class="ticker-price">24,850.30</span><span class="ticker-badge up">▲ +0.65%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">SENSEX</span><span class="ticker-price">81,920.40</span><span class="ticker-badge up">▲ +0.58%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">BANK NIFTY</span><span class="ticker-price">52,180.15</span><span class="ticker-badge down">▼ -0.22%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">NIFTY IT</span><span class="ticker-price">36,420.80</span><span class="ticker-badge up">▲ +1.12%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">RELIANCE</span><span class="ticker-price">₹2,985.40</span><span class="ticker-badge up">▲ +0.82%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">TATA MOTORS</span><span class="ticker-price">₹980.50</span><span class="ticker-badge up">▲ +2.15%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">HDFC BANK</span><span class="ticker-price">₹1,642.00</span><span class="ticker-badge down">▼ -0.40%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">INFOSYS</span><span class="ticker-price">₹1,780.25</span><span class="ticker-badge up">▲ +1.45%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">TCS</span><span class="ticker-price">₹4,120.00</span><span class="ticker-badge up">▲ +0.90%</span></div>
+            <div class="ticker-item"><span class="ticker-symbol">ICICI BANK</span><span class="ticker-price">₹1,215.30</span><span class="ticker-badge up">▲ +0.75%</span></div>
+          </div>
+        </div>
+
         <!-- ── KPI Summary Cards ── -->
         <div class="stocks-kpi-grid">
           <!-- Card 1: Current Portfolio Value -->
