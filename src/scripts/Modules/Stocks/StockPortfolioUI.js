@@ -89,6 +89,9 @@
           </div>
 
           <div class="stocks-header-actions">
+            <button class="overview-tool-btn privacy-toggle-btn" style="background:var(--bg2,#11151f);border:1px solid var(--border,#1e2436);border-radius:10px;padding:7px 12px;" title="Toggle Balance Privacy (Stealth Mode)" onclick="window.LM_togglePrivacyMode()" aria-label="Privacy Mode">
+              ${document.body.classList.contains('privacy-mode') ? '🙈' : '👁️'} <span class="overview-tool-label">Privacy</span>
+            </button>
             <button class="btn-stock-secondary" id="btnRefreshPrices" onclick="window.LM_StockPortfolioUI.handleRefreshPrices()">
               <span class="spin-icon">🔄</span> Refresh Prices
             </button>

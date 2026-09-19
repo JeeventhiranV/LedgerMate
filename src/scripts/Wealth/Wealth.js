@@ -186,11 +186,16 @@ function showWealthPage() {
 
   page.innerHTML = `
     <div class="page-header fade-up fade-up-1">
-      <div>
+      <div class="page-header-left">
         <div class="page-greeting">Track your portfolio</div>
         <h1 class="page-title">Wealth <em>Manager</em></h1>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <div class="page-header-right">
+        <div class="overview-quick-tools">
+          <button class="overview-tool-btn privacy-toggle-btn" title="Toggle Balance Privacy (Stealth Mode)" onclick="window.LM_togglePrivacyMode()" aria-label="Privacy Mode">
+            ${document.body.classList.contains('privacy-mode') ? '🙈' : '👁️'} <span class="overview-tool-label">Privacy</span>
+          </button>
+        </div>
         <button class="btn-submit" style="width:auto;padding:9px 18px;margin:0;font-size:13px;"
                 onclick="openAddAssetModal()">+ Add Asset</button>
         <button class="btn-secondary" style="padding:9px 14px;font-size:13px;"
@@ -200,24 +205,24 @@ function showWealthPage() {
 
     <!-- Live KPI strip -->
     <div class="wealth-kpi-strip fade-up fade-up-2">
-      <div class="wkpi stagger-1" onclick="switchWealthTab('networth')" style="cursor:pointer;">
+      <div class="wkpi stagger-1 ${nw<0?'live-glow-red':''}" onclick="switchWealthTab('networth')" style="cursor:pointer;">
         <div class="wkpi-label">Net Worth</div>
-        <div class="wkpi-val" id="wkpi-nw" style="color:${nwColor};">${fmtINR(nw)}</div>
+        <div class="wkpi-val ${nw<0?'live-glow-text-red':''}" id="wkpi-nw" style="color:${nwColor};">${fmtINR(nw)}</div>
         <div class="wkpi-sub">Assets − Liabilities</div>
       </div>
-      <div class="wkpi stagger-2" onclick="switchWealthTab('assets')" style="cursor:pointer;">
+      <div class="wkpi stagger-2 live-glow-green" onclick="switchWealthTab('assets')" style="cursor:pointer;">
         <div class="wkpi-label">Total Assets</div>
-        <div class="wkpi-val" style="color:var(--teal);" id="wkpi-assets">${fmtINR(assets)}</div>
+        <div class="wkpi-val live-glow-text-green" style="color:var(--teal);" id="wkpi-assets">${fmtINR(assets)}</div>
         <div class="wkpi-sub">${(state.investments||[]).length} holdings</div>
       </div>
-      <div class="wkpi stagger-3" onclick="switchWealthTab('liabilities')" style="cursor:pointer;">
+      <div class="wkpi stagger-3 ${liabs>0?'live-glow-red':''}" onclick="switchWealthTab('liabilities')" style="cursor:pointer;">
         <div class="wkpi-label">Liabilities</div>
-        <div class="wkpi-val" style="color:${liabs>0?'var(--rose)':'var(--text-3)'};" id="wkpi-liabs">${fmtINR(liabs)}</div>
+        <div class="wkpi-val ${liabs>0?'live-glow-text-red':''}" style="color:${liabs>0?'var(--rose)':'var(--text-3)'};" id="wkpi-liabs">${fmtINR(liabs)}</div>
         <div class="wkpi-sub">${(state.emi_loans||[]).length} active loans</div>
       </div>
-      <div class="wkpi stagger-4" onclick="switchWealthTab('allocation')" style="cursor:pointer;">
+      <div class="wkpi stagger-4 ${pnl>=0?'live-glow-green':'live-glow-red'}" onclick="switchWealthTab('allocation')" style="cursor:pointer;">
         <div class="wkpi-label">P&amp;L</div>
-        <div class="wkpi-val" style="color:${pnlColor};" id="wkpi-pnl">${pnl>=0?'+':''}${fmtINR(pnl)}</div>
+        <div class="wkpi-val ${pnl>=0?'live-glow-text-green':'live-glow-text-red'}" style="color:${pnlColor};" id="wkpi-pnl">${pnl>=0?'+':''}${fmtINR(pnl)}</div>
         <div class="wkpi-sub">Unrealised</div>
       </div>
     </div>
@@ -392,7 +397,7 @@ function renderWealthAssets(container) {
         <td class="wealth-td-mono">${fmtINR(invested)}</td>
         <td class="wealth-td-mono" style="color:var(--teal);">${fmtINR(curVal)}</td>
         <td class="wealth-td-mono" style="color:${pnl>=0?'var(--emerald)':'var(--rose)'};">
-          ${pnl>=0?'+':''}${fmtINR(pnl)}<br>
+          ${pnl>=0?'<span class="live-arrow-up">▲</span> +':'<span class="live-arrow-down">▼</span> '}${fmtINR(pnl)}<br>
           <span style="font-size:10px;opacity:0.8;">${pnl>=0?'+':''}${pnlInvPct}%</span>
         </td>
         <td class="wealth-td-mono">${pct}%</td>
@@ -456,7 +461,7 @@ function renderWealthAssets(container) {
           </div>
           <div style="text-align:right;">
             <div style="font-family:var(--font-m);font-size:14px;font-weight:700;color:var(--teal);">${fmtINR(curVal)}</div>
-            <div style="font-size:11px;color:${pnl>=0?'var(--emerald)':'var(--rose)'};">${pnl>=0?'+':''}${fmtINR(pnl)} (${pnl>=0?'+':''}${pnlInvPct}%)</div>
+            <div style="font-size:11px;color:${pnl>=0?'var(--emerald)':'var(--rose)'};display:inline-flex;align-items:center;gap:3px;">${pnl>=0?'<span class="live-arrow-up">▲</span> +':'<span class="live-arrow-down">▼</span> '}${fmtINR(pnl)} (${pnl>=0?'+':''}${pnlInvPct}%)</div>
           </div>
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3);">
@@ -1313,7 +1318,7 @@ function renderWealthNetWorth(container) {
             </div>
             <div style="text-align:right;">
               <div class="list-item-amount" style="color:${s.netWorth>=0?'var(--teal)':'var(--rose)'};">${fmtINR(s.netWorth)}</div>
-              ${d!==0?`<div style="font-size:11px;color:${d>=0?'var(--emerald)':'var(--rose)'};display:inline-flex;align-items:center;gap:2px;">${d>=0?'<span class="live-arrow-up">▲</span> +':''}${fmtINR(d)}</div>`:''}
+              ${d!==0?`<div style="font-size:11px;color:${d>=0?'var(--emerald)':'var(--rose)'};display:inline-flex;align-items:center;gap:2px;">${d>=0?'<span class="live-arrow-up">▲</span> +':'<span class="live-arrow-down">▼</span> '}${fmtINR(d)}</div>`:''}
             </div>
             <button onclick="deleteNetWorthSnapshot('${s.id}')"
                     style="background:none;border:none;cursor:pointer;color:var(--text-3);padding:4px;margin-left:4px;">×</button>

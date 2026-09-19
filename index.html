@@ -437,19 +437,6 @@
             <h1 class="page-title"><em>Financial</em> Overview</h1>
           </div>
           <div class="page-header-right">
-            <!-- 🛠️ Quick Tools: Cashflow Visualizer, Privacy Mode, Theme Toggle -->
-            <div class="overview-quick-tools" id="overviewQuickTools">
-              <button class="overview-tool-btn" onclick="window.LM_Sankey ? window.LM_Sankey.showModal() : (typeof openSankeyModal==='function'&&openSankeyModal())" title="Cashflow Visualizer (Flow Diagram)" aria-label="Cashflow Visualizer">
-                🌊 <span class="overview-tool-label">Flow</span>
-              </button>
-              <button id="btnPrivacyToggle" class="overview-tool-btn" title="Toggle Balance Privacy (Stealth Mode)" onclick="window.LM_togglePrivacyMode()" aria-label="Privacy Mode">
-                👁️ <span class="overview-tool-label">Privacy</span>
-              </button>
-              <button id="themeIcon" class="overview-tool-btn" onclick="toggleTheme()" title="Toggle Dark / Light Theme" aria-label="Toggle Theme">
-                <span class="theme-emoji">🌙</span> <span class="overview-tool-label">Theme</span>
-              </button>
-            </div>
-
             <!-- 📅 Range Filter Pills -->
             <div class="range-pills fade-up fade-up-2" id="rangePillsNew">
               <button class="range-pill" id="btn-7">7d</button>
@@ -457,6 +444,19 @@
               <button class="range-pill" id="btn-90">90d</button>
               <button class="range-pill" id="btn-365">1y</button>
               <button class="range-pill" id="btn-custom">Custom</button>
+            </div>
+
+            <!-- 🛠️ Quick Tools: Cashflow Visualizer, Privacy Mode, Theme Toggle (Right Side) -->
+            <div class="overview-quick-tools" id="overviewQuickTools">
+              <button class="overview-tool-btn" onclick="window.LM_Sankey ? window.LM_Sankey.showModal() : (typeof openSankeyModal==='function'&&openSankeyModal())" title="Cashflow Visualizer (Flow Diagram)" aria-label="Cashflow Visualizer">
+                🌊 <span class="overview-tool-label">Flow</span>
+              </button>
+              <button id="btnPrivacyToggle" class="overview-tool-btn privacy-toggle-btn" title="Toggle Balance Privacy (Stealth Mode)" onclick="window.LM_togglePrivacyMode()" aria-label="Privacy Mode">
+                👁️ <span class="overview-tool-label">Privacy</span>
+              </button>
+              <button id="themeIcon" class="overview-tool-btn" onclick="toggleTheme()" title="Toggle Dark / Light Theme" aria-label="Toggle Theme">
+                <span class="theme-emoji">🌙</span> <span class="overview-tool-label">Theme</span>
+              </button>
             </div>
           </div>
           <!-- CUSTOM RANGE -->

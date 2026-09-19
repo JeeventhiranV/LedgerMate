@@ -3372,17 +3372,20 @@ function onKpiRangeChange(e) {
 ═══════════════════════════════════════════════ */
 window.LM_togglePrivacyMode = function() {
   const isPrivacy = document.body.classList.toggle('privacy-mode');
-  const btn = document.getElementById('btnPrivacyToggle');
-  if (btn) {
-    const icon = isPrivacy ? '🙈' : '👁️';
-    const label = btn.querySelector('.overview-tool-label');
-    if (label) {
-      btn.innerHTML = `${icon} <span class="overview-tool-label">Privacy</span>`;
-    } else {
-      btn.textContent = icon;
+  const btns = document.querySelectorAll('.privacy-toggle-btn, #btnPrivacyToggle');
+  const icon = isPrivacy ? '🙈' : '👁️';
+  btns.forEach(btn => {
+    if (btn) {
+      const label = btn.querySelector('.overview-tool-label');
+      if (label) {
+        btn.innerHTML = `${icon} <span class="overview-tool-label">Privacy</span>`;
+      } else {
+        btn.textContent = icon;
+      }
+      btn.title = isPrivacy ? 'Stealth Mode Active (Balances Masked)' : 'Toggle Balance Privacy (Stealth Mode)';
+      btn.setAttribute('aria-pressed', isPrivacy ? 'true' : 'false');
     }
-    btn.title = isPrivacy ? 'Stealth Mode Active (Balances Masked)' : 'Toggle Balance Privacy (Stealth Mode)';
-  }
+  });
   localStorage.setItem('lm_privacy_mode', isPrivacy ? '1' : '0');
   if (typeof showToast === 'function') {
     showToast(isPrivacy ? '🙈 Stealth Mode: Balances Masked' : '👁️ Balance Privacy Disabled', 'info', 2200);
@@ -3394,16 +3397,19 @@ window.LM_togglePrivacyMode = function() {
   if (localStorage.getItem('lm_privacy_mode') === '1') {
     document.body.classList.add('privacy-mode');
     const updateIcon = () => {
-      const btn = document.getElementById('btnPrivacyToggle');
-      if (btn) {
-        const label = btn.querySelector('.overview-tool-label');
-        if (label) {
-          btn.innerHTML = `🙈 <span class="overview-tool-label">Privacy</span>`;
-        } else {
-          btn.textContent = '🙈';
+      const btns = document.querySelectorAll('.privacy-toggle-btn, #btnPrivacyToggle');
+      btns.forEach(btn => {
+        if (btn) {
+          const label = btn.querySelector('.overview-tool-label');
+          if (label) {
+            btn.innerHTML = `🙈 <span class="overview-tool-label">Privacy</span>`;
+          } else {
+            btn.textContent = '🙈';
+          }
+          btn.title = 'Stealth Mode Active (Balances Masked)';
+          btn.setAttribute('aria-pressed', 'true');
         }
-        btn.title = 'Stealth Mode Active (Balances Masked)';
-      }
+      });
     };
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', updateIcon);
@@ -4252,13 +4258,28 @@ function kpiCard(title, value, sub, type, valueColor, onclickAttr) {
 
   const cls = typeMap[type] || "teal";
   const isGreen = (type === "green" || cls === "emerald" || valueColor === 'var(--emerald)');
+  const isRed = (type === "red" || cls === "rose" || valueColor === 'var(--rose)' || valueColor === 'var(--stock-red)');
   const clickHandler = onclickAttr ? `onclick="${onclickAttr}" style="cursor:pointer;" title="Click to view details"` : '';
 
-  const liveArrow = isGreen ? `<span class="live-arrow-stream" title="Live inflow"></span>` : '';
-  const liveBadge = isGreen ? `<span class="live-pulse-badge"><span class="live-radar-dot"></span> LIVE</span>` : '';
+  let liveArrow = '';
+  let liveBadge = '';
+  let glowClass = '';
+  let textGlowClass = '';
+
+  if (isGreen) {
+    liveArrow = `<span class="live-arrow-stream" title="Live inflow / Gain"></span>`;
+    liveBadge = `<span class="live-pulse-badge"><span class="live-radar-dot"></span> LIVE</span>`;
+    glowClass = 'live-glow-green';
+    textGlowClass = 'live-glow-text-green';
+  } else if (isRed) {
+    liveArrow = `<span class="live-arrow-stream-down" title="Live outflow / Loss"></span>`;
+    liveBadge = `<span class="live-pulse-badge-red"><span class="live-radar-dot-red"></span> LIVE</span>`;
+    glowClass = 'live-glow-red';
+    textGlowClass = 'live-glow-text-red';
+  }
 
   return `
-    <div class="kpi-card ${cls} ${isGreen ? 'live-glow-green' : ''}" ${clickHandler}>
+    <div class="kpi-card ${cls} ${glowClass}" ${clickHandler}>
       <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:2px;">
         <div class="kpi-icon ${cls}">
           ${getKpiIcon(title)}
@@ -4266,7 +4287,7 @@ function kpiCard(title, value, sub, type, valueColor, onclickAttr) {
         ${liveBadge}
       </div>
       <div class="kpi-label">${title}</div>
-      <div class="kpi-value animate-in ${isGreen ? 'live-glow-text-green' : ''}" style="color:${valueColor || 'var(--text)'};display:flex;align-items:center;gap:4px;">
+      <div class="kpi-value animate-in ${textGlowClass}" style="color:${valueColor || 'var(--text)'};display:flex;align-items:center;gap:4px;">
         ${liveArrow}<span>${value}</span>
       </div>
       <div class="kpi-sub">${sub}</div>
@@ -4874,7 +4895,7 @@ function renderDashboardWealthWidget() {
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:14px;">
         <div>
           <div class="kpi-label">NET WORTH</div>
-          <div style="font-family:var(--font-m);font-size:clamp(18px,3vw,24px);font-weight:700;color:${netWorth>=0?'var(--teal)':'var(--rose)'};">${fmtINR(netWorth)}</div>
+          <div class="${netWorth<0?'live-glow-text-red':''}" style="font-family:var(--font-m);font-size:clamp(18px,3vw,24px);font-weight:700;color:${netWorth>=0?'var(--teal)':'var(--rose)'};display:flex;align-items:center;gap:4px;">${netWorth<0?'<span class="live-arrow-down">▼</span> ':''}${fmtINR(netWorth)}</div>
         </div>
         <div>
           <div class="kpi-label">ASSETS</div>
@@ -4882,11 +4903,11 @@ function renderDashboardWealthWidget() {
         </div>
         <div>
           <div class="kpi-label">P&amp;L</div>
-          <div class="${pnl>=0?'live-glow-text-green':''}" style="font-family:var(--font-m);font-size:16px;font-weight:600;color:${pnl>=0?'var(--emerald)':'var(--rose)'};display:flex;align-items:center;gap:4px;">${pnl>=0?'<span class="live-arrow-up">▲</span> +':''}${fmtINR(pnl)} <span style="font-size:11px;">(${pnlP}%)</span></div>
+          <div class="${pnl>=0?'live-glow-text-green':'live-glow-text-red'}" style="font-family:var(--font-m);font-size:16px;font-weight:600;color:${pnl>=0?'var(--emerald)':'var(--rose)'};display:flex;align-items:center;gap:4px;">${pnl>=0?'<span class="live-arrow-up">▲</span> +':'<span class="live-arrow-down">▼</span> '}${fmtINR(pnl)} <span style="font-size:11px;">(${pnlP}%)</span></div>
         </div>
         <div>
           <div class="kpi-label">LIABILITIES</div>
-          <div style="font-family:var(--font-m);font-size:16px;font-weight:600;color:${totalLiabilities>0?'var(--rose)':'var(--text-3)'};">${fmtINR(totalLiabilities)}</div>
+          <div class="${totalLiabilities>0?'live-glow-text-red':''}" style="font-family:var(--font-m);font-size:16px;font-weight:600;color:${totalLiabilities>0?'var(--rose)':'var(--text-3)'};display:flex;align-items:center;gap:4px;">${totalLiabilities>0?'<span class="live-arrow-down">▼</span> ':''}${fmtINR(totalLiabilities)}</div>
         </div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">

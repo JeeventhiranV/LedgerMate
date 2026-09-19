@@ -383,8 +383,10 @@ html, body {
 .page-header-right {
   display: flex !important;
   align-items: center !important;
+  justify-content: flex-end !important;
   gap: 10px !important;
   flex-wrap: wrap !important;
+  margin-left: auto !important;
 }
 
 .overview-quick-tools {
@@ -723,25 +725,127 @@ html {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   1. STEALTH PRIVACY MODE (BALANCE MASKING)
+   1. STEALTH PRIVACY MODE (BALANCE MASKING ACROSS ALL SCREENS)
    ══════════════════════════════════════════════════════════════ */
 body.privacy-mode .kpi-value,
+body.privacy-mode .kpi-val,
+body.privacy-mode .wkpi-val,
+body.privacy-mode #wkpi-nw,
+body.privacy-mode #wkpi-assets,
+body.privacy-mode #wkpi-liabs,
+body.privacy-mode #wkpi-pnl,
 body.privacy-mode .tx-amount,
+body.privacy-mode .list-item-amount,
+body.privacy-mode .table-amount,
+body.privacy-mode .tx-val,
+body.privacy-mode .tx-detail-amount,
+body.privacy-mode .txn-row-amount,
 body.privacy-mode .acc-bal,
+body.privacy-mode .acc-card-bal,
+body.privacy-mode .account-card-balance,
+body.privacy-mode .account-pill-amount,
 body.privacy-mode .net-worth-val,
+body.privacy-mode .stock-kpi-val,
+body.privacy-mode .stock-holding-price,
+body.privacy-mode .stock-holding-val,
+body.privacy-mode .stock-holding-pl,
+body.privacy-mode .stock-pill-gain,
+body.privacy-mode .stock-pill-loss,
+body.privacy-mode .stock-price-val,
+body.privacy-mode .stock-card-val,
+body.privacy-mode .holding-metric-val,
+body.privacy-mode .holding-val-large,
+body.privacy-mode .cc-kpi-val,
+body.privacy-mode .cc-card-balance,
+body.privacy-mode .cc-due-val,
+body.privacy-mode .cc-limit-val,
+body.privacy-mode .cc-stat-val,
+body.privacy-mode .cc-balance-val,
+body.privacy-mode .cc-chip-amount,
+body.privacy-mode .budget-card-val,
+body.privacy-mode .budget-spent-val,
+body.privacy-mode .budget-limit-val,
+body.privacy-mode .budget-kpi-val,
+body.privacy-mode .b-stat-val,
+body.privacy-mode .budget-rem-val,
+body.privacy-mode .budget-item-amounts,
+body.privacy-mode .loan-kpi-val,
+body.privacy-mode .emi-kpi-val,
+body.privacy-mode .loan-amount-val,
+body.privacy-mode .loan-card-val,
+body.privacy-mode .emi-stat-val,
+body.privacy-mode .wealth-td-mono,
+body.privacy-mode .wealth-card-val,
+body.privacy-mode .wealth-asset-val,
+body.privacy-mode .asset-item-val,
+body.privacy-mode .analytics-kpi-val,
+body.privacy-mode .health-score-val,
+body.privacy-mode .cat-spending-val,
+body.privacy-mode .cf-amount,
+body.privacy-mode .cf-flow-amount,
+body.privacy-mode .cf-node-val,
+body.privacy-mode .sankey-val,
+body.privacy-mode .goal-card-amount,
+body.privacy-mode .goal-stat-val,
+body.privacy-mode .goal-kpi-val,
+body.privacy-mode .goal-progress-amount,
 body.privacy-mode .masked-target,
 body.privacy-mode [data-amount] {
-  filter: blur(7.5px) !important;
+  filter: blur(8px) !important;
   user-select: none !important;
   transition: filter 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 body.privacy-mode .kpi-value:hover,
 body.privacy-mode .kpi-value:active,
+body.privacy-mode .kpi-val:hover,
+body.privacy-mode .kpi-val:active,
+body.privacy-mode .wkpi-val:hover,
+body.privacy-mode .wkpi-val:active,
 body.privacy-mode .tx-amount:hover,
 body.privacy-mode .tx-amount:active,
+body.privacy-mode .list-item-amount:hover,
+body.privacy-mode .list-item-amount:active,
+body.privacy-mode .table-amount:hover,
+body.privacy-mode .table-amount:active,
+body.privacy-mode .tx-val:hover,
+body.privacy-mode .tx-val:active,
 body.privacy-mode .acc-bal:hover,
-body.privacy-mode .net-worth-val:hover {
+body.privacy-mode .acc-bal:active,
+body.privacy-mode .acc-card-bal:hover,
+body.privacy-mode .acc-card-bal:active,
+body.privacy-mode .account-card-balance:hover,
+body.privacy-mode .account-card-balance:active,
+body.privacy-mode .net-worth-val:hover,
+body.privacy-mode .net-worth-val:active,
+body.privacy-mode .stock-kpi-val:hover,
+body.privacy-mode .stock-kpi-val:active,
+body.privacy-mode .stock-holding-val:hover,
+body.privacy-mode .stock-holding-val:active,
+body.privacy-mode .stock-holding-price:hover,
+body.privacy-mode .stock-holding-price:active,
+body.privacy-mode .stock-holding-pl:hover,
+body.privacy-mode .stock-holding-pl:active,
+body.privacy-mode .cc-kpi-val:hover,
+body.privacy-mode .cc-kpi-val:active,
+body.privacy-mode .cc-card-balance:hover,
+body.privacy-mode .cc-card-balance:active,
+body.privacy-mode .budget-card-val:hover,
+body.privacy-mode .budget-card-val:active,
+body.privacy-mode .budget-item-amounts:hover,
+body.privacy-mode .budget-item-amounts:active,
+body.privacy-mode .wealth-td-mono:hover,
+body.privacy-mode .wealth-td-mono:active,
+body.privacy-mode .wealth-card-val:hover,
+body.privacy-mode .wealth-card-val:active,
+body.privacy-mode .loan-kpi-val:hover,
+body.privacy-mode .loan-kpi-val:active,
+body.privacy-mode .emi-kpi-val:hover,
+body.privacy-mode .emi-kpi-val:active,
+body.privacy-mode .masked-target:hover,
+body.privacy-mode .masked-target:active,
+body.privacy-mode [data-amount]:hover,
+body.privacy-mode [data-amount]:active {
   filter: blur(0px) !important;
 }
 
@@ -1079,14 +1183,16 @@ body.privacy-mode .net-worth-val:hover {
 
 .kpi-card.emerald,
 .kpi-card.live-glow-green,
-.stock-kpi-card.live-glow-green {
+.stock-kpi-card.live-glow-green,
+.wkpi.live-glow-green {
   animation: liveCardGlowEmerald 3.2s ease-in-out infinite !important;
   position: relative !important;
 }
 
 [data-theme="light"] .kpi-card.emerald,
 [data-theme="light"] .kpi-card.live-glow-green,
-[data-theme="light"] .stock-kpi-card.live-glow-green {
+[data-theme="light"] .stock-kpi-card.live-glow-green,
+[data-theme="light"] .wkpi.live-glow-green {
   box-shadow: 0 4px 18px rgba(16, 185, 129, 0.22) !important;
 }
 
@@ -1104,14 +1210,16 @@ body.privacy-mode .net-worth-val:hover {
 
 .kpi-card.rose,
 .kpi-card.live-glow-red,
-.stock-kpi-card.live-glow-red {
+.stock-kpi-card.live-glow-red,
+.wkpi.live-glow-red {
   animation: liveCardGlowRose 3.2s ease-in-out infinite !important;
   position: relative !important;
 }
 
 [data-theme="light"] .kpi-card.rose,
 [data-theme="light"] .kpi-card.live-glow-red,
-[data-theme="light"] .stock-kpi-card.live-glow-red {
+[data-theme="light"] .stock-kpi-card.live-glow-red,
+[data-theme="light"] .wkpi.live-glow-red {
   box-shadow: 0 4px 18px rgba(244, 63, 94, 0.22) !important;
 }
 
