@@ -230,20 +230,130 @@ function getAssetInvestedAmount(inv) {
 
 function getAssetCategoryFromType(type) {
   for (const [cat, info] of Object.entries(ASSET_CATEGORIES)) if (info.types.includes(type)) return cat;
-  if (['GOLD','SILVER','PHYSICAL','COMMODITY'].includes(type)) return 'Commodities';
-  if (['FD','RD','BOND','EPF'].includes(type))                 return 'Debt';
+  if (['GOLD','SILVER','PHYSICAL','COMMODITY','SGB'].includes(type)) return 'Commodities';
+  if (['FD','RD','BOND','BONDS','EPF'].includes(type))                 return 'Debt';
   if (['STOCK','SIP','MUTUAL_FUND'].includes(type))            return 'Equity';
   if (['REAL_ESTATE','PROPERTY'].includes(type))               return 'Real Estate';
   return 'Cash & Savings';
 }
 
-// ─── Totals (Upgraded with personal loans and live stock portfolio) ───────────────────
+// ─── Loan Financial & Interest Calculation Engine ────────────────
+function getLoanFinancialDetails(loan, asOfDate = new Date()) {
+  if (!loan) {
+    return {
+      principal: 0,
+      interestRate: 0,
+      totalRepaid: 0,
+      principalPaid: 0,
+      interestPaid: 0,
+      remainingPrincipal: 0,
+      accruedInterest: 0,
+      unpaidInterest: 0,
+      totalBalance: 0,
+      isSettled: false,
+      isOverdue: false,
+      daysElapsed: 0,
+      repaymentsCount: 0
+    };
+  }
+
+  const principal = toNum(loan.amount || loan.principal || 0);
+  const rate = toNum(loan.interestRate || loan.rate || 0);
+  const repayments = Array.isArray(loan.repayments) ? loan.repayments : [];
+
+  let totalRepaid = repayments.reduce((s, r) => s + toNum(r.amount || 0), 0);
+  if (repayments.length === 0 && (loan.collected === true || toNum(loan.collectedAmount) > 0)) {
+    totalRepaid = toNum(loan.collectedAmount || (loan.collected ? principal : 0));
+  }
+
+  // Determine start date
+  let start = new Date(loan.startDate || loan.createdAt || loan.date || Date.now());
+  if (isNaN(start.getTime())) start = new Date();
+  start.setHours(0, 0, 0, 0);
+
+  const today = new Date(asOfDate);
+  today.setHours(0, 0, 0, 0);
+
+  const diffMs = Math.max(0, today - start);
+  const daysElapsed = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  // Accrued interest on principal / reducing balance
+  let accruedInterest = 0;
+  if (rate > 0 && principal > 0) {
+    if (repayments.length === 0) {
+      accruedInterest = Number((principal * (rate / 100) * (daysElapsed / 365)).toFixed(2));
+    } else {
+      // Piecewise interest calculation across repayment events
+      let currentPrincipal = principal;
+      let lastDate = new Date(start);
+      let totalCalculatedInterest = 0;
+
+      const sortedRepayments = [...repayments].sort((a, b) => new Date(a.date) - new Date(b.date));
+      for (const rep of sortedRepayments) {
+        const repDate = new Date(rep.date || lastDate);
+        repDate.setHours(0, 0, 0, 0);
+        const segmentDays = Math.max(0, Math.floor((repDate - lastDate) / (1000 * 60 * 60 * 24)));
+        totalCalculatedInterest += currentPrincipal * (rate / 100) * (segmentDays / 365);
+        currentPrincipal = Math.max(0, currentPrincipal - toNum(rep.principalPaid !== undefined ? rep.principalPaid : rep.amount));
+        lastDate = repDate;
+      }
+
+      // Remaining segment until today
+      const finalDays = Math.max(0, Math.floor((today - lastDate) / (1000 * 60 * 60 * 24)));
+      totalCalculatedInterest += currentPrincipal * (rate / 100) * (finalDays / 365);
+      accruedInterest = Number(totalCalculatedInterest.toFixed(2));
+    }
+  }
+
+  let interestPaid = repayments.reduce((s, r) => s + toNum(r.interestPaid || 0), 0);
+  let principalPaid = repayments.reduce((s, r) => s + toNum(r.principalPaid !== undefined ? r.principalPaid : r.amount), 0);
+  if (repayments.length === 0 && loan.collected) {
+    principalPaid = principal;
+  }
+
+  const remainingPrincipal = Math.max(0, principal - principalPaid);
+  const unpaidInterest = Math.max(0, accruedInterest - interestPaid);
+  let totalBalance = remainingPrincipal + unpaidInterest;
+
+  // If marked collected explicitly or balance is <= 0.50
+  const isSettled = loan.collected === true || (principal > 0 && totalRepaid >= (principal + accruedInterest) - 0.5);
+  if (isSettled) {
+    totalBalance = 0;
+  }
+
+  let isOverdue = false;
+  if (!isSettled && loan.dueDate) {
+    const due = new Date(loan.dueDate);
+    due.setHours(0, 0, 0, 0);
+    if (!isNaN(due.getTime()) && due < today) {
+      isOverdue = true;
+    }
+  }
+
+  return {
+    principal,
+    interestRate: rate,
+    totalRepaid,
+    principalPaid,
+    interestPaid,
+    remainingPrincipal,
+    accruedInterest,
+    unpaidInterest,
+    totalBalance,
+    isSettled,
+    isOverdue,
+    daysElapsed,
+    repaymentsCount: repayments.length
+  };
+}
+
+// ─── Totals (Upgraded with personal loans, interest & stock portfolio) ──────────
 function getTotalAssets() {
   const investments = (state.investments || []).reduce((s, a) => s + getAssetCurrentValue(a), 0);
-  // Money OWED TO you (given loans not yet collected)
+  // Money OWED TO you (given loans not yet collected, including accrued interest)
   const givenOutstanding = (state.loans || [])
-    .filter(l => l.type === 'given' && !l.collected)
-    .reduce((s, l) => s + toNum(l.amount), 0);
+    .filter(l => l.type === 'given')
+    .reduce((s, l) => s + getLoanFinancialDetails(l).totalBalance, 0);
 
   let stockVal = 0;
   if (window.LM_StockPortfolioService && typeof window.LM_StockPortfolioService.getPortfolioSummary === 'function') {
@@ -258,10 +368,10 @@ function getTotalAssets() {
 
 function getTotalLiabilities() {
   const emiLiabilities = (state.emi_loans || []).reduce((s, l) => s + toNum(l.outstanding || 0), 0);
-  // Money YOU OWE (taken loans not yet collected)
+  // Money YOU OWE (taken loans not yet collected, including accrued interest)
   const takenOutstanding = (state.loans || [])
-    .filter(l => l.type === 'taken' && !l.collected)
-    .reduce((s, l) => s + toNum(l.amount), 0);
+    .filter(l => l.type === 'taken')
+    .reduce((s, l) => s + getLoanFinancialDetails(l).totalBalance, 0);
 
   let ccOutstanding = 0;
   if (window.LM_CreditCardsService && typeof window.LM_CreditCardsService.getTotalOutstandingDue === 'function') {
@@ -301,27 +411,62 @@ function buildLoanGroups() {
   const groups = {};
   (state.loans || []).forEach(l => {
     const key = `${l.person}__${l.type}`;
-    if (!groups[key]) groups[key] = { person: l.person, type: l.type, loans: [], pendingAmt: 0, collectedAmt: 0 };
+    if (!groups[key]) groups[key] = { person: l.person, type: l.type, loans: [], pendingAmt: 0, collectedAmt: 0, totalInterest: 0 };
     groups[key].loans.push(l);
-    const amt = toNum(l.amount);
-    if (l.collected) groups[key].collectedAmt += amt;
-    else             groups[key].pendingAmt   += amt;
+    const fin = getLoanFinancialDetails(l);
+    groups[key].collectedAmt += fin.totalRepaid;
+    groups[key].pendingAmt   += fin.totalBalance;
+    groups[key].totalInterest += fin.accruedInterest;
   });
   return Object.values(groups);
 }
 
 function getLoanSummary() {
   const loans = state.loans || [];
-  const pending  = loans.filter(l => !l.collected);
-  const givenOut = pending.filter(l => l.type === 'given').reduce((s,l)=>s+toNum(l.amount),0);  // owed TO you
-  const takenOut = pending.filter(l => l.type === 'taken').reduce((s,l)=>s+toNum(l.amount),0);  // you OWE
-  const totalGiven    = loans.filter(l=>l.type==='given').reduce((s,l)=>s+toNum(l.amount),0);
-  const totalTaken    = loans.filter(l=>l.type==='taken').reduce((s,l)=>s+toNum(l.amount),0);
-  const collectedGiven = loans.filter(l=>l.type==='given'&&l.collected).reduce((s,l)=>s+toNum(l.amount),0);
-  const collectedTaken = loans.filter(l=>l.type==='taken'&&l.collected).reduce((s,l)=>s+toNum(l.amount),0);
-  const overdue = pending.filter(l => l.dueDate && new Date(l.dueDate) < new Date());
-  return { givenOut, takenOut, netBalance: givenOut - takenOut, totalGiven, totalTaken,
-           collectedGiven, collectedTaken, overdue, totalLoans: loans.length };
+  let givenOut = 0;
+  let takenOut = 0;
+  let totalGiven = 0;
+  let totalTaken = 0;
+  let collectedGiven = 0;
+  let collectedTaken = 0;
+  let totalInterestGiven = 0;
+  let totalInterestTaken = 0;
+  const overdue = [];
+
+  loans.forEach(l => {
+    const fin = getLoanFinancialDetails(l);
+    if (l.type === 'given') {
+      totalGiven += fin.principal;
+      collectedGiven += fin.totalRepaid;
+      totalInterestGiven += fin.accruedInterest;
+      if (!fin.isSettled) {
+        givenOut += fin.totalBalance;
+        if (fin.isOverdue) overdue.push(l);
+      }
+    } else {
+      totalTaken += fin.principal;
+      collectedTaken += fin.totalRepaid;
+      totalInterestTaken += fin.accruedInterest;
+      if (!fin.isSettled) {
+        takenOut += fin.totalBalance;
+        if (fin.isOverdue) overdue.push(l);
+      }
+    }
+  });
+
+  return {
+    givenOut,
+    takenOut,
+    netBalance: givenOut - takenOut,
+    totalGiven,
+    totalTaken,
+    collectedGiven,
+    collectedTaken,
+    totalInterestGiven,
+    totalInterestTaken,
+    overdue,
+    totalLoans: loans.length
+  };
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -387,6 +532,7 @@ function showWealthPage() {
     <div class="wealth-tabs fade-up fade-up-3">
       <button class="wealth-tab" onclick="switchWealthTab('assets')">Assets</button>
       <button class="wealth-tab" onclick="switchWealthTab('liabilities')">Liabilities</button>
+      <button class="wealth-tab" onclick="switchWealthTab('loans')">Loans</button>
       <button class="wealth-tab" onclick="switchWealthTab('networth')">Net Worth</button>
       <button class="wealth-tab" onclick="switchWealthTab('allocation')">Allocation</button>
     </div>
@@ -874,281 +1020,854 @@ function renderWealthLiabilities(container) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   TAB 3 — LOANS (Personal Given / Taken Analytics)
+   TAB 3 — LOANS (Personal Given / Taken Analytics & Management)
 ───────────────────────────────────────────────────────────── */
-// ─────────────────────────────────────────────────────────────
-//  MERGED: Wealth Loans (Analytics + Full CRUD + Modal)
-// ─────────────────────────────────────────────────────────────
-// ============================================================
-//  FINAL MERGED: Wealth Loans (Analytics + Full CRUD)
-// ============================================================
+// Global UI State for Loans
+window._loanActiveSubtab = window._loanActiveSubtab || 'all'; // 'all' | 'given' | 'taken' | 'overdue' | 'settled'
+window._loanSearchQuery = window._loanSearchQuery || '';
+window._loanViewMode = window._loanViewMode || 'cards'; // 'cards' | 'people'
 
 // ------------------------------------------------------------
-// 1. RENDER WEALTH LOANS (with built‑in event delegation)
+// 1. RENDER WEALTH LOANS (Main View)
 // ------------------------------------------------------------
 function renderWealthLoans(container) {
-  // Remove previous click listener to avoid duplicates
-  if (container._loanClickHandler) {
-    container.removeEventListener('click', container._loanClickHandler);
-  }
-
+  if (!container) return;
   const loans = state.loans || [];
   const s = getLoanSummary();
+  const activeSubtab = window._loanActiveSubtab || 'all';
+  const searchQuery = (window._loanSearchQuery || '').trim().toLowerCase();
+  const viewMode = window._loanViewMode || 'cards';
 
-  // --- Empty state ---
+  // Counts for Subtabs
+  const allCount = loans.length;
+  const givenCount = loans.filter(l => l.type === 'given' && !getLoanFinancialDetails(l).isSettled).length;
+  const takenCount = loans.filter(l => l.type === 'taken' && !getLoanFinancialDetails(l).isSettled).length;
+  const overdueCount = loans.filter(l => {
+    const fin = getLoanFinancialDetails(l);
+    return fin.isOverdue && !fin.isSettled;
+  }).length;
+  const settledCount = loans.filter(l => getLoanFinancialDetails(l).isSettled).length;
+
+  // Filter loans according to subtab & search query
+  let filteredLoans = loans.filter(l => {
+    const fin = getLoanFinancialDetails(l);
+    if (activeSubtab === 'given' && (l.type !== 'given' || fin.isSettled)) return false;
+    if (activeSubtab === 'taken' && (l.type !== 'taken' || fin.isSettled)) return false;
+    if (activeSubtab === 'overdue' && (!fin.isOverdue || fin.isSettled)) return false;
+    if (activeSubtab === 'settled' && !fin.isSettled) return false;
+    return true;
+  });
+
+  if (searchQuery) {
+    filteredLoans = filteredLoans.filter(l =>
+      (l.person || '').toLowerCase().includes(searchQuery) ||
+      (l.category || '').toLowerCase().includes(searchQuery) ||
+      (l.note || '').toLowerCase().includes(searchQuery) ||
+      (l.loanAccount || '').toLowerCase().includes(searchQuery)
+    );
+  }
+
+  // Sort: Active first (overdue first, then soonest due date), Settled last
+  filteredLoans.sort((a, b) => {
+    const finA = getLoanFinancialDetails(a);
+    const finB = getLoanFinancialDetails(b);
+    if (!finA.isSettled && finB.isSettled) return -1;
+    if (finA.isSettled && !finB.isSettled) return 1;
+    if (!finA.isSettled && !finB.isSettled) {
+      if (finA.isOverdue && !finB.isOverdue) return -1;
+      if (!finA.isOverdue && finB.isOverdue) return 1;
+      if (a.dueDate && b.dueDate) return new Date(a.dueDate) - new Date(b.dueDate);
+    }
+    return new Date(b.createdAt || b.startDate || 0) - new Date(a.createdAt || a.startDate || 0);
+  });
+
+  // Empty state if no loans at all
   if (loans.length === 0) {
     container.innerHTML = `
-      <div class="empty-state" style="padding:40px 0;">
-        <div class="empty-state-icon">🤝</div>
-        <div class="empty-state-text">No personal loans tracked</div>
-        <div class="empty-state-sub">Record money you've given to or taken from people.</div>
-        <button class="btn-submit" style="width:auto;padding:10px 24px;margin-top:16px;"
-                onclick="openAddLoanModal()">+ Add Loan</button>
+      <div class="empty-state" style="padding:40px 0;text-align:center;">
+        <div class="empty-state-icon" style="font-size:48px;margin-bottom:12px;">🤝</div>
+        <div class="empty-state-text" style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;">No Personal Loans Tracked</div>
+        <div class="empty-state-sub" style="font-size:13px;color:var(--text-3);max-width:400px;margin:0 auto 20px;">Record money given to or borrowed from friends, family, or contacts with optional interest rate and partial repayments.</div>
+        <button class="btn-submit" style="width:auto;padding:10px 28px;border-radius:12px;cursor:pointer;" onclick="openAddLoanModal()">+ Add Loan</button>
       </div>`;
     ensureFAB();
     return;
   }
 
-  // --- KPI Strip ---
-  const netColor = s.netBalance >= 0 ? 'var(--emerald)' : 'var(--rose)';
-  const netLabel = s.netBalance > 0 ? '🟢 Net Creditor' : s.netBalance < 0 ? '🔴 Net Debtor' : '⚪ Balanced';
-
-  // Overdue banner
+  // Overdue Banner
   const overdueBanner = s.overdue.length ? `
-    <div style="background:rgba(251,113,133,0.1);border:1px solid rgba(251,113,133,0.3);
-                border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--rose);">
-      ⚠️ <strong>${s.overdue.length} overdue loan${s.overdue.length!==1?'s':''}</strong> —
-      ${s.overdue.map(l=>`<em>${l.person}</em> (${fmtINR(l.amount)}, due ${l.dueDate})`).join(', ')}
+    <div class="loan-overdue-banner" style="background:rgba(251,113,133,0.12);border:1px solid rgba(251,113,133,0.35);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--rose);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:18px;">⚠️</span>
+        <div>
+          <strong>${s.overdue.length} overdue loan${s.overdue.length !== 1 ? 's' : ''}</strong>: 
+          ${s.overdue.map(l => `<em>${escapeHtml(l.person)}</em> (${fmtINR(getLoanFinancialDetails(l).totalBalance)}, due ${l.dueDate})`).join(', ')}
+        </div>
+      </div>
+      <button class="loan-filter-pill" style="background:rgba(251,113,133,0.2);color:var(--rose);border:1px solid rgba(251,113,133,0.4);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;" onclick="setLoanSubtab('overdue')">View Overdue →</button>
     </div>` : '';
 
-  // --- Group loans per person ---
-  const groups = buildLoanGroups();
-  const byPerson = {};
-  groups.forEach(g => {
-    if (!byPerson[g.person]) byPerson[g.person] = { given:0, taken:0, givenColl:0, takenColl:0, loans:[] };
-    if (g.type === 'given') {
-      byPerson[g.person].given += g.pendingAmt;
-      byPerson[g.person].givenColl += g.collectedAmt;
+  // KPI Summary Strip
+  const netColor = s.netBalance >= 0 ? 'var(--emerald)' : 'var(--rose)';
+  const netLabel = s.netBalance > 0 ? '🟢 You Are Net Creditor' : s.netBalance < 0 ? '🔴 You Are Net Debtor' : '⚪ Fully Balanced';
+  const totalInterestCombined = (s.totalInterestGiven || 0) + (s.totalInterestTaken || 0);
+
+  const kpiStripHtml = `
+    <div class="loan-kpi-strip" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;margin-bottom:18px;">
+      <div class="kpi-card emerald" style="position:relative;overflow:hidden;border-radius:14px;padding:14px 16px;">
+        <div class="kpi-label" style="font-size:11px;font-weight:700;letter-spacing:0.5px;color:var(--text-3);display:flex;justify-content:space-between;">
+          <span>💸 GIVEN (OUTSTANDING)</span>
+          <span style="color:var(--emerald);">${s.totalGiven > 0 ? Math.round((s.collectedGiven / s.totalGiven) * 100) : 0}% collected</span>
+        </div>
+        <div class="kpi-value" style="color:var(--emerald);font-size:clamp(18px,2.2vw,24px);font-weight:800;margin:4px 0;">${fmtINR(s.givenOut)}</div>
+        <div class="kpi-change" style="font-size:11px;color:var(--text-3);">
+          Principal: ${fmtINR(s.totalGiven)} ${s.totalInterestGiven > 0 ? `· <span style="color:var(--gold);">+${fmtINR(s.totalInterestGiven)} Int</span>` : ''}
+        </div>
+      </div>
+
+      <div class="kpi-card rose" style="position:relative;overflow:hidden;border-radius:14px;padding:14px 16px;">
+        <div class="kpi-label" style="font-size:11px;font-weight:700;letter-spacing:0.5px;color:var(--text-3);display:flex;justify-content:space-between;">
+          <span>📥 TAKEN (OUTSTANDING)</span>
+          <span style="color:var(--rose);">${s.totalTaken > 0 ? Math.round((s.collectedTaken / s.totalTaken) * 100) : 0}% repaid</span>
+        </div>
+        <div class="kpi-value" style="color:var(--rose);font-size:clamp(18px,2.2vw,24px);font-weight:800;margin:4px 0;">${fmtINR(s.takenOut)}</div>
+        <div class="kpi-change" style="font-size:11px;color:var(--text-3);">
+          Principal: ${fmtINR(s.totalTaken)} ${s.totalInterestTaken > 0 ? `· <span style="color:var(--gold);">+${fmtINR(s.totalInterestTaken)} Int</span>` : ''}
+        </div>
+      </div>
+
+      <div class="kpi-card teal" style="position:relative;overflow:hidden;border-radius:14px;padding:14px 16px;">
+        <div class="kpi-label" style="font-size:11px;font-weight:700;letter-spacing:0.5px;color:var(--text-3);">⚖️ NET POSITION</div>
+        <div class="kpi-value" style="color:${netColor};font-size:clamp(18px,2.2vw,24px);font-weight:800;margin:4px 0;">${s.netBalance >= 0 ? '+' : ''}${fmtINR(s.netBalance)}</div>
+        <div class="kpi-change" style="font-size:11px;color:${netColor};">${netLabel}</div>
+      </div>
+
+      ${totalInterestCombined > 0 ? `
+        <div class="kpi-card gold" style="position:relative;overflow:hidden;border-radius:14px;padding:14px 16px;">
+          <div class="kpi-label" style="font-size:11px;font-weight:700;letter-spacing:0.5px;color:var(--text-3);">✨ TOTAL INTEREST ACCRUED</div>
+          <div class="kpi-value" style="color:var(--gold);font-size:clamp(18px,2.2vw,24px);font-weight:800;margin:4px 0;">+${fmtINR(totalInterestCombined)}</div>
+          <div class="kpi-change" style="font-size:11px;color:var(--text-3);">Given: +${fmtINR(s.totalInterestGiven)} · Taken: +${fmtINR(s.totalInterestTaken)}</div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+
+  // Subtabs & Search Navigation Bar
+  const navBarHtml = `
+    <div class="loan-nav-bar" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+      <div class="loan-subtabs-scroll" style="display:flex;align-items:center;gap:6px;overflow-x:auto;padding-bottom:4px;max-width:100%;">
+        <button class="loan-tab-btn ${activeSubtab === 'all' ? 'active' : ''}" onclick="setLoanSubtab('all')">
+          All <span class="loan-badge">${allCount}</span>
+        </button>
+        <button class="loan-tab-btn ${activeSubtab === 'given' ? 'active' : ''}" onclick="setLoanSubtab('given')">
+          💸 Given <span class="loan-badge">${givenCount}</span>
+        </button>
+        <button class="loan-tab-btn ${activeSubtab === 'taken' ? 'active' : ''}" onclick="setLoanSubtab('taken')">
+          📥 Taken <span class="loan-badge">${takenCount}</span>
+        </button>
+        <button class="loan-tab-btn ${activeSubtab === 'overdue' ? 'active' : ''}" onclick="setLoanSubtab('overdue')">
+          ⚠️ Overdue <span class="loan-badge ${overdueCount > 0 ? 'badge-warn' : ''}">${overdueCount}</span>
+        </button>
+        <button class="loan-tab-btn ${activeSubtab === 'settled' ? 'active' : ''}" onclick="setLoanSubtab('settled')">
+          ✅ Settled <span class="loan-badge">${settledCount}</span>
+        </button>
+      </div>
+
+      <div class="loan-controls-wrap" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-grow:1;justify-content:flex-end;">
+        <div class="loan-search-wrap" style="position:relative;min-width:180px;flex:1;max-width:280px;">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-3);font-size:12px;pointer-events:none;">🔍</span>
+          <input type="text" class="loan-search-input" placeholder="Search person, note..." value="${escapeHtml(window._loanSearchQuery || '')}" oninput="handleLoanSearch(this.value)" style="width:100%;padding:6px 28px 6px 30px;font-size:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text);" />
+          ${window._loanSearchQuery ? `<button onclick="handleLoanSearch('')" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-3);font-size:14px;cursor:pointer;">×</button>` : ''}
+        </div>
+        <div class="loan-view-toggle" style="display:inline-flex;background:var(--bg3);padding:3px;border-radius:10px;border:1px solid var(--border);">
+          <button class="loan-view-btn ${viewMode === 'cards' ? 'active' : ''}" onclick="setLoanViewMode('cards')" title="Cards Grid View" style="padding:4px 10px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:${viewMode === 'cards' ? 'var(--teal)' : 'transparent'};color:${viewMode === 'cards' ? '#000' : 'var(--text-3)'};">📇 Cards</button>
+          <button class="loan-view-btn ${viewMode === 'people' ? 'active' : ''}" onclick="setLoanViewMode('people')" title="By Person Summary" style="padding:4px 10px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:${viewMode === 'people' ? 'var(--teal)' : 'transparent'};color:${viewMode === 'people' ? '#000' : 'var(--text-3)'};">👥 People</button>
+        </div>
+        <button class="btn-submit" style="width:auto;padding:7px 16px;font-size:12px;border-radius:10px;cursor:pointer;white-space:nowrap;" onclick="openAddLoanModal()">+ Add Loan</button>
+      </div>
+    </div>
+  `;
+
+  // --- Render based on view mode ---
+  let mainContentHtml = '';
+
+  if (viewMode === 'cards') {
+    if (filteredLoans.length === 0) {
+      mainContentHtml = `
+        <div class="tx-card" style="padding:36px 16px;text-align:center;color:var(--text-3);">
+          <div style="font-size:32px;margin-bottom:8px;">🔍</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text-2);">No loans found</div>
+          <div style="font-size:12px;margin-top:4px;">Try selecting another subtab or clearing your search query.</div>
+        </div>`;
     } else {
-      byPerson[g.person].taken += g.pendingAmt;
-      byPerson[g.person].takenColl += g.collectedAmt;
-    }
-    byPerson[g.person].loans.push(...g.loans);
-  });
+      const cardsHtml = filteredLoans.map(l => {
+        const fin = getLoanFinancialDetails(l);
+        const isGiven = l.type === 'given';
+        const totalTarget = fin.principal + fin.accruedInterest;
+        const progressPct = totalTarget > 0 ? Math.min(100, Math.round((fin.totalRepaid / totalTarget) * 100)) : (fin.isSettled ? 100 : 0);
 
-  // --- Per‑person table rows (with expandable details + action buttons) ---
-  const personRows = Object.entries(byPerson)
-    .sort((a,b) => (b[1].given + b[1].taken) - (a[1].given + a[1].taken))
-    .map(([person, d]) => {
-      const net = d.given - d.taken;
-      const netColor2 = net > 0 ? 'var(--emerald)' : net < 0 ? 'var(--rose)' : 'var(--text-3)';
-      const netLabel2 = net > 0 ? `You get ${fmtINR(net)}` : net < 0 ? `You owe ${fmtINR(Math.abs(net))}` : 'Settled';
-      const overdueCount = d.loans.filter(l=>!l.collected && l.dueDate && new Date(l.dueDate) < new Date()).length;
+        // Days calculation
+        let dueStatusHtml = '';
+        if (fin.isSettled) {
+          dueStatusHtml = `<span style="color:var(--text-3);">Settled ${l.collectedAt ? new Date(l.collectedAt).toLocaleDateString() : ''}</span>`;
+        } else if (l.dueDate) {
+          const due = new Date(l.dueDate);
+          const today = new Date();
+          today.setHours(0,0,0,0);
+          due.setHours(0,0,0,0);
+          const days = Math.round((due - today) / (1000 * 60 * 60 * 24));
+          if (days < 0) {
+            dueStatusHtml = `<span style="color:var(--rose);font-weight:700;">⚠️ ${Math.abs(days)}d overdue</span>`;
+          } else if (days === 0) {
+            dueStatusHtml = `<span style="color:var(--gold);font-weight:700;">⏳ Due Today</span>`;
+          } else {
+            dueStatusHtml = `<span style="color:var(--text-3);">Due in ${days}d</span>`;
+          }
+        }
 
-      const loanDetailsHtml = d.loans.sort((a,b)=>a.collected-b.collected).map(l => {
-        const isOverdue = !l.collected && l.dueDate && new Date(l.dueDate) < new Date();
+        // Repayment ledger rows
+        const repayments = Array.isArray(l.repayments) ? l.repayments : [];
+        const repaymentsHtml = repayments.length > 0 ? repayments.map((r) => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:11.5px;">
+            <div>
+              <span style="font-weight:600;color:var(--text);">${r.date || 'N/A'}</span>
+              <span style="color:var(--text-3);margin-left:6px;">· ${escapeHtml(r.account || 'Cash')}</span>
+              ${r.note ? `<span style="color:var(--text-3);margin-left:6px;font-style:italic;">"${escapeHtml(r.note)}"</span>` : ''}
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-family:var(--font-m);font-weight:700;color:var(--emerald);">+${fmtINR(r.amount)}</span>
+              <button onclick="deleteLoanRepayment('${l.id}', '${r.id}')" title="Delete this payment entry" style="background:none;border:none;color:var(--rose);cursor:pointer;font-size:12px;padding:0 2px;">🗑️</button>
+            </div>
+          </div>
+        `).join('') : '<div style="font-size:11px;color:var(--text-3);font-style:italic;padding:6px 0;">No partial repayments recorded yet.</div>';
+
         return `
-          <div class="loan-detail-item" data-loan-id="${l.id}" style="display:flex;align-items:center;justify-content:space-between;
-                      padding:8px 0;border-bottom:1px solid var(--border);
-                      ${isOverdue ? 'background:rgba(251,113,133,0.04);' : ''}">
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <span style="font-size:14px;">${l.type==='given'?'💸':'📥'}</span>
-              <div>
-                <div style="font-size:13px;font-weight:600;color:${l.type==='given'?'var(--emerald)':'var(--rose)'};">
-                  ${l.type==='given'?'Given':'Taken'}: ${fmtINR(l.amount)}
+          <div class="loan-card ${fin.isSettled ? 'settled' : ''} ${fin.isOverdue && !fin.isSettled ? 'overdue' : ''}" style="background:var(--surface);border:1px solid ${fin.isOverdue && !fin.isSettled ? 'rgba(251,113,133,0.4)' : 'var(--border)'};border-radius:14px;padding:16px;box-shadow:var(--shadow-sm);transition:all 0.2s ease;">
+            <!-- Card Header -->
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;">
+              <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                <div style="width:38px;height:38px;border-radius:50%;background:${isGiven ? 'rgba(52,211,153,0.15)' : 'rgba(251,113,133,0.15)'};color:${isGiven ? 'var(--emerald)' : 'var(--rose)'};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;">
+                  ${(l.person || '?').charAt(0).toUpperCase()}
                 </div>
-                <div style="font-size:11px;color:var(--text-3);">
-                  Due: ${l.dueDate||'N/A'} ${l.category ? `· ${l.category}` : ''} ${l.note ? `· ${l.note}` : ''}
-                  ${isOverdue ? '<span style="color:var(--rose);"> · OVERDUE</span>' : ''}
+                <div style="min-width:0;">
+                  <div style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                    ${escapeHtml(l.person || 'Unknown')}
+                  </div>
+                  <div style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px;">
+                    <span>${escapeHtml(l.category || 'Personal')}</span>
+                    <span>·</span>
+                    <span>${escapeHtml(l.loanAccount || 'Cash')}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+                <div style="display:flex;gap:4px;">
+                  <span class="loan-badge ${isGiven ? 'badge-given' : 'badge-taken'}">${isGiven ? '💸 Given' : '📥 Taken'}</span>
+                  ${fin.isSettled ? `<span class="loan-badge badge-settled">✅ Settled</span>` : (fin.isOverdue ? `<span class="loan-badge badge-warn">⚠️ Overdue</span>` : '')}
+                </div>
+                ${fin.interestRate > 0 ? `
+                  <span class="loan-badge badge-interest" style="background:rgba(234,179,8,0.12);color:var(--gold);border:1px solid rgba(234,179,8,0.3);font-size:10px;">
+                    ✨ ${fin.interestRate}% p.a.
+                  </span>
+                ` : ''}
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;color:var(--text-3);">
+                <span>Repayment Progress</span>
+                <span style="font-weight:600;color:${progressPct === 100 ? 'var(--emerald)' : 'var(--text-2)'};">${progressPct}% (${fmtINR(fin.totalRepaid)} of ${fmtINR(totalTarget)})</span>
+              </div>
+              <div style="height:6px;background:var(--bg3);border-radius:99px;overflow:hidden;position:relative;">
+                <div style="height:100%;width:${progressPct}%;background:${isGiven ? 'linear-gradient(90deg, #10b981, #14b8a6)' : 'linear-gradient(90deg, #f43f5e, #fb7185)'};border-radius:99px;transition:width 0.4s ease;"></div>
+              </div>
+            </div>
+
+            <!-- 5-Metric Strip -->
+            <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;">
+              <div>
+                <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Original Principal</div>
+                <div style="font-weight:700;color:var(--text);font-size:13px;">${fmtINR(fin.principal)}</div>
+              </div>
+              <div>
+                <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Interest Accrued</div>
+                <div style="font-weight:700;color:${fin.accruedInterest > 0 ? 'var(--gold)' : 'var(--text-3)'};font-size:13px;">
+                  ${fin.accruedInterest > 0 ? `+${fmtINR(fin.accruedInterest)}` : '₹0 (0%)'}
+                </div>
+              </div>
+              <div>
+                <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Due Date</div>
+                <div style="font-size:12px;color:var(--text-2);font-weight:600;">
+                  ${l.dueDate || 'N/A'} <span style="font-size:10px;">${dueStatusHtml}</span>
+                </div>
+              </div>
+              <div>
+                <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Remaining Balance</div>
+                <div style="font-family:var(--font-m);font-weight:800;font-size:15px;color:${fin.isSettled ? 'var(--text-3)' : (isGiven ? 'var(--emerald)' : 'var(--rose)')};">
+                  ${fmtINR(fin.totalBalance)}
                 </div>
               </div>
             </div>
-            <div style="display:flex;gap:6px;">
-              <button class="edit-loan-btn" data-id="${l.id}" style="background:#3b82f6;border:none;border-radius:20px;padding:4px 8px;font-size:11px;color:white;cursor:pointer;">✏️</button>
-              <button class="mark-loan-btn" data-id="${l.id}" style="background:${l.collected ? '#10b981' : '#f59e0b'};border:none;border-radius:20px;padding:4px 8px;font-size:11px;color:white;cursor:pointer;">${l.collected ? '✅' : '⏳'}</button>
-              <button class="delete-loan-btn" data-id="${l.id}" style="background:#ef4444;border:none;border-radius:20px;padding:4px 8px;font-size:11px;color:white;cursor:pointer;">🗑️</button>
+
+            ${l.note ? `
+              <div style="font-size:11.5px;color:var(--text-3);margin-bottom:12px;padding:0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                📝 <em>${escapeHtml(l.note)}</em>
+              </div>
+            ` : ''}
+
+            <!-- Action Buttons -->
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:10px;border-top:1px solid var(--border);flex-wrap:wrap;">
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                ${!fin.isSettled ? `
+                  <button onclick="openRepayLoanModal('${l.id}')" style="background:${isGiven ? 'var(--emerald)' : '#3b82f6'};color:#000;border:none;border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+                    💳 ${isGiven ? 'Collect / Repay' : 'Make Payment'}
+                  </button>
+                ` : `
+                  <button onclick="reopenLoanById('${l.id}')" style="background:var(--bg3);color:var(--text-2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;">
+                    🔄 Reopen
+                  </button>
+                `}
+                <button onclick="openEditLoanModalById('${l.id}')" style="background:var(--bg3);color:var(--text-2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;">
+                  ✏️ Edit
+                </button>
+                <button onclick="toggleLoanHistory('${l.id}')" style="background:var(--bg3);color:var(--text-2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;">
+                  📜 History (${fin.repaymentsCount})
+                </button>
+              </div>
+              <button onclick="deleteLoanById('${l.id}')" title="Delete Loan" style="background:rgba(239,68,68,0.1);color:var(--rose);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:6px 10px;font-size:11px;cursor:pointer;">
+                🗑️
+              </button>
+            </div>
+
+            <!-- Expandable History Section -->
+            <div id="loan_history_${l.id}" style="display:none;margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);">
+              <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+                <span>Repayment Ledger</span>
+                <span>${fin.repaymentsCount} entry(ies)</span>
+              </div>
+              <div class="loan-history-list" style="background:var(--bg3);border-radius:8px;padding:8px 10px;max-height:160px;overflow-y:auto;">
+                ${repaymentsHtml}
+              </div>
             </div>
           </div>
         `;
       }).join('');
 
+      mainContentHtml = `<div class="loan-cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:14px;">${cardsHtml}</div>`;
+    }
+  } else {
+    // --- By Person Summary View ---
+    const groups = buildLoanGroups();
+    const byPerson = {};
+    groups.forEach(g => {
+      if (!byPerson[g.person]) byPerson[g.person] = { given: 0, taken: 0, givenInterest: 0, takenInterest: 0, givenColl: 0, takenColl: 0, loans: [] };
+      if (g.type === 'given') {
+        byPerson[g.person].given += g.pendingAmt;
+        byPerson[g.person].givenColl += g.collectedAmt;
+        byPerson[g.person].givenInterest += g.totalInterest;
+      } else {
+        byPerson[g.person].taken += g.pendingAmt;
+        byPerson[g.person].takenColl += g.collectedAmt;
+        byPerson[g.person].takenInterest += g.totalInterest;
+      }
+      byPerson[g.person].loans.push(...g.loans);
+    });
+
+    let personEntries = Object.entries(byPerson);
+    if (searchQuery) {
+      personEntries = personEntries.filter(([p]) => p.toLowerCase().includes(searchQuery));
+    }
+    personEntries.sort((a, b) => (b[1].given + b[1].taken) - (a[1].given + a[1].taken));
+
+    const personRows = personEntries.map(([person, d]) => {
+      const net = d.given - d.taken;
+      const netColor2 = net > 0 ? 'var(--emerald)' : net < 0 ? 'var(--rose)' : 'var(--text-3)';
+      const netLabel2 = net > 0 ? `You get ${fmtINR(net)}` : net < 0 ? `You owe ${fmtINR(Math.abs(net))}` : 'Settled';
+      const overdueCount = d.loans.filter(l => {
+        const fin = getLoanFinancialDetails(l);
+        return !fin.isSettled && fin.isOverdue;
+      }).length;
+
+      const personLoanDetails = d.loans.map(l => {
+        const fin = getLoanFinancialDetails(l);
+        return `
+          <div class="loan-detail-item" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="font-size:14px;">${l.type === 'given' ? '💸' : '📥'}</span>
+              <div>
+                <div style="font-size:12.5px;font-weight:600;color:${l.type === 'given' ? 'var(--emerald)' : 'var(--rose)'};">
+                  ${l.type === 'given' ? 'Given' : 'Taken'}: ${fmtINR(fin.principal)}
+                  ${fin.interestRate > 0 ? `<span style="font-size:10px;color:var(--gold);margin-left:4px;">(${fin.interestRate}% · +${fmtINR(fin.accruedInterest)})</span>` : ''}
+                </div>
+                <div style="font-size:11px;color:var(--text-3);">
+                  Due: ${l.dueDate || 'N/A'} · Bal: <strong>${fmtINR(fin.totalBalance)}</strong> · ${escapeHtml(l.category || 'Personal')}
+                  ${fin.isOverdue && !fin.isSettled ? '<span style="color:var(--rose);font-weight:700;"> · OVERDUE</span>' : ''}
+                  ${fin.isSettled ? '<span style="color:var(--emerald);"> · SETTLED</span>' : ''}
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              ${!fin.isSettled ? `<button onclick="openRepayLoanModal('${l.id}')" style="background:${l.type==='given'?'var(--emerald)':'#3b82f6'};color:#000;border:none;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer;">💳 Pay</button>` : ''}
+              <button onclick="openEditLoanModalById('${l.id}')" style="background:#3b82f6;border:none;border-radius:6px;padding:3px 8px;font-size:11px;color:white;cursor:pointer;">✏️</button>
+              <button onclick="deleteLoanById('${l.id}')" style="background:#ef4444;border:none;border-radius:6px;padding:3px 8px;font-size:11px;color:white;cursor:pointer;">🗑️</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const cleanPersonId = person.replace(/[^a-zA-Z0-9]/g, '_');
       return `
-        <tr style="cursor:pointer;" onclick="togglePersonLoans('person_${person.replace(/\s/g,'_')}')">
+        <tr style="cursor:pointer;" onclick="togglePersonLoans('person_${cleanPersonId}')">
           <td>
             <div style="display:flex;align-items:center;gap:10px;">
-              <div style="width:34px;height:34px;border-radius:50%;background:var(--surface);
-                          display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;">
+              <div style="width:34px;height:34px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;">
                 ${person.charAt(0).toUpperCase()}
               </div>
               <div>
-                <div class="list-item-name" style="margin:0;">${escapeHtml(person)}</div>
-                <div class="list-item-sub" style="margin:0;">${d.loans.length} loan${d.loans.length!==1?'s':''}
-                  ${overdueCount ? `<span style="color:var(--rose);"> · ${overdueCount} overdue</span>` : ''}
+                <div class="list-item-name" style="margin:0;font-weight:600;">${escapeHtml(person)}</div>
+                <div class="list-item-sub" style="margin:0;font-size:11px;color:var(--text-3);">${d.loans.length} loan${d.loans.length !== 1 ? 's' : ''}
+                  ${overdueCount ? `<span style="color:var(--rose);font-weight:700;"> · ${overdueCount} overdue</span>` : ''}
                 </div>
               </div>
             </div>
           </td>
           <td class="wealth-td-mono" style="color:var(--emerald);">
             ${d.given > 0 ? fmtINR(d.given) : '—'}
-            ${d.givenColl > 0 ? `<br><span style="font-size:10px;">+${fmtINR(d.givenColl)} coll.</span>` : ''}
+            ${d.givenColl > 0 ? `<br><span style="font-size:10px;color:var(--text-3);">+${fmtINR(d.givenColl)} coll.</span>` : ''}
           </td>
           <td class="wealth-td-mono" style="color:var(--rose);">
             ${d.taken > 0 ? fmtINR(d.taken) : '—'}
-            ${d.takenColl > 0 ? `<br><span style="font-size:10px;">+${fmtINR(d.takenColl)} repaid</span>` : ''}
+            ${d.takenColl > 0 ? `<br><span style="font-size:10px;color:var(--text-3);">+${fmtINR(d.takenColl)} repaid</span>` : ''}
           </td>
-          <td class="wealth-td-mono" style="color:${netColor2};font-weight:600;">${netLabel2}</td>
-          <td><span id="person_${person.replace(/\s/g,'_')}_icon" style="color:var(--text-3);">▼</span></td>
+          <td class="wealth-td-mono" style="color:${netColor2};font-weight:700;">${netLabel2}</td>
+          <td><span id="person_${cleanPersonId}_icon" style="color:var(--text-3);">▼</span></td>
         </tr>
-        <tr id="person_${person.replace(/\s/g,'_')}" style="display:none;">
-          <td colspan="5" style="padding:0 0 8px 44px;">
+        <tr id="person_${cleanPersonId}" style="display:none;">
+          <td colspan="5" style="padding:0 0 10px 44px;">
             <div style="border-left:2px solid var(--border);padding-left:12px;">
-              ${loanDetailsHtml || '<div class="text-slate-500 italic text-sm p-2">No loans for this person</div>'}
+              ${personLoanDetails || '<div class="text-slate-500 italic text-sm p-2">No loans for this person</div>'}
             </div>
           </td>
         </tr>
       `;
     }).join('');
 
-  // --- Bar chart data (top 10) ---
-  const chartPeople = Object.entries(byPerson).slice(0,10);
-  const barGiven = chartPeople.map(([,d])=>d.given);
-  const barTaken = chartPeople.map(([,d])=>d.taken);
-  const barLabels = chartPeople.map(([p])=>p.length>10?p.slice(0,10)+'…':p);
-  const collRate = s.totalGiven > 0 ? ((s.collectedGiven/s.totalGiven)*100).toFixed(0) : 0;
-  const repayRate = s.totalTaken > 0 ? ((s.collectedTaken/s.totalTaken)*100).toFixed(0) : 0;
+    mainContentHtml = `
+      <div class="tx-card" style="overflow-x:auto;">
+        <table class="wealth-table">
+          <thead>
+            <tr>
+              <th>PERSON</th>
+              <th style="color:var(--emerald);">GIVEN (OUTSTANDING)</th>
+              <th style="color:var(--rose);">TAKEN (OUTSTANDING)</th>
+              <th>NET POSITION</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="loanPersonBody">${personRows || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-3);">No person records found</td></tr>'}</tbody>
+        </table>
+      </div>
+    `;
+  }
 
-  // --- Render full HTML ---
+  // Combine full layout
   container.innerHTML = `
     ${overdueBanner}
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px;">
-      <div class="kpi-card emerald">
-        <div class="kpi-label">💸 GIVEN (OUTSTANDING)</div>
-        <div class="kpi-value" style="color:var(--emerald);font-size:clamp(14px,2.5vw,22px);">${fmtINR(s.givenOut)}</div>
-        <div class="kpi-change">Total ever: ${fmtINR(s.totalGiven)} · Collected: ${fmtINR(s.collectedGiven)} (${collRate}%)</div>
-      </div>
-      <div class="kpi-card rose">
-        <div class="kpi-label">📥 TAKEN (OUTSTANDING)</div>
-        <div class="kpi-value" style="color:var(--rose);font-size:clamp(14px,2.5vw,22px);">${fmtINR(s.takenOut)}</div>
-        <div class="kpi-change">Total ever: ${fmtINR(s.totalTaken)} · Repaid: ${fmtINR(s.collectedTaken)} (${repayRate}%)</div>
-      </div>
-    </div>
-    <div class="two-col" style="margin-bottom:16px;">
-      <div class="chart-card" style="display:flex;flex-direction:column;justify-content:center;">
-        <div class="kpi-label" style="margin-bottom:8px;">NET POSITION</div>
-        <div style="font-family:var(--font-m);font-size:clamp(20px,4vw,32px);font-weight:700;color:${netColor};">${s.netBalance >= 0 ? '+' : ''}${fmtINR(s.netBalance)}</div>
-        <div style="font-size:13px;margin-top:6px;color:${netColor};">${netLabel}</div>
-        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
-          <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Overdue loans</span><span style="color:${s.overdue.length?'var(--rose)':'var(--emerald)'};">${s.overdue.length} loan${s.overdue.length!==1?'s':''}</span></div>
-          <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Total people</span><span>${Object.keys(byPerson).length}</span></div>
-          <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Total transactions</span><span>${s.totalLoans}</span></div>
-        </div>
-        
-      </div>
-      <div class="chart-card">
-        <div class="chart-card-title"><span style="color:var(--emerald)">●</span> Given vs Taken by Person</div>
-        <div class="chart-wrap" style="height:200px;"><canvas id="loanPersonChart"></canvas></div>
-      </div>
-    </div>
-    <div class="section-heading"><div class="section-title"><span class="dot" style="background:var(--teal)"></span>Per-Person Breakdown</div></div>
-    <div class="tx-card" style="overflow-x:auto;">
-      <table class="wealth-table"><thead><tr><th>PERSON</th><th style="color:var(--emerald);">GIVEN (PENDING)</th><th style="color:var(--rose);">TAKEN (PENDING)</th><th>NET POSITION</th><th></th></tr></thead>
-      <tbody id="loanPersonBody">${personRows}</tbody></table>
-    </div>
-    <div class="chart-card" style="margin-top:16px;">
-      <div class="chart-card-title"><span style="color:var(--violet)">●</span> Recovery / Repayment Progress</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:12px;">
-        <div><div style="display:flex;justify-content:space-between;font-size:12px;"><span>💸 Collection Rate (Given)</span><span>${collRate}%</span></div>
-        <div style="background:var(--bg3);border-radius:99px;height:8px;"><div style="width:${collRate}%;height:100%;background:var(--emerald);border-radius:99px;"></div></div>
-        <div style="font-size:11px;">${fmtINR(s.collectedGiven)} of ${fmtINR(s.totalGiven)} collected</div></div>
-        <div><div style="display:flex;justify-content:space-between;font-size:12px;"><span>📥 Repayment Rate (Taken)</span><span>${repayRate}%</span></div>
-        <div style="background:var(--bg3);border-radius:99px;height:8px;"><div style="width:${repayRate}%;height:100%;background:var(--blue, #3b82f6);border-radius:99px;"></div></div>
-        <div style="font-size:11px;">${fmtINR(s.collectedTaken)} of ${fmtINR(s.totalTaken)} repaid</div></div>
-      </div>
-    </div>`;
-
-  // --- Draw chart ---
-  setTimeout(() => {
-    const ctx = document.getElementById('loanPersonChart');
-    if (ctx && chartPeople.length && typeof Chart !== 'undefined') {
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: barLabels,
-          datasets: [
-            { label: 'Given (Pending)', data: barGiven, backgroundColor: 'rgba(52,211,153,0.7)', borderRadius: 4 },
-            { label: 'Taken (Pending)', data: barTaken, backgroundColor: 'rgba(251,113,133,0.7)', borderRadius: 4 }
-          ]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { labels: { font: { size: 11 }, color: '#9ca3af' } } },
-          scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-            y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: v => v>=100000 ? '₹'+(v/100000).toFixed(1)+'L' : v>=1000 ? '₹'+(v/1000).toFixed(0)+'K' : '₹'+v } }
-          }
-        }
-      });
-    }
-  }, 60);
-
-  // --- Event delegation for loan actions (edit/mark/delete) ---
-  const clickHandler = async (e) => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-    const loanId = btn.getAttribute('data-id');
-    const loan = loanId ? state.loans.find(l => String(l.id) === String(loanId)) : null;
-
-    // Delete
-    if (btn.classList.contains('delete-loan-btn') && loan) {
-      if (!confirm('Delete this loan?')) return;
-      await del('loans', loan.id);
-      state.loans = state.loans.filter(l => l.id !== loan.id);
-      // delete linked reminders
-      const linkedReminders = state.reminders.filter(r => r.title?.includes(loan.person) && r.dueDate === loan.dueDate);
-      for (const r of linkedReminders) await del('reminders', r.id);
-      state.reminders = state.reminders.filter(r => !linkedReminders.includes(r));
-      if (typeof handleLoanTransaction === 'function') await handleLoanTransaction(loan, false);
-      if (typeof autoBackup === 'function') autoBackup();
-      if (typeof showToast === 'function') showToast('Loan deleted', 'success');
-      renderWealthLoans(container);
-      return;
-    }
-
-    // Mark collected/pending
-    if (btn.classList.contains('mark-loan-btn') && loan) {
-      loan.collected = !loan.collected;
-      loan.collectedAt = loan.collected ? nowISO1() : null;
-      await put('loans', loan);
-      if (typeof handleLoanTransaction === 'function') await handleLoanTransaction(loan, loan.collected);
-      if (typeof autoBackup === 'function') autoBackup();
-      if (typeof renderNotifications === 'function') renderNotifications();
-      if (typeof showToast === 'function') showToast(loan.collected ? 'Marked as collected ✅' : 'Marked as pending ⏳', 'info');
-      renderWealthLoans(container);
-      return;
-    }
-
-    // Edit
-    if (btn.classList.contains('edit-loan-btn') && loan) {
-      if (typeof openEditLoanModal === 'function') {
-        openEditLoanModal(loan, () => renderWealthLoans(container));
-      } else {
-        console.error('openEditLoanModal is not defined');
-        if (typeof showToast === 'function') showToast('Edit modal not available', 'error');
-      }
-    }
-  };
-
-  container.addEventListener('click', clickHandler);
-  container._loanClickHandler = clickHandler; // for cleanup
+    ${kpiStripHtml}
+    ${navBarHtml}
+    ${mainContentHtml}
+  `;
 
   ensureFAB();
 }
 
 // ------------------------------------------------------------
-// 2. MODAL: ADD LOAN (floating button trigger)
+// 2. LOAN NAVIGATION & FILTER HELPERS
 // ------------------------------------------------------------
-function openAddLoanModal() {
-  // Ensure dropdown data exists
+function setLoanSubtab(subtab) {
+  window._loanActiveSubtab = subtab;
+  const wealthContainer = document.querySelector('#wealth-tab-content') || document.querySelector('#loansOverview');
+  if (wealthContainer) renderWealthLoans(wealthContainer);
+}
+
+function handleLoanSearch(val) {
+  window._loanSearchQuery = val || '';
+  const wealthContainer = document.querySelector('#wealth-tab-content') || document.querySelector('#loansOverview');
+  if (wealthContainer) renderWealthLoans(wealthContainer);
+}
+
+function setLoanViewMode(mode) {
+  window._loanViewMode = mode;
+  const wealthContainer = document.querySelector('#wealth-tab-content') || document.querySelector('#loansOverview');
+  if (wealthContainer) renderWealthLoans(wealthContainer);
+}
+
+function toggleLoanHistory(loanId) {
+  const el = document.getElementById(`loan_history_${loanId}`);
+  if (el) {
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+// ------------------------------------------------------------
+// 3. LIVE INTEREST PREVIEW CALCULATOR
+// ------------------------------------------------------------
+function updateLoanLiveInterestPreview(prefix = '') {
+  const amountInput = document.getElementById(prefix + 'loanAmount') || document.getElementById(prefix + 'loanAmountPopup');
+  const rateInput = document.getElementById(prefix + 'loanInterestRate');
+  const startInput = document.getElementById(prefix + 'loanStartDate');
+  const dueInput = document.getElementById(prefix + 'loanDueDate') || document.getElementById(prefix + 'loanDueDatePopup');
+  const previewBox = document.getElementById(prefix + 'loanInterestPreviewBox');
+  if (!previewBox) return;
+
+  const P = toNum(amountInput ? amountInput.value : 0);
+  const r = toNum(rateInput ? rateInput.value : 0);
+
+  if (P <= 0 || r <= 0) {
+    previewBox.style.display = 'none';
+    return;
+  }
+
+  previewBox.style.display = 'block';
+  const monthlyInt = (P * (r / 100)) / 12;
+  const annualInt = P * (r / 100);
+
+  let tenureDays = 0;
+  let tenureInt = 0;
+  let tenureText = '';
+
+  const startVal = startInput ? startInput.value : '';
+  const dueVal = dueInput ? dueInput.value : '';
+
+  if (startVal && dueVal) {
+    const s = new Date(startVal);
+    const d = new Date(dueVal);
+    if (!isNaN(s.getTime()) && !isNaN(d.getTime()) && d >= s) {
+      tenureDays = Math.max(0, Math.floor((d - s) / (1000 * 60 * 60 * 24)));
+      tenureInt = P * (r / 100) * (tenureDays / 365);
+      tenureText = `(${tenureDays} days)`;
+    }
+  }
+
+  const totalExpected = P + (tenureInt > 0 ? tenureInt : annualInt);
+
+  previewBox.innerHTML = `
+    <div style="background:rgba(20,184,166,0.08);border:1px solid rgba(20,184,166,0.25);border-radius:10px;padding:10px 12px;font-size:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-weight:600;color:var(--teal);">✨ Interest Preview (${r}% p.a.)</span>
+        <span style="color:var(--text-3);font-size:11px;">Simple Interest</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:11.5px;">
+        <div>
+          <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Monthly Interest</div>
+          <div style="font-weight:600;color:var(--text);">${fmtINR(monthlyInt)} / mo</div>
+        </div>
+        <div>
+          <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Annual Interest</div>
+          <div style="font-weight:600;color:var(--text);">${fmtINR(annualInt)} / yr</div>
+        </div>
+        ${tenureDays > 0 ? `
+          <div>
+            <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Interest to Due Date ${tenureText}</div>
+            <div style="font-weight:600;color:var(--gold);">${fmtINR(tenureInt)}</div>
+          </div>
+          <div>
+            <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Total Expected ${tenureText}</div>
+            <div style="font-weight:700;color:var(--emerald);">${fmtINR(totalExpected)}</div>
+          </div>
+        ` : `
+          <div style="grid-column: span 2;">
+            <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Principal + 1 Year Interest</div>
+            <div style="font-weight:700;color:var(--emerald);">${fmtINR(P + annualInt)}</div>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+// ------------------------------------------------------------
+// 4. MODAL: RECORD REPAYMENT / PARTIAL COLLECTION
+// ------------------------------------------------------------
+function openRepayLoanModal(loanId) {
+  const loan = (state.loans || []).find(l => String(l.id) === String(loanId));
+  if (!loan) {
+    if (typeof showToast === 'function') showToast('Loan not found', 'error');
+    return;
+  }
+
+  const fin = getLoanFinancialDetails(loan);
+  const loanAccounts = state.dropdowns.accounts || ['Cash', 'Bank Account'];
+  const todayStr = nowISO1().split('T')[0];
+  const isGiven = loan.type === 'given';
+  const typeLabel = isGiven ? '💸 Given (Lent)' : '📥 Taken (Borrowed)';
+  const actionName = isGiven ? 'Collect Repayment' : 'Make Repayment';
+
+  const modalHtml = `
+    <div class="modal-overlay show" id="repayLoanModalOverlay">
+      <div class="modal" style="max-width: 520px;">
+        <div class="modal-header">
+          <h3 class="modal-title">💳 ${actionName}</h3>
+          <button class="modal-close" onclick="closeRepayLoanModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <!-- Loan Info Strip -->
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <div style="font-weight:700;font-size:15px;color:var(--text);display:flex;align-items:center;gap:6px;">
+                <span>${escapeHtml(loan.person)}</span>
+                <span class="loan-badge ${isGiven ? 'badge-given' : 'badge-taken'}">${typeLabel}</span>
+              </div>
+              <span style="font-size:12px;color:var(--text-3);">${loan.dueDate ? `Due: ${loan.dueDate}` : ''}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:12px;">
+              <div>
+                <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Principal</div>
+                <div style="font-weight:600;color:var(--text);">${fmtINR(fin.principal)}</div>
+              </div>
+              <div>
+                <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Interest (${fin.interestRate}% p.a.)</div>
+                <div style="font-weight:600;color:var(--gold);">+${fmtINR(fin.accruedInterest)}</div>
+              </div>
+              <div>
+                <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Repaid So Far</div>
+                <div style="font-weight:600;color:var(--emerald);">${fmtINR(fin.totalRepaid)}</div>
+              </div>
+            </div>
+            <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;font-weight:600;color:var(--text-2);">Outstanding Balance:</span>
+              <span style="font-family:var(--font-m);font-size:18px;font-weight:700;color:${isGiven ? 'var(--emerald)' : 'var(--rose)'};">${fmtINR(fin.totalBalance)}</span>
+            </div>
+          </div>
+
+          <form id="repayLoanForm" class="space-y-4">
+            <!-- Quick Preset Buttons -->
+            <div>
+              <label class="text-xs text-slate-400 uppercase mb-1.5 block font-semibold">Quick Amounts</label>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button type="button" class="loan-preset-btn" onclick="setRepayAmount(${fin.totalBalance})">Full (₹${fin.totalBalance.toFixed(0)})</button>
+                ${fin.unpaidInterest > 0 ? `<button type="button" class="loan-preset-btn" onclick="setRepayAmount(${fin.unpaidInterest})">Interest (₹${fin.unpaidInterest.toFixed(0)})</button>` : ''}
+                ${fin.totalBalance > 100 ? `<button type="button" class="loan-preset-btn" onclick="setRepayAmount(${Math.round(fin.totalBalance / 2)})">50% (₹${Math.round(fin.totalBalance / 2)})</button>` : ''}
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs text-slate-400 uppercase mb-1 block font-semibold">Repayment Amount (₹) *</label>
+                <input id="repayAmount" type="number" min="0.01" step="0.01" value="${fin.totalBalance > 0 ? fin.totalBalance : ''}" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm font-semibold" oninput="handleRepayAmountChange(${fin.totalBalance})" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-400 uppercase mb-1 block font-semibold">Payment Date *</label>
+                <input id="repayDate" type="date" value="${todayStr}" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" />
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-400 uppercase mb-1 block font-semibold">Payment Account</label>
+              <select id="repayAccount" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">
+                ${loanAccounts.map(a => `<option value="${a}" ${loan.loanAccount === a ? 'selected' : ''}>${a}</option>`).join('')}
+              </select>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-400 uppercase mb-1 block font-semibold">Note / Remarks</label>
+              <input id="repayNote" placeholder="e.g. Partial collection via UPI / Cash" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" />
+            </div>
+
+            <div class="space-y-2 pt-2 border-t border-[var(--border)]">
+              <label class="flex items-center gap-2 text-xs cursor-pointer">
+                <input type="checkbox" id="repayRecordTx" checked />
+                <span>💰 Record transaction in Ledger (${isGiven ? 'Income / In' : 'Expense / Out'})</span>
+              </label>
+              <label class="flex items-center gap-2 text-xs cursor-pointer">
+                <input type="checkbox" id="repayMarkSettled" ${fin.totalBalance <= 0.5 ? 'checked' : ''} />
+                <span>✅ Mark Loan as Fully Settled</span>
+              </label>
+            </div>
+
+            <button type="submit" class="w-full py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-900 font-bold text-sm transition shadow-md mt-2">
+              💾 Record Repayment
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  `;
+
+  let modalContainer = document.getElementById('globalModals');
+  if (!modalContainer) {
+    modalContainer = document.createElement('div');
+    modalContainer.id = 'globalModals';
+    document.body.appendChild(modalContainer);
+  }
+  modalContainer.innerHTML = modalHtml;
+
+  // Submit handler
+  document.getElementById('repayLoanForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const repAmount = Number(document.getElementById('repayAmount').value);
+    const repDate = document.getElementById('repayDate').value || todayStr;
+    const repAccount = document.getElementById('repayAccount').value || 'Cash';
+    const repNote = document.getElementById('repayNote').value.trim();
+    const recordTx = document.getElementById('repayRecordTx').checked;
+    const markSettled = document.getElementById('repayMarkSettled').checked;
+
+    if (!repAmount || repAmount <= 0) {
+      if (typeof showToast === 'function') showToast('Please enter a valid amount', 'error');
+      return;
+    }
+
+    if (!Array.isArray(loan.repayments)) loan.repayments = [];
+
+    const newRep = {
+      id: uid('rep'),
+      date: repDate,
+      amount: repAmount,
+      account: repAccount,
+      note: repNote,
+      createdAt: nowISO1()
+    };
+    loan.repayments.push(newRep);
+
+    // Recalculate financial status
+    const updatedFin = getLoanFinancialDetails(loan);
+    if (markSettled || updatedFin.totalBalance <= 0.5) {
+      loan.collected = true;
+      loan.collectedAt = nowISO1();
+    } else {
+      loan.collected = false;
+    }
+
+    // Record transaction
+    if (recordTx) {
+      await recordLoanRepaymentTransaction(loan, newRep);
+    }
+
+    await put('loans', loan);
+    if (typeof autoBackup === 'function') autoBackup();
+    if (typeof showToast === 'function') showToast(`Recorded repayment of ${fmtINR(repAmount)}!`, 'success');
+    closeRepayLoanModal();
+
+    const wealthContainer = document.querySelector('#wealth-tab-content') || document.querySelector('#loansOverview');
+    if (wealthContainer && typeof renderWealthLoans === 'function') renderWealthLoans(wealthContainer);
+  };
+}
+
+function setRepayAmount(amt) {
+  const input = document.getElementById('repayAmount');
+  if (input) {
+    input.value = Number(amt).toFixed(2);
+    input.dispatchEvent(new Event('input'));
+  }
+}
+
+function handleRepayAmountChange(totalBal) {
+  const input = document.getElementById('repayAmount');
+  const checkbox = document.getElementById('repayMarkSettled');
+  if (input && checkbox) {
+    const val = Number(input.value) || 0;
+    checkbox.checked = val >= (totalBal - 0.5);
+  }
+}
+
+function closeRepayLoanModal() {
+  const overlay = document.getElementById('repayLoanModalOverlay');
+  if (overlay) overlay.classList.remove('show');
+  setTimeout(() => {
+    const container = document.getElementById('globalModals');
+    if (container) container.innerHTML = '';
+  }, 200);
+}
+
+// Record repayment in main transactions ledger
+async function recordLoanRepaymentTransaction(loan, repayment) {
+  if (!repayment || !loan) return;
+  const isGiven = loan.type === 'given';
+  const tx = {
+    id: uid('tx'),
+    date: repayment.date || nowISO1().split('T')[0],
+    type: isGiven ? 'in' : 'out', // Given collected = cash in, Taken paid = cash out
+    amount: repayment.amount,
+    account: repayment.account || loan.loanAccount || 'Cash',
+    category: loan.category || 'Loan Repayment',
+    recurrence: '',
+    note: `Loan repayment ${isGiven ? 'from' : 'to'} ${loan.person}${repayment.note ? `: ${repayment.note}` : ''}`,
+    createdAt: nowISO1()
+  };
+  if (typeof put === 'function') await put('transactions', tx);
+  if (Array.isArray(state.transactions)) state.transactions.push(tx);
+  if (typeof refreshRecentList === 'function') refreshRecentList();
+  if (typeof renderAll === 'function') renderAll();
+}
+
+// Delete repayment record
+async function deleteLoanRepayment(loanId, repId) {
+  const loan = (state.loans || []).find(l => String(l.id) === String(loanId));
+  if (!loan || !Array.isArray(loan.repayments)) return;
+  if (!confirm('Delete this repayment record?')) return;
+
+  loan.repayments = loan.repayments.filter(r => String(r.id) !== String(repId));
+  const updatedFin = getLoanFinancialDetails(loan);
+  loan.collected = updatedFin.totalBalance <= 0.5;
+  if (!loan.collected) loan.collectedAt = null;
+
+  await put('loans', loan);
+  if (typeof autoBackup === 'function') autoBackup();
+  if (typeof showToast === 'function') showToast('Repayment record deleted', 'info');
+
+  const wealthContainer = document.querySelector('#wealth-tab-content') || document.querySelector('#loansOverview');
+  if (wealthContainer && typeof renderWealthLoans === 'function') renderWealthLoans(wealthContainer);
+}
+
+// ------------------------------------------------------------
+// 5. LOAN CRUD HELPERS (Delete / Reopen / By-ID)
+// ------------------------------------------------------------
+async function deleteLoanById(loanId) {
+  const loan = (state.loans || []).find(l => String(l.id) === String(loanId));
+  if (!loan) return;
+  if (!confirm(`Delete loan for ${loan.person}?`)) return;
+
+  await del('loans', loan.id);
+  state.loans = state.loans.filter(l => l.id !== loan.id);
+
+  // delete linked reminders
+  const linkedReminders = (state.reminders || []).filter(r => r.title?.includes(loan.person) && r.dueDate === loan.dueDate);
+  for (const r of linkedReminders) await del('reminders', r.id);
+  state.reminders = (state.reminders || []).filter(r => !linkedReminders.includes(r));
+
+  if (typeof handleLoanTransaction === 'function') await handleLoanTransaction(loan, false);
+  if (typeof autoBackup === 'function') autoBackup();
+  if (typeof showToast === 'function') showToast('Loan deleted', 'success');
+
+  const wealthContainer = document.querySelector('#wealth-tab-content') || document.querySelector('#loansOverview');
+  if (wealthContainer && typeof renderWealthLoans === 'function') renderWealthLoans(wealthContainer);
+}
+
+async function reopenLoanById(loanId) {
+  const loan = (state.loans || []).find(l => String(l.id) === String(loanId));
+  if (!loan) return;
+  loan.collected = false;
+  loan.collectedAt = null;
+  await put('loans', loan);
+  if (typeof autoBackup === 'function') autoBackup();
+  if (typeof showToast === 'function') showToast('Loan marked as active ⏳', 'info');
+
+  const wealthContainer = document.querySelector('#wealth-tab-content') || document.querySelector('#loansOverview');
+  if (wealthContainer && typeof renderWealthLoans === 'function') renderWealthLoans(wealthContainer);
+}
+
+function openEditLoanModalById(loanId) {
+  const loan = (state.loans || []).find(l => String(l.id) === String(loanId));
+  if (!loan) return;
+  openEditLoanModal(loan);
+}
+
+// ------------------------------------------------------------
+// 6. MODAL: ADD LOAN (Upgraded with Interest % & Live Preview)
+// ------------------------------------------------------------
+function openAddLoanModal(prefill = {}) {
   ensureDropdownKey('persons');
   ensureDropdownKey('categories');
   ensureDropdownKey('recurrences');
@@ -1156,54 +1875,109 @@ function openAddLoanModal() {
 
   const persons = state.dropdowns.persons || [];
   const categories = state.dropdowns.categories || [];
-  const loanAccounts = state.dropdowns.accounts || [];
+  const loanAccounts = state.dropdowns.accounts || ['Cash', 'Bank Account'];
   const recurrences = (state.dropdowns.recurrences && state.dropdowns.recurrences.length)
     ? state.dropdowns.recurrences : ['None', 'daily', 'weekly', 'monthly', 'yearly'];
+  const todayStr = nowISO1().split('T')[0];
 
   const modalHtml = `
     <div class="modal-overlay show" id="addLoanModalOverlay">
-      <div class="modal" style="max-width: 500px;">
+      <div class="modal" style="max-width: 520px;">
         <div class="modal-header">
-          <h3 class="modal-title">➕ Add New Loan</h3>
+          <h3 class="modal-title">➕ Add Personal Loan</h3>
           <button class="modal-close" onclick="closeAddLoanModal()">×</button>
         </div>
         <div class="modal-body">
           <form id="addLoanFormPopup" class="space-y-4">
+            <!-- Type Selector -->
             <div class="flex gap-2">
-              <button type="button" class="type-btn given flex-1 py-2 rounded-md text-sm font-semibold border border-[var(--border)] bg-emerald-500/20 text-emerald-400 border-emerald-500/50" data-type="given">💸 Given</button>
-              <button type="button" class="type-btn taken flex-1 py-2 rounded-md text-sm font-semibold border border-[var(--border)] text-slate-400" data-type="taken">📥 Taken</button>
+              <button type="button" class="type-btn given flex-1 py-2 rounded-lg text-sm font-bold border border-emerald-500/50 bg-emerald-500/20 text-emerald-400" data-type="given">💸 Given (You Lent)</button>
+              <button type="button" class="type-btn taken flex-1 py-2 rounded-lg text-sm font-semibold border border-[var(--border)] text-slate-400" data-type="taken">📥 Taken (You Borrowed)</button>
             </div>
             <input type="hidden" id="loanTypePopup" value="given" />
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label class="text-xs text-slate-400 font-semibold uppercase mb-1 block">Person(s)</label>
-                <div id="loanPersonCheckboxesPopup" class="max-h-48 overflow-y-auto p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] space-y-1">
-                  ${persons.map(p => `<label class="flex items-center gap-2 text-sm"><input type="checkbox" value="${p}" class="personCheckbox"> ${p}</label>`).join('')}
+            <!-- Person Selection -->
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <label class="text-xs text-slate-400 uppercase font-semibold">Person(s)</label>
+                <span style="font-size:11px;color:var(--text-3);">Select existing or enter new</span>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div id="loanPersonCheckboxesPopup" class="max-h-36 overflow-y-auto p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] space-y-1">
+                  ${persons.map(p => `<label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" value="${escapeHtml(p)}" class="personCheckbox"> ${escapeHtml(p)}</label>`).join('')}
+                </div>
+                <div>
+                  <input id="loanNewPersonInput" type="text" placeholder="+ Type new person name" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs mb-2" />
+                  <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Account</label>
+                  <select id="loanAccountPopup" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs">
+                    ${loanAccounts.map(a => `<option value="${a}">${a}</option>`).join('')}
+                  </select>
                 </div>
               </div>
+            </div>
+
+            <!-- Amount & Interest Rate -->
+            <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="text-xs text-slate-400 font-semibold uppercase mb-1 block">Account</label>
-                <select id="loanAccountPopup" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">
-                  ${loanAccounts.map(a => `<option value="${a}">${a}</option>`).join('')}
+                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Principal Amount (₹) *</label>
+                <input id="loanAmountPopup" type="number" min="1" step="0.01" placeholder="0.00" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm font-semibold" oninput="updateLoanLiveInterestPreview('')" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Interest Rate (% p.a.)</label>
+                <input id="loanInterestRate" type="number" min="0" max="100" step="0.01" placeholder="0% (Optional)" value="" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" oninput="updateLoanLiveInterestPreview('')" />
+              </div>
+            </div>
+
+            <!-- Live Interest Calculation Preview Box -->
+            <div id="loanInterestPreviewBox" style="display:none;"></div>
+
+            <!-- Dates -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Start Date</label>
+                <input id="loanStartDate" type="date" value="${todayStr}" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs" oninput="updateLoanLiveInterestPreview('')" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Due Date *</label>
+                <input id="loanDueDatePopup" type="date" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs" oninput="updateLoanLiveInterestPreview('')" />
+              </div>
+            </div>
+
+            <!-- Category & Recurrence -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Category</label>
+                <select id="loanCategoryPopup" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs">
+                  ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Recurrence</label>
+                <select id="loanRecurrencePopup" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs">
+                  ${recurrences.map(r => `<option value="${r.toLowerCase()}" ${r.toLowerCase() === 'none' ? 'selected' : ''}>${r}</option>`).join('')}
                 </select>
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
-              <div><label class="text-xs text-slate-400 uppercase mb-1 block">Amount (₹)</label><input id="loanAmountPopup" type="number" min="1" step="0.01" placeholder="0.00" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" /></div>
-              <div><label class="text-xs text-slate-400 uppercase mb-1 block">Due Date</label><input id="loanDueDatePopup" type="date" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" /></div>
+            <!-- Note -->
+            <div>
+              <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Note / Purpose</label>
+              <input id="loanNotePopup" placeholder="e.g. Emergency funds / Travel loan" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs" />
             </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div><label class="text-xs text-slate-400 uppercase mb-1 block">Category</label><select id="loanCategoryPopup" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">${categories.map(c => `<option value="${c}">${c}</option>`).join('')}</select></div>
-              <div><label class="text-xs text-slate-400 uppercase mb-1 block">Recurrence</label><select id="loanRecurrencePopup" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">${recurrences.map(r => `<option value="${r.toLowerCase()}" ${r.toLowerCase() === 'none' ? 'selected' : ''}>${r}</option>`).join('')}</select></div>
+
+            <!-- Options -->
+            <div class="flex flex-wrap gap-4 pt-1">
+              <label class="flex items-center gap-1.5 text-xs cursor-pointer">
+                <input type="checkbox" id="addReminderPopup" /> 🔔 Create Reminder
+              </label>
+              <label class="flex items-center gap-1.5 text-xs cursor-pointer">
+                <input type="checkbox" id="AddTransactionPopup" checked /> 💰 Record in Transactions
+              </label>
             </div>
-            <div><label class="text-xs text-slate-400 uppercase mb-1 block">Note</label><input id="loanNotePopup" placeholder="What's this for?" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" /></div>
-            <div class="flex flex-wrap gap-3">
-              <label class="flex items-center gap-1 text-xs"><input type="checkbox" id="addReminderPopup" /> 🔔 Reminder</label>
-              <label class="flex items-center gap-1 text-xs"><input type="checkbox" id="AddTransactionPopup" checked /> 💰 Add transaction</label>
-            </div>
-            <button type="submit" class="w-full py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-900 font-semibold text-sm transition shadow-md">➕ Add Loan</button>
+
+            <button type="submit" class="w-full py-2.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-900 font-bold text-sm transition shadow-md">
+              ➕ Save Loan
+            </button>
           </form>
         </div>
       </div>
@@ -1234,8 +2008,19 @@ function openAddLoanModal() {
   document.getElementById('addLoanFormPopup').onsubmit = async (e) => {
     e.preventDefault();
     const type = document.getElementById('loanTypePopup').value;
-    const selectedPersons = Array.from(document.querySelectorAll('#loanPersonCheckboxesPopup .personCheckbox:checked')).map(cb => cb.value);
+    let selectedPersons = Array.from(document.querySelectorAll('#loanPersonCheckboxesPopup .personCheckbox:checked')).map(cb => cb.value);
+    const newPersonName = (document.getElementById('loanNewPersonInput').value || '').trim();
+    if (newPersonName && !selectedPersons.includes(newPersonName)) {
+      selectedPersons.push(newPersonName);
+      if (!state.dropdowns.persons.includes(newPersonName)) {
+        state.dropdowns.persons.push(newPersonName);
+        if (typeof put === 'function') await put('dropdowns', state.dropdowns);
+      }
+    }
+
     const amount = Number(document.getElementById('loanAmountPopup').value);
+    const interestRate = Number(document.getElementById('loanInterestRate').value) || 0;
+    const startDate = document.getElementById('loanStartDate').value || todayStr;
     const dueDate = document.getElementById('loanDueDatePopup').value;
     const note = document.getElementById('loanNotePopup').value.trim();
     const category = document.getElementById('loanCategoryPopup').value || 'Loan';
@@ -1251,7 +2036,20 @@ function openAddLoanModal() {
 
     const splitAmount = Number((amount / selectedPersons.length).toFixed(2));
     for (const person of selectedPersons) {
-      const candidate = { person, type, amount: splitAmount, dueDate, note, category, recurrence, loanAccount, addTransaction };
+      const candidate = {
+        person,
+        type,
+        amount: splitAmount,
+        interestRate,
+        startDate,
+        dueDate,
+        note,
+        category,
+        recurrence,
+        loanAccount,
+        addTransaction,
+        repayments: []
+      };
       const key = loanKey(candidate);
       const exists = (state.loans || []).some(l => loanKey(l) === key);
       if (exists) continue;
@@ -1265,28 +2063,33 @@ function openAddLoanModal() {
         completedLog: []
       };
       await put('loans', newLoan);
+      if (!Array.isArray(state.loans)) state.loans = [];
       state.loans.push(newLoan);
+
       if (typeof handleLoanTransaction === 'function') await handleLoanTransaction(newLoan, addTransaction);
+
       if (addReminder) {
         const rem = {
           id: uid('rem'),
           title: `Loan due: ${person}`,
           dueDate,
-          note: `Loan of ${fmtINR(splitAmount)} due for ${person}`,
+          note: `Loan of ${fmtINR(splitAmount)} due for ${person}${interestRate > 0 ? ` (${interestRate}% interest)` : ''}`,
           recurrence,
           completed: false,
           completedLog: []
         };
         await put('reminders', rem);
+        if (!Array.isArray(state.reminders)) state.reminders = [];
         state.reminders.push(rem);
       }
     }
+
     if (typeof handleRecurringLoans === 'function') await handleRecurringLoans();
-    if (typeof autoBackup === 'function') autoBackup(); 
-    if (typeof showToast === 'function') showToast('Loan(s) added!', 'success');
+    if (typeof autoBackup === 'function') autoBackup();
+    if (typeof showToast === 'function') showToast('Loan(s) added successfully!', 'success');
     closeAddLoanModal();
-    // Refresh the wealth loans view
-    const wealthContainer = document.querySelector('#loansOverview');
+
+    const wealthContainer = document.querySelector('#wealth-tab-content') || document.querySelector('#loansOverview');
     if (wealthContainer && typeof renderWealthLoans === 'function') renderWealthLoans(wealthContainer);
   };
 }
@@ -1301,44 +2104,110 @@ function closeAddLoanModal() {
 }
 
 // ------------------------------------------------------------
-// 3. MODAL: EDIT LOAN
+// 7. MODAL: EDIT LOAN (Upgraded with Interest % & Live Preview)
 // ------------------------------------------------------------
 function openEditLoanModal(loan, onSaveCallback) {
   const persons = state.dropdowns.persons || [];
   const categories = state.dropdowns.categories || [];
-  const loanAccounts = state.dropdowns.accounts || [];
+  const loanAccounts = state.dropdowns.accounts || ['Cash', 'Bank Account'];
   const recurrences = (state.dropdowns.recurrences && state.dropdowns.recurrences.length)
     ? state.dropdowns.recurrences : ['None', 'daily', 'weekly', 'monthly', 'yearly'];
+  const startVal = loan.startDate || (loan.createdAt ? loan.createdAt.split('T')[0] : '');
 
   const editModalHtml = `
     <div class="modal-overlay show" id="editLoanModalOverlay">
-      <div class="modal" style="max-width: 500px;">
+      <div class="modal" style="max-width: 520px;">
         <div class="modal-header">
-          <h3 class="modal-title">✏️ Edit Loan</h3>
+          <h3 class="modal-title">✏️ Edit Personal Loan</h3>
           <button class="modal-close" onclick="closeEditLoanModal()">×</button>
         </div>
         <div class="modal-body">
           <form id="editLoanFormPopup" class="space-y-4">
             <div class="flex gap-2">
-              <button type="button" class="edit-type-btn given flex-1 py-2 rounded-md text-sm font-semibold border border-[var(--border)] ${loan.type === 'given' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'text-slate-400'}" data-type="given">💸 Given</button>
-              <button type="button" class="edit-type-btn taken flex-1 py-2 rounded-md text-sm font-semibold border border-[var(--border)] ${loan.type === 'taken' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'text-slate-400'}" data-type="taken">📥 Taken</button>
+              <button type="button" class="edit-type-btn given flex-1 py-2 rounded-lg text-sm font-bold border ${loan.type === 'given' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'border-[var(--border)] text-slate-400'}" data-type="given">💸 Given</button>
+              <button type="button" class="edit-type-btn taken flex-1 py-2 rounded-lg text-sm font-bold border ${loan.type === 'taken' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' : 'border-[var(--border)] text-slate-400'}" data-type="taken">📥 Taken</button>
             </div>
             <input type="hidden" id="editLoanType" value="${loan.type}" />
 
             <div class="grid grid-cols-2 gap-3">
-              <div><label class="text-xs text-slate-400 uppercase mb-1 block">Person</label><select id="editLoanPerson" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">${persons.map(p => `<option value="${p}" ${loan.person === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
-              <div><label class="text-xs text-slate-400 uppercase mb-1 block">Account</label><select id="editLoanAccount" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">${loanAccounts.map(a => `<option value="${a}" ${loan.loanAccount === a ? 'selected' : ''}>${a}</option>`).join('')}</select></div>
+              <div>
+                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Person</label>
+                <select id="editLoanPerson" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs">
+                  ${persons.map(p => `<option value="${p}" ${loan.person === p ? 'selected' : ''}>${p}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Account</label>
+                <select id="editLoanAccount" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs">
+                  ${loanAccounts.map(a => `<option value="${a}" ${loan.loanAccount === a ? 'selected' : ''}>${a}</option>`).join('')}
+                </select>
+              </div>
             </div>
-            <div><label class="text-xs text-slate-400 uppercase mb-1 block">Amount (₹)</label><input id="editLoanAmount" type="number" min="1" step="0.01" value="${loan.amount}" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" /></div>
+
             <div class="grid grid-cols-2 gap-3">
-              <div><label class="text-xs text-slate-400 uppercase mb-1 block">Due Date</label><input id="editLoanDueDate" type="date" value="${loan.dueDate}" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" /></div>
-              <div><label class="text-xs text-slate-400 uppercase mb-1 block">Category</label><select id="editLoanCategory" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">${categories.map(c => `<option value="${c}" ${loan.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
+              <div>
+                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Principal Amount (₹) *</label>
+                <input id="editLoanAmount" type="number" min="1" step="0.01" value="${loan.amount}" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm font-semibold" oninput="updateLoanLiveInterestPreview('edit_')" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Interest Rate (% p.a.)</label>
+                <input id="edit_loanInterestRate" type="number" min="0" max="100" step="0.01" placeholder="0.00" value="${loan.interestRate || 0}" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" oninput="updateLoanLiveInterestPreview('edit_')" />
+              </div>
             </div>
-            <div><label class="text-xs text-slate-400 uppercase mb-1 block">Note</label><input id="editLoanNote" value="${loan.note || ''}" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm" /></div>
-            <div><label class="text-xs text-slate-400 uppercase mb-1 block">Recurrence</label><select id="editLoanRecurrence" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm">${recurrences.map(r => `<option value="${r.toLowerCase()}" ${loan.recurrence === r.toLowerCase() ? 'selected' : ''}>${r}</option>`).join('')}</select></div>
-            ${loan.recurrence && loan.recurrence !== 'None' ? `<div><label class="text-xs text-slate-400 uppercase mb-1 block">Scope</label><select id="editScope" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-sm"><option value="this">Only This Loan</option><option value="future">This and Future Loans</option><option value="all">All Loans in Series</option></select></div>` : ''}
-            <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="editLoanCollected" ${loan.collected ? 'checked' : ''} /> Collected</label>
-            <button type="submit" class="w-full py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold text-sm transition">💾 Save</button>
+
+            <!-- Live Interest Preview -->
+            <div id="edit_loanInterestPreviewBox" style="display:none;"></div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Start Date</label>
+                <input id="edit_loanStartDate" type="date" value="${startVal}" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs" oninput="updateLoanLiveInterestPreview('edit_')" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Due Date *</label>
+                <input id="editLoanDueDate" type="date" value="${loan.dueDate || ''}" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs" oninput="updateLoanLiveInterestPreview('edit_')" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Category</label>
+                <select id="editLoanCategory" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs">
+                  ${categories.map(c => `<option value="${c}" ${loan.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Recurrence</label>
+                <select id="editLoanRecurrence" required class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs">
+                  ${recurrences.map(r => `<option value="${r.toLowerCase()}" ${loan.recurrence === r.toLowerCase() ? 'selected' : ''}>${r}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Note</label>
+              <input id="editLoanNote" value="${escapeHtml(loan.note || '')}" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs" />
+            </div>
+
+            ${loan.recurrence && loan.recurrence !== 'None' ? `
+              <div>
+                <label class="text-xs text-slate-400 uppercase font-semibold block mb-1">Scope</label>
+                <select id="editScope" class="w-full p-2 rounded-lg border border-[var(--border)] bg-[var(--bg3)] text-xs">
+                  <option value="this">Only This Loan</option>
+                  <option value="future">This and Future Loans</option>
+                  <option value="all">All Loans in Series</option>
+                </select>
+              </div>
+            ` : ''}
+
+            <label class="flex items-center gap-2 text-xs cursor-pointer">
+              <input type="checkbox" id="editLoanCollected" ${loan.collected ? 'checked' : ''} />
+              <span>✅ Mark as Fully Settled / Collected</span>
+            </label>
+
+            <button type="submit" class="w-full py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold text-sm transition">
+              💾 Save Changes
+            </button>
           </form>
         </div>
       </div>
@@ -1353,7 +2222,7 @@ function openEditLoanModal(loan, onSaveCallback) {
   }
   container.innerHTML = editModalHtml;
 
-  // Type toggle in edit modal
+  // Type toggle
   document.querySelectorAll('#editLoanModalOverlay .edit-type-btn').forEach(btn => {
     btn.onclick = () => {
       document.getElementById('editLoanType').value = btn.dataset.type;
@@ -1365,12 +2234,17 @@ function openEditLoanModal(loan, onSaveCallback) {
     };
   });
 
+  // Initial preview trigger
+  updateLoanLiveInterestPreview('edit_');
+
   document.getElementById('editLoanFormPopup').onsubmit = async (e) => {
     e.preventDefault();
     const updates = {
       type: document.getElementById('editLoanType').value,
       person: document.getElementById('editLoanPerson').value,
       amount: Number(document.getElementById('editLoanAmount').value),
+      interestRate: Number(document.getElementById('edit_loanInterestRate').value) || 0,
+      startDate: document.getElementById('edit_loanStartDate').value,
       dueDate: document.getElementById('editLoanDueDate').value,
       note: document.getElementById('editLoanNote').value,
       category: document.getElementById('editLoanCategory').value || 'Loan',
@@ -1379,9 +2253,7 @@ function openEditLoanModal(loan, onSaveCallback) {
       modifiedAt: nowISO1(),
       loanAccount: document.getElementById('editLoanAccount').value || 'Cash'
     };
-    const scope = document.getElementById('editScope') ? document.getElementById('editScope').value : 'this';
 
-    // Apply edit (simplified: update this loan only, but you can add series logic)
     Object.assign(loan, updates);
     if (updates.recurrence && updates.recurrence !== 'None' && !loan.seriesId) loan.seriesId = uid('series');
     if (!updates.recurrence || updates.recurrence === 'None') loan.seriesId = null;
@@ -1390,9 +2262,10 @@ function openEditLoanModal(loan, onSaveCallback) {
     if (typeof autoBackup === 'function') autoBackup();
     if (typeof showToast === 'function') showToast('Loan updated', 'success');
     closeEditLoanModal();
+
     if (onSaveCallback) onSaveCallback();
     else {
-      const wealthContainer = document.querySelector('#loansOverview');
+      const wealthContainer = document.querySelector('#wealth-tab-content') || document.querySelector('#loansOverview');
       if (wealthContainer && typeof renderWealthLoans === 'function') renderWealthLoans(wealthContainer);
     }
   };
@@ -1408,19 +2281,18 @@ function closeEditLoanModal() {
 }
 
 // ------------------------------------------------------------
-// 4. HELPER: Floating Action Button
+// 8. HELPER: Floating Action Button
 // ------------------------------------------------------------
 function ensureFAB() {
   if (document.getElementById('wealthLoansFAB')) return;
   const fab = document.createElement('button');
   fab.id = 'wealthLoansFAB';
   fab.innerHTML = '+';
-  // Use flexbox to center the plus sign perfectly
   fab.style.display = 'flex';
   fab.style.alignItems = 'center';
   fab.style.justifyContent = 'center';
   fab.style.position = 'fixed';
-  fab.style.bottom = '5rem';      // or '30px' – keep your preferred value
+  fab.style.bottom = '5rem';
   fab.style.right = '16px';
   fab.style.width = '56px';
   fab.style.height = '56px';
@@ -1428,8 +2300,8 @@ function ensureFAB() {
   fab.style.backgroundColor = '#10b981';
   fab.style.color = 'white';
   fab.style.fontSize = '28px';
-  fab.style.fontWeight = 'normal'; // avoid bold shifting
-  fab.style.lineHeight = '1';      // remove extra line‑height
+  fab.style.fontWeight = 'normal';
+  fab.style.lineHeight = '1';
   fab.style.border = 'none';
   fab.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
   fab.style.zIndex = '9999';
@@ -1439,14 +2311,14 @@ function ensureFAB() {
 }
 
 // ------------------------------------------------------------
-// 5. UTILITY: loanKey (for duplicate detection)
+// 9. UTILITY: loanKey (for duplicate detection)
 // ------------------------------------------------------------
 function loanKey(loan) {
   return `${loan.person}|${loan.type}|${loan.amount}|${loan.dueDate}|${loan.category || ''}`;
 }
 
 // ------------------------------------------------------------
-// 6. ACCORDION TOGGLE (for per‑person expandable rows)
+// 10. ACCORDION TOGGLE (for per‑person expandable rows)
 // ------------------------------------------------------------
 function togglePersonLoans(rowId) {
   const row = document.getElementById(rowId);
@@ -1455,24 +2327,6 @@ function togglePersonLoans(rowId) {
   const visible = row.style.display !== 'none';
   row.style.display = visible ? 'none' : '';
   if (icon) icon.textContent = visible ? '▼' : '▲';
-}
-
-// ------------------------------------------------------------
-// 7. RESPONSIVE CSS (injected once)
-// ------------------------------------------------------------
-if (!document.getElementById('wealthLoansResponsiveCSS')) {
-  const style = document.createElement('style');
-  style.id = 'wealthLoansResponsiveCSS';
-  style.textContent = `
-    @media (max-width: 640px) {
-      .loan-detail-item { flex-direction: column; align-items: flex-start !important; gap: 8px; }
-      .loan-detail-item > div:last-child { align-self: flex-end; }
-      .wealth-table th, .wealth-table td { padding: 8px 4px; font-size: 12px; }
-      .btn-submit, .btn-secondary { padding: 6px 12px; font-size: 12px; }
-      #wealthLoansFAB { width: 48px; height: 48px; font-size: 24px; bottom: 20px; right: 12px; }
-    }
-  `;
-  document.head.appendChild(style);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -2376,6 +3230,26 @@ function switchToEssentialsGoals() {
 
 window.toNum = window.toNum || function(v) { const n=parseFloat(v); return isNaN(n)?0:n; };
 window.renderWealthLoans = renderWealthLoans;
+window.setLoanSubtab = setLoanSubtab;
+window.handleLoanSearch = handleLoanSearch;
+window.setLoanViewMode = setLoanViewMode;
+window.openRepayLoanModal = openRepayLoanModal;
+window.closeRepayLoanModal = closeRepayLoanModal;
+window.setRepayAmount = setRepayAmount;
+window.handleRepayAmountChange = handleRepayAmountChange;
+window.deleteLoanRepayment = deleteLoanRepayment;
+window.toggleLoanHistory = toggleLoanHistory;
+window.deleteLoanById = deleteLoanById;
+window.reopenLoanById = reopenLoanById;
+window.openEditLoanModalById = openEditLoanModalById;
+window.openAddLoanModal = openAddLoanModal;
+window.closeAddLoanModal = closeAddLoanModal;
+window.openEditLoanModal = openEditLoanModal;
+window.closeEditLoanModal = closeEditLoanModal;
+window.updateLoanLiveInterestPreview = updateLoanLiveInterestPreview;
+window.getLoanFinancialDetails = getLoanFinancialDetails;
+window.getLoanSummary = getLoanSummary;
+window.buildLoanGroups = buildLoanGroups;
 window.isAssetClosedOrMatured = isAssetClosedOrMatured;
 window.getAssetCurrentValue = getAssetCurrentValue;
 window.getAssetInvestedAmount = getAssetInvestedAmount;
@@ -2391,5 +3265,12 @@ window.LM_Wealth = {
   calculateAssetMaturityValue,
   getAssetCategory,
   getTotalAssets,
-  ASSET_CATEGORIES
+  ASSET_CATEGORIES,
+  getLoanFinancialDetails,
+  getLoanSummary,
+  buildLoanGroups,
+  renderWealthLoans,
+  openRepayLoanModal,
+  openAddLoanModal,
+  openEditLoanModal
 };
