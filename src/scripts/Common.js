@@ -424,7 +424,8 @@ function bindUI(){
   document.getElementById('openBudgets1').onclick = showBudgetsModal; 
   
   //document.getElementById('openRemainders').onclick = showRemindersModal;
-  document.getElementById('openInvestments').onclick = showInvestmentsModal;
+  const invBtn = document.getElementById('openInvestments');
+  if (invBtn) invBtn.onclick = () => showPage('investments');
   document.getElementById('accountFilter').onchange = refreshRecentList;
 
   document.getElementById('clearData').addEventListener('click', clearAllData);

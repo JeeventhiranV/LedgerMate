@@ -580,6 +580,8 @@ html, body {
   .modal-overlay,
   .popup-overlay,
   .cd-modal-overlay,
+  .inv-modal-overlay,
+  #investmentModals .inv-modal-overlay,
   #creditCardModals .modal-overlay,
   #stockModalContainer .modal-overlay,
   #lm-sankey-modal,
@@ -597,12 +599,14 @@ html, body {
   #adminPanelOverlay,
   #ccFormModal,
   #ccPayModal,
+  #invFormModal,
   #modals {
     z-index: 99999 !important;
   }
 
   .modal,
-  .modal-box {
+  .modal-box,
+  .inv-modal-box {
     z-index: 100000 !important;
   }
 

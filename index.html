@@ -62,6 +62,7 @@
 <link rel="stylesheet" href="./src/styles/responsive-upgrades.css"> 
 <link rel="stylesheet" href="./src/styles/stocks.css">
 <link rel="stylesheet" href="./src/styles/credit-cards.css">
+<link rel="stylesheet" href="./src/styles/investments.css">
   <script src="./assets/vendor/tailwind.min.js"></script>
   <!-- Cloud auth + sync – MUST load before AuthManager -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -199,7 +200,7 @@
       <button class="sidebar-nav-item" onclick="showPage('credit-cards')" id="openCreditCards" data-module="credit-cards">
         <span class="nav-icon">💳</span> Credit Cards
       </button>
-      <button class="sidebar-nav-item" id="openInvestments" data-module="investments">
+      <button class="sidebar-nav-item" onclick="showPage('investments')" id="openInvestments" data-module="investments">
         <span class="nav-icon">📊</span> Investments
       </button>
       <button class="sidebar-nav-item" onclick="showPage('stocks')" id="openStockPortfolio" data-module="stocks">
@@ -1003,6 +1004,11 @@
         <!-- rendered by LM_CreditCardsUI.init() in CreditCardsUI.js -->
       </div>
 
+      <!-- ─── DIGITAL BANKING INVESTMENTS PAGE ──────── -->
+      <div id="page-investments" style="display:none;">
+        <!-- rendered by LM_InvestmentsUI.render() in Investments.js -->
+      </div>
+
     </div><!-- /pageContent -->
     <footer>© <span id="year"></span> <span>LedgerMate</span> by Jeeventhiran</footer>
   </main>
@@ -1391,6 +1397,13 @@ function showPage(page) {
         }
       } catch (e) { console.warn('[LM] Credit cards error:', e); }
     }
+    if (page === 'investments') {
+      try {
+        if (window.LM_InvestmentsUI) {
+          window.LM_InvestmentsUI.render();
+        }
+      } catch (e) { console.warn('[LM] Investments page error:', e); }
+    }
     if (page === 'savings-goals') {
       try { renderSavingsGoals(); } catch (e) { console.warn('[LM] Savings goals error:', e); }
     }
@@ -1605,6 +1618,7 @@ function setGreeting() {
   <div id="essentialModals"></div>
   <div id="creditCardModals"></div>
   <div id="stockModalContainer"></div>
+  <div id="investmentModals"></div>
 
 <!-- ─── AUTH BOOTSTRAP ─────────────────────────────────────
      Runs after ALL scripts loaded. Checks session and
