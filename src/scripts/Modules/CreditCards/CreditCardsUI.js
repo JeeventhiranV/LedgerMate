@@ -339,35 +339,37 @@
         modalContainer = document.createElement('div');
         modalContainer.id = 'creditCardModals';
         document.body.appendChild(modalContainer);
+      } else if (modalContainer.parentNode !== document.body) {
+        document.body.appendChild(modalContainer);
       }
 
       var selectedTheme = card?.color_theme || 'theme-midnight';
 
       modalContainer.innerHTML = `
         <div class="modal-overlay show" id="ccFormModal" style="display:flex;">
-          <div class="modal-box glass" style="max-width: 540px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 24px; border-radius: 18px; margin-bottom: env(safe-area-inset-bottom, 20px);">
+          <div class="modal-box glass" style="max-width: 540px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 24px; border-radius: 18px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
               <h2 style="font-size: 1.25rem; font-weight:700; color:var(--text); margin:0;">
                 ${isEdit ? '✏️ Edit Credit Card' : '＋ Add New Credit Card'}
               </h2>
-              <button onclick="window.LM_CreditCardsUI.closeModal('ccFormModal')" style="background:none; border:none; font-size:24px; color:var(--text-3); cursor:pointer;">&times;</button>
+              <button type="button" onclick="window.LM_CreditCardsUI.closeModal('ccFormModal')" style="background:none; border:none; font-size:24px; color:var(--text-3); cursor:pointer; padding:4px 8px;" aria-label="Close">&times;</button>
             </div>
 
             <form id="ccCardForm" onsubmit="window.LM_CreditCardsUI.handleSaveCard(event, '${cardId || ''}')">
               <div class="cc-form-grid">
 
                 <div class="cc-form-group">
-                  <label>Bank Name *</label>
+                  <label for="ccBankName">Bank Name *</label>
                   <input type="text" id="ccBankName" class="cc-input" placeholder="e.g. HDFC Bank, SBI, ICICI" required value="${_escape(card?.bank_name || '')}">
                 </div>
 
                 <div class="cc-form-group">
-                  <label>Card Name / Variant *</label>
+                  <label for="ccCardName">Card Name / Variant *</label>
                   <input type="text" id="ccCardName" class="cc-input" placeholder="e.g. Millennia, Regalia, Amazon Pay" required value="${_escape(card?.card_name || '')}">
                 </div>
 
                 <div class="cc-form-group">
-                  <label>Card Network *</label>
+                  <label for="ccNetwork">Card Network *</label>
                   <select id="ccNetwork" class="cc-input">
                     <option value="Visa" ${card?.card_network === 'Visa' ? 'selected' : ''}>Visa</option>
                     <option value="Mastercard" ${card?.card_network === 'Mastercard' ? 'selected' : ''}>Mastercard</option>
@@ -378,27 +380,27 @@
                 </div>
 
                 <div class="cc-form-group">
-                  <label>Last 4 Digits</label>
+                  <label for="ccLast4">Last 4 Digits</label>
                   <input type="text" id="ccLast4" class="cc-input" maxlength="4" placeholder="e.g. 4829" value="${_escape(card?.last_4_digits || '')}">
                 </div>
 
                 <div class="cc-form-group">
-                  <label>Total Credit Limit (₹) *</label>
+                  <label for="ccLimit">Total Credit Limit (₹) *</label>
                   <input type="number" id="ccLimit" class="cc-input" step="1000" min="0" placeholder="e.g. 150000" required value="${card?.credit_limit || ''}">
                 </div>
 
                 <div class="cc-form-group">
-                  <label>Current Outstanding Due (₹)</label>
+                  <label for="ccCurrentDue">Current Outstanding Due (₹)</label>
                   <input type="number" id="ccCurrentDue" class="cc-input" step="1" min="0" placeholder="e.g. 24500" value="${card?.current_due || 0}">
                 </div>
 
                 <div class="cc-form-group">
-                  <label>Statement Generation Day (1-31) *</label>
+                  <label for="ccStmtDay">Statement Generation Day (1-31) *</label>
                   <input type="number" id="ccStmtDay" class="cc-input" min="1" max="31" placeholder="e.g. 15" required value="${card?.statement_day || 15}">
                 </div>
 
                 <div class="cc-form-group">
-                  <label>Payment Due Day (1-31) *</label>
+                  <label for="ccDueDay">Payment Due Day (1-31) *</label>
                   <input type="number" id="ccDueDay" class="cc-input" min="1" max="31" placeholder="e.g. 5" required value="${card?.due_day || 5}">
                 </div>
 
@@ -418,15 +420,15 @@
                 </div>
 
                 <div class="cc-form-group full-width">
-                  <label>Perks / Notes (Optional)</label>
+                  <label for="ccNotes">Perks / Notes (Optional)</label>
                   <input type="text" id="ccNotes" class="cc-input" placeholder="e.g. 5% cashback on Flipkart, 4 lounge visits" value="${_escape(card?.notes || '')}">
                 </div>
 
               </div>
 
-              <div style="display:flex; justify-content:flex-end; gap:10px; margin-top: 24px;">
+              <div class="cc-modal-actions" style="display:flex; justify-content:flex-end; gap:10px; margin-top: 24px; padding-bottom: 8px;">
                 <button type="button" class="cc-btn-edit" onclick="window.LM_CreditCardsUI.closeModal('ccFormModal')">Cancel</button>
-                <button type="submit" class="cc-add-btn">${isEdit ? 'Save Changes' : '＋ Add Card'}</button>
+                <button type="submit" class="cc-add-btn" id="btnSaveCreditCard">${isEdit ? 'Save Changes' : '＋ Add Card'}</button>
               </div>
             </form>
           </div>
@@ -450,10 +452,10 @@
      * Handle Save Card submit
      */
     handleSaveCard: async function (e, cardId) {
-      e.preventDefault();
+      if (e && e.preventDefault) e.preventDefault();
       var bankName = document.getElementById('ccBankName')?.value?.trim();
       var cardName = document.getElementById('ccCardName')?.value?.trim();
-      var network = document.getElementById('ccNetwork')?.value;
+      var network = document.getElementById('ccNetwork')?.value || 'Visa';
       var last4 = document.getElementById('ccLast4')?.value?.trim();
       var limit = parseFloat(document.getElementById('ccLimit')?.value) || 0;
       var currentDue = parseFloat(document.getElementById('ccCurrentDue')?.value) || 0;
@@ -461,6 +463,19 @@
       var dueDay = parseInt(document.getElementById('ccDueDay')?.value, 10) || 5;
       var theme = document.getElementById('ccSelectedTheme')?.value || 'theme-midnight';
       var notes = document.getElementById('ccNotes')?.value?.trim();
+
+      if (!bankName) {
+        if (typeof showToast === 'function') showToast('❌ Please enter Bank Name', 'error');
+        return;
+      }
+      if (!cardName) {
+        if (typeof showToast === 'function') showToast('❌ Please enter Card Name / Variant', 'error');
+        return;
+      }
+      if (!limit || limit <= 0) {
+        if (typeof showToast === 'function') showToast('❌ Please enter a valid Credit Limit', 'error');
+        return;
+      }
 
       var cardData = {
         bank_name: bankName,
@@ -502,12 +517,14 @@
       var currentDue = Number(card.current_due || 0);
       var minDue = Number(card.min_due || Math.round(currentDue * 0.05));
 
-      var accounts = state.dropdowns?.accounts || ['Bank', 'Cash'];
+      var accounts = (typeof state === 'object' && state.dropdowns?.accounts) || ['Bank', 'Cash'];
 
       var modalContainer = document.getElementById('creditCardModals');
       if (!modalContainer) {
         modalContainer = document.createElement('div');
         modalContainer.id = 'creditCardModals';
+        document.body.appendChild(modalContainer);
+      } else if (modalContainer.parentNode !== document.body) {
         document.body.appendChild(modalContainer);
       }
 
@@ -525,7 +542,7 @@
                   ${_escape(card.bank_name)} ${_escape(card.card_name)} (•••• ${_escape(card.last_4_digits || '0000')})
                 </div>
               </div>
-              <button onclick="window.LM_CreditCardsUI.closeModal('ccPayModal')" style="background:none; border:none; font-size:24px; color:var(--text-3); cursor:pointer;">&times;</button>
+              <button type="button" onclick="window.LM_CreditCardsUI.closeModal('ccPayModal')" style="background:none; border:none; font-size:24px; color:var(--text-3); cursor:pointer; padding:4px 8px;" aria-label="Close">&times;</button>
             </div>
 
             <!-- Dues Info Box -->
@@ -561,19 +578,19 @@
               </div>
 
               <div class="cc-form-group" style="margin-bottom: 14px;">
-                <label>Payment Amount (₹) *</label>
+                <label for="ccPayAmount">Payment Amount (₹) *</label>
                 <input type="number" id="ccPayAmount" class="cc-input" step="1" min="1" max="${Math.max(1, currentDue * 2)}" value="${currentDue}" required>
               </div>
 
               <div class="cc-form-group" style="margin-bottom: 14px;">
-                <label>Pay From Account *</label>
+                <label for="ccPayAccount">Pay From Account *</label>
                 <select id="ccPayAccount" class="cc-input">
                   ${accounts.map(acc => `<option value="${_escape(acc)}">${_escape(acc)}</option>`).join('')}
                 </select>
               </div>
 
               <div class="cc-form-group" style="margin-bottom: 14px;">
-                <label>Payment Date *</label>
+                <label for="ccPayDate">Payment Date *</label>
                 <input type="date" id="ccPayDate" class="cc-input" value="${todayISO}" required>
               </div>
 
@@ -584,7 +601,7 @@
                 </label>
               </div>
 
-              <div style="display:flex; justify-content:flex-end; gap:10px;">
+              <div class="cc-modal-actions" style="display:flex; justify-content:flex-end; gap:10px; padding-bottom: 8px;">
                 <button type="button" class="cc-btn-edit" onclick="window.LM_CreditCardsUI.closeModal('ccPayModal')">Cancel</button>
                 <button type="submit" class="cc-btn-pay" style="padding: 8px 20px;">Confirm &amp; Pay Bill</button>
               </div>

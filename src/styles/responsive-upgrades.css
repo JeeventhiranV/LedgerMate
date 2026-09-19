@@ -536,7 +536,8 @@ html, body {
     align-items: flex-end !important;
     padding: 0 !important;
   }
-  .modal {
+  .modal,
+  .modal-box {
     max-width: 100% !important;
     width: 100% !important;
     max-height: 88vh !important;
@@ -544,7 +545,10 @@ html, body {
     border-bottom: none !important;
     margin: 0 !important;
     animation: sheetUp 0.32s var(--ease-spring) !important;
-    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 16px)) !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
   @keyframes sheetUp {
     from { transform: translateY(100%); opacity: 0.5; }

@@ -983,19 +983,15 @@
   <!-- This is where showGoldRates will inject the content -->
   <div id="goldBox" class="fade-up fade-up-2"></div>
 </div>
- <!-- ─── WEALTH PAGE ──────────────────────────── -->
+      <!-- ─── WEALTH PAGE ──────────────────────────── -->
       <div id="page-wealth" style="display:none;">
         <!-- rendered by showWealthPage() in Wealth.js -->
       </div>
-      <!-- container for wealth modals -->
-      <div id="wealthModals"></div>
 
       <!-- ─── ESSENTIALS PAGE ─────────────────────── -->
       <div id="page-essentials" style="display:none;">
         <!-- rendered by showEssentialsPage() in Essentials.js -->
       </div>
-      <!-- container for essentials modals -->
-      <div id="essentialModals"></div>
 
       <!-- ─── INDIAN STOCKS & PORTFOLIO PAGE ────────── -->
       <div id="page-stocks" style="display:none;">
@@ -1006,7 +1002,6 @@
       <div id="page-credit-cards" style="display:none;">
         <!-- rendered by LM_CreditCardsUI.init() in CreditCardsUI.js -->
       </div>
-      <div id="creditCardModals"></div>
 
     </div><!-- /pageContent -->
     <footer>© <span id="year"></span> <span>LedgerMate</span> by Jeeventhiran</footer>
@@ -1605,7 +1600,11 @@ function setGreeting() {
   </script>
 
 <!-- Modals / Hidden UI -->
-      <div id="modals"></div>
+  <div id="modals"></div>
+  <div id="wealthModals"></div>
+  <div id="essentialModals"></div>
+  <div id="creditCardModals"></div>
+  <div id="stockModalContainer"></div>
 
 <!-- ─── AUTH BOOTSTRAP ─────────────────────────────────────
      Runs after ALL scripts loaded. Checks session and
