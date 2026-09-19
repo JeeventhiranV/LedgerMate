@@ -111,7 +111,7 @@
     var totalTaxes = 0;
 
     txList.forEach(function (tx) {
-      var txType = (tx.transaction_type || 'BUY').toUpperCase();
+      var txType = (tx.transaction_type || tx.type || 'BUY').toUpperCase();
       var txQty = Math.max(0, Number(tx.quantity) || 0);
       var txPrice = Math.max(0, Number(tx.price) || 0);
       var brokerage = Math.max(0, Number(tx.brokerage) || 0);
@@ -186,15 +186,18 @@
     }
 
     var currentValue = currentPrice !== null ? round2(qty * currentPrice) : invested;
-    var unrealizedPL = (currentPrice !== null && isLive) ? round2(currentValue - invested) : 0;
-    var unrealizedPLPct = (invested > 0 && isLive) ? round2((unrealizedPL / invested) * 100) : 0;
+    var unrealizedPL = currentPrice !== null ? round2(currentValue - invested) : 0;
+    var unrealizedPLPct = invested > 0 ? round2((unrealizedPL / invested) * 100) : 0;
     var totalPL = round2(realizedPL + unrealizedPL);
-    var dayChangeTotal = isLive ? round2(qty * dayChange) : 0;
+    var dayChangeTotal = round2(qty * dayChange);
 
     return {
       quantity: qty,
+      totalQuantity: qty,
       averageBuyPrice: weightedAvgBuyPrice,
+      avgBuyPrice: weightedAvgBuyPrice,
       investedAmount: invested,
+      totalInvested: invested,
       currentPrice: currentPrice,
       previousClose: previousClose,
       currentValue: currentValue,
@@ -205,8 +208,11 @@
       dayChangePct: dayChangePct,
       dayChangeTotal: dayChangeTotal,
       unrealizedPL: unrealizedPL,
+      unrealizedProfit: unrealizedPL,
       unrealizedPLPct: unrealizedPLPct,
+      unrealizedProfitPercent: unrealizedPLPct,
       realizedPL: realizedPL,
+      realizedProfit: realizedPL,
       totalPL: totalPL,
       totalBoughtQty: round4(totalBoughtQty),
       totalSoldQty: round4(totalSoldQty),
@@ -221,13 +227,14 @@
    * Aggregate Portfolio-level metrics across all active and historical holdings
    *
    * @param {Array} holdingsWithMetrics List of holdings enriched with metrics
+   * @param {Number} [extraRealizedPnL] Optional realized PnL total from closed trades
    * @returns {Object} Portfolio summary metrics
    */
-  function calculatePortfolioSummary(holdingsWithMetrics) {
+  function calculatePortfolioSummary(holdingsWithMetrics, extraRealizedPnL) {
     var totalInvested = 0;
     var currentPortfolioValue = 0;
     var totalUnrealizedPL = 0;
-    var totalRealizedPL = 0;
+    var totalRealizedPL = Number(extraRealizedPnL) || 0;
     var todayChangeAmount = 0;
     var totalHoldingsCount = 0;
     var profitableCount = 0;
@@ -238,19 +245,25 @@
     var sectorMap = {};
 
     (holdingsWithMetrics || []).forEach(function (h) {
-      var m = h.metrics || {};
-      totalRealizedPL += (m.realizedPL || 0);
+      var m = h.metrics ? h.metrics : h;
+      totalRealizedPL += (m.realizedPL || m.realizedProfit || 0);
 
-      if (m.isOpen) {
+      var isOpen = m.isOpen !== undefined ? m.isOpen : ((m.quantity || m.totalQuantity || m.investedAmount || m.totalInvested || 0) > 0);
+      if (isOpen) {
         totalHoldingsCount++;
-        totalInvested += (m.investedAmount || 0);
-        currentPortfolioValue += (m.currentValue || 0);
-        totalUnrealizedPL += (m.unrealizedPL || 0);
-        todayChangeAmount += (m.dayChangeTotal || 0);
+        var invAmt = (m.investedAmount !== undefined ? m.investedAmount : (m.totalInvested || 0));
+        var curVal = (m.currentValue !== undefined ? m.currentValue : invAmt);
+        var unPL = (m.unrealizedPL !== undefined ? m.unrealizedPL : (m.unrealizedProfit !== undefined ? m.unrealizedProfit : (curVal - invAmt)));
+        var dayChg = (m.dayChangeTotal !== undefined ? m.dayChangeTotal : (m.dayChange || 0));
 
-        if (m.unrealizedPL > 0) {
+        totalInvested += invAmt;
+        currentPortfolioValue += curVal;
+        totalUnrealizedPL += unPL;
+        todayChangeAmount += dayChg;
+
+        if (unPL > 0) {
           profitableCount++;
-        } else if (m.unrealizedPL < 0) {
+        } else if (unPL < 0) {
           lossCount++;
         } else {
           breakEvenCount++;
@@ -262,8 +275,8 @@
         if (!sectorMap[sec]) {
           sectorMap[sec] = { sector: sec, value: 0, invested: 0, holdingsCount: 0 };
         }
-        sectorMap[sec].value += (m.currentValue || 0);
-        sectorMap[sec].invested += (m.investedAmount || 0);
+        sectorMap[sec].value += curVal;
+        sectorMap[sec].invested += invAmt;
         sectorMap[sec].holdingsCount++;
       }
     });
@@ -287,18 +300,24 @@
 
     if (openHoldings.length > 0) {
       var sortedByReturn = openHoldings.slice().sort(function (a, b) {
-        return (b.metrics.unrealizedPLPct || 0) - (a.metrics.unrealizedPLPct || 0);
+        var aM = a.metrics || a;
+        var bM = b.metrics || b;
+        return (bM.unrealizedPLPct || bM.unrealizedProfitPercent || 0) - (aM.unrealizedPLPct || aM.unrealizedProfitPercent || 0);
       });
       bestPerformer = sortedByReturn[0];
       worstPerformer = sortedByReturn[sortedByReturn.length - 1];
 
       var sortedByValue = openHoldings.slice().sort(function (a, b) {
-        return (b.metrics.currentValue || 0) - (a.metrics.currentValue || 0);
+        var aM = a.metrics || a;
+        var bM = b.metrics || b;
+        return (bM.currentValue || 0) - (aM.currentValue || 0);
       });
       highestAllocation = sortedByValue[0];
 
       var sortedByPL = openHoldings.slice().sort(function (a, b) {
-        return (b.metrics.unrealizedPL || 0) - (a.metrics.unrealizedPL || 0);
+        var aM = a.metrics || a;
+        var bM = b.metrics || b;
+        return (bM.unrealizedPL || bM.unrealizedProfit || 0) - (aM.unrealizedPL || aM.unrealizedProfit || 0);
       });
       largestGain = sortedByPL[0];
       largestLoss = sortedByPL[sortedByPL.length - 1];
@@ -318,11 +337,17 @@
     return {
       totalInvested: totalInvested,
       currentPortfolioValue: currentPortfolioValue,
+      totalCurrentValue: currentPortfolioValue,
       totalUnrealizedPL: totalUnrealizedPL,
+      totalUnrealizedPnL: totalUnrealizedPL,
+      totalUnrealizedPnLPct: totalReturnPct,
       totalRealizedPL: totalRealizedPL,
+      totalRealizedPnL: totalRealizedPL,
       totalPortfolioPL: totalPortfolioPL,
+      totalPnL: totalPortfolioPL,
       totalReturnPct: totalReturnPct,
       todayChangeAmount: round2(todayChangeAmount),
+      totalDayChange: round2(todayChangeAmount),
       todayChangePct: todayChangePct,
       totalHoldingsCount: totalHoldingsCount,
       profitableCount: profitableCount,

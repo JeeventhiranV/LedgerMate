@@ -392,7 +392,15 @@
         showToast('✅ Bill payment of ₹' + amount.toLocaleString('en-IN') + ' recorded for ' + card.card_name, 'success');
       }
 
-      return { success: true, remainingDue: newDue };
+      return { success: true, remainingDue: newDue, card: this.getCardById(cardId) };
+    },
+
+    /**
+     * Record payment shorthand
+     */
+    recordPayment: async function (cardId, amount, accountId) {
+      await this.payCardBill({ cardId: cardId, amount: amount, accountId: accountId });
+      return this.getCardById(cardId);
     },
 
     /**

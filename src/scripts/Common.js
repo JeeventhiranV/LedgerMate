@@ -1,6 +1,6 @@
 let transactions = []; // All transactions will be stored here
-  let settings = {};   
-const fmtINR = (v) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(v || 0);
+const fmtINR = (v) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Math.round(v) || 0);
+if (typeof window !== 'undefined') window.fmtINR = fmtINR;
 const nowISO = () => new Date().toISOString().slice(0,10);
 const uid = (prefix='id') => prefix + '_' + Math.random().toString(36).slice(2,9);
 function parseCSV(text){
@@ -4085,22 +4085,26 @@ function calcMonthlyForecast(expenseList) {
 /* =========================
    KPI CALCULATION
    ========================= */
-function calculateKPIs() {
+function calculateKPIs(customTx, customDays) {
   const today = new Date();
   let startDate, endDate = today;
-  let days = parseInt(state.timeRange);
+  let days = customDays !== undefined ? (customDays === 'all' ? 'all' : parseInt(customDays)) : (state?.timeRange ? (state.timeRange === 'all' ? 'all' : parseInt(state.timeRange)) : 30);
 
-  if (state.timeRange === "custom" && state.customRange.start && state.customRange.end) {
+  if (days === 'all' || state?.timeRange === 'all') {
+    startDate = new Date(0);
+    days = 99999;
+  } else if (state?.timeRange === "custom" && state?.customRange?.start && state?.customRange?.end) {
     startDate = new Date(state.customRange.start);
     endDate = new Date(state.customRange.end);
     days = Math.max(1, Math.floor((endDate - startDate) / 86400000) + 1);
   } else {
-    if (!days || days <= 0) days = 30;
+    if (!days || isNaN(days) || days <= 0) days = 30;
     startDate = new Date();
     startDate.setDate(today.getDate() - days + 1);
   }
 
-  const rangeTx = filterByRange([...state.transactions], startDate, endDate);
+  const txList = Array.isArray(customTx) ? customTx : (state?.transactions || []);
+  const rangeTx = filterByRange([...txList], startDate, endDate);
 
   const isIn  = (t) => t.type === 'in'  || t.type === 'income';
   const isOut = (t) => t.type === 'out' || t.type === 'expense';
@@ -4108,7 +4112,7 @@ function calculateKPIs() {
   const income  = sumBy(rangeTx.filter(isIn),  'amount');
   const expense = sumBy(rangeTx.filter(isOut), 'amount');
 
-  const balance = state.transactions.reduce((s, t) => {
+  const balance = txList.reduce((s, t) => {
     const amt = parseFloat(t.amount) || 0;
     return s + (isIn(t) ? amt : isOut(t) ? -amt : 0);
   }, 0);
@@ -8091,3 +8095,13 @@ window.LM_showBottomNav = function() {
 
 window.LM_syncModalState = function() {};
 window.LM_initModalObserver = function() {};
+
+// Global Financial Helpers
+if (typeof window !== 'undefined') {
+  window.fmtINR = fmtINR;
+  window.calculateKPIs = calculateKPIs;
+  window.calcGrowthRate = calcGrowthRate;
+  window.filterByRange = filterByRange;
+  window.calcXIRR = calcXIRR;
+  window.getPortfolioXIRR = getPortfolioXIRR;
+}

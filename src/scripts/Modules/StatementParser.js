@@ -395,6 +395,8 @@
   }
 
   window.LM_StatementParser = {
+    cleanAmount: cleanAmount,
+    parseFlexibleDate: parseFlexibleDate,
     parseCSV: parseCSV,
     parseStatement: parseStatement,
     showImportModal: showImportModal,

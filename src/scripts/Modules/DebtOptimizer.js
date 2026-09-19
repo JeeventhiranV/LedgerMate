@@ -235,7 +235,9 @@
 
   window.LM_DebtOptimizer = {
     simulate: simulatePayoff,
+    simulatePayoff: simulatePayoff,
     showModal: showSimulatorModal,
+    showSimulatorModal: showSimulatorModal,
     getActiveDebts: getActiveDebts
   };
 

@@ -344,6 +344,25 @@
         return true;
       });
 
+      // Sort: Active investments first, then Inactive / Closed / Matured investments
+      filteredInvs.sort(function (a, b) {
+        var aClosed = isClosedOrMatured(a);
+        var bClosed = isClosedOrMatured(b);
+        if (!aClosed && bClosed) return -1;
+        if (aClosed && !bClosed) return 1;
+
+        // Within active: maturing soonest first, then most recently created/started
+        if (!aClosed && !bClosed) {
+          var aDays = calculateDaysLeft(calculateMaturityDate(a));
+          var bDays = calculateDaysLeft(calculateMaturityDate(b));
+          if (aDays > 0 && bDays > 0 && aDays !== bDays) return aDays - bDays;
+        }
+
+        var dateA = new Date(a.date || a.startDate || a.purchaseDate || a.created_at || 0).getTime();
+        var dateB = new Date(b.date || b.startDate || b.purchaseDate || b.created_at || 0).getTime();
+        return dateB - dateA;
+      });
+
       var html = `
         <div class="inv-container">
 
@@ -678,24 +697,29 @@
       var matDate = calculateMaturityDate(inv);
       var daysLeft = calculateDaysLeft(matDate);
 
+      var historicalInvested = calculateHistoricalInvested(inv);
+      var maturityVal = maturity > 0 ? maturity : calculateMaturity(Object.assign({}, inv, { status: 'active', isClosed: false, isMatured: false }));
+      if (maturityVal <= 0) maturityVal = historicalInvested;
+      var interestEarned = interest > 0 ? interest : Math.max(0, maturityVal - historicalInvested);
+
       var progress = 0;
       if (inv.tenureMonths && inv.startDate) {
         var start = new Date(inv.startDate);
         var today = new Date();
         if (!isNaN(start.getTime())) {
           var elapsedMonths = Math.max(0, Math.floor((today - start) / (1000 * 60 * 60 * 24 * 30.4375)));
-          progress = Math.min(100, Math.max(0, Math.round((elapsedMonths / _toNum(inv.tenureMonths)) * 100)));
+          progress = isClosed ? 100 : Math.min(100, Math.max(0, Math.round((elapsedMonths / _toNum(inv.tenureMonths)) * 100)));
         }
+      } else if (isClosed) {
+        progress = 100;
       }
 
-      var rateDisplay = inv.rate ? inv.rate + '% p.a.' : (inv.sipReturn ? inv.sipReturn + '% Exp' : '-');
+      var rateDisplay = inv.rate ? inv.rate + '% p.a.' : (inv.sipReturn ? inv.sipReturn + '% Exp' : (inv.interestRate ? inv.interestRate + '% p.a.' : '-'));
       var titleName = inv.name || inv.bankName || inv.fundName || (meta.label + ' Item');
       var institution = inv.institution || inv.bank || (inv.type === 'FD' || inv.type === 'RD' ? 'Bank Deposit' : 'Portfolio Asset');
 
-      var historicalInvested = calculateHistoricalInvested(inv);
-
       return `
-        <div class="inv-card ${isClosed ? 'inv-card-closed' : ''}" style="${isClosed ? 'opacity: 0.82; border-color: rgba(239,68,68,0.25);' : ''}">
+        <div class="inv-card ${isClosed ? 'inv-card-closed' : ''}" style="${isClosed ? 'opacity: 0.88; border-color: rgba(244,63,94,0.3); background: rgba(244,63,94,0.03);' : ''}">
           <div>
             <div class="inv-card-top">
               <div class="inv-card-badge-wrap">
@@ -705,34 +729,38 @@
                   <div class="inv-card-sub">
                     ${_escape(institution)} · 
                     ${isClosed 
-                      ? '<span class="inv-type-badge type-badge-closed" style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;">🔒 Matured / Closed</span>' 
+                      ? '<span class="inv-type-badge type-badge-closed" style="background:rgba(244,63,94,0.15);color:#f43f5e;border:1px solid rgba(244,63,94,0.35);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">🔒 Matured / Closed</span>' 
                       : `<span class="inv-type-badge ${meta.badgeCls}">${meta.label}</span>`}
                   </div>
                 </div>
               </div>
-              <span class="inv-badge-pill ${isClosed ? 'badge-loss' : (interest >= 0 ? 'badge-gain' : 'badge-loss')}">
-                ${isClosed ? 'Closed / Matured' : rateDisplay}
+              <span class="inv-badge-pill ${isClosed ? 'badge-loss' : (interest >= 0 ? 'badge-gain' : 'badge-loss')}" style="${isClosed ? 'background:rgba(244,63,94,0.12);color:#f43f5e;border:1px solid rgba(244,63,94,0.25);' : ''}">
+                ${isClosed ? '🔒 Matured (' + rateDisplay + ')' : rateDisplay}
               </span>
             </div>
 
-            <!-- Financial Metrics Grid -->
+            <!-- Financial Metrics Grid (Complete Details Preserved for History) -->
             <div class="inv-card-metrics" style="margin-top:14px;">
               <div>
                 <div class="inv-metric-label">Invested Capital</div>
-                <div class="inv-metric-val" style="${isClosed ? 'color:var(--text-3);text-decoration:line-through;' : ''}">${_fmtINR(isClosed ? historicalInvested : invested)}</div>
-                ${isClosed ? '<div style="font-size:10px;color:var(--rose,#fb7185);font-weight:600;margin-top:2px;">₹0 Active (Closed)</div>' : ''}
+                <div class="inv-metric-val" style="${isClosed ? 'color:var(--text);' : ''}">
+                  ${isClosed 
+                    ? `<span style="text-decoration:line-through;color:var(--text-3);font-size:0.9em;margin-right:4px;">${_fmtINR(historicalInvested)}</span><span style="font-size:11px;color:#f43f5e;font-weight:700;">₹0 Active</span>` 
+                    : _fmtINR(invested)}
+                </div>
+                ${isClosed ? '<div style="font-size:10px;color:var(--text-3);margin-top:2px;">Historical: ' + _fmtINR(historicalInvested) + '</div>' : ''}
               </div>
               <div>
-                <div class="inv-metric-label">Maturity / Current</div>
-                <div class="inv-metric-val gain">${_fmtINR(maturity)}</div>
+                <div class="inv-metric-label">${isClosed ? 'Final Maturity Value' : 'Maturity / Current'}</div>
+                <div class="inv-metric-val gain">${_fmtINR(maturityVal)}</div>
               </div>
               <div>
                 <div class="inv-metric-label">Interest Earned</div>
-                <div class="inv-metric-val gold">+${_fmtINR(interest)}</div>
+                <div class="inv-metric-val gold">+${_fmtINR(interestEarned)}</div>
               </div>
               <div>
                 <div class="inv-metric-label">Maturity Date</div>
-                <div class="inv-metric-val" style="font-size:0.82rem;">${matDate || 'Ongoing'}</div>
+                <div class="inv-metric-val" style="font-size:0.82rem;color:${isClosed ? 'var(--rose,#fb7185)' : 'var(--text)'};">${matDate || (isClosed ? 'Matured' : 'Ongoing')}</div>
               </div>
             </div>
 
@@ -740,8 +768,8 @@
             ${inv.tenureMonths ? `
               <div class="inv-progress-wrap" style="margin-top:12px;">
                 <div class="inv-progress-header">
-                  <span>Tenure Progress: ${progress}%</span>
-                  <span>${isClosed ? '🔒 Matured / Closed' : (daysLeft > 0 ? daysLeft + ' days left' : 'Matured')}</span>
+                  <span>Tenure Progress: ${progress}% (${inv.tenureMonths} Mo)</span>
+                  <span>${isClosed ? '🔒 Fully Matured / Closed' : (daysLeft > 0 ? daysLeft + ' days left' : 'Matured')}</span>
                 </div>
                 <div class="inv-progress-track">
                   <div class="inv-progress-fill" style="width: ${progress}%; ${isClosed ? 'background:var(--rose,#fb7185);' : ''}"></div>
@@ -1269,11 +1297,21 @@
       }
       var container = document.getElementById('investmentModals');
       if (container) container.innerHTML = '';
-    }
+    },
+
+    // Exposed financial calculation helpers
+    isClosedOrMatured: isClosedOrMatured,
+    calculateInvestedSoFar: calculateInvestedSoFar,
+    calculateHistoricalInvested: calculateHistoricalInvested,
+    calculateMaturity: calculateMaturity,
+    calculateInterestSoFar: calculateInterestSoFar,
+    calculateMaturityDate: calculateMaturityDate,
+    calculateDaysLeft: calculateDaysLeft
   };
 
   // Legacy fallback and Global exposure
   window.LM_InvestmentsUI = InvestmentsUI;
+  window.LM_isClosedOrMatured = isClosedOrMatured;
   window.showInvestmentsModal = function() {
     if (typeof showPage === 'function') {
       showPage('investments');

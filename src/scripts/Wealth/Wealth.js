@@ -305,9 +305,22 @@ function switchWealthTab(tab) {
    TAB 1 — ASSETS
 ───────────────────────────────────────────────────────────── */
 function renderWealthAssets(container) {
-  const assets        = state.investments || [];
-  const totalInvested = assets.reduce((s,a)=>s+getAssetInvestedAmount(a),0);
-  const totalCurrent  = assets.reduce((s,a)=>s+getAssetCurrentValue(a),0);
+  const rawAssets    = state.investments || [];
+  const assets       = [...rawAssets].sort((a, b) => {
+    const aClosed = isAssetClosedOrMatured(a);
+    const bClosed = isAssetClosedOrMatured(b);
+    if (!aClosed && bClosed) return -1;
+    if (aClosed && !bClosed) return 1;
+
+    // Within active: highest value first
+    const valA = getAssetCurrentValue(a);
+    const valB = getAssetCurrentValue(b);
+    if (valA !== valB) return valB - valA;
+    return new Date(b.date || b.startDate || b.purchaseDate || 0) - new Date(a.date || a.startDate || a.purchaseDate || 0);
+  });
+
+  const totalInvested = rawAssets.reduce((s,a)=>s+getAssetInvestedAmount(a),0);
+  const totalCurrent  = rawAssets.reduce((s,a)=>s+getAssetCurrentValue(a),0);
   const totalPnL      = totalCurrent - totalInvested;
   const pnlPct        = totalInvested > 0 ? ((totalPnL/totalInvested)*100).toFixed(1) : 0;
   const pnlColor      = totalPnL >= 0 ? 'var(--emerald)' : 'var(--rose)';
@@ -392,11 +405,14 @@ function renderWealthAssets(container) {
   }
 
   const rows = assets.map(a => {
+    const isClosed = isAssetClosedOrMatured(a);
     const cat      = getAssetCategory(a);
     const catInfo  = ASSET_CATEGORIES[cat] || { icon: '💼', color: 'var(--teal)' };
     const invested = getAssetInvestedAmount(a);
     const curVal   = getAssetCurrentValue(a);
-    const pnl      = curVal - invested;
+    const historicalInvested = toNum(a.buyPrice || a.principal || a.amount || 0);
+    const historicalCurrent = toNum(a.currentValue || (typeof calculateMaturity === 'function' ? calculateMaturity(Object.assign({}, a, { status: 'active', isClosed: false, isMatured: false })) : historicalInvested));
+    const pnl      = isClosed ? (historicalCurrent - historicalInvested) : (curVal - invested);
     const pct      = totalCurrent > 0 ? ((curVal/totalCurrent)*100).toFixed(1) : 0;
     const qty      = toNum(a.qty || a.stockQty || 0);
     const avgCost  = toNum(a.buyPrice || a.avgCost || a.stockBuyPrice || 0);
@@ -406,24 +422,33 @@ function renderWealthAssets(container) {
     const qtyDisp  = isQtyType && qty > 0 ? qty.toFixed(qty < 10 ? 3 : 2) : '—';
     const avgDisp  = avgCost > 0 ? fmtINR(avgCost) : '—';
     const ltpDisp  = ltp > 0    ? fmtINR(ltp)      : '—';
-    const pnlInvPct = invested > 0 ? ((pnl/invested)*100).toFixed(1) : 0;
+    const pnlInvPct = (isClosed ? historicalInvested : invested) > 0 ? ((pnl/(isClosed ? historicalInvested : invested))*100).toFixed(1) : 0;
 
     return `
-      <tr class="wealth-row" data-id="${a.id}" data-cat="${cat}">
+      <tr class="wealth-row ${isClosed ? 'wealth-row-closed' : ''}" data-id="${a.id}" data-cat="${cat}" style="${isClosed ? 'opacity:0.85;background:rgba(244,63,94,0.02);' : ''}">
         <td>
           <div style="display:flex;align-items:center;gap:10px;">
             <span style="font-size:18px;">${catInfo.icon}</span>
             <div>
-              <div class="list-item-name" style="margin:0;">${a.name||'Asset'}</div>
-              <div class="list-item-sub" style="margin:0;">${a.subType||cat}</div>
+              <div class="list-item-name" style="margin:0;display:flex;align-items:center;gap:6px;">
+                ${a.name||'Asset'}
+                ${isClosed ? '<span style="background:rgba(244,63,94,0.15);color:#f43f5e;border:1px solid rgba(244,63,94,0.35);padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;">🔒 Matured / Closed</span>' : ''}
+              </div>
+              <div class="list-item-sub" style="margin:0;">${a.subType||cat} · ${a.institution || a.bank || (a.type==='FD'||a.type==='RD'?'Bank Deposit':'Asset')}</div>
             </div>
           </div>
         </td>
         <td class="wealth-td-mono">${qtyDisp}</td>
         <td class="wealth-td-mono">${avgDisp}</td>
         <td class="wealth-td-mono">${ltpDisp}</td>
-        <td class="wealth-td-mono">${fmtINR(invested)}</td>
-        <td class="wealth-td-mono" style="color:var(--teal);">${fmtINR(curVal)}</td>
+        <td class="wealth-td-mono">
+          ${isClosed 
+            ? `<span style="text-decoration:line-through;color:var(--text-3);">${fmtINR(historicalInvested)}</span> <span style="font-size:10px;color:#f43f5e;font-weight:700;">(₹0 Active)</span>` 
+            : fmtINR(invested)}
+        </td>
+        <td class="wealth-td-mono" style="color:${isClosed ? 'var(--text-2)' : 'var(--teal)'};">
+          ${isClosed ? `${fmtINR(historicalCurrent > 0 ? historicalCurrent : historicalInvested)} <span style="font-size:10px;color:var(--text-3);">(Matured)</span>` : fmtINR(curVal)}
+        </td>
         <td class="wealth-td-mono" style="color:${pnl>=0?'var(--emerald)':'var(--rose)'};">
           ${pnl>=0?'<span class="live-arrow-up">▲</span> +':'<span class="live-arrow-down">▼</span> '}${fmtINR(pnl)}<br>
           <span style="font-size:10px;opacity:0.8;">${pnl>=0?'+':''}${pnlInvPct}%</span>
@@ -442,7 +467,7 @@ function renderWealthAssets(container) {
 
   // Category composition bar data
   const catTotals = {};
-  assets.forEach(a => {
+  rawAssets.forEach(a => {
     const c = getAssetCategory(a);
     catTotals[c] = (catTotals[c] || 0) + getAssetCurrentValue(a);
   });
@@ -469,31 +494,37 @@ function renderWealthAssets(container) {
 
   // Mobile card view
   const mobileCards = assets.map((a, i) => {
+    const isClosed = isAssetClosedOrMatured(a);
     const cat      = getAssetCategory(a);
     const catInfo  = ASSET_CATEGORIES[cat] || { icon: '💼', color: 'var(--teal)' };
     const invested = getAssetInvestedAmount(a);
     const curVal   = getAssetCurrentValue(a);
-    const pnl      = curVal - invested;
+    const historicalInvested = toNum(a.buyPrice || a.principal || a.amount || 0);
+    const historicalCurrent = toNum(a.currentValue || (typeof calculateMaturity === 'function' ? calculateMaturity(Object.assign({}, a, { status: 'active', isClosed: false, isMatured: false })) : historicalInvested));
+    const pnl      = isClosed ? (historicalCurrent - historicalInvested) : (curVal - invested);
     const pct      = totalCurrent > 0 ? ((curVal/totalCurrent)*100).toFixed(1) : 0;
-    const pnlInvPct = invested > 0 ? ((pnl/invested)*100).toFixed(1) : 0;
+    const pnlInvPct = (isClosed ? historicalInvested : invested) > 0 ? ((pnl/(isClosed ? historicalInvested : invested))*100).toFixed(1) : 0;
     const staggerCls = `s${Math.min(i+1,5)}`;
     return `
-      <div class="wealth-mob-card ${staggerCls}" data-id="${a.id}" data-cat="${cat}">
+      <div class="wealth-mob-card ${staggerCls} ${isClosed ? 'wealth-mob-card-closed' : ''}" data-id="${a.id}" data-cat="${cat}" style="${isClosed ? 'opacity:0.88;border-color:rgba(244,63,94,0.3);background:rgba(244,63,94,0.02);' : ''}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
           <div style="display:flex;align-items:center;gap:10px;">
             <span style="font-size:22px;line-height:1;">${catInfo.icon}</span>
             <div>
-              <div class="list-item-name" style="margin:0;">${a.name||'Asset'}</div>
+              <div class="list-item-name" style="margin:0;display:flex;align-items:center;gap:6px;">
+                ${a.name||'Asset'}
+                ${isClosed ? '<span style="background:rgba(244,63,94,0.15);color:#f43f5e;border:1px solid rgba(244,63,94,0.35);padding:1px 5px;border-radius:4px;font-size:9px;font-weight:700;">🔒 Closed</span>' : ''}
+              </div>
               <div class="list-item-sub" style="margin:0;">${a.subType||cat}</div>
             </div>
           </div>
           <div style="text-align:right;">
-            <div style="font-family:var(--font-m);font-size:14px;font-weight:700;color:var(--teal);">${fmtINR(curVal)}</div>
+            <div style="font-family:var(--font-m);font-size:14px;font-weight:700;color:${isClosed ? 'var(--text-2)' : 'var(--teal)'};">${fmtINR(isClosed ? (historicalCurrent > 0 ? historicalCurrent : historicalInvested) : curVal)}</div>
             <div style="font-size:11px;color:${pnl>=0?'var(--emerald)':'var(--rose)'};display:inline-flex;align-items:center;gap:3px;">${pnl>=0?'<span class="live-arrow-up">▲</span> +':'<span class="live-arrow-down">▼</span> '}${fmtINR(pnl)} (${pnl>=0?'+':''}${pnlInvPct}%)</div>
           </div>
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3);">
-          <span>Invested: <b style="color:var(--text-2);">${fmtINR(invested)}</b></span>
+          <span>Invested: <b style="color:var(--text-2);">${isClosed ? `<span style="text-decoration:line-through;">${fmtINR(historicalInvested)}</span> (Closed)` : fmtINR(invested)}</b></span>
           <span>Alloc: <b style="color:var(--text-2);">${pct}%</b></span>
           <div style="display:flex;gap:4px;">
             <button class="section-action" onclick="openEditAssetModal('${a.id}')" style="padding:4px 8px;" title="Edit">✏️</button>
@@ -2212,3 +2243,17 @@ function switchToEssentialsGoals() {
 
 window.toNum = window.toNum || function(v) { const n=parseFloat(v); return isNaN(n)?0:n; };
 window.renderWealthLoans = renderWealthLoans;
+window.isAssetClosedOrMatured = isAssetClosedOrMatured;
+window.getAssetCurrentValue = getAssetCurrentValue;
+window.getAssetInvestedAmount = getAssetInvestedAmount;
+window.getAssetCategory = getAssetCategory;
+window.getTotalAssets = getTotalAssets;
+window.ASSET_CATEGORIES = ASSET_CATEGORIES;
+window.LM_Wealth = {
+  isAssetClosedOrMatured,
+  getAssetCurrentValue,
+  getAssetInvestedAmount,
+  getAssetCategory,
+  getTotalAssets,
+  ASSET_CATEGORIES
+};

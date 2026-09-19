@@ -1161,6 +1161,9 @@ function toggleNewGoalForm() {
   const f = document.getElementById('newGoalForm'); if(f) f.style.display = f.style.display==='none'?'':'none';
 }
 
+window.DataEngine = DataEngine;
+window.LM_Essentials = DataEngine;
+
 function closeEssentialModal(id) {
   const el = document.getElementById(id); if(el) { el.classList.remove('show'); setTimeout(()=>el.remove(),300); }
   const c = document.getElementById('essentialModals'); if(c) c.innerHTML='';
