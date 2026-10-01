@@ -727,7 +727,60 @@
       console.warn('Budget alert check failed:', e);
     }
 
-    // 5. Process and Dispatch Notifications
+    // 5. Sync active dues to Native AndroidBridge (for background workers & daily alarms when app is killed)
+    try {
+      if (window.AndroidBridge && typeof window.AndroidBridge.syncRemindersToNative === 'function') {
+        const currentMonth = now.toISOString().slice(0, 7);
+        const compiledBudgets = (Array.isArray(state.budgets) ? state.budgets.filter(b => b.month === currentMonth) : []).map(b => {
+          const limit = Number(b.amount || 0);
+          const spent = (state.transactions || [])
+            .filter(t => t.type === 'expense' && t.date && t.date.startsWith(currentMonth) && t.category === b.category)
+            .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+          const pct = limit > 0 ? Math.round((spent / limit) * 100) : 0;
+          return {
+            category: b.category,
+            pct: pct,
+            spent: spent,
+            limit: limit,
+            month: currentMonth
+          };
+        }).filter(b => b.pct >= 85);
+
+        const compiledCards = (cards || []).map(card => {
+          const dueInfo = window.LM_CreditCardsService?.getDueCountdown?.(card) || {};
+          return {
+            id: card.id,
+            card_name: card.card_name || 'Credit Card',
+            bank_name: card.bank_name || 'Bank',
+            current_due: Number(card.current_due || 0),
+            daysUntilDue: dueInfo.daysUntilDue ?? 999,
+            nextDueDate: dueInfo.nextDueDate || ''
+          };
+        }).filter(c => c.current_due > 0 && c.daysUntilDue <= 3);
+
+        const compiledLoans = Object.values(loanGroups).map((g, idx) => ({
+          id: `loan_${idx}_${g.person}_${g.dueDate}`,
+          person: g.person,
+          type: g.type,
+          total: g.total,
+          diffDays: g.diffDays,
+          dueDate: g.dueDate
+        }));
+
+        const activeDuesPayload = {
+          reminders: (state.reminders || []).filter(r => !r.completed),
+          creditCards: compiledCards,
+          loans: compiledLoans,
+          budgets: compiledBudgets
+        };
+
+        window.AndroidBridge.syncRemindersToNative(JSON.stringify(activeDuesPayload));
+      }
+    } catch (e) {
+      console.warn('Native background sync failed:', e);
+    }
+
+    // 6. Process and Dispatch Notifications
     function processNotifications() {
       enableNotifications();
       const batch = notifications.splice(0, 2);

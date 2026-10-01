@@ -7,6 +7,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -90,6 +91,12 @@ public class MainActivity extends AppCompatActivity {
 
         createNotificationChannel();
         checkAndRequestNotificationPermission();
+
+        // Initialize Background Reminder Services (WorkManager + Daily Alarm)
+        try {
+            BootReceiver.schedulePeriodicReminderWork(this);
+            AlarmReceiver.scheduleDailyReminderAlarm(this);
+        } catch (Exception ignored) {}
 
         webView = new WebView(this);
         setContentView(webView);
@@ -690,6 +697,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public class AndroidBridge {
+        @JavascriptInterface
+        public void syncRemindersToNative(String duesJson) {
+            if (duesJson == null || duesJson.isEmpty()) return;
+            try {
+                SharedPreferences prefs = getSharedPreferences(BackgroundReminderWorker.PREFS_NAME, Context.MODE_PRIVATE);
+                prefs.edit().putString(BackgroundReminderWorker.KEY_DUES_PAYLOAD, duesJson).apply();
+                executorService.execute(() -> BackgroundReminderWorker.evaluateAndTriggerAlerts(MainActivity.this));
+            } catch (Exception ignored) {}
+        }
+
         @JavascriptInterface
         public void showNativeNotification(String title, String message, String tag, String url) {
             runOnUiThread(() -> showNotification(title, message, tag, url));
