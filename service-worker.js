@@ -58,6 +58,7 @@ const STATIC_ASSETS = [
   './src/scripts/Charts/Doughnut.js',
   './src/scripts/SpeechText/VoiceText.js',
   './src/scripts/Common/Notifications.js',
+  './src/scripts/Common/AppUpdateService.js',
   './src/scripts/Common/Drive.js',
   './src/scripts/Common/GoldRateFetch.js',
   './src/scripts/Common/TripPlanner.js',
