@@ -20,6 +20,51 @@
 
   var _allocationChartInstance = null;
   var _plChartInstance = null;
+  var _marqueeIndices = null;
+
+  function getMarqueeTrackHTML() {
+    var list = _marqueeIndices || [
+      { symbol: 'NIFTY 50', price: '24,850.30', change: 160.2, change_percent: 0.65, isUp: true },
+      { symbol: 'SENSEX', price: '81,920.40', change: 472.1, change_percent: 0.58, isUp: true },
+      { symbol: 'BANK NIFTY', price: '52,180.15', change: -115.4, change_percent: -0.22, isUp: false },
+      { symbol: 'NIFTY IT', price: '36,420.80', change: 403.5, change_percent: 1.12, isUp: true },
+      { symbol: 'RELIANCE', price: '₹2,985.40', change: 24.3, change_percent: 0.82, isUp: true },
+      { symbol: 'TATA MOTORS', price: '₹980.50', change: 20.6, change_percent: 2.15, isUp: true },
+      { symbol: 'HDFC BANK', price: '₹1,642.00', change: -6.5, change_percent: -0.40, isUp: false },
+      { symbol: 'INFOSYS', price: '₹1,780.25', change: 25.4, change_percent: 1.45, isUp: true },
+      { symbol: 'TCS', price: '₹4,120.00', change: 36.8, change_percent: 0.90, isUp: true },
+      { symbol: 'ICICI BANK', price: '₹1,215.30', change: 9.1, change_percent: 0.75, isUp: true }
+    ];
+
+    var itemsHtml = list.map(function (idx) {
+      var badgeCls = idx.isUp ? 'up' : 'down';
+      var sign = idx.isUp ? '▲ +' : '▼ ';
+      var pct = typeof idx.change_percent === 'number' ? Math.abs(idx.change_percent).toFixed(2) + '%' : '';
+      return '<div class="ticker-item">' +
+        '<span class="ticker-symbol">' + idx.symbol + '</span>' +
+        '<span class="ticker-price">' + idx.price + '</span>' +
+        '<span class="ticker-badge ' + badgeCls + '">' + sign + pct + '</span>' +
+      '</div>';
+    }).join('');
+
+    // Double for continuous looping
+    return itemsHtml + itemsHtml;
+  }
+
+  async function updateMarqueeTicker() {
+    if (window.LM_MarketDataService && typeof window.LM_MarketDataService.fetchMarketIndices === 'function') {
+      try {
+        var data = await window.LM_MarketDataService.fetchMarketIndices();
+        if (data && data.length > 0) {
+          _marqueeIndices = data;
+          var track = document.querySelector('.market-marquee-track');
+          if (track) {
+            track.innerHTML = getMarqueeTrackHTML();
+          }
+        }
+      } catch (e) {}
+    }
+  }
 
   function getCalculations() {
     return window.LM_StockCalculations || {
@@ -104,27 +149,7 @@
         <!-- ── Real-Time Animated Market Marquee Ticker Tape ── -->
         <div class="market-marquee-container" id="stocksMarqueeTicker">
           <div class="market-marquee-track">
-            <div class="ticker-item"><span class="ticker-symbol">NIFTY 50</span><span class="ticker-price">24,850.30</span><span class="ticker-badge up">▲ +0.65%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">SENSEX</span><span class="ticker-price">81,920.40</span><span class="ticker-badge up">▲ +0.58%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">BANK NIFTY</span><span class="ticker-price">52,180.15</span><span class="ticker-badge down">▼ -0.22%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">NIFTY IT</span><span class="ticker-price">36,420.80</span><span class="ticker-badge up">▲ +1.12%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">RELIANCE</span><span class="ticker-price">₹2,985.40</span><span class="ticker-badge up">▲ +0.82%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">TATA MOTORS</span><span class="ticker-price">₹980.50</span><span class="ticker-badge up">▲ +2.15%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">HDFC BANK</span><span class="ticker-price">₹1,642.00</span><span class="ticker-badge down">▼ -0.40%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">INFOSYS</span><span class="ticker-price">₹1,780.25</span><span class="ticker-badge up">▲ +1.45%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">TCS</span><span class="ticker-price">₹4,120.00</span><span class="ticker-badge up">▲ +0.90%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">ICICI BANK</span><span class="ticker-price">₹1,215.30</span><span class="ticker-badge up">▲ +0.75%</span></div>
-            <!-- Duplicate loop for seamless continuous marquee -->
-            <div class="ticker-item"><span class="ticker-symbol">NIFTY 50</span><span class="ticker-price">24,850.30</span><span class="ticker-badge up">▲ +0.65%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">SENSEX</span><span class="ticker-price">81,920.40</span><span class="ticker-badge up">▲ +0.58%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">BANK NIFTY</span><span class="ticker-price">52,180.15</span><span class="ticker-badge down">▼ -0.22%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">NIFTY IT</span><span class="ticker-price">36,420.80</span><span class="ticker-badge up">▲ +1.12%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">RELIANCE</span><span class="ticker-price">₹2,985.40</span><span class="ticker-badge up">▲ +0.82%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">TATA MOTORS</span><span class="ticker-price">₹980.50</span><span class="ticker-badge up">▲ +2.15%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">HDFC BANK</span><span class="ticker-price">₹1,642.00</span><span class="ticker-badge down">▼ -0.40%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">INFOSYS</span><span class="ticker-price">₹1,780.25</span><span class="ticker-badge up">▲ +1.45%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">TCS</span><span class="ticker-price">₹4,120.00</span><span class="ticker-badge up">▲ +0.90%</span></div>
-            <div class="ticker-item"><span class="ticker-symbol">ICICI BANK</span><span class="ticker-price">₹1,215.30</span><span class="ticker-badge up">▲ +0.75%</span></div>
+            ${getMarqueeTrackHTML()}
           </div>
         </div>
 
@@ -763,11 +788,6 @@
     }
   }
 
-  /**
-   * Open Modal to Add Stock / Transaction
-   */
-  function openAddTransactionModal(preset) {
-    var modalContainer = document.getElementById('stockModalContainer');
   /**
    * Helper to ensure the modal container exists directly on document.body for true viewport centering
    */
@@ -1561,8 +1581,11 @@
     try {
       var service = getService();
       if (service) {
-        await service.refreshMarketQuotes(true);
-        toast('🔄 Live Indian stock prices updated', 'success');
+        await Promise.all([
+          service.refreshMarketQuotes(true),
+          updateMarqueeTicker()
+        ]);
+        toast('🔄 Live Indian stock prices & indices updated', 'success');
       }
     } catch (e) {
       toast('Market price refresh notice: using latest cached data', 'info');
@@ -1587,6 +1610,7 @@
         service.init().then(function () {
           render();
           service.refreshMarketQuotes(true);
+          updateMarqueeTicker();
         });
       }
 

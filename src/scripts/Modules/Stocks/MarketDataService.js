@@ -269,6 +269,43 @@
     return null;
   }
 
+  /**
+   * Helper to invoke Native Android Bridge for Stock Quotes
+   */
+  function fetchQuotesFromNativeBridge(symbolsArray) {
+    return new Promise(function (resolve, reject) {
+      if (!window.AndroidBridge || typeof window.AndroidBridge.fetchStockQuotes !== 'function') {
+        return reject(new Error('Native bridge unavailable'));
+      }
+
+      window.LM_NativeBridgeCallbacks = window.LM_NativeBridgeCallbacks || {};
+      var callbackId = 'stk_cb_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+
+      var timeoutId = setTimeout(function () {
+        delete window.LM_NativeBridgeCallbacks[callbackId];
+        reject(new Error('Native bridge quote fetch timeout'));
+      }, 12000);
+
+      window.LM_NativeBridgeCallbacks[callbackId] = function (res) {
+        clearTimeout(timeoutId);
+        delete window.LM_NativeBridgeCallbacks[callbackId];
+        if (res && res.status === 'success' && res.quotes) {
+          resolve(res.quotes);
+        } else {
+          reject(new Error(res && res.error ? res.error : 'Invalid response from native bridge'));
+        }
+      };
+
+      try {
+        window.AndroidBridge.fetchStockQuotes(JSON.stringify(symbolsArray), callbackId);
+      } catch (err) {
+        clearTimeout(timeoutId);
+        delete window.LM_NativeBridgeCallbacks[callbackId];
+        reject(err);
+      }
+    });
+  }
+
   var LM_MarketDataService = {
     /**
      * Get synchronous cached quote if available
@@ -284,7 +321,9 @@
      */
     fetchQuote: async function (symbol, exchange, forceRefresh) {
       if (!symbol) return null;
-      var key = symbol.toUpperCase() + '_' + (exchange || 'NSE').toUpperCase();
+      var sym = symbol.toUpperCase();
+      var ex = (exchange || 'NSE').toUpperCase();
+      var key = sym + '_' + ex;
       var cached = memoryCache[key];
       var now = Date.now();
 
@@ -292,7 +331,39 @@
         return cached;
       }
 
-      var fresh = await fetchQuoteFromNetwork(symbol, exchange);
+      // 1. Try Native Android Bridge if present
+      if (window.AndroidBridge && typeof window.AndroidBridge.fetchStockQuotes === 'function') {
+        try {
+          var ticker = getTickerCode(sym, ex);
+          var nativeQuotes = await fetchQuotesFromNativeBridge([ticker]);
+          if (nativeQuotes && nativeQuotes[ticker]) {
+            var nq = nativeQuotes[ticker];
+            var quote = {
+              symbol: sym,
+              exchange: ex,
+              price: nq.price,
+              previous_close: nq.previous_close || nq.price,
+              change: nq.change || 0,
+              change_percent: nq.change_percent || 0,
+              day_high: nq.day_high,
+              day_low: nq.day_low,
+              currency: nq.currency || 'INR',
+              market_status: checkIndianMarketStatus().status,
+              timestamp: now,
+              isLive: true
+            };
+            memoryCache[key] = quote;
+            lastFetchTimestamp = now;
+            saveCache();
+            return quote;
+          }
+        } catch (e) {
+          console.warn('[MarketDataService] Native single quote fetch failed:', e);
+        }
+      }
+
+      // 2. Web Network / Proxy fetch
+      var fresh = await fetchQuoteFromNetwork(sym, ex);
       if (fresh) {
         if (!fresh.isLive) {
           fresh.timestamp = now - CACHE_TTL_MS + 30000; // 30s TTL for fallbacks
@@ -307,8 +378,8 @@
       if (cached) return cached;
 
       return {
-        symbol: symbol.toUpperCase(),
-        exchange: (exchange || 'NSE').toUpperCase(),
+        symbol: sym,
+        exchange: ex,
         price: null,
         status: 'unavailable',
         timestamp: now
@@ -327,6 +398,55 @@
       var now = Date.now();
 
       try {
+        // 1. Try Native Android Bridge for ultra-fast zero-CORS batch quoting
+        if (window.AndroidBridge && typeof window.AndroidBridge.fetchStockQuotes === 'function') {
+          try {
+            var tickersMap = {};
+            var tickerList = [];
+
+            items.forEach(function (item) {
+              var sym = (item.symbol || item).toUpperCase();
+              var ex = (item.exchange || 'NSE').toUpperCase();
+              var ticker = getTickerCode(sym, ex);
+              tickersMap[ticker] = { symbol: sym, exchange: ex, key: sym + '_' + ex };
+              tickerList.push(ticker);
+            });
+
+            var nativeQuotes = await fetchQuotesFromNativeBridge(tickerList);
+            if (nativeQuotes && typeof nativeQuotes === 'object') {
+              Object.keys(nativeQuotes).forEach(function (tkr) {
+                var meta = tickersMap[tkr];
+                var nq = nativeQuotes[tkr];
+                if (meta && nq && nq.price > 0) {
+                  var quote = {
+                    symbol: meta.symbol,
+                    exchange: meta.exchange,
+                    price: nq.price,
+                    previous_close: nq.previous_close || nq.price,
+                    change: nq.change || 0,
+                    change_percent: nq.change_percent || 0,
+                    day_high: nq.day_high,
+                    day_low: nq.day_low,
+                    currency: nq.currency || 'INR',
+                    market_status: checkIndianMarketStatus().status,
+                    timestamp: now,
+                    isLive: true
+                  };
+                  memoryCache[meta.key] = quote;
+                  results[meta.key] = quote;
+                }
+              });
+
+              lastFetchTimestamp = now;
+              saveCache();
+              return results;
+            }
+          } catch (ne) {
+            console.warn('[MarketDataService] Native batch quotes failed, falling back to web:', ne);
+          }
+        }
+
+        // 2. Web fallback batch fetching
         var fetchPromises = items.map(async function (item) {
           var sym = (item.symbol || item).toUpperCase();
           var ex = (item.exchange || 'NSE').toUpperCase();
@@ -341,7 +461,7 @@
           var quote = await fetchQuoteFromNetwork(sym, ex);
           if (quote) {
             if (!quote.isLive) {
-              quote.timestamp = now - CACHE_TTL_MS + 30000; // 30s TTL for fallbacks
+              quote.timestamp = now - CACHE_TTL_MS + 30000;
             }
             memoryCache[key] = quote;
             results[key] = quote;
@@ -368,6 +488,62 @@
       }
 
       return results;
+    },
+
+    /**
+     * Fetch Live Benchmark Indices for Marquee Ticker Tape
+     */
+    fetchMarketIndices: async function () {
+      var indices = [
+        { symbol: '^NSEI', name: 'NIFTY 50', exchange: 'NSE' },
+        { symbol: '^BSESN', name: 'SENSEX', exchange: 'BSE' },
+        { symbol: '^NSEBANK', name: 'BANK NIFTY', exchange: 'NSE' },
+        { symbol: '^CNXIT', name: 'NIFTY IT', exchange: 'NSE' },
+        { symbol: 'RELIANCE.NS', name: 'RELIANCE', exchange: 'NSE' },
+        { symbol: 'TCS.NS', name: 'TCS', exchange: 'NSE' },
+        { symbol: 'HDFCBANK.NS', name: 'HDFC BANK', exchange: 'NSE' },
+        { symbol: 'INFY.NS', name: 'INFOSYS', exchange: 'NSE' },
+        { symbol: 'TATAMOTORS.NS', name: 'TATA MOTORS', exchange: 'NSE' },
+        { symbol: 'ICICIBANK.NS', name: 'ICICI BANK', exchange: 'NSE' }
+      ];
+
+      var tickerList = indices.map(i => i.symbol);
+      var results = [];
+
+      if (window.AndroidBridge && typeof window.AndroidBridge.fetchStockQuotes === 'function') {
+        try {
+          var nativeQuotes = await fetchQuotesFromNativeBridge(tickerList);
+          if (nativeQuotes) {
+            indices.forEach(function (idx) {
+              var nq = nativeQuotes[idx.symbol];
+              if (nq && nq.price > 0) {
+                results.push({
+                  symbol: idx.name,
+                  price: nq.price.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+                  change: nq.change,
+                  change_percent: nq.change_percent,
+                  isUp: (nq.change || 0) >= 0
+                });
+              }
+            });
+            if (results.length > 0) return results;
+          }
+        } catch (e) {}
+      }
+
+      // Default baseline values if offline
+      return [
+        { symbol: 'NIFTY 50', price: '24,850.30', change: 160.2, change_percent: 0.65, isUp: true },
+        { symbol: 'SENSEX', price: '81,920.40', change: 472.1, change_percent: 0.58, isUp: true },
+        { symbol: 'BANK NIFTY', price: '52,180.15', change: -115.4, change_percent: -0.22, isUp: false },
+        { symbol: 'NIFTY IT', price: '36,420.80', change: 403.5, change_percent: 1.12, isUp: true },
+        { symbol: 'RELIANCE', price: '₹2,985.40', change: 24.3, change_percent: 0.82, isUp: true },
+        { symbol: 'TATA MOTORS', price: '₹980.50', change: 20.6, change_percent: 2.15, isUp: true },
+        { symbol: 'HDFC BANK', price: '₹1,642.00', change: -6.5, change_percent: -0.40, isUp: false },
+        { symbol: 'INFOSYS', price: '₹1,780.25', change: 25.4, change_percent: 1.45, isUp: true },
+        { symbol: 'TCS', price: '₹4,120.00', change: 36.8, change_percent: 0.90, isUp: true },
+        { symbol: 'ICICI BANK', price: '₹1,215.30', change: 9.1, change_percent: 0.75, isUp: true }
+      ];
     },
 
     /**
