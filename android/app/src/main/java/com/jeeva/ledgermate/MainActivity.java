@@ -8,13 +8,17 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Message;
+import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -84,16 +88,50 @@ public class MainActivity extends AppCompatActivity {
         settings.setBuiltInZoomControls(false);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setMediaPlaybackRequiresUserGesture(false);
+        settings.setJavaScriptCanOpenWindowsAutomatically(true);
+        settings.setSupportMultipleWindows(true);
+
+        // Sanitize User-Agent to prevent Google OAuth "disallowed_useragent" (403) in WebView
+        String defaultUa = settings.getUserAgentString();
+        String sanitizedUa = (defaultUa != null)
+                ? defaultUa.replace("; wv", "").replaceAll("Version/\\d+\\.\\d+", "")
+                : null;
+        if (sanitizedUa != null) {
+            settings.setUserAgentString(sanitizedUa);
+        }
+
+        // Enable third-party cookies for seamless OAuth session exchanges
+        CookieManager cookieManager = CookieManager.getInstance();
+        cookieManager.setAcceptCookie(true);
+        cookieManager.setAcceptThirdPartyCookies(webView, true);
 
         // Native Android Bridge for Web Notifications and Real-time Alerts
         webView.addJavascriptInterface(new AndroidBridge(), "AndroidBridge");
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                if (request != null && request.getUrl() != null) {
+                    return handleUrlLoading(view, request.getUrl().toString());
+                }
+                return false;
+            }
+
+            @SuppressWarnings("deprecation")
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                if (url.startsWith("https://jeeventhiranv.github.io/LedgerMate/")) {
+                return handleUrlLoading(view, url);
+            }
+
+            private boolean handleUrlLoading(WebView view, String url) {
+                if (url == null) return false;
+
+                // If internal or auth url, let the WebView handle it directly
+                if (isInternalOrAuthUrl(url)) {
                     return false;
                 }
+
+                // External URLs: open in external browser or app
                 try {
                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                     startActivity(intent);
@@ -101,6 +139,12 @@ public class MainActivity extends AppCompatActivity {
                 } catch (Exception e) {
                     return false;
                 }
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                CookieManager.getInstance().flush();
             }
         });
 
@@ -126,6 +170,53 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return true;
             }
+
+            @Override
+            public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
+                WebView newWebView = new WebView(MainActivity.this);
+                WebSettings newSettings = newWebView.getSettings();
+                newSettings.setJavaScriptEnabled(true);
+                newSettings.setDomStorageEnabled(true);
+                if (sanitizedUa != null) {
+                    newSettings.setUserAgentString(sanitizedUa);
+                }
+                CookieManager.getInstance().setAcceptThirdPartyCookies(newWebView, true);
+
+                newWebView.setWebViewClient(new WebViewClient() {
+                    @Override
+                    public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
+                        if (req != null && req.getUrl() != null) {
+                            String target = req.getUrl().toString();
+                            if (isInternalOrAuthUrl(target)) {
+                                view.loadUrl(target);
+                                return true;
+                            }
+                            try {
+                                startActivity(new Intent(Intent.ACTION_VIEW, req.getUrl()));
+                            } catch (Exception ignored) {}
+                        }
+                        return true;
+                    }
+
+                    @SuppressWarnings("deprecation")
+                    @Override
+                    public boolean shouldOverrideUrlLoading(WebView v, String target) {
+                        if (isInternalOrAuthUrl(target)) {
+                            view.loadUrl(target);
+                            return true;
+                        }
+                        try {
+                            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(target)));
+                        } catch (Exception ignored) {}
+                        return true;
+                    }
+                });
+
+                WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
+                transport.setWebView(newWebView);
+                resultMsg.sendToTarget();
+                return true;
+            }
         });
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -146,6 +237,66 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private boolean isInternalOrAuthUrl(String url) {
+        if (url == null || url.trim().isEmpty()) return false;
+
+        if (url.startsWith("javascript:") || url.startsWith("about:") ||
+            url.startsWith("data:") || url.startsWith("blob:")) {
+            return true;
+        }
+
+        try {
+            Uri uri = Uri.parse(url);
+            String scheme = uri.getScheme();
+            if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
+                return false;
+            }
+
+            String host = uri.getHost();
+            if (host == null) return false;
+            String lowerHost = host.toLowerCase();
+
+            // 1. LedgerMate app domain & local dev
+            if (lowerHost.equals("jeeventhiranv.github.io") ||
+                lowerHost.equals("localhost") ||
+                lowerHost.equals("127.0.0.1")) {
+                return true;
+            }
+
+            // 2. Supabase Auth & DB endpoints
+            if (lowerHost.endsWith(".supabase.co") ||
+                lowerHost.equals("supabase.co") ||
+                lowerHost.endsWith(".supabase.in")) {
+                return true;
+            }
+
+            // 3. Google OAuth & Sign-in endpoints
+            if (lowerHost.equals("accounts.google.com") ||
+                lowerHost.endsWith(".accounts.google.com") ||
+                lowerHost.startsWith("accounts.google.") ||
+                lowerHost.contains(".google.") ||
+                lowerHost.equals("ssl.gstatic.com") ||
+                lowerHost.endsWith(".gstatic.com") ||
+                lowerHost.equals("apis.google.com") ||
+                lowerHost.equals("play.google.com") ||
+                lowerHost.endsWith(".googleusercontent.com")) {
+                return true;
+            }
+
+            // 4. Other common OAuth endpoints (GitHub, Apple)
+            if (lowerHost.equals("github.com") && (uri.getPath() != null && uri.getPath().startsWith("/login"))) {
+                return true;
+            }
+            if (lowerHost.equals("appleid.apple.com")) {
+                return true;
+            }
+        } catch (Exception e) {
+            return false;
+        }
+
+        return false;
+    }
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
@@ -154,7 +305,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleIntent(Intent intent) {
-        if (intent != null && intent.hasExtra("target_url")) {
+        if (intent == null) return;
+
+        // Handle deep link / OAuth redirect URL from scheme or app link
+        Uri data = intent.getData();
+        if (data != null) {
+            String dataUrl = data.toString();
+            if (dataUrl.startsWith("ledgermate://")) {
+                dataUrl = dataUrl.replace("ledgermate://", APP_URL);
+            }
+            if (isInternalOrAuthUrl(dataUrl)) {
+                webView.loadUrl(dataUrl);
+                return;
+            }
+        }
+
+        // Handle push notification target URL
+        if (intent.hasExtra("target_url")) {
             String targetUrl = intent.getStringExtra("target_url");
             if (targetUrl != null && !targetUrl.isEmpty()) {
                 if (targetUrl.startsWith("./")) {
