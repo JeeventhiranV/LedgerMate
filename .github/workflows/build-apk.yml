@@ -40,7 +40,7 @@ jobs:
           BUBBLEWRAP_KEYSTORE_PASSWORD: "ledgermate123"
           BUBBLEWRAP_KEY_PASSWORD: "ledgermate123"
         run: |
-          yes "" | bubblewrap build \
+          yes y | bubblewrap build \
             --skipPwaValidation \
             --signingKeyPath="android.keystore" \
             --signingKeyAlias="ledgermate"
