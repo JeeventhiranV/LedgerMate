@@ -14,6 +14,7 @@
   let _checking = false;
   let _activeModal = null;
   let _lastCheckedTime = 0;
+  const DISMISS_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4 hours snooze on 'Remind Later'
 
   function isNativeAndroid() {
     return typeof window.AndroidBridge !== 'undefined' &&
@@ -43,8 +44,319 @@
     }
   }
 
+  function injectModalStyles() {
+    if (document.getElementById('lm-update-service-inline-css')) return;
+    const style = document.createElement('style');
+    style.id = 'lm-update-service-inline-css';
+    style.textContent = `
+      .lm-update-overlay {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 2147483647 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 20px !important;
+        box-sizing: border-box !important;
+        background: rgba(4, 8, 18, 0.85) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        animation: lmUpdateFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+        pointer-events: auto !important;
+        touch-action: auto !important;
+      }
+      [data-theme="light"] .lm-update-overlay {
+        background: rgba(15, 23, 42, 0.6) !important;
+      }
+      .lm-update-card {
+        position: relative !important;
+        width: 100% !important;
+        max-width: 420px !important;
+        box-sizing: border-box !important;
+        background: #121827 !important;
+        background: linear-gradient(175deg, #182238 0%, #0f1523 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 24px !important;
+        padding: 24px !important;
+        box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 40px rgba(0, 212, 180, 0.15) !important;
+        color: #f1f5f9 !important;
+        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+        animation: lmUpdateSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+        pointer-events: auto !important;
+      }
+      [data-theme="light"] .lm-update-card {
+        background: #ffffff !important;
+        background: linear-gradient(175deg, #ffffff 0%, #f8fafc 100%) !important;
+        border: 1px solid rgba(0, 0, 0, 0.12) !important;
+        box-shadow: 0 25px 60px -10px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.06), 0 0 30px rgba(0, 212, 180, 0.12) !important;
+        color: #0f172a !important;
+      }
+      .lm-update-close-btn {
+        position: absolute !important;
+        top: 16px !important;
+        right: 16px !important;
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 50% !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        color: #94a3b8 !important;
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        z-index: 10 !important;
+      }
+      .lm-update-close-btn:hover,
+      .lm-update-close-btn:active {
+        background: rgba(255, 255, 255, 0.2) !important;
+        color: #ffffff !important;
+        transform: scale(1.08) !important;
+      }
+      [data-theme="light"] .lm-update-close-btn {
+        background: rgba(0, 0, 0, 0.06) !important;
+        border: 1px solid rgba(0, 0, 0, 0.1) !important;
+        color: #64748b !important;
+      }
+      [data-theme="light"] .lm-update-close-btn:hover,
+      [data-theme="light"] .lm-update-close-btn:active {
+        background: rgba(0, 0, 0, 0.12) !important;
+        color: #0f172a !important;
+      }
+      .lm-update-header {
+        display: flex !important;
+        align-items: center !important;
+        gap: 14px !important;
+        margin-bottom: 18px !important;
+        padding-right: 28px !important;
+      }
+      .lm-update-icon-wrap {
+        width: 48px !important;
+        height: 48px !important;
+        min-width: 48px !important;
+        border-radius: 16px !important;
+        background: linear-gradient(135deg, #00d4b4 0%, #3b82f6 100%) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 24px !important;
+        box-shadow: 0 8px 20px rgba(0, 212, 180, 0.3) !important;
+      }
+      .lm-update-title-wrap {
+        flex: 1 !important;
+        min-width: 0 !important;
+      }
+      .lm-update-title-row {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        flex-wrap: wrap !important;
+        margin-bottom: 4px !important;
+      }
+      .lm-update-title {
+        margin: 0 !important;
+        font-size: 17px !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.3px !important;
+        color: #ffffff !important;
+      }
+      [data-theme="light"] .lm-update-title {
+        color: #0f172a !important;
+      }
+      .lm-update-badge {
+        display: inline-flex !important;
+        align-items: center !important;
+        padding: 2px 8px !important;
+        border-radius: 99px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.2px !important;
+        background: rgba(0, 212, 180, 0.2) !important;
+        color: #00d4b4 !important;
+        border: 1px solid rgba(0, 212, 180, 0.4) !important;
+      }
+      [data-theme="light"] .lm-update-badge {
+        background: rgba(13, 148, 136, 0.12) !important;
+        color: #0d9488 !important;
+        border-color: rgba(13, 148, 136, 0.3) !important;
+      }
+      .lm-update-subtitle {
+        margin: 0 !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
+        color: #94a3b8 !important;
+      }
+      [data-theme="light"] .lm-update-subtitle {
+        color: #64748b !important;
+      }
+      .lm-update-notes-box {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.09) !important;
+        border-radius: 14px !important;
+        padding: 14px !important;
+        margin-bottom: 20px !important;
+        font-size: 12.5px !important;
+        line-height: 1.5 !important;
+        box-sizing: border-box !important;
+      }
+      [data-theme="light"] .lm-update-notes-box {
+        background: #f1f5f9 !important;
+        border: 1px solid #e2e8f0 !important;
+      }
+      .lm-update-notes-heading {
+        font-weight: 700 !important;
+        color: #e2e8f0 !important;
+        margin-bottom: 6px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        font-size: 12px !important;
+      }
+      [data-theme="light"] .lm-update-notes-heading {
+        color: #334155 !important;
+      }
+      .lm-update-notes-content {
+        color: #cbd5e1 !important;
+        word-break: break-word !important;
+      }
+      [data-theme="light"] .lm-update-notes-content {
+        color: #475569 !important;
+      }
+      .lm-update-progress-wrap {
+        margin-bottom: 20px !important;
+        box-sizing: border-box !important;
+      }
+      .lm-update-progress-info {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: #cbd5e1 !important;
+        margin-bottom: 8px !important;
+      }
+      [data-theme="light"] .lm-update-progress-info {
+        color: #334155 !important;
+      }
+      .lm-update-progress-track {
+        width: 100% !important;
+        height: 10px !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 99px !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+        position: relative !important;
+      }
+      [data-theme="light"] .lm-update-progress-track {
+        background: #e2e8f0 !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+      .lm-update-progress-fill {
+        height: 100% !important;
+        border-radius: 99px !important;
+        background: linear-gradient(90deg, #00d4b4 0%, #3b82f6 100%) !important;
+        box-shadow: 0 0 12px rgba(0, 212, 180, 0.5) !important;
+        transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      }
+      .lm-update-actions {
+        display: flex !important;
+        gap: 12px !important;
+        box-sizing: border-box !important;
+      }
+      .lm-update-btn-dismiss {
+        flex: 1 !important;
+        min-height: 44px !important;
+        padding: 10px 16px !important;
+        border-radius: 12px !important;
+        background: rgba(255, 255, 255, 0.06) !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        color: #94a3b8 !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-decoration: none !important;
+        box-shadow: none !important;
+      }
+      .lm-update-btn-dismiss:hover,
+      .lm-update-btn-dismiss:active {
+        background: rgba(255, 255, 255, 0.14) !important;
+        color: #ffffff !important;
+        transform: translateY(-1px) !important;
+      }
+      [data-theme="light"] .lm-update-btn-dismiss {
+        background: #f1f5f9 !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #475569 !important;
+      }
+      [data-theme="light"] .lm-update-btn-dismiss:hover,
+      [data-theme="light"] .lm-update-btn-dismiss:active {
+        background: #e2e8f0 !important;
+        color: #0f172a !important;
+      }
+      .lm-update-btn-install {
+        flex: 1.3 !important;
+        min-height: 44px !important;
+        padding: 10px 16px !important;
+        border-radius: 12px !important;
+        background: linear-gradient(135deg, #00d4b4 0%, #10b981 100%) !important;
+        border: none !important;
+        color: #042f2c !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        cursor: pointer !important;
+        box-shadow: 0 6px 18px rgba(0, 212, 180, 0.35) !important;
+        transition: all 0.2s ease !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+        text-decoration: none !important;
+      }
+      .lm-update-btn-install:hover {
+        filter: brightness(1.08) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 8px 22px rgba(0, 212, 180, 0.45) !important;
+      }
+      .lm-update-btn-install:active {
+        transform: scale(0.98) !important;
+      }
+      .lm-update-btn-install:disabled {
+        opacity: 0.65 !important;
+        cursor: not-allowed !important;
+        transform: none !important;
+      }
+      @keyframes lmUpdateFadeIn {
+        0% { opacity: 0; }
+        100% { opacity: 1; }
+      }
+      @keyframes lmUpdateSlideUp {
+        0% { opacity: 0; transform: translateY(16px) scale(0.96); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   function renderUpdateUI(currentVer, remoteMeta) {
-    if (_activeModal) _activeModal.remove();
+    if (_activeModal) {
+      try { _activeModal.remove(); } catch(e) {}
+      _activeModal = null;
+    }
+
+    injectModalStyles();
 
     const currentCode = Number(currentVer.versionCode) || 1;
     const remoteCode  = Number(remoteMeta.apkVersionCode) || 1;
@@ -55,46 +367,49 @@
 
     const overlay = document.createElement('div');
     overlay.id = 'lmAppUpdateModal';
-    overlay.className = 'fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in';
-    overlay.style.animation = 'lmFadeIn 0.25s ease-out forwards';
+    overlay.className = 'lm-update-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
 
     overlay.innerHTML = `
-      <div class="w-full max-w-md bg-[#131722] border border-[#2a2e39] rounded-2xl p-6 shadow-2xl text-white relative">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-2xl shadow-lg shadow-teal-500/20">
+      <div class="lm-update-card" id="lmUpdateCard">
+        <button class="lm-update-close-btn" id="lmUpdateCloseBtn" title="Dismiss" aria-label="Close">✕</button>
+
+        <div class="lm-update-header">
+          <div class="lm-update-icon-wrap">
             🚀
           </div>
-          <div>
-            <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
-              New Update Available!
-              <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">v${remoteName}</span>
-            </h3>
-            <p class="text-xs text-slate-400">Current version: v${currentName}</p>
+          <div class="lm-update-title-wrap">
+            <div class="lm-update-title-row">
+              <h3 class="lm-update-title">New Update Available!</h3>
+              <span class="lm-update-badge">v${remoteName}</span>
+            </div>
+            <p class="lm-update-subtitle">Installed: v${currentName}</p>
           </div>
         </div>
 
-        <div class="bg-[#1e222d] border border-[#2a2e39] rounded-xl p-3.5 mb-5 text-xs text-slate-300 space-y-1.5">
-          <div class="font-semibold text-slate-200 flex items-center gap-1.5">
+        <div class="lm-update-notes-box">
+          <div class="lm-update-notes-heading">
             <span>✨ What's New:</span>
           </div>
-          <p class="text-slate-300 leading-relaxed">${notes}</p>
+          <div class="lm-update-notes-content">${notes}</div>
         </div>
 
-        <div id="lmUpdateProgressContainer" class="hidden mb-5">
-          <div class="flex justify-between text-xs font-medium text-slate-300 mb-1.5">
+        <div id="lmUpdateProgressContainer" class="lm-update-progress-wrap" style="display:none;">
+          <div class="lm-update-progress-info">
             <span id="lmUpdateStatusText">Downloading package...</span>
             <span id="lmUpdatePercentText">0%</span>
           </div>
-          <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-            <div id="lmUpdateProgressBar" class="h-full bg-gradient-to-r from-teal-500 to-emerald-400 rounded-full transition-all duration-200" style="width: 0%"></div>
+          <div class="lm-update-progress-track">
+            <div id="lmUpdateProgressBar" class="lm-update-progress-fill" style="width: 0%;"></div>
           </div>
         </div>
 
-        <div id="lmUpdateActionButtons" class="flex gap-3">
-          <button id="lmUpdateDismissBtn" class="flex-1 px-4 py-2.5 rounded-xl border border-[#2a2e39] text-slate-400 hover:text-white hover:bg-slate-800 text-xs font-semibold transition-all">
+        <div id="lmUpdateActionButtons" class="lm-update-actions">
+          <button id="lmUpdateDismissBtn" class="lm-update-btn-dismiss" type="button">
             Remind Later
           </button>
-          <button id="lmUpdateNowBtn" class="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-slate-950 font-bold text-xs shadow-lg shadow-teal-500/25 transition-all flex items-center justify-center gap-1.5">
+          <button id="lmUpdateNowBtn" class="lm-update-btn-install" type="button">
             <span>⬇️ Install Update</span>
           </button>
         </div>
@@ -104,6 +419,22 @@
     document.body.appendChild(overlay);
     _activeModal = overlay;
 
+    let isDownloading = false;
+
+    function closeModal(saveCooldown = true) {
+      if (isDownloading) return; // do not close during active download
+      if (saveCooldown) {
+        try {
+          localStorage.setItem('lm_update_snooze_code', String(remoteCode));
+          localStorage.setItem('lm_update_snooze_time', String(Date.now()));
+        } catch (e) {}
+      }
+      if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      _activeModal = null;
+    }
+
+    const card = overlay.querySelector('#lmUpdateCard');
+    const closeBtn = overlay.querySelector('#lmUpdateCloseBtn');
     const dismissBtn = overlay.querySelector('#lmUpdateDismissBtn');
     const updateBtn  = overlay.querySelector('#lmUpdateNowBtn');
     const progressWrap = overlay.querySelector('#lmUpdateProgressContainer');
@@ -111,16 +442,22 @@
     const percentText  = overlay.querySelector('#lmUpdatePercentText');
     const progressBar  = overlay.querySelector('#lmUpdateProgressBar');
 
-    dismissBtn.addEventListener('click', () => {
-      overlay.remove();
-      _activeModal = null;
-    });
+    // Prevent clicks on the card from propagating to the overlay or dashboard
+    card.addEventListener('click', (e) => e.stopPropagation());
 
+    // Dismiss events
+    closeBtn.addEventListener('click', () => closeModal(true));
+    dismissBtn.addEventListener('click', () => closeModal(true));
+    overlay.addEventListener('click', () => closeModal(true));
+
+    // Install Action
     updateBtn.addEventListener('click', () => {
+      isDownloading = true;
       updateBtn.disabled = true;
+      closeBtn.style.display = 'none';
       dismissBtn.style.display = 'none';
-      progressWrap.classList.remove('hidden');
-      updateBtn.textContent = 'Preparing Download...';
+      progressWrap.style.display = 'block';
+      updateBtn.innerHTML = '<span>⏳ Preparing Download...</span>';
 
       const callbackId = 'cb_update_' + Date.now();
       window.LM_NativeBridgeCallbacks = window.LM_NativeBridgeCallbacks || {};
@@ -133,35 +470,41 @@
           progressBar.style.width = p + '%';
           percentText.textContent = p + '%';
           statusText.textContent = data.message || `Downloading update (${p}%)...`;
-          updateBtn.textContent = `Downloading ${p}%`;
+          updateBtn.innerHTML = `<span>⬇️ Downloading ${p}%</span>`;
         } else if (data.status === 'installing' || data.status === 'complete') {
           progressBar.style.width = '100%';
           percentText.textContent = '100%';
           statusText.textContent = 'Launching Installer...';
-          updateBtn.textContent = '✅ Launching Installer...';
+          updateBtn.innerHTML = '<span>✅ Launching Installer...</span>';
           setTimeout(() => {
-            if (overlay && overlay.parentNode) overlay.remove();
+            if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
             _activeModal = null;
           }, 4000);
         } else if (data.status === 'permission_required') {
-          statusText.textContent = '⚠️ Permission required: Allow install from this source';
+          isDownloading = false;
+          statusText.textContent = '⚠️ Enable "Allow from this source", then retry.';
           updateBtn.disabled = false;
-          updateBtn.textContent = '🔄 Retry Installation';
+          dismissBtn.style.display = 'inline-flex';
+          updateBtn.innerHTML = '<span>🔄 Retry Installation</span>';
         } else if (data.status === 'error') {
-          statusText.textContent = '❌ Error: ' + (data.error || 'Failed to download update');
+          isDownloading = false;
+          statusText.textContent = '❌ ' + (data.error || 'Download failed');
           updateBtn.disabled = false;
-          dismissBtn.style.display = 'block';
-          updateBtn.textContent = '🔄 Retry';
+          closeBtn.style.display = 'flex';
+          dismissBtn.style.display = 'inline-flex';
+          updateBtn.innerHTML = '<span>🔄 Retry</span>';
         }
       };
 
       try {
         window.AndroidBridge.downloadAndInstallApk(apkUrl, callbackId);
       } catch (err) {
-        statusText.textContent = '❌ Native bridge error: ' + err.message;
+        isDownloading = false;
+        statusText.textContent = '❌ Native error: ' + err.message;
         updateBtn.disabled = false;
-        dismissBtn.style.display = 'block';
-        updateBtn.textContent = '🔄 Retry';
+        closeBtn.style.display = 'flex';
+        dismissBtn.style.display = 'inline-flex';
+        updateBtn.innerHTML = '<span>🔄 Retry</span>';
       }
     });
   }
@@ -198,6 +541,15 @@
       console.log(`[AppUpdate] Installed: v${currentVer.versionName} (${currentCode}), Remote: v${remoteMeta.apkVersionName} (${remoteCode})`);
 
       if (remoteCode > currentCode) {
+        if (!manual) {
+          // Check snooze cooldown
+          const snoozeCode = localStorage.getItem('lm_update_snooze_code');
+          const snoozeTime = Number(localStorage.getItem('lm_update_snooze_time') || 0);
+          if (snoozeCode === String(remoteCode) && (now - snoozeTime < DISMISS_COOLDOWN_MS)) {
+            console.log('[AppUpdate] Update snoozed until cooldown expires.');
+            return;
+          }
+        }
         renderUpdateUI(currentVer, remoteMeta);
       } else {
         if (manual && typeof window.showToast === 'function') {
@@ -221,13 +573,13 @@
   // Auto-check on launch after DOM ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => checkForUpdates(false), 3500);
+      setTimeout(() => checkForUpdates(false), 2500);
     });
   } else {
-    setTimeout(() => checkForUpdates(false), 3500);
+    setTimeout(() => checkForUpdates(false), 2500);
   }
 
-  // Also check on app foreground/visibility change
+  // Check on app foreground/visibility change
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       setTimeout(() => checkForUpdates(false), 2000);
