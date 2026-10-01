@@ -472,6 +472,10 @@
           statusText.textContent = data.message || `Downloading update (${p}%)...`;
           updateBtn.innerHTML = `<span>⬇️ Downloading ${p}%</span>`;
         } else if (data.status === 'installing' || data.status === 'complete') {
+          try {
+            localStorage.setItem('lm_update_snooze_code', String(remoteCode));
+            localStorage.setItem('lm_update_snooze_time', String(Date.now()));
+          } catch (e) {}
           progressBar.style.width = '100%';
           percentText.textContent = '100%';
           statusText.textContent = 'Launching Installer...';

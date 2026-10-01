@@ -78,7 +78,12 @@ print("    URL: " + url[:45] + "...")
 print("    Deploy ID: " + cache_version)
 
 # ── Write version.json ────────────────────────────────────────────────────────
-github_run_number = int(os.environ.get("GITHUB_RUN_NUMBER", "1"))
+try:
+    import subprocess
+    build_number = int(subprocess.check_output(["git", "rev-list", "--count", "HEAD"]).decode().strip())
+except Exception:
+    build_number = int(os.environ.get("BUILD_NUMBER", os.environ.get("GITHUB_RUN_NUMBER", "250")))
+
 github_repo = os.environ.get("GITHUB_REPOSITORY", "JeeventhiranV/LedgerMate")
 apk_download_url = f"https://github.com/{github_repo}/releases/download/latest/app-release.apk"
 
@@ -87,15 +92,15 @@ version_info = {
     "commit": sha,
     "build_date": build_date,
     "timestamp": int(time.time() * 1000),
-    "apkVersionCode": github_run_number,
-    "apkVersionName": f"1.0.{github_run_number}",
+    "apkVersionCode": build_number,
+    "apkVersionName": f"1.0.{build_number}",
     "apkDownloadUrl": apk_download_url,
     "releaseNotes": "Performance improvements, live market data feeds, in-app Google login, and security hardening."
 }
 with open("version.json", "w") as f:
     json.dump(version_info, f, indent=2)
 
-print("✅  version.json generated → " + cache_version + " (APK v1.0." + str(github_run_number) + ")")
+print("✅  version.json generated → " + cache_version + " (APK v1.0." + str(build_number) + ", versionCode: " + str(build_number) + ")")
 
 # ── Stamp service-worker.js with auto cache version ──────────────────────────
 sw_path = "service-worker.js"

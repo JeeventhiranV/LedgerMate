@@ -16,6 +16,16 @@ jobs:
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔢 Calculate Deterministic Build Number
+        id: build_ver
+        run: |
+          BUILD_NUM=$(git rev-list --count HEAD)
+          echo "build_number=${BUILD_NUM}" >> $GITHUB_OUTPUT
+          echo "version_name=1.0.${BUILD_NUM}" >> $GITHUB_OUTPUT
+          echo "Calculated APK VersionCode: ${BUILD_NUM}, VersionName: 1.0.${BUILD_NUM}"
 
       - name: ☕ Setup Java 17
         uses: actions/setup-java@v4
@@ -31,8 +41,8 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          BUILD_NUMBER: ${{ github.run_number }}
-          VERSION_NAME: "1.0.${{ github.run_number }}"
+          BUILD_NUMBER: ${{ steps.build_ver.outputs.build_number }}
+          VERSION_NAME: ${{ steps.build_ver.outputs.version_name }}
         run: |
           cd android
           gradle wrapper --gradle-version 8.6
@@ -41,7 +51,7 @@ jobs:
           cd ..
           mkdir -p build-assets
           cp android/app/build/outputs/apk/release/app-release.apk build-assets/app-release.apk 2>/dev/null || cp android/app/build/outputs/apk/release/*.apk build-assets/app-release.apk
-          cp build-assets/app-release.apk build-assets/LedgerMate-v1.0.${{ github.run_number }}.apk
+          cp build-assets/app-release.apk build-assets/LedgerMate-v${{ steps.build_ver.outputs.version_name }}.apk
 
       - name: 📤 Upload APK Artifacts
         uses: actions/upload-artifact@v4
@@ -56,11 +66,11 @@ jobs:
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
-          name: "LedgerMate Android App v1.0.${{ github.run_number }}"
+          name: "LedgerMate Android App v${{ steps.build_ver.outputs.version_name }}"
           tag_name: "latest"
           files: |
             build-assets/app-release.apk
-            build-assets/LedgerMate-v1.0.${{ github.run_number }}.apk
+            build-assets/LedgerMate-v${{ steps.build_ver.outputs.version_name }}.apk
           draft: false
           prerelease: false
         env:
