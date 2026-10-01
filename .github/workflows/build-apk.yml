@@ -28,9 +28,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: 📦 Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: 🛠️ Install Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
@@ -44,18 +41,18 @@ jobs:
               -dname "CN=LedgerMate, OU=Apps, O=LedgerMate, L=Chennai, S=TamilNadu, C=IN"
           fi
 
-      - name: ⚙️ Build Android APK & AAB
+      - name: ⚙️ Accept Android Licenses & Build APK
         env:
-          KEYSTORE_PASSWORD: "ledgermate123"
-          KEY_PASSWORD: "ledgermate123"
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+          BUBBLEWRAP_KEYSTORE_PASSWORD: "ledgermate123"
+          BUBBLEWRAP_KEY_PASSWORD: "ledgermate123"
         run: |
-          # Build APK & AAB with Bubblewrap
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
           bubblewrap build \
             --skipPwaValidation \
-            --keystore android.keystore \
-            --keystore-password "$KEYSTORE_PASSWORD" \
-            --key-password "$KEY_PASSWORD" \
-            --alias ledgermate
+            --signingKeyPath="android.keystore" \
+            --signingKeyAlias="ledgermate"
 
       - name: 📤 Upload APK & AAB Artifacts
         uses: actions/upload-artifact@v4
