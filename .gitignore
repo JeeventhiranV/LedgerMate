@@ -6,3 +6,10 @@ auth/supabase-config.js
 Thumbs.db
 .vscode/settings.json
 *.log
+
+# ── Android Build Artifacts ──────────────────────────────────────────────────
+android.keystore
+*.apk
+*.aab
+.bubblewrap/
+android/

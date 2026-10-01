@@ -1,0 +1,47 @@
+{
+  "packageId": "com.jeeva.ledgermate",
+  "host": "jeeventhiranv.github.io",
+  "name": "LedgerMate",
+  "launcherName": "LedgerMate",
+  "themeColor": "#10B981",
+  "navigationColor": "#0A0F1A",
+  "navigationColorDark": "#0A0F1A",
+  "navigationDividerColor": "#0A0F1A",
+  "navigationDividerColorDark": "#0A0F1A",
+  "backgroundColor": "#0A0F1A",
+  "enableNotifications": true,
+  "startUrl": "/LedgerMate/index.html",
+  "iconUrl": "https://jeeventhiranv.github.io/LedgerMate/assets/icons/icon-512.png",
+  "maskableIconUrl": "https://jeeventhiranv.github.io/LedgerMate/assets/icons/icon-512.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "ledgermate"
+  },
+  "splashScreenFadeOutDuration": 300,
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "display": "standalone",
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "appVersion": "1.0.0",
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://jeeventhiranv.github.io/LedgerMate/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": false
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "minSdkVersion": 21
+}
