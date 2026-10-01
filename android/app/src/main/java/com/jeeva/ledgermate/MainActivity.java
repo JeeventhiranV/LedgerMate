@@ -92,8 +92,10 @@ public class MainActivity extends AppCompatActivity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
-        settings.setAllowFileAccess(true);
-        settings.setAllowContentAccess(true);
+        settings.setAllowFileAccess(false);
+        settings.setAllowContentAccess(false);
+        settings.setAllowFileAccessFromFileURLs(false);
+        settings.setAllowUniversalAccessFromFileURLs(false);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
         settings.setSupportZoom(false);
@@ -411,10 +413,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void returnToJs(String callbackId, String jsonPayload) {
         if (callbackId == null || callbackId.isEmpty()) return;
+        final String safeCallbackId = callbackId.replaceAll("[^a-zA-Z0-9_-]", "");
+        if (safeCallbackId.isEmpty()) return;
+
         runOnUiThread(() -> {
             if (webView != null) {
-                String script = "if (window.LM_NativeBridgeCallbacks && typeof window.LM_NativeBridgeCallbacks['" + callbackId + "'] === 'function') { " +
-                        "try { window.LM_NativeBridgeCallbacks['" + callbackId + "'](" + jsonPayload + "); } catch(e) { console.error('Native callback error:', e); } }";
+                String script = "if (window.LM_NativeBridgeCallbacks && typeof window.LM_NativeBridgeCallbacks['" + safeCallbackId + "'] === 'function') { " +
+                        "try { window.LM_NativeBridgeCallbacks['" + safeCallbackId + "'](" + jsonPayload + "); } catch(e) { console.error('Native callback error:', e); } }";
                 webView.evaluateJavascript(script, null);
             }
         });

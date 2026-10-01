@@ -1,5 +1,15 @@
-# ── Supabase credentials — never commit the real config ──────────────────────
+# ── Supabase credentials & Environment Secrets ──────────────────────────────
 auth/supabase-config.js
+.env
+.env.*
+*.env
+
+# ── Certificates, Keys & Secrets ─────────────────────────────────────────────
+*.keystore
+*.jks
+*.pem
+*.p12
+*.key
 
 # ── OS / editor junk ─────────────────────────────────────────────────────────
 .DS_Store
