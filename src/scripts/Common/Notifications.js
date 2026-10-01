@@ -462,30 +462,36 @@
     localStorage.setItem(storeKey, Date.now().toString());
   }
 
-  function isAllowedAlertTime() {
+  function isAllowedAlertTime(isUrgent = false) {
     const hour = new Date().getHours();
-    return (hour >= 8 && hour <= 10) || (hour >= 18 && hour <= 21);
+    if (isUrgent) return (hour >= 7 && hour <= 23); // Urgent dues can alert anytime 7 AM - 11 PM
+    return (hour >= 8 && hour <= 22); // Normal alerts 8 AM - 10 PM
   }
 
   function sendBrowserNotification(title, message, opts) {
-    /* Prefer LMPush if loaded (handles Edge Function + local fallback) */
+    /* Prefer LMPush if loaded (handles AndroidBridge, Edge Function + local fallback) */
     if (window.LMPush) {
       LMPush.notify(title, message, opts || {});
       return;
     }
-    if (Notification.permission !== 'granted') return;
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
     navigator.serviceWorker.ready.then(function (reg) {
       reg.showNotification(title, {
         body : message,
         icon : './assets/icons/icon-512.png',
         badge: './assets/icons/icon-512.png',
         tag  : (opts && opts.tag) || 'lm-notif',
+        vibrate: [200, 100, 200],
         data : { url: (opts && opts.url) || './' }
       });
     }).catch(function () { new Notification(title, { body: message }); });
   }
 
   function enableNotifications() {
+    if (window.LMPush) {
+      LMPush.request();
+      return;
+    }
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission().then(permission => {
         if (permission === 'granted') console.log('Notifications enabled.');
@@ -511,12 +517,11 @@
     } catch (e) { return false; }
   }
 
-  // ========== CHECK ALL NOTIFICATIONS (time‑gated, cooldown applied) ==========
-    async function checkAllNotifications() {
+  // ========== CHECK ALL NOTIFICATIONS (Realtime Engine) ==========
+  async function checkAllNotifications() {
     /* ── Guards: don't run before login or DB is ready ── */
     if (window.LM_Auth && !window.LM_Auth.isLoggedIn()) return;
     if (!window.db) {
-      /* DB not open yet – retry; this path is rare post-login */
       setTimeout(checkAllNotifications, 1000);
       return;
     }
@@ -540,27 +545,40 @@
     const now = new Date();
     const notifications = [];
 
-    // 1. Reminders (existing logic)
+    // 1. Reminders & Bill Dues
     for (const r of state.reminders) {
       if (r.completed) continue;
       const dueDateObj = parseDateTime(r.dueDate, r.time);
       if (!dueDateObj) continue;
       const lastAlerted = r.lastAlerted ? new Date(r.lastAlerted) : null;
-      const alreadyAlertedRecently = lastAlerted && ((now - lastAlerted) < (24 * 60 * 60 * 1000));
+      const alreadyAlertedRecently = lastAlerted && ((now - lastAlerted) < (12 * 60 * 60 * 1000));
       const isToday = dueDateObj.toDateString() === now.toDateString();
       const isOverdue = dueDateObj < now;
+      const isUrgent = isOverdue || isToday || (r.priority === 'high');
 
       if ((isOverdue || isToday) && !alreadyAlertedRecently) {
-        const label = isOverdue ? 'Overdue' : 'Due Today';
+        const label = isOverdue ? '🚨 Overdue' : '🔔 Due Today';
         const timePart = r.time ? ` at ${r.time}` : '';
-        const msg = `🔔 ${label}: ${r.title} • ${r.dueDate}${timePart}`;
-        notifications.push({ title: 'Reminder Due Soon!', message: msg, type: 'info', timestamp: dueDateObj.getTime() });
+        const msg = `${label}: ${r.title} • ${r.dueDate}${timePart}`;
+        const targetUrl = r.tag === 'Credit Card' ? './#page-credit-cards' : './#page-dashboard';
+
+        notifications.push({
+          title    : isOverdue ? 'Bill/Reminder Overdue!' : 'Reminder Due Today!',
+          message  : msg,
+          type     : isOverdue ? 'error' : 'warning',
+          tag      : `lm-rem-${r.id}`,
+          url      : targetUrl,
+          isOverdue: isOverdue,
+          isUrgent : isUrgent,
+          timestamp: dueDateObj.getTime()
+        });
+
         r.lastAlerted = new Date().toISOString();
         await put('reminders', r);
       }
     }
 
-    // 2. Loan due-soon / overdue alerts (with cooldown, separate tags per direction)
+    // 2. Personal Loans Due & Collection Alerts
     const loanGroups = {};
     (state.loans || []).forEach((loan) => {
       if (loan.collected || !loan.dueDate) return;
@@ -581,10 +599,10 @@
       const isOverdue  = g.diffDays < 0;
       const isToday    = g.diffDays === 0;
       const isTomorrow = g.diffDays === 1;
-      const isCollect  = g.type === 'given';   // we gave money → we need to collect
+      const isCollect  = g.type === 'given';
       const direction  = isCollect ? 'Collect from' : 'Repay to';
       const preposition= isCollect ? 'from' : 'to';
-      const pushTag    = isCollect ? 'lm-loan-collect' : 'lm-loan-repay';
+      const pushTag    = isCollect ? `lm-loan-collect-${groupKey}` : `lm-loan-repay-${groupKey}`;
 
       const statusLabel = isOverdue
         ? `${Math.abs(g.diffDays)} day(s) OVERDUE`
@@ -603,13 +621,15 @@
         message  : msg,
         type     : isOverdue ? 'error' : 'warning',
         tag      : pushTag,
+        url      : './#page-wealth',
         isOverdue: isOverdue,
+        isUrgent : isOverdue || isToday,
         timestamp: new Date(g.dueDate + 'T00:00:00').getTime()
       });
       markLoanGroupAlerted(groupKey);
     });
 
-    // 3. Credit Card bill due alerts & statement reminders
+    // 3. Credit Card Bill Due Alerts
     let cards = [];
     if (window.LM_CreditCardsService && typeof window.LM_CreditCardsService.getAllCards === 'function') {
       try { cards = window.LM_CreditCardsService.getAllCards(); } catch(e) {}
@@ -619,16 +639,15 @@
 
     cards.forEach((card) => {
       const currentDue = Number(card.current_due || 0);
-      if (currentDue <= 0) return; // Bill already settled
+      if (currentDue <= 0) return;
 
       const dueInfo = window.LM_CreditCardsService?.getDueCountdown?.(card);
       if (!dueInfo || dueInfo.daysUntilDue === 999) return;
 
-      // Alert if due within 3 days or overdue
       if (dueInfo.daysUntilDue <= 3) {
         const cardKey = `cc_${card.id}_due_${dueInfo.nextDueDate}`;
         const lastAlerted = localStorage.getItem(`lastAlert_${cardKey}`);
-        const alreadyAlertedRecently = lastAlerted && ((now.getTime() - new Date(lastAlerted).getTime()) < (24 * 60 * 60 * 1000));
+        const alreadyAlertedRecently = lastAlerted && ((now.getTime() - new Date(lastAlerted).getTime()) < (12 * 60 * 60 * 1000));
 
         if (!alreadyAlertedRecently) {
           const isOverdue = dueInfo.daysUntilDue < 0;
@@ -641,17 +660,19 @@
             : `Due in ${dueInfo.daysUntilDue} days`;
 
           const alertTitle = isOverdue
-            ? `Credit Card Bill Overdue — ${card.card_name || 'Card'}`
-            : `Credit Card Bill Due ${isToday ? 'Today' : 'Soon'} — ${card.card_name || 'Card'}`;
+            ? `🚨 Credit Card Bill Overdue — ${card.card_name || 'Card'}`
+            : `💳 Credit Card Bill Due ${isToday ? 'Today' : 'Soon'} — ${card.card_name || 'Card'}`;
 
-          const msg = `💳 ${card.card_name || 'Card'} (${card.bank_name || 'Bank'}) · ${fmtINR(currentDue)} ${statusLabel} (${dueInfo.nextDueDate})`;
+          const msg = `${card.card_name || 'Card'} (${card.bank_name || 'Bank'}) · ${fmtINR(currentDue)} ${statusLabel} (${dueInfo.nextDueDate})`;
 
           notifications.push({
-            title: alertTitle,
-            message: msg,
-            type: isOverdue ? 'error' : 'warning',
-            tag: `lm-cc-due-${card.id}`,
+            title    : alertTitle,
+            message  : msg,
+            type     : isOverdue ? 'error' : 'warning',
+            tag      : `lm-cc-due-${card.id}`,
+            url      : './#page-credit-cards',
             isOverdue: isOverdue,
+            isUrgent : isOverdue || isToday,
             timestamp: new Date(dueInfo.nextDueDate + 'T00:00:00').getTime()
           });
 
@@ -660,22 +681,67 @@
       }
     });
 
-    // 4. Process notifications — overdue loans/cards always fire, others only in allowed window
+    // 4. Budget Threshold Alerts (85% warning, 100% exceeded)
+    try {
+      const currentMonth = now.toISOString().slice(0, 7);
+      const budgets = Array.isArray(state.budgets) ? state.budgets.filter(b => b.month === currentMonth) : [];
+      budgets.forEach(b => {
+        const limit = Number(b.amount || 0);
+        if (limit <= 0) return;
+
+        const spent = (state.transactions || [])
+          .filter(t => t.type === 'expense' && t.date && t.date.startsWith(currentMonth) && t.category === b.category)
+          .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+        const pct = Math.round((spent / limit) * 100);
+        const alertKey = `bgt_${b.category}_${currentMonth}`;
+        const lastAlertPushed = localStorage.getItem(`lastBudgetAlert_${alertKey}`);
+
+        if (pct >= 100 && lastAlertPushed !== '100') {
+          notifications.push({
+            title    : `🚨 Budget Exceeded: ${b.category}`,
+            message  : `You have spent ${pct}% (${fmtINR(spent)} / ${fmtINR(limit)}) of your monthly ${b.category} budget!`,
+            type     : 'error',
+            tag      : `lm-budget-${alertKey}-100`,
+            url      : './#page-budgets',
+            isOverdue: true,
+            isUrgent : true,
+            timestamp: now.getTime()
+          });
+          localStorage.setItem(`lastBudgetAlert_${alertKey}`, '100');
+        } else if (pct >= 85 && pct < 100 && (!lastAlertPushed || lastAlertPushed === '0')) {
+          notifications.push({
+            title    : `⚠️ Budget Warning: ${b.category}`,
+            message  : `You have reached ${pct}% (${fmtINR(spent)} / ${fmtINR(limit)}) of your monthly ${b.category} budget.`,
+            type     : 'warning',
+            tag      : `lm-budget-${alertKey}-85`,
+            url      : './#page-budgets',
+            isOverdue: false,
+            isUrgent : false,
+            timestamp: now.getTime()
+          });
+          localStorage.setItem(`lastBudgetAlert_${alertKey}`, '85');
+        }
+      });
+    } catch (e) {
+      console.warn('Budget alert check failed:', e);
+    }
+
+    // 5. Process and Dispatch Notifications
     function processNotifications() {
       enableNotifications();
       const batch = notifications.splice(0, 2);
       batch.forEach((n) => {
         showToast(n.message, n.type);
 
-        /* Overdue loans/cards always push regardless of time; everything else is time-gated */
-        const pushAllowed = n.isOverdue || isAllowedAlertTime();
+        const pushAllowed = n.isUrgent || isAllowedAlertTime(n.isUrgent);
         if (!pushAllowed) return;
 
-        const pushTag = n.tag || (n.title && n.title.includes('Loan') ? 'lm-loan' : n.title && n.title.includes('Credit Card') ? 'lm-cc' : 'lm-reminder');
+        const pushTag = n.tag || 'lm-notif';
         if (canTriggerBrowserNotification(pushTag)) {
-          sendBrowserNotification(n.title, n.message, { tag: pushTag, url: './' });
+          sendBrowserNotification(n.title, n.message, { tag: pushTag, url: n.url || './' });
         }
-        scheduleLocalNotification(n.timestamp, n.title, n.message, { tag: pushTag, url: './' });
+        scheduleLocalNotification(n.timestamp, n.title, n.message, { tag: pushTag, url: n.url || './' });
       });
       if (notifications.length > 0) {
         setTimeout(processNotifications, 3500);
@@ -693,7 +759,7 @@
     const key  = `lastNotif_${tag}`;
     const last = localStorage.getItem(key);
     const now  = Date.now();
-    const COOLDOWN = 12 * 60 * 60 * 1000; // 12 hours per unique tag
+    const COOLDOWN = 6 * 60 * 60 * 1000; // 6 hours per unique tag for high responsiveness
     if (!last || now - parseInt(last, 10) > COOLDOWN) {
       localStorage.setItem(key, now.toString());
       return true;
@@ -706,11 +772,11 @@
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
   }
 
-  // ========== INIT ==========
+  // ========== INIT & REALTIME LISTENERS ==========
   if (!window.__notifInit) {
     window.__notifInit = true;
 
-    // Expose globals first so inline onclick handlers work
+    // Expose globals
     window.toggleNotifPanel    = toggleNotifPanel;
     window.renderNotifications = renderNotifications;
     window.showRemindersModal  = showRemindersModal;
@@ -718,7 +784,7 @@
     window.toggleReminderCompleted = toggleReminderCompleted;
     window.checkAllNotifications   = checkAllNotifications;
 
-    // Wire UI — Notifications.js loads at bottom of body so DOM is ready
+    // Wire UI
     const bell = document.getElementById('notifBell');
     if (bell) bell.onclick = (e) => { e.stopPropagation(); toggleNotifPanel(); };
 
@@ -735,7 +801,31 @@
 
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeNotifPanel(); });
 
+    // Initial check on app ready
     document.addEventListener('lm:app:ready', () => checkAllNotifications());
+
+    // ── Realtime triggers ──
+    // 1. Check every 5 minutes in background
+    setInterval(checkAllNotifications, 5 * 60 * 1000);
+
+    // 2. Check when user returns to app/tab
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        checkAllNotifications();
+      }
+    });
+    window.addEventListener('focus', () => checkAllNotifications());
+
+    // 3. Event-driven immediate updates from AppBus
+    if (window.LM_Bus) {
+      LM_Bus.on('lm:cloud:synced', () => checkAllNotifications());
+      LM_Bus.on('lm:tx:added', () => checkAllNotifications());
+      LM_Bus.on('lm:tx:deleted', () => checkAllNotifications());
+      LM_Bus.on('lm:cc:paid', () => checkAllNotifications());
+      LM_Bus.on('lm:card:updated', () => checkAllNotifications());
+      LM_Bus.on('lm:loan:updated', () => checkAllNotifications());
+      LM_Bus.on('lm:budget:updated', () => checkAllNotifications());
+    }
   }
 
 })();

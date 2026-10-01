@@ -47,6 +47,9 @@
 
   /* ── Permission request ───────────────────────────────────── */
   function request() {
+    if (window.AndroidBridge && typeof window.AndroidBridge.isNativeApp === 'function') {
+      return Promise.resolve('granted');
+    }
     if (typeof Notification === 'undefined') return Promise.resolve('unsupported');
     if (Notification.permission === 'granted') return subscribe().then(function () { return 'granted'; });
     return Notification.requestPermission().then(function (perm) {
@@ -95,10 +98,23 @@
     }).catch(function () {});
   }
 
-  /* ── Show notification locally (SW or fallback) ───────────── */
+  /* ── Show notification locally (AndroidBridge, SW or fallback) ── */
   function _showLocal(title, body, opts) {
-    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
     opts = opts || {};
+
+    // 1. Android Native Bridge (Inside APK)
+    if (window.AndroidBridge && typeof window.AndroidBridge.showNativeNotification === 'function') {
+      window.AndroidBridge.showNativeNotification(
+        title || 'LedgerMate Reminder',
+        body || '',
+        opts.tag || 'lm-notif',
+        opts.url || './'
+      );
+      return;
+    }
+
+    // 2. Web Notification API (Browser / PWA)
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
     var payload = {
       body    : body || '',
       icon    : ICON,

@@ -257,13 +257,14 @@ self.addEventListener('push', event => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (e) {}
 
-  const title = data.title || 'LedgerMate';
+  const title = data.title || 'LedgerMate Reminder';
   const opts  = {
     body    : data.body  || '',
     icon    : './assets/icons/icon-512.png',
     badge   : './assets/icons/icon-512.png',
     tag     : data.tag   || 'lm-push',
     renotify: true,
+    vibrate : [200, 100, 200],
     data    : { url: data.url || './' },
     actions : data.actions || []
   };
@@ -274,16 +275,23 @@ self.addEventListener('push', event => {
 /* ── Notification click: focus or open the target URL ─────── */
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || './';
+  const targetUrl = (event.notification.data && event.notification.data.url) || './';
+  
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
       for (const client of list) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          client.navigate(url);
-          return client.focus();
+        if (client.url.includes(self.location.origin)) {
+          if ('navigate' in client) {
+            client.navigate(targetUrl);
+          }
+          if ('focus' in client) {
+            return client.focus();
+          }
         }
       }
-      return clients.openWindow(url);
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
     })
   );
 });
