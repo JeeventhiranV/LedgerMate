@@ -776,3 +776,294 @@ select:focus:not(:focus-visible) {
   overflow-y: auto;
   padding: 16px;
 }
+
+/* ═══════════════════════════════════════════════
+   APP LOCK SCREEN & SECURITY MODAL
+═══════════════════════════════════════════════ */
+.lm-lock-screen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  background: var(--bg, #07091a);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% 20%, rgba(0, 212, 180, 0.1) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 50% 80%, rgba(167, 139, 250, 0.08) 0%, transparent 60%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: lmLockFadeIn 0.22s ease-out;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+@keyframes lmLockFadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to   { opacity: 1; transform: scale(1);    }
+}
+
+.lm-lock-card {
+  width: 100%;
+  max-width: 310px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lm-lock-avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal, #00d4b4), var(--violet, #a78bfa));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 24px;
+  box-shadow: 0 0 24px rgba(0, 212, 180, 0.3);
+}
+
+.lm-lock-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text, #f0f2ff);
+  margin-bottom: 2px;
+}
+
+.lm-lock-sub {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--teal, #00d4b4);
+  margin-bottom: 4px;
+}
+
+.lm-lock-instruction {
+  font-size: 12px;
+  color: var(--text-3, #7d87a8);
+  margin-bottom: 18px;
+}
+
+.lm-lock-error {
+  font-size: 12px;
+  color: var(--rose, #fb7185);
+  background: rgba(251, 113, 133, 0.12);
+  border: 1px solid rgba(251, 113, 133, 0.25);
+  border-radius: 8px;
+  padding: 6px 14px;
+  margin-bottom: 14px;
+  animation: lmDotShake 0.3s ease;
+}
+
+.lm-lock-dots {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin: 8px 0 24px;
+}
+
+.lm-lock-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--border, rgba(255, 255, 255, 0.2));
+  background: transparent;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lm-lock-dot.filled {
+  background: var(--teal, #00d4b4);
+  border-color: var(--teal, #00d4b4);
+  transform: scale(1.15);
+  box-shadow: 0 0 10px rgba(0, 212, 180, 0.6);
+}
+
+.lm-lock-dot.success {
+  background: var(--emerald, #10b981) !important;
+  border-color: var(--emerald, #10b981) !important;
+  transform: scale(1.25);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.8);
+}
+
+.lm-lock-dots.shake {
+  animation: lmDotShake 0.38s ease-in-out;
+}
+
+@keyframes lmDotShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+
+.lm-lock-numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  max-width: 250px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.lm-numpad-btn {
+  height: 54px;
+  border-radius: 16px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  background: var(--surface, rgba(255, 255, 255, 0.05));
+  color: var(--text, #f0f2ff);
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lm-numpad-btn:hover {
+  background: var(--surface-h, rgba(255, 255, 255, 0.1));
+  border-color: var(--border-h, rgba(0, 212, 180, 0.3));
+}
+
+.lm-numpad-btn:active {
+  transform: scale(0.92);
+  background: rgba(0, 212, 180, 0.15);
+  border-color: var(--teal, #00d4b4);
+}
+
+.lm-numpad-bio.active {
+  color: var(--teal, #00d4b4);
+  border-color: rgba(0, 212, 180, 0.35);
+  background: rgba(0, 212, 180, 0.08);
+}
+.lm-numpad-bio.active:hover {
+  background: rgba(0, 212, 180, 0.18);
+}
+.lm-numpad-bio.disabled {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.lm-numpad-back {
+  color: var(--text-2, #a0aec0);
+}
+
+.lm-lock-footer {
+  margin-top: 18px;
+}
+
+.lm-lock-pw-btn {
+  background: none;
+  border: none;
+  color: var(--text-3, #7d87a8);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s;
+  padding: 6px 12px;
+  text-decoration: underline;
+}
+
+.lm-lock-pw-btn:hover {
+  color: var(--rose, #fb7185);
+}
+
+/* ── Toggle Switch & Pills for Security Modal ── */
+.lm-toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.lm-toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.lm-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: var(--border, rgba(255, 255, 255, 0.2));
+  transition: .22s;
+  border-radius: 24px;
+}
+
+.lm-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .22s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+.lm-toggle-switch input:checked + .lm-toggle-slider {
+  background-color: var(--teal, #00d4b4);
+}
+
+.lm-toggle-switch input:checked + .lm-toggle-slider:before {
+  transform: translateX(20px);
+}
+
+.lm-toggle-switch input:disabled + .lm-toggle-slider {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.lm-timeout-pill {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  background: var(--bg, #07091a);
+  color: var(--text-2, #a0aec0);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.lm-timeout-pill:hover {
+  border-color: var(--border-h, rgba(0, 212, 180, 0.3));
+  background: var(--surface-h, rgba(255, 255, 255, 0.08));
+  color: var(--text, #f0f2ff);
+}
+
+.lm-timeout-pill.active {
+  border-color: var(--teal, #00d4b4);
+  background: rgba(0, 212, 180, 0.12);
+  color: var(--teal, #00d4b4);
+  font-weight: 700;
+}
+
+/* Light theme overrides for App Lock */
+[data-theme="light"] .lm-lock-screen-overlay {
+  background: var(--bg, #f8fafc);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% 20%, rgba(0, 212, 180, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 50% 80%, rgba(167, 139, 250, 0.06) 0%, transparent 60%);
+}
+
+[data-theme="light"] .lm-lock-dot {
+  border-color: rgba(0, 0, 0, 0.22);
+}
+
+[data-theme="light"] .lm-numpad-btn {
+  background: var(--bg2, #ffffff);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+[data-theme="light"] .lm-numpad-btn:hover {
+  background: rgba(0, 212, 180, 0.08);
+}

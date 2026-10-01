@@ -338,12 +338,15 @@
   }
 
   /* ══════════════════════════════════════════════════════
-     PIN / BIOMETRIC LOCK
+     PIN / BIOMETRIC APP LOCK
   ══════════════════════════════════════════════════════ */
-  function getPinKey(userId) { return `lm_u_${userId}_pin_hash`; }
+  function getPinKey(userId) { return userKey(userId || getCurrentUserId(), 'pin_hash'); }
+  function getAppLockKey(userId) { return userKey(userId || getCurrentUserId(), 'app_lock_enabled'); }
+  function getBiometricKey(userId) { return userKey(userId || getCurrentUserId(), 'biometric_enabled'); }
+  function getLockTimeoutKey(userId) { return userKey(userId || getCurrentUserId(), 'lock_timeout'); }
 
   function hashPin(pin) {
-    // Simple deterministic hash for 4-digit PIN (no salt needed — short secret)
+    // Simple deterministic hash for 4-digit PIN
     let h = 0;
     for (let i = 0; i < pin.length; i++) {
       h = (Math.imul(31, h) + pin.charCodeAt(i)) | 0;
@@ -368,136 +371,546 @@
     return stored === hashPin(pin);
   }
 
-  function showPinScreen(onSuccess) {
+  function isAppLockEnabled(userId) {
+    const uid = userId || getCurrentUserId();
+    return localStorage.getItem(getAppLockKey(uid)) === 'true' && isPinSet(uid);
+  }
+
+  function setAppLockEnabled(enabled, userId) {
+    const uid = userId || getCurrentUserId();
+    localStorage.setItem(getAppLockKey(uid), enabled ? 'true' : 'false');
+  }
+
+  function isBiometricEnabled(userId) {
+    const uid = userId || getCurrentUserId();
+    return localStorage.getItem(getBiometricKey(uid)) === 'true';
+  }
+
+  function setBiometricEnabled(enabled, userId) {
+    const uid = userId || getCurrentUserId();
+    localStorage.setItem(getBiometricKey(uid), enabled ? 'true' : 'false');
+  }
+
+  function getLockTimeout(userId) {
+    const uid = userId || getCurrentUserId();
+    const val = localStorage.getItem(getLockTimeoutKey(uid));
+    return val !== null ? parseInt(val, 10) : 60000; // default 1 min
+  }
+
+  function setLockTimeout(ms, userId) {
+    const uid = userId || getCurrentUserId();
+    localStorage.setItem(getLockTimeoutKey(uid), String(ms));
+  }
+
+  let _isAppLockScreenActive = false;
+
+  /* ── Modern Glassmorphism App Lock Screen ── */
+  function showAppLockScreen(onSuccess) {
+    if (_isAppLockScreenActive) return;
+    const existing = document.getElementById('pinLockScreen');
+    if (existing) existing.remove();
+
+    _isAppLockScreenActive = true;
+    const uid = getCurrentUserId();
+    const userObj = getCurrentUser();
+    const displayName = userObj?.displayName || userObj?.username || 'LedgerMate User';
+    const biometricActive = isBiometricEnabled(uid) && typeof window.LM_Biometrics !== 'undefined';
+
     let entered = '';
     const el = document.createElement('div');
     el.id = 'pinLockScreen';
-    el.style.cssText = `
-      position:fixed;inset:0;background:var(--bg,#07091a);z-index:99999;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-    `;
-    const render = (err) => {
+    el.className = 'lm-lock-screen-overlay';
+
+    const render = (err, isSuccess) => {
       el.innerHTML = `
-        <div style="text-align:center;max-width:300px;width:100%;padding:24px;">
-          <div style="font-size:32px;margin-bottom:8px;">🔐</div>
-          <div style="font-size:20px;font-weight:700;color:var(--text,#f0f2ff);margin-bottom:4px;">Enter PIN</div>
-          <div style="font-size:13px;color:var(--text-3,#5c6484);margin-bottom:28px);">LedgerMate is locked</div>
-          ${err ? `<div style="font-size:12px;color:#fb7185;margin-bottom:8px;">${err}</div>` : ''}
-          <!-- Dots -->
-          <div style="display:flex;gap:14px;justify-content:center;margin:20px 0 28px;">
-            ${[0,1,2,3].map(i=>`<div style="width:14px;height:14px;border-radius:50%;border:2px solid ${i<entered.length?'var(--teal,#00d4b4)':'rgba(255,255,255,0.2)'};background:${i<entered.length?'var(--teal,#00d4b4)':'transparent'};transition:all 0.15s;"></div>`).join('')}
+        <div class="lm-lock-card">
+          <div class="lm-lock-logo">
+            <div class="lm-lock-avatar">${displayName.charAt(0).toUpperCase()}</div>
           </div>
-          <!-- Numpad -->
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto;">
-            ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k=>`
-              <button onclick="window._pinPress('${k}')" style="
-                height:56px;border-radius:14px;border:1px solid rgba(255,255,255,0.1);
-                background:${k===''?'transparent':'rgba(255,255,255,0.06)'};
-                color:var(--text,#f0f2ff);font-size:${k==='⌫'?'18px':'20px'};font-weight:600;
-                cursor:${k===''?'default':'pointer'};pointer-events:${k===''?'none':'auto'};
-                transition:all 0.12s;
-              " ${k===''?'disabled':''} onmouseenter="if(this.style.background!='transparent')this.style.background='rgba(0,212,180,0.12)'" onmouseleave="if(this.style.background!='transparent')this.style.background='rgba(255,255,255,0.06)'">${k}</button>
+          <div class="lm-lock-title">Welcome Back</div>
+          <div class="lm-lock-sub">${displayName}</div>
+          <div class="lm-lock-instruction">${biometricActive ? 'Use Fingerprint / Face ID or enter 4-digit PIN' : 'Enter 4-digit security PIN to unlock'}</div>
+          
+          ${err ? `<div class="lm-lock-error">${err}</div>` : ''}
+
+          <!-- 4 Dots Indicator -->
+          <div class="lm-lock-dots ${err ? 'shake' : ''}">
+            ${[0, 1, 2, 3].map(i => `
+              <div class="lm-lock-dot ${i < entered.length ? 'filled' : ''} ${isSuccess ? 'success' : ''}"></div>
             `).join('')}
           </div>
-          <div style="margin-top:24px;">
-            <button onclick="window._pinUsePw()" style="background:none;border:none;color:var(--text-3,#5c6484);font-size:12px;cursor:pointer;text-decoration:underline;">Use password instead</button>
+
+          <!-- Touch Numpad -->
+          <div class="lm-lock-numpad">
+            ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => `
+              <button type="button" class="lm-numpad-btn" data-key="${num}">${num}</button>
+            `).join('')}
+            <!-- Bottom row: Biometrics button, 0, Backspace -->
+            <button type="button" class="lm-numpad-btn lm-numpad-bio ${biometricActive ? 'active' : 'disabled'}" data-key="bio" title="Scan Biometrics">
+              <span style="font-size:22px;line-height:1;">👆</span>
+            </button>
+            <button type="button" class="lm-numpad-btn" data-key="0">0</button>
+            <button type="button" class="lm-numpad-btn lm-numpad-back" data-key="del" title="Delete">
+              <span style="font-size:20px;line-height:1;">⌫</span>
+            </button>
           </div>
-        </div>`;
+
+          <!-- Bottom Safe Option -->
+          <div class="lm-lock-footer">
+            <button type="button" class="lm-lock-pw-btn" id="lockUsePwBtn">🚪 Sign out / Use Password</button>
+          </div>
+        </div>
+      `;
+
+      // Rebind click listeners
+      el.querySelectorAll('.lm-numpad-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const k = btn.getAttribute('data-key');
+          if (k === 'bio') {
+            triggerBiometricUnlock();
+          } else if (k === 'del') {
+            handlePinKey('⌫');
+          } else if (k !== null) {
+            handlePinKey(k);
+          }
+        });
+      });
+
+      const pwBtn = el.querySelector('#lockUsePwBtn');
+      if (pwBtn) {
+        pwBtn.addEventListener('click', () => {
+          unlockCleanup();
+          logout();
+        });
+      }
+    };
+
+    function unlockCleanup() {
+      _isAppLockScreenActive = false;
+      document.removeEventListener('keydown', keyHandler);
+      if (el.parentNode) el.remove();
+    }
+
+    function grantUnlock() {
+      render(null, true);
+      try { navigator.vibrate?.(40); } catch (e) {}
+      setTimeout(() => {
+        unlockCleanup();
+        if (typeof onSuccess === 'function') onSuccess();
+      }, 250);
+    }
+
+    function handlePinKey(k) {
+      if (k === '⌫') {
+        if (entered.length > 0) {
+          entered = entered.slice(0, -1);
+          render();
+        }
+        return;
+      }
+      if (entered.length >= 4) return;
+      entered += k;
+      render();
+
+      if (entered.length === 4) {
+        if (verifyPin(entered, uid)) {
+          grantUnlock();
+        } else {
+          try { navigator.vibrate?.([50, 50, 50]); } catch (e) {}
+          entered = '';
+          render('Incorrect PIN. Please try again.');
+        }
+      }
+    }
+
+    async function triggerBiometricUnlock() {
+      if (!window.LM_Biometrics) return;
+      try {
+        const ok = await window.LM_Biometrics.verify();
+        if (ok) {
+          grantUnlock();
+        }
+      } catch (e) {
+        console.warn('[LockScreen] Biometric verification error:', e);
+      }
+    }
+
+    const keyHandler = (e) => {
+      if (e.key >= '0' && e.key <= '9') {
+        e.preventDefault();
+        handlePinKey(e.key);
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        handlePinKey('⌫');
+      }
     };
 
     render();
     document.body.appendChild(el);
+    document.addEventListener('keydown', keyHandler);
 
-    window._pinPress = (k) => {
-      if (k === '⌫') { entered = entered.slice(0,-1); render(); return; }
-      if (k === '' || entered.length >= 4) return;
-      entered += k;
-      render();
-      if (entered.length === 4) {
-        if (verifyPin(entered, getCurrentUserId())) {
-          el.remove();
-          delete window._pinPress;
-          delete window._pinUsePw;
-          onSuccess();
-        } else {
-          entered = '';
-          render('Wrong PIN. Try again.');
-        }
-      }
-    };
-
-    window._pinUsePw = () => {
-      el.remove();
-      delete window._pinPress;
-      delete window._pinUsePw;
-      logout();
-    };
-
-    // Keyboard support
-    el._keyHandler = (e) => {
-      if (e.key >= '0' && e.key <= '9') window._pinPress(e.key);
-      if (e.key === 'Backspace') window._pinPress('⌫');
-    };
-    document.addEventListener('keydown', el._keyHandler);
-  }
-
-  // After successful app boot, check if PIN should gate re-entry
-  function _maybeLockWithPin(onSuccess) {
-    const userId = getCurrentUserId();
-    if (userId && isPinSet(userId)) {
-      showPinScreen(onSuccess);
-    } else {
-      onSuccess();
+    // Auto-trigger biometric verification if active
+    if (biometricActive) {
+      setTimeout(() => {
+        triggerBiometricUnlock();
+      }, 350);
     }
   }
 
-  /* ── Public PIN helpers ── */
-  function openPinSetupModal() {
-    const userId = getCurrentUserId();
-    const hasPIN = isPinSet(userId);
-    let step = 'enter', firstPin = '';
+  /* ── Background / Inactive App Lock Watcher ── */
+  let _lastHiddenTime = 0;
+  function _setupAppLockResumeWatcher() {
+    function onVisibilityChange() {
+      if (document.visibilityState === 'hidden') {
+        _lastHiddenTime = Date.now();
+      } else if (document.visibilityState === 'visible') {
+        if (!_isAppLockScreenActive && isLoggedIn()) {
+          const uid = getCurrentUserId();
+          if (isAppLockEnabled(uid)) {
+            const timeout = getLockTimeout(uid);
+            if (_lastHiddenTime > 0 && (Date.now() - _lastHiddenTime >= timeout)) {
+              showAppLockScreen();
+            }
+          }
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted && !_isAppLockScreenActive && isLoggedIn()) {
+        const uid = getCurrentUserId();
+        if (isAppLockEnabled(uid)) {
+          showAppLockScreen();
+        }
+      }
+    });
+  }
+  _setupAppLockResumeWatcher();
+
+  /* ── Modern App Security (PIN & Biometrics) Settings Modal ── */
+  async function openAppLockSettingsModal() {
+    const uid = getCurrentUserId();
+    let lockEnabled = isAppLockEnabled(uid);
+    let bioEnabled = isBiometricEnabled(uid);
+    let currentTimeout = getLockTimeout(uid);
+    const hasPin = isPinSet(uid);
+
+    let bioSupported = false;
+    if (window.LM_Biometrics && typeof window.LM_Biometrics.isAvailable === 'function') {
+      try { bioSupported = await window.LM_Biometrics.isAvailable(); } catch (e) { bioSupported = false; }
+    }
 
     const modal = document.createElement('div');
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    modal.className = 'modal-overlay';
+    modal.id = 'appLockSettingsModal';
+    modal.style.display = 'flex';
+    modal.style.zIndex = '10005';
 
-    const render = (msg, err) => {
+    function renderModal(view, viewData) {
+      if (view === 'setPin' || view === 'changePin') {
+        renderPinFlow(view, viewData);
+        return;
+      }
+
       modal.innerHTML = `
-        <div style="background:var(--bg2,#0d1024);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:24px;max-width:320px;width:90%;text-align:center;">
-          <div style="font-size:24px;margin-bottom:8px;">🔐</div>
-          <div style="font-size:16px;font-weight:700;color:var(--text,#f0f2ff);margin-bottom:4px;">${msg}</div>
-          ${err ? `<div style="font-size:12px;color:#fb7185;margin:8px 0;">${err}</div>` : ''}
-          <div style="display:flex;gap:10px;justify-content:center;margin:16px 0;">
-            ${[0,1,2,3].map(i=>`<div style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.15);"></div>`).join('')}
+        <div class="modal" style="max-width:440px;width:92%;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:0;overflow:hidden;box-shadow:var(--shadow), 0 10px 40px rgba(0,0,0,0.5);">
+          <div class="modal-header" style="padding:18px 22px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,rgba(0,212,180,0.08),rgba(167,139,250,0.05));display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:22px;">🛡️</span>
+              <div>
+                <div style="font-size:16px;font-weight:700;color:var(--text);">App Security & Lock</div>
+                <div style="font-size:11px;color:var(--text-3);">Protect LedgerMate with Biometrics & PIN</div>
+              </div>
+            </div>
+            <button type="button" class="modal-close" id="closeSecurityModalBtn" style="background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer;">&times;</button>
           </div>
-          <input id="pinInput" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*"
-            style="width:120px;height:48px;text-align:center;font-size:24px;letter-spacing:12px;background:var(--bg3,#1a1f35);border:1.5px solid rgba(255,255,255,0.15);border-radius:12px;color:var(--text,#f0f2ff);outline:none;"
-            placeholder="••••">
-          <div style="display:flex;gap:8px;margin-top:16px;justify-content:center;">
-            <button id="pinConfirmBtn" style="padding:10px 24px;border-radius:10px;border:none;background:var(--teal,#00d4b4);color:#07091a;font-weight:700;cursor:pointer;font-size:14px;">Confirm</button>
-            ${hasPIN && step==='enter' ? `<button id="pinRemoveBtn" style="padding:10px 20px;border-radius:10px;border:1px solid rgba(251,113,133,0.3);background:rgba(251,113,133,0.1);color:#fb7185;font-weight:700;cursor:pointer;font-size:14px;">Remove PIN</button>` : ''}
-            <button id="pinCancelBtn" style="padding:10px 20px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--text-2,#9ba3c4);font-weight:600;cursor:pointer;font-size:14px;">Cancel</button>
-          </div>
-        </div>`;
 
-      document.getElementById('pinInput').focus();
-      document.getElementById('pinConfirmBtn').onclick = () => {
-        const v = document.getElementById('pinInput').value;
-        if (v.length !== 4 || !/^\d{4}$/.test(v)) { render(msg, 'Enter a 4-digit PIN'); return; }
-        if (step === 'enter') { firstPin = v; step = 'confirm'; render('Confirm your PIN'); }
-        else if (step === 'confirm') {
-          if (v !== firstPin) { step = 'enter'; firstPin = ''; render('Set a 4-digit PIN', 'PINs did not match'); return; }
-          setPin(v, userId);
-          modal.remove();
-          if (typeof showToast === 'function') showToast('PIN set successfully!', 'success');
+          <div class="modal-body" style="padding:22px;display:flex;flex-direction:column;gap:16px;max-height:75vh;overflow-y:auto;">
+            <!-- Master Lock Toggle Card -->
+            <div style="background:var(--surface);border:1px solid ${lockEnabled ? 'rgba(0,212,180,0.3)' : 'var(--border)'};border-radius:14px;padding:16px;display:flex;align-items:center;justify-content:space-between;transition:all 0.2s;">
+              <div style="max-width:75%;">
+                <div style="font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;">
+                  <span>🔒 App Lock</span>
+                  <span style="font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;${lockEnabled ? 'background:rgba(52,211,153,0.15);color:var(--emerald);border:1px solid rgba(52,211,153,0.3);' : 'background:rgba(255,255,255,0.06);color:var(--text-3);'}">${lockEnabled ? 'ENABLED' : 'DISABLED'}</span>
+                </div>
+                <div style="font-size:12px;color:var(--text-3);margin-top:4px;">Require authentication when opening or resuming LedgerMate</div>
+              </div>
+              <label class="lm-toggle-switch">
+                <input type="checkbox" id="appLockToggle" ${lockEnabled ? 'checked' : ''}>
+                <span class="lm-toggle-slider"></span>
+              </label>
+            </div>
+
+            <!-- Biometrics Card -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;opacity:${lockEnabled ? '1' : '0.5'};pointer-events:${lockEnabled ? 'auto' : 'none'};transition:all 0.2s;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="max-width:75%;">
+                  <div style="font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;">
+                    <span>👆 Biometric Unlock</span>
+                    <span style="font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;${bioSupported ? (bioEnabled ? 'background:rgba(52,211,153,0.15);color:var(--emerald);border:1px solid rgba(52,211,153,0.3);' : 'background:rgba(0,212,180,0.1);color:var(--teal);') : 'background:rgba(251,113,133,0.1);color:var(--rose);'}">
+                      ${bioSupported ? (bioEnabled ? 'ACTIVE' : 'READY') : 'NOT SUPPORTED'}
+                    </span>
+                  </div>
+                  <div style="font-size:12px;color:var(--text-3);margin-top:4px;">
+                    ${bioSupported ? 'Unlock with Fingerprint / Touch ID / Face ID' : 'Hardware platform authenticator not available on this device'}
+                  </div>
+                </div>
+                <label class="lm-toggle-switch">
+                  <input type="checkbox" id="bioLockToggle" ${bioEnabled && bioSupported ? 'checked' : ''} ${!bioSupported ? 'disabled' : ''}>
+                  <span class="lm-toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- PIN Management Card -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;opacity:${lockEnabled ? '1' : '0.5'};pointer-events:${lockEnabled ? 'auto' : 'none'};">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                  <div style="font-size:14px;font-weight:700;color:var(--text);">🔢 4-Digit Security PIN</div>
+                  <div style="font-size:12px;color:var(--text-3);margin-top:4px;">${hasPin ? 'PIN is set and active as primary/fallback' : 'No PIN configured yet'}</div>
+                </div>
+                <button type="button" id="changePinBtn" class="btn btn-secondary btn-sm" style="font-size:12px;padding:6px 14px;">
+                  ${hasPin ? 'Change PIN' : 'Set PIN'}
+                </button>
+              </div>
+            </div>
+
+            <!-- Auto-Lock Timeout Selector -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;opacity:${lockEnabled ? '1' : '0.5'};pointer-events:${lockEnabled ? 'auto' : 'none'};">
+              <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px;">⏱️ Auto-Lock Delay</div>
+              <div style="font-size:12px;color:var(--text-3);margin-bottom:12px;">Lock LedgerMate after being in the background for:</div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+                ${[
+                  { label: 'Immediate', ms: 0 },
+                  { label: '1 Minute', ms: 60000 },
+                  { label: '5 Minutes', ms: 300000 }
+                ].map(opt => `
+                  <button type="button" class="lm-timeout-pill ${currentTimeout === opt.ms ? 'active' : ''}" data-timeout="${opt.ms}">
+                    ${opt.label}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- Lock Now Quick Test -->
+            ${lockEnabled ? `
+              <div style="text-align:center;margin-top:4px;">
+                <button type="button" id="lockNowTestBtn" class="btn btn-ghost" style="font-size:12px;color:var(--teal);border:1px dashed rgba(0,212,180,0.3);width:100%;padding:10px;">
+                  🔒 Lock LedgerMate Now (Test Screen)
+                </button>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+
+      // Event Bindings
+      modal.querySelector('#closeSecurityModalBtn')?.addEventListener('click', () => modal.remove());
+
+      // Master App Lock Toggle
+      const appLockToggle = modal.querySelector('#appLockToggle');
+      if (appLockToggle) {
+        appLockToggle.addEventListener('change', async (e) => {
+          const checked = e.target.checked;
+          if (checked) {
+            if (!isPinSet(uid)) {
+              renderModal('setPin', { onComplete: () => {
+                setAppLockEnabled(true, uid);
+                lockEnabled = true;
+                renderModal();
+                if (typeof showToast === 'function') showToast('🛡️ App Lock enabled successfully!', 'success');
+              }, onCancel: () => {
+                renderModal();
+              }});
+            } else {
+              setAppLockEnabled(true, uid);
+              lockEnabled = true;
+              renderModal();
+              if (typeof showToast === 'function') showToast('🛡️ App Lock enabled!', 'success');
+            }
+          } else {
+            // Confirm with PIN or Biometrics before disabling
+            if (isPinSet(uid)) {
+              renderModal('verifyToDisable', {});
+            } else {
+              setAppLockEnabled(false, uid);
+              lockEnabled = false;
+              renderModal();
+            }
+          }
+        });
+      }
+
+      // Biometrics Toggle
+      const bioToggle = modal.querySelector('#bioLockToggle');
+      if (bioToggle) {
+        bioToggle.addEventListener('change', async (e) => {
+          const checked = e.target.checked;
+          if (checked) {
+            if (window.LM_Biometrics) {
+              const enrolled = await window.LM_Biometrics.register();
+              if (enrolled) {
+                setBiometricEnabled(true, uid);
+                bioEnabled = true;
+                renderModal();
+              } else {
+                bioToggle.checked = false;
+              }
+            }
+          } else {
+            setBiometricEnabled(false, uid);
+            bioEnabled = false;
+            renderModal();
+            if (typeof showToast === 'function') showToast('Biometric unlock disabled.', 'info');
+          }
+        });
+      }
+
+      // Change / Set PIN button
+      modal.querySelector('#changePinBtn')?.addEventListener('click', () => {
+        if (isPinSet(uid)) {
+          renderModal('changePin', {});
+        } else {
+          renderModal('setPin', {
+            onComplete: () => {
+              renderModal();
+              if (typeof showToast === 'function') showToast('PIN configured successfully!', 'success');
+            },
+            onCancel: () => renderModal()
+          });
         }
-      };
-      const rb = document.getElementById('pinRemoveBtn');
-      if (rb) rb.onclick = () => { removePin(userId); modal.remove(); if (typeof showToast === 'function') showToast('PIN removed', 'info'); };
-      document.getElementById('pinCancelBtn').onclick = () => modal.remove();
-    };
+      });
 
-    render(hasPIN ? 'Change PIN — Enter new PIN' : 'Set a 4-digit PIN');
+      // Timeout pills
+      modal.querySelectorAll('.lm-timeout-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          const ms = parseInt(pill.getAttribute('data-timeout'), 10);
+          setLockTimeout(ms, uid);
+          currentTimeout = ms;
+          renderModal();
+          if (typeof showToast === 'function') showToast('Auto-lock delay updated.', 'success');
+        });
+      });
+
+      // Lock Now test button
+      modal.querySelector('#lockNowTestBtn')?.addEventListener('click', () => {
+        modal.remove();
+        showAppLockScreen();
+      });
+    }
+
+    function renderPinFlow(mode, flowData) {
+      let step = (mode === 'changePin' ? 'verifyCurrent' : 'enterNew');
+      let firstPin = '';
+      let entered = '';
+
+      function drawPinStep(title, sub, errorText) {
+        modal.innerHTML = `
+          <div class="modal" style="max-width:340px;width:90%;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:24px;text-align:center;box-shadow:var(--shadow);">
+            <div style="font-size:32px;margin-bottom:8px;">🔐</div>
+            <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">${title}</div>
+            <div style="font-size:12px;color:var(--text-3);margin-bottom:16px;">${sub}</div>
+
+            ${errorText ? `<div style="font-size:12px;color:var(--rose);margin-bottom:12px;background:rgba(251,113,133,0.1);padding:6px 10px;border-radius:8px;">${errorText}</div>` : ''}
+
+            <!-- 4 Dots -->
+            <div class="lm-lock-dots ${errorText ? 'shake' : ''}" style="margin:16px auto 20px;">
+              ${[0, 1, 2, 3].map(i => `<div class="lm-lock-dot ${i < entered.length ? 'filled' : ''}"></div>`).join('')}
+            </div>
+
+            <!-- Mini Numpad -->
+            <div class="lm-lock-numpad" style="max-width:240px;margin:0 auto 16px;">
+              ${[1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map(k => `
+                <button type="button" class="lm-numpad-btn" data-key="${k}" style="${k===''?'opacity:0;pointer-events:none;':''}">
+                  ${k}
+                </button>
+              `).join('')}
+            </div>
+
+            <div style="display:flex;gap:8px;justify-content:center;">
+              <button type="button" id="pinFlowCancelBtn" class="btn btn-secondary btn-sm" style="padding:8px 18px;">Cancel</button>
+            </div>
+          </div>
+        `;
+
+        modal.querySelectorAll('.lm-numpad-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const k = btn.getAttribute('data-key');
+            if (k === '⌫') {
+              if (entered.length > 0) { entered = entered.slice(0, -1); drawPinStep(title, sub); }
+            } else if (k !== '' && k !== null && entered.length < 4) {
+              entered += k;
+              drawPinStep(title, sub);
+              if (entered.length === 4) {
+                processPinStep(entered);
+              }
+            }
+          });
+        });
+
+        modal.querySelector('#pinFlowCancelBtn')?.addEventListener('click', () => {
+          if (flowData?.onCancel) flowData.onCancel();
+          else renderModal();
+        });
+      }
+
+      function processPinStep(pinVal) {
+        if (mode === 'verifyToDisable') {
+          if (verifyPin(pinVal, uid)) {
+            setAppLockEnabled(false, uid);
+            lockEnabled = false;
+            renderModal();
+            if (typeof showToast === 'function') showToast('App Lock disabled.', 'info');
+          } else {
+            entered = '';
+            drawPinStep('Turn Off App Lock', 'Enter your 4-digit PIN to disable App Lock', 'Incorrect PIN. Try again.');
+          }
+          return;
+        }
+
+        if (step === 'verifyCurrent') {
+          if (verifyPin(pinVal, uid)) {
+            step = 'enterNew';
+            entered = '';
+            drawPinStep('Create New PIN', 'Enter a 4-digit PIN for App Lock');
+          } else {
+            entered = '';
+            drawPinStep('Verify Current PIN', 'Enter your current PIN to continue', 'Incorrect PIN. Try again.');
+          }
+        } else if (step === 'enterNew') {
+          firstPin = pinVal;
+          step = 'confirmNew';
+          entered = '';
+          drawPinStep('Confirm PIN', 'Re-enter your 4-digit PIN to confirm');
+        } else if (step === 'confirmNew') {
+          if (pinVal === firstPin) {
+            setPin(pinVal, uid);
+            if (flowData?.onComplete) flowData.onComplete();
+            else {
+              renderModal();
+              if (typeof showToast === 'function') showToast('✅ PIN updated successfully!', 'success');
+            }
+          } else {
+            step = 'enterNew';
+            firstPin = '';
+            entered = '';
+            drawPinStep('Create New PIN', 'Enter a 4-digit PIN for App Lock', 'PINs did not match. Please try again.');
+          }
+        }
+      }
+
+      if (mode === 'changePin') {
+        drawPinStep('Verify Current PIN', 'Enter your current PIN to continue');
+      } else if (mode === 'verifyToDisable') {
+        drawPinStep('Turn Off App Lock', 'Enter your 4-digit PIN to disable App Lock');
+      } else {
+        drawPinStep('Create 4-Digit PIN', 'Enter a 4-digit PIN for App Lock');
+      }
+    }
+
+    renderModal();
     document.body.appendChild(modal);
   }
 
@@ -635,8 +1048,17 @@
         hideLoginScreen();
         updateUIForUser(session);
         startInactivityWatcher();
-        if (typeof window.LM_StartApp === 'function') {
-          await window.LM_StartApp();
+
+        if (isAppLockEnabled(user.id)) {
+          showAppLockScreen(async () => {
+            if (typeof window.LM_StartApp === 'function') {
+              await window.LM_StartApp();
+            }
+          });
+        } else {
+          if (typeof window.LM_StartApp === 'function') {
+            await window.LM_StartApp();
+          }
         }
       }
     } else {
@@ -646,8 +1068,17 @@
         hideLoginScreen();
         updateUIForUser(existingLocalSession);
         startInactivityWatcher();
-        if (typeof window.LM_StartApp === 'function') {
-          await window.LM_StartApp();
+
+        if (isAppLockEnabled(existingLocalSession.userId)) {
+          showAppLockScreen(async () => {
+            if (typeof window.LM_StartApp === 'function') {
+              await window.LM_StartApp();
+            }
+          });
+        } else {
+          if (typeof window.LM_StartApp === 'function') {
+            await window.LM_StartApp();
+          }
         }
       } else {
         clearSession();
@@ -685,16 +1116,25 @@
     resetInactivityTimer,
     startInactivityWatcher,
     stopInactivityWatcher,
-    // PIN lock
+    // App Lock & PIN / Biometrics
     isPinSet,
     setPin,
     removePin,
     verifyPin,
-    showPinScreen,
-    openPinSetupModal
+    isAppLockEnabled,
+    setAppLockEnabled,
+    isBiometricEnabled,
+    setBiometricEnabled,
+    getLockTimeout,
+    setLockTimeout,
+    showAppLockScreen,
+    showPinScreen: showAppLockScreen,
+    openAppLockSettingsModal,
+    openPinSetupModal: openAppLockSettingsModal
   };
 
-  // Global shortcut for PIN setup from preferences
-  window.openPinSetupModal = openPinSetupModal;
+  // Global shortcuts
+  window.openAppLockSettingsModal = openAppLockSettingsModal;
+  window.openPinSetupModal = openAppLockSettingsModal;
 
 })();
