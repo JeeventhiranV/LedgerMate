@@ -18,10 +18,15 @@ android {
 
     signingConfigs {
         release {
-            storeFile file("release.keystore")
-            storePassword "ledgermate123"
-            keyAlias "ledgermate"
-            keyPassword "ledgermate123"
+            def ksPath = System.getenv("KEYSTORE_PATH") ?: (project.hasProperty("KEYSTORE_PATH") ? project.property("KEYSTORE_PATH") : "release.keystore")
+            def ksPass = System.getenv("KEYSTORE_PASSWORD") ?: (project.hasProperty("KEYSTORE_PASSWORD") ? project.property("KEYSTORE_PASSWORD") : "ledgermate123")
+            def kAlias = System.getenv("KEY_ALIAS") ?: (project.hasProperty("KEY_ALIAS") ? project.property("KEY_ALIAS") : "ledgermate")
+            def kPass  = System.getenv("KEY_PASSWORD") ?: (project.hasProperty("KEY_PASSWORD") ? project.property("KEY_PASSWORD") : "ledgermate123")
+
+            storeFile file(ksPath)
+            storePassword ksPass
+            keyAlias kAlias
+            keyPassword kPass
         }
     }
 

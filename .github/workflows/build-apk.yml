@@ -27,6 +27,10 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
 
       - name: 🔨 Build APKs with Gradle Wrapper
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           cd android
           gradle wrapper --gradle-version 8.6
