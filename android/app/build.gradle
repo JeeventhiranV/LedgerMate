@@ -6,12 +6,15 @@ android {
     namespace 'com.jeeva.ledgermate'
     compileSdk 34
 
+    def buildNum = System.getenv("BUILD_NUMBER") ?: (project.hasProperty("BUILD_NUMBER") ? project.property("BUILD_NUMBER") : "1")
+    def verName  = System.getenv("VERSION_NAME") ?: (project.hasProperty("VERSION_NAME") ? project.property("VERSION_NAME") : "1.0.0")
+
     defaultConfig {
         applicationId "com.jeeva.ledgermate"
         minSdk 21
         targetSdk 34
-        versionCode 1
-        versionName "1.0.0"
+        versionCode buildNum.toInteger()
+        versionName verName
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

@@ -7,12 +7,14 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Message;
+import android.provider.Settings;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
@@ -28,8 +30,12 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -379,6 +385,63 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void sendProgress(String callbackId, String status, int progress, String message) {
+        try {
+            JSONObject obj = new JSONObject();
+            obj.put("status", status);
+            obj.put("progress", progress);
+            obj.put("message", message);
+            returnToJs(callbackId, obj.toString());
+        } catch (Exception ignored) {}
+    }
+
+    private void sendError(String callbackId, String errorMsg) {
+        try {
+            JSONObject obj = new JSONObject();
+            obj.put("status", "error");
+            obj.put("error", errorMsg);
+            returnToJs(callbackId, obj.toString());
+        } catch (Exception ignored) {}
+    }
+
+    private void installApkFile(File apkFile, String callbackId) {
+        try {
+            if (!apkFile.exists()) {
+                sendError(callbackId, "Downloaded APK file not found on disk");
+                return;
+            }
+
+            // For Android 8.0+ (Oreo+), verify permission to install unknown apps
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (!getPackageManager().canRequestPackageInstalls()) {
+                    Intent permIntent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
+                    permIntent.setData(Uri.parse("package:" + getPackageName()));
+                    permIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(permIntent);
+                    sendProgress(callbackId, "permission_required", 100, "Please enable 'Allow from this source' for LedgerMate, then retry update.");
+                    return;
+                }
+            }
+
+            Uri apkUri = FileProvider.getUriForFile(
+                    MainActivity.this,
+                    getPackageName() + ".fileprovider",
+                    apkFile
+            );
+
+            Intent installIntent = new Intent(Intent.ACTION_VIEW);
+            installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+            installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            installIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+            startActivity(installIntent);
+            sendProgress(callbackId, "complete", 100, "Installer launched successfully");
+        } catch (Exception e) {
+            sendError(callbackId, "Failed to launch package installer: " + e.getMessage());
+        }
+    }
+
     private void returnToJs(String callbackId, String jsonPayload) {
         if (callbackId == null || callbackId.isEmpty()) return;
         final String safeCallbackId = callbackId.replaceAll("[^a-zA-Z0-9_-]", "");
@@ -684,6 +747,108 @@ public class MainActivity extends AppCompatActivity {
                         err.put("error", e.getMessage());
                         returnToJs(callbackId, err.toString());
                     } catch (Exception ignored) {}
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public String getAppVersion() {
+            try {
+                PackageManager pm = getPackageManager();
+                PackageInfo pInfo = pm.getPackageInfo(getPackageName(), 0);
+                long versionCode = 1;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    versionCode = pInfo.getLongVersionCode();
+                } else {
+                    versionCode = pInfo.versionCode;
+                }
+                JSONObject obj = new JSONObject();
+                obj.put("versionCode", versionCode);
+                obj.put("versionName", pInfo.versionName != null ? pInfo.versionName : "1.0.0");
+                obj.put("packageName", getPackageName());
+                return obj.toString();
+            } catch (Exception e) {
+                return "{\"versionCode\":1,\"versionName\":\"1.0.0\"}";
+            }
+        }
+
+        @JavascriptInterface
+        public void downloadAndInstallApk(String apkUrl, String callbackId) {
+            executorService.execute(() -> {
+                try {
+                    sendProgress(callbackId, "downloading", 0, "Starting download...");
+                    URL url = new URL(apkUrl);
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("GET");
+                    conn.setConnectTimeout(15000);
+                    conn.setReadTimeout(15000);
+                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 LedgerMate-AppUpdater/1.0");
+
+                    int responseCode = conn.getResponseCode();
+                    // Follow redirects (e.g. GitHub Releases 302 redirect)
+                    if (responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||
+                        responseCode == HttpURLConnection.HTTP_MOVED_PERM ||
+                        responseCode == HttpURLConnection.HTTP_SEE_OTHER) {
+                        String newUrl = conn.getHeaderField("Location");
+                        conn.disconnect();
+                        url = new URL(newUrl);
+                        conn = (HttpURLConnection) url.openConnection();
+                        conn.setRequestMethod("GET");
+                        conn.setConnectTimeout(15000);
+                        conn.setReadTimeout(15000);
+                        conn.setRequestProperty("User-Agent", "Mozilla/5.0 LedgerMate-AppUpdater/1.0");
+                        responseCode = conn.getResponseCode();
+                    }
+
+                    if (responseCode != HttpURLConnection.HTTP_OK) {
+                        sendError(callbackId, "HTTP error " + responseCode + " while downloading APK update");
+                        conn.disconnect();
+                        return;
+                    }
+
+                    int fileLength = conn.getContentLength();
+                    File updateDir = new File(getCacheDir(), "updates");
+                    if (!updateDir.exists()) {
+                        updateDir.mkdirs();
+                    }
+                    File apkFile = new File(updateDir, "LedgerMate-update.apk");
+                    if (apkFile.exists()) {
+                        apkFile.delete();
+                    }
+
+                    InputStream input = conn.getInputStream();
+                    FileOutputStream output = new FileOutputStream(apkFile);
+
+                    byte[] data = new byte[8192];
+                    long total = 0;
+                    int count;
+                    long lastProgressUpdate = 0;
+
+                    while ((count = input.read(data)) != -1) {
+                        total += count;
+                        output.write(data, 0, count);
+                        if (fileLength > 0) {
+                            int percent = (int) ((total * 100) / fileLength);
+                            long now = System.currentTimeMillis();
+                            if (now - lastProgressUpdate > 250 || percent == 100) {
+                                lastProgressUpdate = now;
+                                sendProgress(callbackId, "downloading", percent, "Downloading: " + percent + "%");
+                            }
+                        }
+                    }
+
+                    output.flush();
+                    output.close();
+                    input.close();
+                    conn.disconnect();
+
+                    sendProgress(callbackId, "installing", 100, "Opening package installer...");
+
+                    // Trigger Android Package Installer
+                    runOnUiThread(() -> installApkFile(apkFile, callbackId));
+
+                } catch (Exception e) {
+                    sendError(callbackId, e.getMessage() != null ? e.getMessage() : "Download failed");
                 }
             });
         }

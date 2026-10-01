@@ -31,30 +31,36 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          BUILD_NUMBER: ${{ github.run_number }}
+          VERSION_NAME: "1.0.${{ github.run_number }}"
         run: |
           cd android
           gradle wrapper --gradle-version 8.6
           chmod +x gradlew
           ./gradlew assembleRelease assembleDebug --no-daemon
+          cd ..
+          mkdir -p build-assets
+          cp android/app/build/outputs/apk/release/app-release.apk build-assets/app-release.apk 2>/dev/null || cp android/app/build/outputs/apk/release/*.apk build-assets/app-release.apk
+          cp build-assets/app-release.apk build-assets/LedgerMate-v1.0.${{ github.run_number }}.apk
 
       - name: 📤 Upload APK Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: LedgerMate-Android-APK
           path: |
-            android/app/build/outputs/apk/release/*.apk
+            build-assets/*.apk
             android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
-      - name: 🏷️ Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+      - name: 🏷️ Publish / Update GitHub Release
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
-          name: "LedgerMate Android APK"
-          tag_name: "v1.0.0-apk"
+          name: "LedgerMate Android App v1.0.${{ github.run_number }}"
+          tag_name: "latest"
           files: |
-            android/app/build/outputs/apk/release/*.apk
-            android/app/build/outputs/apk/debug/*.apk
+            build-assets/app-release.apk
+            build-assets/LedgerMate-v1.0.${{ github.run_number }}.apk
           draft: false
           prerelease: false
         env:
