@@ -1067,3 +1067,8 @@ select:focus:not(:focus-visible) {
 [data-theme="light"] .lm-numpad-btn:hover {
   background: rgba(0, 212, 180, 0.08);
 }
+
+@keyframes lmSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

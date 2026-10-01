@@ -452,53 +452,94 @@
 
     // Install Action
     updateBtn.addEventListener('click', () => {
+      // If permission is already needed or we have a downloaded package ready
+      if (window.AndroidBridge && typeof window.AndroidBridge.canInstallApk === 'function') {
+        const hasPermission = window.AndroidBridge.canInstallApk();
+        const hasDownloaded = typeof window.AndroidBridge.hasDownloadedUpdate === 'function' && window.AndroidBridge.hasDownloadedUpdate();
+
+        if (!hasPermission) {
+          statusText.textContent = '⚠️ Enable "Allow from this source" in Android Settings, then return to LedgerMate.';
+          updateBtn.innerHTML = '<span>⚙️ Open Settings</span>';
+          if (typeof window.AndroidBridge.requestInstallPermission === 'function') {
+            window.AndroidBridge.requestInstallPermission();
+          }
+          return;
+        }
+
+        if (hasDownloaded) {
+          isDownloading = false;
+          progressWrap.style.display = 'block';
+          progressBar.style.width = '100%';
+          percentText.textContent = '100%';
+          statusText.textContent = '🚀 Launching Package Installer...';
+          updateBtn.disabled = true;
+          updateBtn.innerHTML = '<span>🚀 Launching Installer...</span>';
+          const callbackId = 'cb_update_' + Date.now();
+          window.LM_NativeBridgeCallbacks = window.LM_NativeBridgeCallbacks || {};
+          window.LM_NativeBridgeCallbacks[callbackId] = handleNativeCallback;
+          window.AndroidBridge.installPendingUpdate(callbackId);
+          return;
+        }
+      }
+
+      startApkDownload();
+    });
+
+    function handleNativeCallback(data) {
+      if (!data) return;
+
+      if (data.status === 'downloading') {
+        const p = Math.max(0, Math.min(100, data.progress || 0));
+        progressBar.style.width = p + '%';
+        percentText.textContent = p + '%';
+        statusText.textContent = data.message || `Downloading update (${p}%)...`;
+        updateBtn.innerHTML = `<span>⬇️ Downloading ${p}%</span>`;
+      } else if (data.status === 'installing' || data.status === 'complete') {
+        try {
+          localStorage.setItem('lm_update_snooze_code', String(remoteCode));
+          localStorage.setItem('lm_update_snooze_time', String(Date.now()));
+        } catch (e) {}
+        progressBar.style.width = '100%';
+        percentText.textContent = '100%';
+        statusText.textContent = '✅ Installer Launched! Follow the system prompt to finish.';
+        updateBtn.disabled = true;
+        updateBtn.innerHTML = '<span>✅ Installer Active</span>';
+        // Keep modal visible for 10s or until dismissed
+        setTimeout(() => {
+          if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+          _activeModal = null;
+        }, 10000);
+      } else if (data.status === 'permission_required') {
+        isDownloading = false;
+        statusText.textContent = '⚠️ Enable "Allow from this source" in Settings, then return here.';
+        updateBtn.disabled = false;
+        dismissBtn.style.display = 'inline-flex';
+        closeBtn.style.display = 'flex';
+        updateBtn.innerHTML = '<span>⚙️ Grant Permission & Install</span>';
+      } else if (data.status === 'error') {
+        isDownloading = false;
+        statusText.textContent = '❌ ' + (data.error || 'Download failed');
+        updateBtn.disabled = false;
+        closeBtn.style.display = 'flex';
+        dismissBtn.style.display = 'inline-flex';
+        updateBtn.innerHTML = '<span>🔄 Retry Download</span>';
+      }
+    }
+
+    function startApkDownload() {
       isDownloading = true;
       updateBtn.disabled = true;
       closeBtn.style.display = 'none';
       dismissBtn.style.display = 'none';
       progressWrap.style.display = 'block';
+      progressBar.style.width = '5%';
+      percentText.textContent = '0%';
+      statusText.textContent = 'Connecting to server...';
       updateBtn.innerHTML = '<span>⏳ Preparing Download...</span>';
 
       const callbackId = 'cb_update_' + Date.now();
       window.LM_NativeBridgeCallbacks = window.LM_NativeBridgeCallbacks || {};
-
-      window.LM_NativeBridgeCallbacks[callbackId] = function (data) {
-        if (!data) return;
-
-        if (data.status === 'downloading') {
-          const p = Math.max(0, Math.min(100, data.progress || 0));
-          progressBar.style.width = p + '%';
-          percentText.textContent = p + '%';
-          statusText.textContent = data.message || `Downloading update (${p}%)...`;
-          updateBtn.innerHTML = `<span>⬇️ Downloading ${p}%</span>`;
-        } else if (data.status === 'installing' || data.status === 'complete') {
-          try {
-            localStorage.setItem('lm_update_snooze_code', String(remoteCode));
-            localStorage.setItem('lm_update_snooze_time', String(Date.now()));
-          } catch (e) {}
-          progressBar.style.width = '100%';
-          percentText.textContent = '100%';
-          statusText.textContent = 'Launching Installer...';
-          updateBtn.innerHTML = '<span>✅ Launching Installer...</span>';
-          setTimeout(() => {
-            if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-            _activeModal = null;
-          }, 4000);
-        } else if (data.status === 'permission_required') {
-          isDownloading = false;
-          statusText.textContent = '⚠️ Enable "Allow from this source", then retry.';
-          updateBtn.disabled = false;
-          dismissBtn.style.display = 'inline-flex';
-          updateBtn.innerHTML = '<span>🔄 Retry Installation</span>';
-        } else if (data.status === 'error') {
-          isDownloading = false;
-          statusText.textContent = '❌ ' + (data.error || 'Download failed');
-          updateBtn.disabled = false;
-          closeBtn.style.display = 'flex';
-          dismissBtn.style.display = 'inline-flex';
-          updateBtn.innerHTML = '<span>🔄 Retry</span>';
-        }
-      };
+      window.LM_NativeBridgeCallbacks[callbackId] = handleNativeCallback;
 
       try {
         window.AndroidBridge.downloadAndInstallApk(apkUrl, callbackId);
@@ -510,7 +551,28 @@
         dismissBtn.style.display = 'inline-flex';
         updateBtn.innerHTML = '<span>🔄 Retry</span>';
       }
+    }
+
+    // Auto-resume check when user returns from Android Settings
+    function onAppResume() {
+      if (!overlay || !overlay.parentNode) return;
+      if (window.AndroidBridge && typeof window.AndroidBridge.canInstallApk === 'function') {
+        if (window.AndroidBridge.canInstallApk() && window.AndroidBridge.hasDownloadedUpdate()) {
+          statusText.textContent = '🚀 Permission granted! Launching installer...';
+          updateBtn.disabled = true;
+          updateBtn.innerHTML = '<span>🚀 Launching Installer...</span>';
+          const callbackId = 'cb_resume_' + Date.now();
+          window.LM_NativeBridgeCallbacks = window.LM_NativeBridgeCallbacks || {};
+          window.LM_NativeBridgeCallbacks[callbackId] = handleNativeCallback;
+          window.AndroidBridge.installPendingUpdate(callbackId);
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') onAppResume();
     });
+    window.addEventListener('focus', onAppResume);
   }
 
   async function checkForUpdates(manual = false) {
@@ -521,10 +583,35 @@
     _checking = true;
     _lastCheckedTime = now;
 
+    // Sidebar button feedback if manually triggered
+    const sidebarBtn = document.getElementById('sidebarCheckUpdateBtn');
+    const updateIcon = document.getElementById('sidebarUpdateIcon');
+    const updateLabel = document.getElementById('sidebarUpdateLabel');
+    if (manual && sidebarBtn) {
+      if (updateIcon) updateIcon.style.animation = 'lmSpin 0.8s linear infinite';
+      if (updateLabel) updateLabel.textContent = 'Checking...';
+    }
+
+    function resetSidebarBtn() {
+      if (sidebarBtn) {
+        if (updateIcon) updateIcon.style.animation = '';
+        if (updateLabel) updateLabel.textContent = 'Check for Updates';
+      }
+    }
+
     try {
       if (!isNativeAndroid()) {
-        if (manual && typeof window.showToast === 'function') {
-          window.showToast('Web version is always up to date automatically.', 'info');
+        const remoteMeta = await fetchLatestVersionMeta();
+        if (remoteMeta) {
+          const currentDeploy = window.LM_DEPLOY_ID || localStorage.getItem('lm_active_deploy_commit') || 'latest';
+          const remoteDeploy  = remoteMeta.version || remoteMeta.commit || 'latest';
+          if (manual && typeof window.showToast === 'function') {
+            window.showToast(`✅ Web version is up to date (${remoteMeta.apkVersionName || 'v1.0.0'})`, 'success');
+          }
+        } else {
+          if (manual && typeof window.showToast === 'function') {
+            window.showToast('✅ Web version is up to date.', 'info');
+          }
         }
         return;
       }
@@ -534,7 +621,7 @@
 
       if (!remoteMeta) {
         if (manual && typeof window.showToast === 'function') {
-          window.showToast('Could not fetch update information.', 'warning');
+          window.showToast('⚠️ Could not connect to update server.', 'warning');
         }
         return;
       }
@@ -557,13 +644,17 @@
         renderUpdateUI(currentVer, remoteMeta);
       } else {
         if (manual && typeof window.showToast === 'function') {
-          window.showToast(`You have the latest version (v${currentVer.versionName})`, 'success');
+          window.showToast(`✅ You're on the latest version (v${currentVer.versionName})`, 'success');
         }
       }
     } catch (e) {
       console.warn('[AppUpdate] Check failed:', e);
+      if (manual && typeof window.showToast === 'function') {
+        window.showToast('⚠️ Check for updates failed.', 'error');
+      }
     } finally {
       _checking = false;
+      resetSidebarBtn();
     }
   }
 

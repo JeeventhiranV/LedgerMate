@@ -56,6 +56,8 @@ public class MainActivity extends AppCompatActivity {
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
+    private File pendingInstallApk = null;
+    private String pendingInstallCallbackId = null;
 
     private final ActivityResultLauncher<String> requestNotificationPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
@@ -411,12 +413,37 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception ignored) {}
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (pendingInstallApk != null && pendingInstallApk.exists()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (getPackageManager().canRequestPackageInstalls()) {
+                    File toInstall = pendingInstallApk;
+                    String cbId = pendingInstallCallbackId;
+                    pendingInstallApk = null;
+                    pendingInstallCallbackId = null;
+                    installApkFile(toInstall, cbId);
+                }
+            } else {
+                File toInstall = pendingInstallApk;
+                String cbId = pendingInstallCallbackId;
+                pendingInstallApk = null;
+                pendingInstallCallbackId = null;
+                installApkFile(toInstall, cbId);
+            }
+        }
+    }
+
     private void installApkFile(File apkFile, String callbackId) {
         try {
-            if (!apkFile.exists()) {
+            if (apkFile == null || !apkFile.exists()) {
                 sendError(callbackId, "Downloaded APK file not found on disk");
                 return;
             }
+
+            pendingInstallApk = apkFile;
+            pendingInstallCallbackId = callbackId;
 
             // For Android 8.0+ (Oreo+), verify permission to install unknown apps
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -425,7 +452,7 @@ public class MainActivity extends AppCompatActivity {
                     permIntent.setData(Uri.parse("package:" + getPackageName()));
                     permIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(permIntent);
-                    sendProgress(callbackId, "permission_required", 100, "Please enable 'Allow from this source' for LedgerMate, then retry update.");
+                    sendProgress(callbackId, "permission_required", 100, "Please enable 'Allow from this source' for LedgerMate, then return here to install.");
                     return;
                 }
             }
@@ -443,6 +470,8 @@ public class MainActivity extends AppCompatActivity {
             installIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
             startActivity(installIntent);
+            pendingInstallApk = null;
+            pendingInstallCallbackId = null;
             sendProgress(callbackId, "complete", 100, "Installer launched successfully");
         } catch (Exception e) {
             sendError(callbackId, "Failed to launch package installer: " + e.getMessage());
@@ -859,8 +888,6 @@ public class MainActivity extends AppCompatActivity {
                     input.close();
                     conn.disconnect();
 
-                    sendProgress(callbackId, "installing", 100, "Opening package installer...");
-
                     // Trigger Android Package Installer
                     runOnUiThread(() -> installApkFile(apkFile, callbackId));
 
@@ -868,6 +895,42 @@ public class MainActivity extends AppCompatActivity {
                     sendError(callbackId, e.getMessage() != null ? e.getMessage() : "Download failed");
                 }
             });
+        }
+
+        @JavascriptInterface
+        public boolean canInstallApk() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                return getPackageManager().canRequestPackageInstalls();
+            }
+            return true;
+        }
+
+        @JavascriptInterface
+        public void requestInstallPermission() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Intent permIntent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
+                permIntent.setData(Uri.parse("package:" + getPackageName()));
+                permIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(permIntent);
+            }
+        }
+
+        @JavascriptInterface
+        public boolean hasDownloadedUpdate() {
+            File updateDir = new File(getCacheDir(), "updates");
+            File apkFile = new File(updateDir, "LedgerMate-update.apk");
+            return apkFile.exists() && apkFile.length() > 100000;
+        }
+
+        @JavascriptInterface
+        public void installPendingUpdate(String callbackId) {
+            File updateDir = new File(getCacheDir(), "updates");
+            File apkFile = new File(updateDir, "LedgerMate-update.apk");
+            if (apkFile.exists() && apkFile.length() > 100000) {
+                runOnUiThread(() -> installApkFile(apkFile, callbackId));
+            } else {
+                sendError(callbackId, "No downloaded update file found on disk");
+            }
         }
     }
 
