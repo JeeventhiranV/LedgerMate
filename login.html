@@ -440,10 +440,16 @@ body {
       }).catch(function() { _dismissLoader(); });
       
       _supabase.auth.onAuthStateChange(function (event, session) {
-        if (event === 'SIGNED_IN' && session) checkProfileAndRedirect(session.user.id);
+        if (!_isLogout && event === 'SIGNED_IN' && session) checkProfileAndRedirect(session.user.id);
       });
     } catch (e) { _dismissLoader(); }
   } else {
+    if (hasSupabase && _isLogout) {
+      try {
+        _supabase.auth.signOut();
+        localStorage.removeItem('lm_session');
+      } catch (e) {}
+    }
     setTimeout(_dismissLoader, 250);
   }
   setTimeout(_dismissLoader, 2000);
@@ -538,9 +544,16 @@ body {
         return;
       }
       localStorage.setItem('lm_oauth_app', _app);
+      var cleanRedirect = window.location.origin + window.location.pathname;
       var res = await _supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin + window.location.pathname }
+        options: {
+          redirectTo: cleanRedirect,
+          queryParams: {
+            prompt: 'select_account',
+            access_type: 'offline'
+          }
+        }
       });
       if (res.error) showMsg('signinMsg', res.error.message || 'Google sign-in failed.', 'error');
     });

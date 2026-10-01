@@ -312,7 +312,10 @@
 
     // ── Wire sign out ────────────────────────────────────────────────────────
     document.getElementById('authLogoutBtn').addEventListener('click', function () {
+      localStorage.removeItem('lm_session');
       _supabase.auth.signOut().then(function () {
+        _redirect(_getLoginUrl());
+      }).catch(function() {
         _redirect(_getLoginUrl());
       });
     });

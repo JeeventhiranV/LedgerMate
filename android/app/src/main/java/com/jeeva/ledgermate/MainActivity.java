@@ -103,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
-        settings.setSupportMultipleWindows(true);
+        settings.setSupportMultipleWindows(false);
 
         // Sanitize User-Agent to prevent Google OAuth "disallowed_useragent" (403) in WebView
         String defaultUa = settings.getUserAgentString();
@@ -140,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
             private boolean handleUrlLoading(WebView view, String url) {
                 if (url == null) return false;
 
-                // If internal or auth url, let the WebView handle it directly
+                // If internal or auth url, let the WebView handle it directly (return false)
                 if (isInternalOrAuthUrl(url)) {
                     return false;
                 }
@@ -187,49 +187,13 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
-                WebView newWebView = new WebView(MainActivity.this);
-                WebSettings newSettings = newWebView.getSettings();
-                newSettings.setJavaScriptEnabled(true);
-                newSettings.setDomStorageEnabled(true);
-                if (sanitizedUa != null) {
-                    newSettings.setUserAgentString(sanitizedUa);
+                WebView.HitTestResult result = view.getHitTestResult();
+                String data = result.getExtra();
+                if (data != null && isInternalOrAuthUrl(data)) {
+                    view.loadUrl(data);
+                    return false;
                 }
-                CookieManager.getInstance().setAcceptThirdPartyCookies(newWebView, true);
-
-                newWebView.setWebViewClient(new WebViewClient() {
-                    @Override
-                    public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
-                        if (req != null && req.getUrl() != null) {
-                            String target = req.getUrl().toString();
-                            if (isInternalOrAuthUrl(target)) {
-                                view.loadUrl(target);
-                                return true;
-                            }
-                            try {
-                                startActivity(new Intent(Intent.ACTION_VIEW, req.getUrl()));
-                            } catch (Exception ignored) {}
-                        }
-                        return true;
-                    }
-
-                    @SuppressWarnings("deprecation")
-                    @Override
-                    public boolean shouldOverrideUrlLoading(WebView v, String target) {
-                        if (isInternalOrAuthUrl(target)) {
-                            view.loadUrl(target);
-                            return true;
-                        }
-                        try {
-                            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(target)));
-                        } catch (Exception ignored) {}
-                        return true;
-                    }
-                });
-
-                WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
-                transport.setWebView(newWebView);
-                resultMsg.sendToTarget();
-                return true;
+                return false;
             }
         });
 
@@ -255,7 +219,8 @@ public class MainActivity extends AppCompatActivity {
         if (url == null || url.trim().isEmpty()) return false;
 
         if (url.startsWith("javascript:") || url.startsWith("about:") ||
-            url.startsWith("data:") || url.startsWith("blob:")) {
+            url.startsWith("data:") || url.startsWith("blob:") ||
+            url.startsWith("ledgermate://")) {
             return true;
         }
 
@@ -272,6 +237,7 @@ public class MainActivity extends AppCompatActivity {
 
             // 1. LedgerMate app domain & local dev
             if (lowerHost.equals("jeeventhiranv.github.io") ||
+                lowerHost.endsWith(".github.io") ||
                 lowerHost.equals("localhost") ||
                 lowerHost.equals("127.0.0.1")) {
                 return true;
@@ -280,20 +246,22 @@ public class MainActivity extends AppCompatActivity {
             // 2. Supabase Auth & DB endpoints
             if (lowerHost.endsWith(".supabase.co") ||
                 lowerHost.equals("supabase.co") ||
-                lowerHost.endsWith(".supabase.in")) {
+                lowerHost.endsWith(".supabase.in") ||
+                lowerHost.equals("supabase.in")) {
                 return true;
             }
 
-            // 3. Google OAuth & Sign-in endpoints
+            // 3. Google OAuth & Sign-in endpoints (Global + Regional TLDs)
             if (lowerHost.equals("accounts.google.com") ||
                 lowerHost.endsWith(".accounts.google.com") ||
                 lowerHost.startsWith("accounts.google.") ||
                 lowerHost.contains(".google.") ||
-                lowerHost.equals("ssl.gstatic.com") ||
+                lowerHost.endsWith(".google.com") ||
+                lowerHost.equals("google.com") ||
                 lowerHost.endsWith(".gstatic.com") ||
-                lowerHost.equals("apis.google.com") ||
-                lowerHost.equals("play.google.com") ||
-                lowerHost.endsWith(".googleusercontent.com")) {
+                lowerHost.endsWith(".googleapis.com") ||
+                lowerHost.endsWith(".googleusercontent.com") ||
+                lowerHost.endsWith(".youtube.com")) {
                 return true;
             }
 
