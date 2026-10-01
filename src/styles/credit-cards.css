@@ -773,3 +773,576 @@
   }
 }
 
+/* ══════════════════════════════════════════════════════════════
+   DASHBOARD CREDIT CARD REMINDERS & PENDING DUES WIDGET
+   ══════════════════════════════════════════════════════════════ */
+
+.dash-cc-header-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+.dash-cc-header-badge.overdue {
+  background: rgba(244, 63, 94, 0.15);
+  color: var(--rose, #f43f5e);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  animation: dashCcPulse 2s infinite ease-in-out;
+}
+
+.dash-cc-header-badge.duesoon {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--gold, #f59e0b);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.dash-cc-header-badge.pending {
+  background: rgba(0, 240, 255, 0.12);
+  color: var(--teal, #00f0ff);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+}
+
+.dash-cc-header-badge.allclear {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--emerald, #10b981);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+@keyframes dashCcPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.82; transform: scale(0.97); }
+}
+
+/* ─── Urgent Alert Banner at Top of Dashboard ─── */
+.dash-cc-urgent-alert {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: var(--bg2, #11151f);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+  animation: slideDownFade 0.3s ease-out;
+}
+
+@keyframes slideDownFade {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dash-cc-urgent-alert.banner-overdue {
+  border-left: 5px solid var(--rose, #f43f5e);
+  background: linear-gradient(90deg, rgba(244, 63, 94, 0.1) 0%, var(--bg2, #11151f) 100%);
+  border-color: rgba(244, 63, 94, 0.35);
+}
+
+.dash-cc-urgent-alert.banner-duesoon {
+  border-left: 5px solid var(--gold, #f59e0b);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, var(--bg2, #11151f) 100%);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.dash-cc-urgent-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dash-cc-urgent-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.dash-cc-urgent-title {
+  font-size: 0.95rem;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.dash-cc-urgent-sub {
+  font-size: 0.8rem;
+  color: var(--text-2);
+}
+
+.dash-cc-urgent-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dash-cc-urgent-btn-pay {
+  background: linear-gradient(135deg, var(--rose, #f43f5e), #e11d48);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.dash-cc-urgent-btn-pay:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.35);
+}
+
+.dash-cc-urgent-btn-view {
+  background: var(--surface-card, var(--bg3, #1e2436));
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.dash-cc-urgent-btn-view:hover {
+  background: var(--surface-h, rgba(255, 255, 255, 0.08));
+}
+
+/* ─── Dashboard Widget Container ─── */
+.dash-cc-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.dash-cc-summary-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--bg2, #11151f);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dash-cc-summary-banner.is-overdue {
+  border-color: rgba(244, 63, 94, 0.3);
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.08), var(--bg2, #11151f));
+}
+
+.dash-cc-summary-banner.is-duesoon {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), var(--bg2, #11151f));
+}
+
+.dash-cc-sum-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dash-cc-sum-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-3);
+}
+
+.dash-cc-sum-val {
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-family: var(--font-m, monospace);
+  color: var(--text);
+}
+
+.dash-cc-sum-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--border);
+}
+
+.dash-cc-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.dash-cc-tag.overdue {
+  background: rgba(244, 63, 94, 0.15);
+  color: var(--rose, #f43f5e);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.dash-cc-tag.duesoon {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--gold, #f59e0b);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.dash-cc-tag.normal {
+  background: rgba(0, 240, 255, 0.12);
+  color: var(--teal, #00f0ff);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+}
+
+/* ─── Dashboard Pending Cards Grid ─── */
+.dash-cc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.dash-cc-card {
+  background: var(--bg2, #11151f);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.dash-cc-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.dash-cc-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--card-accent, linear-gradient(90deg, var(--teal), var(--violet)));
+}
+
+.dash-cc-card.theme-sapphire::before { background: linear-gradient(90deg, #1e3a8a, #3b82f6); }
+.dash-cc-card.theme-emerald::before  { background: linear-gradient(90deg, #064e3b, #10b981); }
+.dash-cc-card.theme-ruby::before     { background: linear-gradient(90deg, #881337, #f43f5e); }
+.dash-cc-card.theme-gold::before     { background: linear-gradient(90deg, #b45309, #f59e0b); }
+.dash-cc-card.theme-amethyst::before { background: linear-gradient(90deg, #5b21b6, #8b5cf6); }
+.dash-cc-card.theme-platinum::before { background: linear-gradient(90deg, #374151, #9ca3af); }
+
+.dash-cc-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.dash-cc-bank-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+
+.dash-cc-card-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dash-cc-last4 {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-3);
+  font-family: var(--font-m, monospace);
+}
+
+.dash-cc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dash-cc-badge.overdue {
+  background: rgba(244, 63, 94, 0.15);
+  color: var(--rose, #f43f5e);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+}
+
+.dash-cc-badge.duesoon {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--gold, #f59e0b);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.dash-cc-badge.dueok {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+
+.dash-cc-due-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 12px;
+  background: var(--bg, #0b0e17);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.dash-cc-due-lbl {
+  font-size: 0.7rem;
+  color: var(--text-3);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.dash-cc-due-amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--rose, #f43f5e);
+  font-family: var(--font-m, monospace);
+}
+
+.dash-cc-min-amount {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-m, monospace);
+}
+
+.dash-cc-meta-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-3);
+}
+
+.dash-cc-meta-row strong {
+  color: var(--text);
+}
+
+.dash-cc-util-track {
+  width: 100%;
+  height: 5px;
+  background: var(--bg3, #1e2436);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dash-cc-util-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.dash-cc-util-bar.safe    { background: var(--emerald, #10b981); }
+.dash-cc-util-bar.warning { background: var(--gold, #f59e0b); }
+.dash-cc-util-bar.danger  { background: var(--rose, #f43f5e); }
+
+.dash-cc-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.dash-cc-btn-pay {
+  flex: 1;
+  background: linear-gradient(135deg, var(--teal, #00f0ff), #0d9488);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.dash-cc-btn-pay:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.dash-cc-btn-remind {
+  background: var(--surface-card, var(--bg3, #1e2436));
+  color: var(--text-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.dash-cc-btn-remind:hover {
+  background: var(--surface-h, rgba(255, 255, 255, 0.08));
+  color: var(--text);
+  border-color: var(--teal);
+}
+
+/* ─── Celebratory All-Clear State ─── */
+.dash-cc-all-clear {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), var(--bg2, #11151f));
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 14px;
+  flex-wrap: wrap;
+}
+
+.dash-cc-clear-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.dash-cc-clear-content {
+  flex: 1;
+  min-width: 200px;
+}
+
+.dash-cc-clear-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--emerald, #10b981);
+  margin-bottom: 4px;
+}
+
+.dash-cc-clear-desc {
+  font-size: 0.825rem;
+  color: var(--text-2);
+}
+
+.dash-cc-btn-manage {
+  background: var(--surface-card, var(--bg3, #1e2436));
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 0.825rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dash-cc-btn-manage:hover {
+  border-color: var(--emerald);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+/* ─── Empty State (No cards registered) ─── */
+.dash-cc-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px;
+  background: var(--bg2, #11151f);
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  flex-wrap: wrap;
+}
+
+.dash-cc-empty-icon {
+  font-size: 2rem;
+}
+
+.dash-cc-empty-content {
+  flex: 1;
+  min-width: 200px;
+}
+
+.dash-cc-empty-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.dash-cc-empty-desc {
+  font-size: 0.825rem;
+  color: var(--text-3);
+}
+
+/* ─── Mobile Responsiveness for Dashboard Widget ─── */
+@media (max-width: 640px) {
+  .dash-cc-urgent-alert {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .dash-cc-urgent-actions {
+    width: 100%;
+  }
+
+  .dash-cc-urgent-btn-pay,
+  .dash-cc-urgent-btn-view {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .dash-cc-summary-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .dash-cc-sum-divider {
+    display: none;
+  }
+
+  .dash-cc-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-cc-all-clear,
+  .dash-cc-empty {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dash-cc-btn-manage,
+  .dash-cc-empty .dash-cc-btn-pay {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+}

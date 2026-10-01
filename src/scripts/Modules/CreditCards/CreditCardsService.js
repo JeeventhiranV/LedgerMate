@@ -49,7 +49,149 @@
         }
       }
       _isInitialized = true;
+      try {
+        await this.syncReminders();
+      } catch (e) {
+        console.warn('[CreditCardsService] syncReminders error during init:', e);
+      }
       return _cards;
+    },
+
+    /**
+     * Get all credit cards that have pending dues (current_due > 0)
+     */
+    getPendingCards: function () {
+      var self = this;
+      return _cards.filter(function (c) {
+        return Number(c.current_due || 0) > 0;
+      }).sort(function (a, b) {
+        var dueA = self.getDueCountdown(a);
+        var dueB = self.getDueCountdown(b);
+        if (dueA.isOverdue && !dueB.isOverdue) return -1;
+        if (!dueA.isOverdue && dueB.isOverdue) return 1;
+        return (dueA.daysUntilDue || 999) - (dueB.daysUntilDue || 999);
+      });
+    },
+
+    /**
+     * Get pending summary metrics for dashboard and notifications
+     */
+    getPendingSummary: function () {
+      var pendingCards = this.getPendingCards();
+      var totalPendingDue = 0;
+      var totalMinDue = 0;
+      var overdueCount = 0;
+      var dueSoonCount = 0;
+      var earliestDueCard = pendingCards[0] || null;
+      var earliestDueInfo = earliestDueCard ? this.getDueCountdown(earliestDueCard) : null;
+
+      var self = this;
+      pendingCards.forEach(function (c) {
+        totalPendingDue += Number(c.current_due || 0);
+        totalMinDue += Number(c.min_due || Math.round(Number(c.current_due || 0) * 0.05));
+        var cd = self.getDueCountdown(c);
+        if (cd.isOverdue) overdueCount++;
+        else if (cd.isDueSoon || cd.isDueToday) dueSoonCount++;
+      });
+
+      return {
+        pendingCards: pendingCards,
+        pendingCount: pendingCards.length,
+        totalPendingDue: _round2(totalPendingDue),
+        totalMinDue: _round2(totalMinDue),
+        overdueCount: overdueCount,
+        dueSoonCount: dueSoonCount,
+        earliestDueCard: earliestDueCard,
+        earliestDueInfo: earliestDueInfo,
+        hasPendingDues: pendingCards.length > 0,
+        hasUrgentDues: overdueCount > 0 || dueSoonCount > 0
+      };
+    },
+
+    /**
+     * Synchronize credit card payment reminders with global reminders store
+     */
+    syncReminders: async function () {
+      if (!Array.isArray(_cards)) return [];
+      var self = this;
+      var existingReminders = [];
+      if (typeof window.getAll === 'function') {
+        try {
+          var loaded = await window.getAll('reminders');
+          if (Array.isArray(loaded)) existingReminders = loaded;
+        } catch (e) {
+          existingReminders = (typeof state === 'object' && Array.isArray(state.reminders)) ? state.reminders : [];
+        }
+      } else if (typeof state === 'object' && Array.isArray(state.reminders)) {
+        existingReminders = state.reminders;
+      }
+
+      var remindersMap = new Map();
+      existingReminders.forEach(function (r) {
+        if (r && r.id) remindersMap.set(String(r.id), r);
+      });
+
+      var changed = false;
+
+      for (var i = 0; i < _cards.length; i++) {
+        var card = _cards[i];
+        var remId = 'rem_cc_' + card.id;
+        var currentDue = Number(card.current_due || 0);
+        var dueInfo = self.getDueCountdown(card);
+
+        if (currentDue > 0 && dueInfo.nextDueDate && dueInfo.nextDueDate !== 'N/A' && dueInfo.nextDueDate !== 'Cleared') {
+          var priority = (dueInfo.isOverdue || dueInfo.isDueToday) ? 'high' : dueInfo.isDueSoon ? 'medium' : 'low';
+          var title = 'Pay ' + (card.card_name || 'Card') + ' (' + (card.bank_name || 'Bank') + ') Bill';
+          var note = 'Outstanding Due: ₹' + Math.round(currentDue).toLocaleString('en-IN') + ' (Min Due: ₹' + (Number(card.min_due) || Math.round(currentDue * 0.05)).toLocaleString('en-IN') + ') • Card ending in •••• ' + (card.last_4_digits || '0000');
+
+          var existing = remindersMap.get(remId);
+          var updatedRem = {
+            id: remId,
+            cardId: card.id,
+            title: title,
+            dueDate: dueInfo.nextDueDate,
+            time: '10:00',
+            priority: priority,
+            tag: 'Credit Card',
+            category: 'Bills',
+            note: note,
+            completed: false,
+            autoRepeat: false,
+            recurrence: 'none',
+            createdAt: existing?.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+
+          remindersMap.set(remId, updatedRem);
+          if (typeof window.put === 'function') {
+            try { await window.put('reminders', updatedRem); } catch (e) {}
+          }
+          changed = true;
+        } else {
+          // Card has zero or cleared due — mark corresponding reminder done
+          var existingRem = remindersMap.get(remId);
+          if (existingRem && !existingRem.completed) {
+            existingRem.completed = true;
+            existingRem.completedAt = new Date().toISOString();
+            remindersMap.set(remId, existingRem);
+            if (typeof window.put === 'function') {
+              try { await window.put('reminders', existingRem); } catch (e) {}
+            }
+            changed = true;
+          }
+        }
+      }
+
+      var allReminders = Array.from(remindersMap.values());
+      if (typeof state === 'object') {
+        state.reminders = allReminders;
+      }
+
+      if (changed && window.LM_Bus) {
+        window.LM_Bus.emit('lm:data:changed', { store: 'reminders' });
+      }
+
+      return allReminders;
     },
 
     /**
@@ -246,10 +388,19 @@
         }
       }
 
-      _cards.push(newCard);
+      var existingIdx = _cards.findIndex(function (c) { return String(c.id) === String(newCard.id); });
+      if (existingIdx >= 0) {
+        _cards[existingIdx] = newCard;
+      } else {
+        _cards.push(newCard);
+      }
       if (typeof state === 'object') {
         state.credit_cards = _cards;
       }
+
+      try {
+        await this.syncReminders();
+      } catch (e) {}
 
       if (window.LM_Bus) {
         window.LM_Bus.emit('lm:data:changed', { store: 'credit_cards' });
@@ -292,6 +443,10 @@
         state.credit_cards = _cards;
       }
 
+      try {
+        await this.syncReminders();
+      } catch (e) {}
+
       if (window.LM_Bus) {
         window.LM_Bus.emit('lm:data:changed', { store: 'credit_cards' });
       }
@@ -308,9 +463,11 @@
         state.credit_cards = _cards;
       }
 
+      var remId = 'rem_cc_' + id;
       if (typeof window.del === 'function') {
         try {
           await window.del('credit_cards', id);
+          await window.del('reminders', remId);
         } catch (e) {
           console.warn('[CreditCardsService] del error:', e);
         }
@@ -319,10 +476,21 @@
           var t = window.db.transaction('credit_cards', 'readwrite');
           t.objectStore('credit_cards').delete(id);
         } catch (e) {}
+        try {
+          var tr = window.db.transaction('reminders', 'readwrite');
+          tr.objectStore('reminders').delete(remId);
+        } catch (e) {}
+      }
+
+      if (typeof state === 'object' && Array.isArray(state.reminders)) {
+        state.reminders = state.reminders.filter(function (r) {
+          return String(r.id) !== remId && String(r.cardId) !== String(id);
+        });
       }
 
       if (window.LM_Bus) {
         window.LM_Bus.emit('lm:data:changed', { store: 'credit_cards' });
+        window.LM_Bus.emit('lm:data:changed', { store: 'reminders' });
       }
 
       return true;
@@ -471,6 +639,9 @@
           } catch (e) {}
         }
       }
+      try {
+        await this.syncReminders();
+      } catch (e) {}
       if (window.LM_Bus) {
         window.LM_Bus.emit('lm:data:changed', { store: 'credit_cards' });
       }

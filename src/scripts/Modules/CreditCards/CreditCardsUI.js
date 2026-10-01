@@ -501,6 +501,8 @@
         }
         this.closeModal('ccFormModal');
         this.render();
+        if (typeof renderAll === 'function') renderAll();
+        if (typeof window.renderDashboardCreditCardReminders === 'function') window.renderDashboardCreditCardReminders();
       } catch (err) {
         console.error('[CreditCardsUI] save error:', err);
         if (typeof showToast === 'function') showToast('❌ Error saving card: ' + err.message, 'error');
@@ -549,13 +551,13 @@
             <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center;">
               <div>
                 <div style="font-size: 11px; color: var(--text-3);">Total Outstanding</div>
-                <div style="font-size: 1.4rem; font-weight: 700; color: ${currentDue > 0 ? 'var(--rose)' : 'var(--emerald)'}; font-family: var(--font-m);">
+                <div class="blur-val" style="font-size: 1.4rem; font-weight: 700; color: ${currentDue > 0 ? 'var(--rose)' : 'var(--emerald)'}; font-family: var(--font-m);">
                   ${_fmtINR(currentDue)}
                 </div>
               </div>
               <div style="text-align:right;">
                 <div style="font-size: 11px; color: var(--text-3);">Minimum Due</div>
-                <div style="font-size: 1.1rem; font-weight: 600; color: var(--text);">
+                <div class="blur-val" style="font-size: 1.1rem; font-weight: 600; color: var(--text);">
                   ${_fmtINR(minDue)}
                 </div>
               </div>
@@ -615,7 +617,7 @@
      * Handle Pay Bill submit
      */
     handlePaySubmit: async function (e, cardId) {
-      e.preventDefault();
+      if (e && e.preventDefault) e.preventDefault();
       var amount = parseFloat(document.getElementById('ccPayAmount')?.value) || 0;
       var account = document.getElementById('ccPayAccount')?.value;
       var paymentDate = document.getElementById('ccPayDate')?.value;
@@ -636,10 +638,273 @@
         });
         this.closeModal('ccPayModal');
         this.render();
+        if (typeof renderAll === 'function') renderAll();
+        if (typeof window.renderDashboardCreditCardReminders === 'function') window.renderDashboardCreditCardReminders();
       } catch (err) {
         console.error('[CreditCardsUI] payment error:', err);
         if (typeof showToast === 'function') showToast('❌ Payment failed: ' + err.message, 'error');
       }
+    },
+
+    /**
+     * Open or create reminder for specific credit card
+     */
+    openCardReminder: function (cardId) {
+      var card = window.LM_CreditCardsService?.getCardById(cardId);
+      if (!card) return;
+
+      var dueInfo = window.LM_CreditCardsService?.getDueCountdown(card);
+      var currentDue = Number(card.current_due || 0);
+      var minDue = Number(card.min_due || Math.round(currentDue * 0.05));
+
+      var existingRem = (state.reminders || []).find(function (r) {
+        return String(r.id) === 'rem_cc_' + cardId || String(r.cardId) === String(cardId);
+      });
+
+      var prefill = existingRem || {
+        id: 'rem_cc_' + card.id,
+        cardId: card.id,
+        title: 'Pay ' + (card.card_name || 'Card') + ' (' + (card.bank_name || 'Bank') + ') Bill',
+        dueDate: (dueInfo && dueInfo.nextDueDate !== 'N/A' && dueInfo.nextDueDate !== 'Cleared') ? dueInfo.nextDueDate : new Date().toISOString().split('T')[0],
+        time: '10:00',
+        priority: (dueInfo && (dueInfo.isOverdue || dueInfo.isDueToday)) ? 'high' : (dueInfo && dueInfo.isDueSoon) ? 'medium' : 'low',
+        tag: 'Credit Card',
+        category: 'Bills',
+        note: 'Outstanding Due: ' + _fmtINR(currentDue) + ' (Min Due: ' + _fmtINR(minDue) + ') • Card ending in •••• ' + (card.last_4_digits || '0000')
+      };
+
+      if (typeof window.showRemindersModal === 'function') {
+        window.showRemindersModal(prefill);
+      } else {
+        if (typeof showToast === 'function') showToast('Reminder due date: ' + prefill.dueDate, 'info');
+      }
+    },
+
+    /**
+     * Render Credit Card Bill Reminders & Pending Payments Widget on Dashboard
+     */
+    renderDashboardWidget: function (containerEl) {
+      var container = containerEl || document.getElementById('dashCcRemindersWidget');
+      if (!container) return;
+
+      var service = window.LM_CreditCardsService;
+      if (!service) {
+        container.innerHTML = '';
+        return;
+      }
+
+      var allCards = service.getAllCards();
+      var pendingSummary = service.getPendingSummary();
+      var pendingCards = pendingSummary.pendingCards;
+
+      // Update section badge if element exists
+      var badgeEl = document.getElementById('dashCcPendingBadge');
+      if (badgeEl) {
+        if (pendingSummary.overdueCount > 0) {
+          badgeEl.className = 'dash-cc-header-badge overdue';
+          badgeEl.textContent = pendingSummary.overdueCount + ' OVERDUE';
+          badgeEl.style.display = 'inline-block';
+        } else if (pendingSummary.dueSoonCount > 0) {
+          badgeEl.className = 'dash-cc-header-badge duesoon';
+          badgeEl.textContent = pendingSummary.dueSoonCount + ' Due Soon';
+          badgeEl.style.display = 'inline-block';
+        } else if (pendingSummary.pendingCount > 0) {
+          badgeEl.className = 'dash-cc-header-badge pending';
+          badgeEl.textContent = pendingSummary.pendingCount + ' Pending';
+          badgeEl.style.display = 'inline-block';
+        } else if (allCards.length > 0) {
+          badgeEl.className = 'dash-cc-header-badge allclear';
+          badgeEl.textContent = 'All Cleared';
+          badgeEl.style.display = 'inline-block';
+        } else {
+          badgeEl.style.display = 'none';
+        }
+      }
+
+      // 1. Pending Dues State
+      if (pendingSummary.hasPendingDues) {
+        var html = `
+          <div class="dash-cc-container">
+            <!-- Dues Summary Highlight Header -->
+            <div class="dash-cc-summary-banner ${pendingSummary.overdueCount > 0 ? 'is-overdue' : pendingSummary.dueSoonCount > 0 ? 'is-duesoon' : ''}">
+              <div class="dash-cc-sum-item">
+                <div class="dash-cc-sum-label">Total Pending Bills</div>
+                <div class="dash-cc-sum-val blur-val" style="color:var(--rose);">${_fmtINR(pendingSummary.totalPendingDue)}</div>
+              </div>
+              <div class="dash-cc-sum-divider"></div>
+              <div class="dash-cc-sum-item">
+                <div class="dash-cc-sum-label">Total Min Due</div>
+                <div class="dash-cc-sum-val blur-val" style="color:var(--gold);">${_fmtINR(pendingSummary.totalMinDue)}</div>
+              </div>
+              <div class="dash-cc-sum-divider"></div>
+              <div class="dash-cc-sum-item">
+                <div class="dash-cc-sum-label">Urgent Status</div>
+                <div class="dash-cc-sum-status">
+                  ${pendingSummary.overdueCount > 0
+                    ? `<span class="dash-cc-tag overdue">🚨 ${pendingSummary.overdueCount} Overdue Bill(s)</span>`
+                    : pendingSummary.dueSoonCount > 0
+                      ? `<span class="dash-cc-tag duesoon">⏳ ${pendingSummary.dueSoonCount} Due Soon</span>`
+                      : `<span class="dash-cc-tag normal">📅 ${pendingSummary.pendingCount} Active Bill(s)</span>`}
+                </div>
+              </div>
+            </div>
+
+            <!-- Pending Cards Grid -->
+            <div class="dash-cc-grid">
+              ${pendingCards.map(function (card) {
+                var cd = service.getDueCountdown(card);
+                var stmt = service.getStatementCountdown(card);
+                var curDue = Number(card.current_due || 0);
+                var minDue = Number(card.min_due || Math.round(curDue * 0.05));
+                var limit = Number(card.credit_limit || 0);
+                var utilPct = limit > 0 ? Math.min(100, Math.round((curDue / limit) * 100)) : 0;
+                var badgeCls = cd.isOverdue ? 'overdue' : (cd.isDueSoon || cd.isDueToday) ? 'duesoon' : 'dueok';
+                var badgeIcon = cd.isOverdue ? '🚨' : cd.isDueSoon ? '⏳' : cd.isDueToday ? '⚠️' : '📅';
+
+                return `
+                  <div class="dash-cc-card ${card.color_theme || 'theme-midnight'}">
+                    <div class="dash-cc-card-header">
+                      <div class="dash-cc-card-bank">
+                        <div class="dash-cc-bank-title">${_escape(card.bank_name || 'Bank')}</div>
+                        <div class="dash-cc-card-name">${_escape(card.card_name || 'Card')} <span class="dash-cc-last4">•••• ${_escape(card.last_4_digits || '0000')}</span></div>
+                      </div>
+                      <div class="dash-cc-badge ${badgeCls}">
+                        <span>${badgeIcon}</span> <span>${cd.statusText}</span>
+                      </div>
+                    </div>
+
+                    <div class="dash-cc-due-row">
+                      <div>
+                        <div class="dash-cc-due-lbl">Amount Due</div>
+                        <div class="dash-cc-due-amount blur-val">${_fmtINR(curDue)}</div>
+                      </div>
+                      <div style="text-align:right;">
+                        <div class="dash-cc-due-lbl">Min Due</div>
+                        <div class="dash-cc-min-amount blur-val">${_fmtINR(minDue)}</div>
+                      </div>
+                    </div>
+
+                    <div class="dash-cc-meta-row">
+                      <span>Due: <strong>${cd.nextDueDate}</strong></span>
+                      <span>Stmt: <strong>${card.statement_day ? card.statement_day + 'th' : 'N/A'}</strong></span>
+                      <span>Util: <strong>${utilPct}%</strong></span>
+                    </div>
+
+                    <div class="dash-cc-util-track">
+                      <div class="dash-cc-util-bar ${utilPct > 50 ? 'danger' : utilPct > 30 ? 'warning' : 'safe'}" style="width:${utilPct}%;"></div>
+                    </div>
+
+                    <div class="dash-cc-card-actions">
+                      <button class="dash-cc-btn-pay" onclick="window.LM_CreditCardsUI.showPayBillModal('${card.id}')">
+                        💳 Pay Bill
+                      </button>
+                      <button class="dash-cc-btn-remind" onclick="window.LM_CreditCardsUI.openCardReminder('${card.id}')" title="Snooze or Set Custom Reminder">
+                        ⏰ Remind
+                      </button>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+        container.innerHTML = html;
+        return;
+      }
+
+      // 2. All Cards Cleared State
+      if (allCards.length > 0) {
+        var summary = service.getSummary();
+        container.innerHTML = `
+          <div class="dash-cc-all-clear">
+            <div class="dash-cc-clear-icon">🎉</div>
+            <div class="dash-cc-clear-content">
+              <div class="dash-cc-clear-title">All Credit Card Bills Cleared!</div>
+              <div class="dash-cc-clear-desc">
+                You have zero pending credit card dues across <strong>${allCards.length}</strong> active cards. Total available credit: <strong class="blur-val">${_fmtINR(summary.totalAvailable)}</strong>.
+              </div>
+            </div>
+            <button class="dash-cc-btn-manage" onclick="showPage('credit-cards')">
+              View Cards →
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      // 3. Empty State (No cards registered)
+      container.innerHTML = `
+        <div class="dash-cc-empty">
+          <div class="dash-cc-empty-icon">💳</div>
+          <div class="dash-cc-empty-content">
+            <div class="dash-cc-empty-title">Track Credit Cards &amp; Payment Deadlines</div>
+            <div class="dash-cc-empty-desc">
+              Add your credit cards to receive automated payment reminders, prevent late fees, and monitor bill statement dates.
+            </div>
+          </div>
+          <button class="dash-cc-btn-pay" onclick="window.LM_CreditCardsUI.showAddEditModal()">
+            ＋ Add Credit Card
+          </button>
+        </div>
+      `;
+    },
+
+    /**
+     * Render Top Urgent Reminder Banner on Dashboard (Overdue / Due within 5 days)
+     */
+    renderUrgentBanner: function (containerEl) {
+      var container = containerEl || document.getElementById('dashCcUrgentBanner');
+      if (!container) return;
+
+      var service = window.LM_CreditCardsService;
+      if (!service) {
+        container.innerHTML = '';
+        container.style.display = 'none';
+        return;
+      }
+
+      var pendingSummary = service.getPendingSummary();
+      if (!pendingSummary.hasUrgentDues) {
+        container.innerHTML = '';
+        container.style.display = 'none';
+        return;
+      }
+
+      var isOverdue = pendingSummary.overdueCount > 0;
+      var bannerCls = isOverdue ? 'banner-overdue' : 'banner-duesoon';
+      var icon = isOverdue ? '🚨' : '⏳';
+      var title = isOverdue
+        ? `<strong>Urgent:</strong> You have ${pendingSummary.overdueCount} overdue credit card payment(s)`
+        : `<strong>Payment Reminder:</strong> ${pendingSummary.dueSoonCount} credit card bill(s) due soon`;
+
+      var earliest = pendingSummary.earliestDueCard;
+      var earliestInfo = pendingSummary.earliestDueInfo;
+      var subtitle = earliest
+        ? `Total Pending: <strong class="blur-val">${_fmtINR(pendingSummary.totalPendingDue)}</strong> · Next due: <strong>${_escape(earliest.card_name)}</strong> (${earliestInfo?.statusText || ''})`
+        : `Total Pending: <strong class="blur-val">${_fmtINR(pendingSummary.totalPendingDue)}</strong>`;
+
+      container.innerHTML = `
+        <div class="dash-cc-urgent-alert ${bannerCls}">
+          <div class="dash-cc-urgent-left">
+            <span class="dash-cc-urgent-icon">${icon}</span>
+            <div class="dash-cc-urgent-text">
+              <div class="dash-cc-urgent-title">${title}</div>
+              <div class="dash-cc-urgent-sub">${subtitle}</div>
+            </div>
+          </div>
+          <div class="dash-cc-urgent-actions">
+            ${earliest ? `
+              <button class="dash-cc-urgent-btn-pay" onclick="window.LM_CreditCardsUI.showPayBillModal('${earliest.id}')">
+                💳 Pay Now
+              </button>
+            ` : ''}
+            <button class="dash-cc-urgent-btn-view" onclick="showPage('credit-cards')">
+              View All
+            </button>
+          </div>
+        </div>
+      `;
+      container.style.display = 'block';
     },
 
     /**
@@ -656,6 +921,8 @@
         await window.LM_CreditCardsService.deleteCard(cardId);
         if (typeof showToast === 'function') showToast('Card deleted', 'info');
         this.render();
+        if (typeof renderAll === 'function') renderAll();
+        if (typeof window.renderDashboardCreditCardReminders === 'function') window.renderDashboardCreditCardReminders();
       } catch (err) {
         console.error('[CreditCardsUI] delete error:', err);
         if (typeof showToast === 'function') showToast('❌ Delete failed: ' + err.message, 'error');

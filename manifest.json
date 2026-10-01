@@ -1,11 +1,11 @@
 {
-  "id": "/",
+  "id": "./",
   "name": "LedgerMate",
   "short_name": "LedgerMate",
   "launcherName": "LedgerMate",
-  "description": "Smart finance tracker to manage expenses, investments, profits and live market insights with real-time cloud sync.",
+  "description": "Smart finance tracker to manage expenses, investments, profits, credit cards, loans and live market insights with real-time cloud sync.",
   "start_url": "./index.html",
-  "scope": "/",
+  "scope": "./",
   "display": "standalone",
   "display_override": [
     "window-controls-overlay"

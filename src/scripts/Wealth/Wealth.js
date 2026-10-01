@@ -1155,7 +1155,7 @@ function renderWealthLoans(container) {
   // Subtabs & Search Navigation Bar
   const navBarHtml = `
     <div class="loan-nav-bar" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
-      <div class="loan-subtabs-scroll" style="display:flex;align-items:center;gap:6px;overflow-x:auto;padding-bottom:4px;max-width:100%;">
+      <div class="loan-subtabs-scroll" style="display:flex;align-items:center;gap:6px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;max-width:100%;-webkit-overflow-scrolling:touch;">
         <button class="loan-tab-btn ${activeSubtab === 'all' ? 'active' : ''}" onclick="setLoanSubtab('all')">
           All <span class="loan-badge">${allCount}</span>
         </button>

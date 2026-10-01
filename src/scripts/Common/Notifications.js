@@ -54,7 +54,13 @@
         return da - db;
       })
       .filter(r => {
-        if (typeFilter !== 'all' && !(r.tag || 'reminder').toLowerCase().includes(typeFilter)) return false;
+        if (typeFilter !== 'all') {
+          if (typeFilter === 'credit card') {
+            if ((r.tag || '').toLowerCase() !== 'credit card' && !r.cardId && !(r.id && String(r.id).startsWith('rem_cc_'))) return false;
+          } else if (!(r.tag || 'reminder').toLowerCase().includes(typeFilter)) {
+            return false;
+          }
+        }
         if (prFilter  !== 'all' && (r.priority || 'medium').toLowerCase() !== prFilter) return false;
         if (search) {
           const hay = `${r.title} ${r.note||''} ${r.tag||''} ${r.category||''}`.toLowerCase();
@@ -80,6 +86,7 @@
           : '';
 
       const dateStr = r.dueDate ? `${r.dueDate}${r.time ? ' ' + r.time : ''}` : '';
+      const cardId = r.cardId || (r.id && String(r.id).startsWith('rem_cc_') ? String(r.id).replace('rem_cc_', '') : null);
 
       return `
         <div class="nr-item ${r.completed ? 'nr-done' : ''}" style="--accent:${accentColor}">
@@ -99,6 +106,9 @@
             </div>` : ''}
             ${r.note ? `<div class="nr-note">${r.note}</div>` : ''}
             <div class="nr-actions">
+              ${cardId && !r.completed ? `
+                <button class="nr-btn payCcBillBtn" data-card-id="${cardId}" style="background:var(--teal);color:#fff;border-color:var(--teal);font-weight:600;" title="Pay Credit Card Bill">💳 Pay Bill</button>
+              ` : ''}
               <button class="nr-btn markDone ${r.completed ? 'active' : ''}" data-id="${r.id}" title="${r.completed ? 'Mark pending' : 'Mark done'}">
                 ${r.completed ? '↩ Undo' : '✓ Done'}
               </button>
@@ -130,6 +140,14 @@
     }
 
     // Events
+    listEl.querySelectorAll('.payCcBillBtn').forEach(btn => {
+      btn.onclick = () => {
+        closeNotifPanel();
+        if (window.LM_CreditCardsUI) {
+          window.LM_CreditCardsUI.showPayBillModal(btn.dataset.cardId);
+        }
+      };
+    });
     listEl.querySelectorAll('.markDone').forEach(btn => {
       btn.onclick = async () => { await toggleReminderCompleted(btn.dataset.id); renderNotifications(); };
     });
@@ -235,6 +253,8 @@
       const dueDateObj = parseDateTime(r.dueDate, r.time);
       const isOverdue  = !r.completed && dueDateObj && dueDateObj < now;
       const accentColor = isOverdue ? 'var(--rose)' : p === 'high' ? 'var(--rose)' : p === 'low' ? 'var(--emerald)' : 'var(--gold)';
+      const cardId = r.cardId || (r.id && String(r.id).startsWith('rem_cc_') ? String(r.id).replace('rem_cc_', '') : null);
+
       return `
         <div class="rm-item ${r.completed ? 'rm-done' : ''}" style="--accent:${accentColor}">
           <div class="rm-accent"></div>
@@ -246,6 +266,9 @@
             ${r.dueDate ? `<div class="rm-date">📅 ${r.dueDate}${r.time ? ' · ' + r.time : ''}${r.category ? ' · ' + r.category : ''}${isOverdue ? ' <span style="color:var(--rose);font-weight:700;">· Overdue</span>' : ''}</div>` : ''}
             ${r.note ? `<div class="rm-note">${r.note}</div>` : ''}
             <div class="rm-btns">
+              ${cardId && !r.completed ? `
+                <button class="rm-btn payCcBillBtn" data-card-id="${cardId}" style="background:var(--teal);color:#fff;border-color:var(--teal);font-weight:600;">💳 Pay</button>
+              ` : ''}
               <button class="rm-btn markDone ${r.completed?'active':''}" data-id="${r.id}">${r.completed ? '↩ Undo' : '✓ Done'}</button>
               <button class="rm-btn snoozeBtn" data-id="${r.id}">⏱ Snooze</button>
               <button class="rm-btn editRem" data-id="${r.id}">✏️ Edit</button>
@@ -269,6 +292,7 @@
             <label class="form-label">Tag</label>
             <select id="remTag" class="form-input">
               <option ${!pre.tag||pre.tag==='General'?'selected':''}>General</option>
+              <option ${pre.tag==='Credit Card'?'selected':''}>Credit Card</option>
               <option ${pre.tag==='Bills'?'selected':''}>Bills</option>
               <option ${pre.tag==='Loan'?'selected':''}>Loan</option>
               <option ${pre.tag==='Personal'?'selected':''}>Personal</option>
@@ -360,7 +384,7 @@
         priority: document.getElementById('remPriority').value,
         tag: document.getElementById('remTag').value,
         category: document.getElementById('remCategory').value || '',
-        linkedTransactionId: document.getElementById('remLinkedTx').value || null,
+        linkedTransactionId: document.getElementById('remLinkedTx')?.value || null,
         recurrence: document.getElementById('remRecurrence').value,
         autoRepeat: document.getElementById('remAutoRepeat').checked,
         note: document.getElementById('remNote').value || '',
@@ -380,6 +404,12 @@
 
     // Delegated handlers inside modal
     const modalBody = document.querySelector('.modal-body') || document.body;
+    modalBody.querySelectorAll('.payCcBillBtn').forEach(b => b.onclick = () => {
+      document.getElementById('modalCloseBtn')?.click?.();
+      if (window.LM_CreditCardsUI) {
+        window.LM_CreditCardsUI.showPayBillModal(b.dataset.cardId);
+      }
+    });
     modalBody.querySelectorAll('.markDone').forEach(b => b.onclick = async () => { await toggleReminderCompleted(b.dataset.id); renderNotifications(); });
     modalBody.querySelectorAll('.snoozeBtn').forEach(b => b.onclick = async () => { await snoozeReminder(b.dataset.id, 1); renderNotifications(); });
     modalBody.querySelectorAll('.editRem').forEach(b => b.onclick = () => openEditReminderModal(b.dataset.id));
@@ -490,6 +520,14 @@
       setTimeout(checkAllNotifications, 1000);
       return;
     }
+    if (window.LM_CreditCardsService && typeof window.LM_CreditCardsService.syncReminders === 'function') {
+      try {
+        await window.LM_CreditCardsService.syncReminders();
+      } catch (e) {
+        console.warn('Notifications: syncReminders failed', e);
+      }
+    }
+
     try {
       const result = await getAll('reminders');
       state.reminders = Array.isArray(result) ? result.filter(r => r && typeof r === "object") : [];

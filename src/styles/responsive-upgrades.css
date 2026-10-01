@@ -2153,10 +2153,15 @@ body.privacy-mode [data-amount]:active {
 }
 
 .loan-subtabs-scroll {
-  display: flex;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
   align-items: center;
   gap: 6px;
-  overflow-x: auto;
+  overflow-x: auto !important;
+  overflow-y: hidden;
+  width: 100%;
+  max-width: 100%;
   padding-bottom: 4px;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -2178,7 +2183,9 @@ body.privacy-mode [data-amount]:active {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  white-space: nowrap;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  flex: 0 0 auto !important;
   transition: all 0.2s var(--ease-smooth);
 }
 .loan-tab-btn:hover {
@@ -2332,9 +2339,17 @@ body.privacy-mode [data-amount]:active {
     gap: 10px;
   }
   .loan-subtabs-scroll {
-    width: 100%;
-    overflow-x: auto;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
     padding-bottom: 6px;
+  }
+  .loan-tab-btn {
+    flex-shrink: 0 !important;
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
   }
   .loan-controls-wrap {
     width: 100%;
@@ -2352,8 +2367,15 @@ body.privacy-mode [data-amount]:active {
 
 @media (max-width: 480px) {
   .loan-tab-btn {
-    padding: 5px 10px;
-    font-size: 11px;
+    padding: 6px 12px;
+    font-size: 11.5px;
+    flex-shrink: 0 !important;
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+  }
+  .loan-subtabs-scroll {
+    gap: 6px;
+    padding-bottom: 6px;
   }
   .loan-card {
     padding: 12px;

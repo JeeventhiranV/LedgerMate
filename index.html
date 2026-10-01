@@ -75,17 +75,6 @@
   <!-- chart.umd.min.js already loaded above -->
   <script src="./assets/vendor/jspdf.umd.min.js"></script>
   <script src="./assets/vendor/html2canvas.min.js"></script>
-  <link rel="manifest" href="./manifest.json">
-  
-<script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js')
-          .then(reg => console.log('SW registered'))
-          .catch(err => console.error('SW registration failed', err));
-      });
-    }
-  </script>
 </head>
 <body>
 
@@ -513,6 +502,9 @@
           </button>
         </div>
 
+        <!-- 🚨 URGENT CREDIT CARD DUES ALERT BANNER -->
+        <div id="dashCcUrgentBanner" class="fade-up fade-up-2" style="display:none; margin-bottom:14px;"></div>
+
         <!-- KPI GRID (REPLACES SCROLL CARDS) -->
         <div id="kpiCards" class="kpi-grid fade-up fade-up-3">
           <!-- JS will render cards here -->
@@ -521,21 +513,18 @@
         <!-- FINANCIAL HEALTH SCORE -->
         <div id="healthScoreWidget" class="fade-up fade-up-4" style="margin-top:16px;"></div>
 
-        <!-- STATS ROW -->
-        <!--<div class="stats-row fade-up fade-up-3" id="statsRow">
-          <div class="stat-mini">
-            <div class="stat-mini-val" id="statTxCount">0</div>
-            <div class="stat-mini-label">Transactions</div>
+        <!-- 💳 CREDIT CARD PAYMENT REMINDERS & PENDING DUES -->
+        <div id="dashCcRemindersSection" class="tx-card fade-up fade-up-3" style="margin-top:16px;">
+          <div class="section-heading">
+            <div class="section-title">
+              <span class="dot" style="background:var(--rose)"></span>
+              Credit Card Bill Reminders
+              <span id="dashCcPendingBadge" class="dash-cc-header-badge" style="display:none;"></span>
+            </div>
+            <button class="section-action" onclick="showPage('credit-cards')">Manage Cards →</button>
           </div>
-          <div class="stat-mini">
-            <div class="stat-mini-val" id="statAvgIncome">₹0</div>
-            <div class="stat-mini-label">Avg Daily Income</div>
-          </div>
-          <div class="stat-mini">
-            <div class="stat-mini-val" id="statAvgExpense">₹0</div>
-            <div class="stat-mini-label">Avg Daily Expense</div>
-          </div>
-        </div>-->
+          <div id="dashCcRemindersWidget"></div>
+        </div>
 
         <div class="tx-card fade-up fade-up-3"> 
           <!-- Header -->
@@ -547,7 +536,7 @@
           </div> 
           <!-- Grid Container -->
           <div id="accountSummaries" class="kpi-grid"></div>
-      </div>
+        </div>
 
         
         <!-- CHARTS GRID -->
@@ -1074,6 +1063,7 @@
     <div class="notif-filters">
       <select id="notifTypeFilter" class="notif-select">
         <option value="all">All types</option>
+        <option value="credit card">Credit Cards</option>
         <option value="reminder">Reminders</option>
         <option value="loan">Loans</option>
         <option value="budget">Budgets</option>

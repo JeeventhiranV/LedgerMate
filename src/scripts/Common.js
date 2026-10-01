@@ -1596,6 +1596,7 @@ function _doRenderAll(){
   //renderNotifications();
   processRecurringTransactions();
   renderBudgetOverview();
+  renderDashboardCreditCardReminders();
   try { applyDashboardConfig(); } catch(e) {}
 }
 
@@ -4431,6 +4432,7 @@ setTimeout(() => {
   try { renderHealthScore(); } catch (e) { console.warn('[LM] renderHealthScore:', e); }
   try { renderNWSparkline(); } catch (e) { console.warn('[LM] NW sparkline:', e); }
   try { renderMoMWidget(); } catch (e) { console.warn('[LM] renderMoMWidget:', e); }
+  try { renderDashboardCreditCardReminders(); } catch (e) { console.warn('[LM] cc reminders widget:', e); }
   try {
     if (typeof renderWealthDashboard === 'function') renderWealthDashboard();
     else renderDashboardWealthWidget();
@@ -4852,6 +4854,19 @@ if (_bottomNavEl) {
     showPage(page);
   });
 }
+
+// ── Dashboard Credit Card Bill Reminders Widget ──────────────
+function renderDashboardCreditCardReminders() {
+  if (window.LM_CreditCardsUI && typeof window.LM_CreditCardsUI.renderDashboardWidget === 'function') {
+    try {
+      window.LM_CreditCardsUI.renderDashboardWidget();
+      window.LM_CreditCardsUI.renderUrgentBanner();
+    } catch (e) {
+      console.warn('[LM] renderDashboardCreditCardReminders error:', e);
+    }
+  }
+}
+window.renderDashboardCreditCardReminders = renderDashboardCreditCardReminders;
 
 // ── Dashboard Wealth Summary Widget ──────────────────────────
 function renderDashboardWealthWidget() {
@@ -7771,12 +7786,13 @@ function calcRetirement() {
    CUSTOM DASHBOARD — widget visibility toggle
 ══════════════════════════════════════════════════════════════ */
 const DASHBOARD_WIDGETS = [
-  { id: 'kpiCards',         label: 'KPI Cards',           icon: '📊' },
-  { id: 'nwSparklineWidget',label: 'Net Worth Trend',      icon: '📈' },
-  { id: 'budgetOverview',   label: 'Budget Overview',      icon: '🎯' },
-  { id: 'topCategories',    label: 'Top Categories',       icon: '🗂️' },
-  { id: 'heatmap-wrap',     label: 'Expense Heatmap',      icon: '🗓️' },
-  { id: 'recentList',       label: 'Recent Transactions',  icon: '↕️' },
+  { id: 'kpiCards',               label: 'KPI Cards',                 icon: '📊' },
+  { id: 'dashCcRemindersSection', label: 'Credit Card Bill Reminders',icon: '💳' },
+  { id: 'nwSparklineWidget',      label: 'Net Worth Trend',            icon: '📈' },
+  { id: 'budgetOverview',         label: 'Budget Overview',            icon: '🎯' },
+  { id: 'topCategories',          label: 'Top Categories',             icon: '🗂️' },
+  { id: 'heatmap-wrap',           label: 'Expense Heatmap',            icon: '🗓️' },
+  { id: 'recentList',             label: 'Recent Transactions',        icon: '↕️' },
 ];
 
 function openDashboardCustomizer() {
