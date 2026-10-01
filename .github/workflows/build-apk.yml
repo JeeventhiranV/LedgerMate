@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+env:
+  ANDROID_HOME: /usr/local/lib/android/sdk
+  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
 jobs:
   build-apk:
     name: Build Android APK
@@ -17,6 +21,12 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
 
+      - name: ☕ Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: 🟢 Setup Node.js 20
         uses: actions/setup-node@v4
         with:
@@ -24,6 +34,22 @@ jobs:
 
       - name: 🛠️ Install Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
+
+      - name: ⚙️ Configure Bubblewrap Paths (Non-Interactive)
+        run: |
+          mkdir -p ~/.bubblewrap
+          cat <<EOF > ~/.bubblewrap/config.json
+          {
+            "jdkPath": "$JAVA_HOME",
+            "androidSdkPath": "/usr/local/lib/android/sdk"
+          }
+          EOF
+          
+          # Accept Android SDK licenses
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          
+          # Check environment
+          bubblewrap doctor
 
       - name: 🔑 Generate Keystore (if not present)
         run: |
@@ -40,8 +66,7 @@ jobs:
           BUBBLEWRAP_KEYSTORE_PASSWORD: "ledgermate123"
           BUBBLEWRAP_KEY_PASSWORD: "ledgermate123"
         run: |
-          # Send exactly 3 'y' answers for JDK, SDK, and Terms, then close stdin
-          printf "y\ny\ny\n" | bubblewrap build \
+          bubblewrap build \
             --skipPwaValidation \
             --signingKeyPath="android.keystore" \
             --signingKeyAlias="ledgermate"
