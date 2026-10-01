@@ -1,296 +1,208 @@
 # LedgerMate
 
-A multi-user personal finance tracker with cloud sync, admin-controlled access, and a bundled Study Resources app — all deployed as a static PWA on GitHub Pages.
+A comprehensive, production-grade personal finance ecosystem and interview preparation platform with real-time cloud synchronization, multi-user isolation, native Android app support, background reminder engine, and automated CI/CD deployments.
 
 ---
 
-## Overview
+## 🌟 Overview
 
-LedgerMate is a full-featured web app with two products under one login:
+LedgerMate combines wealth management, stock portfolio analytics, credit card tracking, and a dedicated career preparation hub under a single unified platform:
 
-| App | URL path | Description |
-|-----|----------|-------------|
-| **LedgerMate** | `/index.html` | Personal finance tracker — transactions, budgets, loans, investments, net worth |
-| **Study Resources** | `/study/index.html` | Interview prep hub — Java, DSA, React, HR, Interview Kit |
+| Product | Entry Point | Core Capabilities |
+| :--- | :--- | :--- |
+| **📒 LedgerMate** | `/index.html` | Personal finance tracking, live stock portfolio, credit card cycles, loans, wealth milestones, cashflow analytics, and statement parsing |
+| **📚 Study Resources** | `/study/index.html` | Interactive interview prep suite — Java, DSA, React, HR questions, in-browser code runner, spaced repetition (SRS), and quizzes |
+| **📱 Android Native APK** | `android/` | Native Android application with background `WorkManager` & `AlarmManager` bill reminders, live market Java engine, and one-tap in-app APK auto-upgrades |
 
-Both share the same Supabase authentication. Users sign in at the root `/login.html` and are directed to the appropriate app. New users require admin approval before they can access either app.
-
----
-
-## Features
-
-### Authentication & Access Control
-- Email/password and Google OAuth sign-in
-- Admin-approval gate — new users start as `active = false`; an admin must activate them
-- Pending users see a clear "account pending approval" message at the login screen
-- Session persistence, auto token refresh, and cross-tab sign-out sync
-- Inactivity auto-logout with configurable timeout
-- PIN lock screen (optional second factor)
-- Password reset via email
-
-### LedgerMate — Finance Tracker
-
-**Transactions & Budgets**
-- Income / expense entries with category, tags, and notes
-- Transaction templates for repeating entries
-- Recurring transaction scheduler
-- Budget tracking with spend-vs-limit progress
-- Monthly summary with category breakdown
-
-**Loans & Debt**
-- Personal loans (tracked with interest, payments, balance)
-- EMI loan calculator with amortization schedule
-- Debt payoff projections (Essentials tab)
-
-**Savings & Investments**
-- Savings goals with progress tracking
-- FD / RD (Fixed Deposit / Recurring Deposit) tracker
-- Investments portfolio (stocks, mutual funds, etc.)
-- Net worth snapshots over time
-- SIP plan tracker
-- Asset allocation targets
-
-**Subscriptions**
-- Subscription tracker with billing cycle and renewal alerts
-
-**Wealth & Essentials**
-- Financial health dashboard — FI score, debt ratio, savings rate
-- FI timeline and wealth milestone predictions
-- Retirement projection (4% rule)
-- Spending insights — category trends, month-over-month deltas, anomalies
-- Tabs: Health | Goals | Retirement | Debt Payoff
-
-**Utilities**
-- Live gold rate fetching
-- Trip planner with route tracking
-- Smart search across all data
-- Voice-to-text data entry
-- Notifications / reminders
-- Analytics with Chart.js (doughnut charts, spending breakdown)
-
-**Notes & Vault**
-- Rich notes with folder organization, versions, and attachments
-- Credentials vault (encrypted local storage for passwords/keys)
-
-### Study Resources — Interview Prep
-
-Five prep modules, each with progress tracking per question/item:
-
-| Module | Content |
-|--------|---------|
-| Java Prep Kit | Java concepts, code examples |
-| DSA Master Hub | Data structures & algorithm questions |
-| React Prep Hub | React hooks, patterns, interview questions |
-| HR Questions | Behavioural / soft-skills questions |
-| Interview Prep Kit | Cross-domain preparation |
-
-- Per-item status: `done` / `in progress`
-- Favourite items
-- Personal notes per question
-- Daily streak tracking (stored in Supabase `study_streak`)
-
-### Admin Panel
-
-Accessible to admin users via the settings icon in LedgerMate.
-
-**Users tab**
-- View all users (pending / active sections)
-- Create new users with role, activation status, and module access restrictions
-- Approve / deactivate accounts
-- Toggle admin / user role
-- Delete user — shows a confirmation modal listing exactly what will be removed, then:
-  1. Wipes local IndexedDB records tagged with the user's profile ID
-  2. Deletes `ledger_data` from Supabase (cloud sync data)
-  3. Deletes `user_profiles` and `auth.users` entry via SECURITY DEFINER RPC
-
-**Other tabs**
-- Statistics — user counts, pending approvals, your own data counts
-- App Settings — app name, default currency, theme, session timeout
-- Backup — export JSON, import/restore, sync to cloud, factory reset
-
-### Cloud Sync
-
-All LedgerMate data is synced to Supabase (`ledger_data` table) automatically:
-
-| Trigger | Behaviour |
-|---------|-----------|
-| Any `put()` to a user data store | Emits `lm:data:changed` → debounced 3–4 s save |
-| Periodic fallback | Saves every 60 s if dirty |
-| Tab hidden / beforeunload | Best-effort immediate save |
-| Logout | `saveOnLogout()` awaited before session is wiped |
-| Manual ☁️ button | Immediate save with spinner feedback |
-
-On login, cloud data is loaded first (full replace of local IndexedDB), so data follows the user across devices.
-
-### PWA — Offline-First
-
-- Service worker caches all static assets (HTML, CSS, JS, icons)
-- Cache-first strategy with background revalidation
-- Installable on desktop and mobile (Web App Manifest)
-- Full offline access to cached data; changes queue until reconnected
+Both products share unified Supabase authentication (`/login.html`), encrypted session management, role-based access control, and cross-device offline-first PWA caching.
 
 ---
 
-## Tech Stack
+## 🚀 Key Features
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | Vanilla HTML, JavaScript (ES2020), CSS |
-| Styling | Tailwind CSS (local vendor bundle) + custom CSS |
-| Charts | Chart.js (local vendor bundle) |
-| PDF export | jsPDF + html2canvas |
-| Local database | IndexedDB (native browser API) |
-| Cloud database | Supabase (PostgreSQL + RLS) |
-| Auth | Supabase JS v2 — email/password, Google OAuth |
-| PWA | Service Worker (`lm-v2.0.2`) + `manifest.json` |
-| Hosting | GitHub Pages |
-| CI/CD | GitHub Actions — auto-deploys on push to `main` |
+### 1. 📱 Android Native App & Background Engine
+- **Persistent Background Reminders**:
+  - `WorkManager` (`BackgroundReminderWorker.java`): Periodically checks (every 15 minutes) for upcoming/overdue bills, loans, credit card due dates, and budget overruns even when the app is completely closed.
+  - `AlarmManager` (`AlarmReceiver.java`): Exact 9:00 AM daily morning alarm waking the device to ensure critical bill alerts are never missed.
+  - `BootReceiver.java`: Automatically reschedules alarms and background workers immediately after device reboot (`RECEIVE_BOOT_COMPLETED`).
+- **Native Market Data Engine**:
+  - Direct Java HTTP bridge (`MainActivity.java`) for real-time Yahoo Finance stock quotes and Gold/Silver spot rates without browser CORS issues or API rate limits.
+- **In-App One-Tap Version Upgrades**:
+  - `AppUpdateService.js` compares local installed APK `versionCode` against server `version.json`.
+  - Downloads updates with real-time streaming progress (0% &rarr; 100%) and launches the Android Package Installer via `FileProvider`.
+- **Google OAuth In-App Routing**:
+  - Single-window WebView routing with `prompt: 'select_account'` for smooth account switching without external browser popups or Google 400 errors.
 
 ---
 
-## Project Structure
+### 2. 💳 Credit Card Management Module
+- **Cycle & Due Tracking**:
+  - Automatically calculates billing cycles, statement generation dates, grace periods, and exact due date countdowns.
+  - Real-time days-until-due badge and urgent due warnings directly on the main dashboard.
+- **Limit & Payment Analytics**:
+  - Credit limit utilization gauge with color-coded risk indicators (<30% Safe, 30-70% Warning, >70% High).
+  - Quick bill settlement logger with automatic transaction entry and reminder completion.
+  - Reward points and cashback tracker per card.
+
+---
+
+### 3. 📈 Stock Portfolio & Live Market Data
+- **Real-Time Market Tracking**:
+  - Live stock quotes for NSE / BSE tickers and indices with live price tickers and day change percentages.
+  - Live ticker marquee header streaming market movements.
+- **Comprehensive Portfolio Metrics**:
+  - Track buy/sell transactions, quantity, average buy price, current value, total invested, and realized/unrealized P&L.
+  - Sector allocation pie charts and portfolio diversification scoring.
+  - Gold & Silver daily live commodity rate widget.
+
+---
+
+### 4. 💰 Wealth & Core Finance Management
+- **Transactions & Budgets**:
+  - Multi-category expense & income tracking with tags, receipts, and recurring schedulers.
+  - Visual monthly budget caps with automated threshold push alerts (85% warning, 100% exceeded).
+- **Loans & Debt Payoff**:
+  - Personal lend/borrow tracker with interest calculations, repayment history, and due date alerts.
+  - EMI calculator with full amortization tables and Debt Snowball/Avalanche payoff optimizer.
+- **Wealth & FI/RE Insights**:
+  - Financial Independence (FI) Score calculation, savings rate tracking, and net worth milestone projections.
+  - Interactive **Sankey Cashflow Diagram** and **Spending Heatmap** for expense pattern discovery.
+- **Bank Statement Parser & Rules**:
+  - Statement file parser (CSV / text) with automated keyword categorization rules (`CategoryRules.js`).
+- **Command Palette**:
+  - Quick action launcher via `Ctrl+K` / `Cmd+K` for instant global search and page navigation.
+
+---
+
+### 5. 📚 Study Resources — Interview Prep Suite
+- **Comprehensive Prep Kits**:
+  - **Java Prep Kit**: Core Java, Multithreading, JVM internals, Collections, Streams, and Design Patterns.
+  - **DSA Master Hub**: Categorized algorithmic patterns (Two Pointers, Sliding Window, Trees, Graphs, DP).
+  - **React Prep Hub**: Hooks, lifecycle, state management, reconciliation, and modern frontend patterns.
+  - **HR & Behavioral**: STAR technique question breakdowns and leadership principles.
+- **Interactive Learning Tools**:
+  - **In-Browser Code Runner** (`CodeRunner.js`): Interactive JavaScript and Python sandbox.
+  - **Spaced Repetition System (SRS)** (`StudySRS.js`): Flashcard learning algorithm optimizing long-term retention.
+  - **Study Timer / Pomodoro** (`StudyTimer.js`): Focused study sessions with streak tracking.
+  - **AI Interview Helper** (`AIInterviewHelper.js`) & **Quiz Engine** (`StudyQuizEngine.js`).
+
+---
+
+### 6. 🔐 Security, Authentication & Admin Panel
+- **Access Control**:
+  - Multi-user isolation in IndexedDB and Supabase with Row Level Security (RLS).
+  - Admin approval workflow (`user_profiles.active = true`) for new signups.
+  - Automatic session timeout, biometrics / PIN lock support, and client privilege escalation prevention.
+- **Admin Management Panel**:
+  - User role management, account approvals, data wipe, and detailed audit statistics.
+  - Backup/Restore tools with full encrypted JSON export/import and cloud sync management.
+
+---
+
+## 🛠️ Tech Stack & Architecture
+
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend Web** | Vanilla JavaScript (ES2022), HTML5, CSS3 Custom Properties, Tailwind CSS (Vendor Bundle) |
+| **Visualizations** | Chart.js, Canvas API, Custom SVG Sankey & Heatmap Engines |
+| **Native Mobile** | Android SDK 34 (Java 17), `WebView`, `WorkManager 2.9.0`, `AlarmManager`, `FileProvider` |
+| **Storage & Sync** | IndexedDB (Local Offline-First) + Supabase (PostgreSQL 15, Auth, Row Level Security) |
+| **PWA & Offline** | Service Worker (`service-worker.js`) with Cache-First static revalidation & Web App Manifest |
+| **CI / CD Pipeline** | GitHub Actions — automated APK building, release signing, GitHub Release publishing, and GitHub Pages deployment |
+
+---
+
+## 📁 Repository Structure
 
 ```
 LedgerMate/
-├── login.html                    # Unified login — LedgerMate + Study Resources
-├── index.html                    # LedgerMate app shell
-├── widget.html                   # Home screen widget
-├── service-worker.js             # PWA offline caching
-├── manifest.json                 # PWA manifest
+├── android/                             # Android Native APK Project
+│   ├── app/
+│   │   ├── build.gradle                 # Gradle build config, dependencies & signing
+│   │   ├── release.keystore             # App signing keystore
+│   │   └── src/main/
+│   │       ├── AndroidManifest.xml      # Permissions, receivers & FileProvider config
+│   │       ├── java/com/jeeva/ledgermate/
+│   │       │   ├── MainActivity.java            # WebView container & AndroidBridge
+│   │       │   ├── BackgroundReminderWorker.java # Periodic background dues evaluator
+│   │       │   ├── AlarmReceiver.java           # Daily 9:00 AM exact alarm receiver
+│   │       │   └── BootReceiver.java            # Device reboot reschedule receiver
+│   │       └── res/xml/file_paths.xml           # FileProvider cache paths for updates
+│   └── build.gradle
 │
-├── auth/
-│   ├── supabase-config.js        # Generated at deploy (gitignored locally)
-│   ├── auth-guard.js             # Study pages auth guard
-│   ├── setup.sql                 # user_profiles, access_requests, delete_user RPC
-│   ├── ledger-data.sql           # ledger_data table (cloud sync)
-│   └── study-progress.sql        # study_progress + study_streak tables
+├── .github/
+│   ├── workflows/
+│   │   ├── build-apk.yml                # CI/CD: Builds APK & publishes to GitHub Releases
+│   │   └── deploy.yml                   # CI/CD: Deploys web app to GitHub Pages
+│   └── scripts/
+│       └── gen_config.py                # Generates version.json & Supabase config
+│
+├── auth/                                # Authentication & Backend Schemas
+│   ├── supabase-config.js               # Injected credentials (gitignored)
+│   ├── auth-guard.js                    # Route access guard
+│   ├── setup.sql                        # Core DB schemas, user_profiles & RLS
+│   ├── ledger-data.sql                  # Multi-user cloud sync schema
+│   └── study-progress.sql               # Study progress & streak schemas
 │
 ├── src/
 │   ├── scripts/
-│   │   ├── Auth/
-│   │   │   ├── AuthManager.js    # Session, login, logout, PIN lock
-│   │   │   ├── StorePatch.js     # Multi-user IndexedDB isolation + lm:data:changed emit
-│   │   │   └── UserStore.js
-│   │   ├── Admin/
-│   │   │   └── AdminPanel.js     # User management, settings, backup
-│   │   ├── Core/
-│   │   │   └── AppBus.js         # Event bus (lm:data:changed, lm:cloud:saved, …)
-│   │   ├── Common/
-│   │   │   ├── Notes.js
-│   │   │   ├── Cred.js           # Credentials vault
-│   │   │   ├── TripPlanner.js
-│   │   │   ├── MonthlySummary.js
-│   │   │   ├── GoldRateFetch.js
-│   │   │   ├── Notifications.js
-│   │   │   ├── Search.js
-│   │   │   └── Dropdown.js
-│   │   ├── Wealth/
-│   │   │   ├── Wealth.js         # Net worth, assets, allocations
-│   │   │   └── Essentials.js     # FI score, health, predictions, goals
-│   │   ├── Charts/
-│   │   │   └── Doughnut.js
-│   │   ├── SpeechText/
-│   │   │   └── VoiceText.js
-│   │   ├── Investments.js
-│   │   ├── CloudSync.js          # Supabase save / load / auto-save
-│   │   └── Common.js             # IndexedDB helpers (put, getAll, del)
-│   └── styles/
-│       ├── style.css
-│       ├── common.css
-│       ├── auth.css
-│       └── Notes.css
+│   │   ├── Auth/                        # AuthManager, UserStore, Biometrics, StorePatch
+│   │   ├── Admin/                       # AdminPanel user & system management
+│   │   ├── Core/                        # AppBus event dispatcher
+│   │   ├── Common/                      # Notifications, AppUpdateService, GoldRateFetch, Notes
+│   │   ├── Modules/
+│   │   │   ├── CreditCards/             # CreditCardsService.js, CreditCardsUI.js
+│   │   │   ├── Stocks/                  # Portfolio, Registry, MarketData, Calculations
+│   │   │   ├── StatementParser.js       # Bank statement ingestion engine
+│   │   │   ├── CategoryRules.js         # Automated transaction categorization
+│   │   │   ├── DebtOptimizer.js         # Snowball / Avalanche debt planner
+│   │   │   ├── SankeyCashFlow.js        # Cashflow Sankey visualization
+│   │   │   ├── SpendingHeatmap.js       # Expense calendar heatmap
+│   │   │   └── CommandPalette.js        # Ctrl+K global launcher
+│   │   ├── Wealth/                      # Wealth.js, Essentials.js, Financial Health
+│   │   └── CloudSync.js                 # Realtime cloud synchronizer
+│   └── styles/                          # Responsive dark/light theme CSS stylesheets
 │
-├── study/
-│   ├── index.html                # Study hub home
-│   ├── login.html                # Redirect stub → /login.html?app=study
-│   └── prep/
-│       ├── Java-Prep-kit.html
-│       ├── DSA-Prep-Hub.html
-│       ├── React-Prep.html
-│       ├── HR-Questions.html
-│       └── Interview-Prep-Kit.html
+├── study/                               # Study Resources & Interview Prep Suite
+│   ├── index.html                       # Study hub home
+│   ├── js/                              # CodeRunner, StudySRS, StudyTimer, QuizEngine
+│   └── prep/                            # Java, DSA, React, HR & Interview Prep modules
 │
-└── assets/
-    ├── icons/
-    └── vendor/                   # chart.umd.min.js, tailwind.min.js, jspdf, html2canvas
+├── index.html                           # LedgerMate Web Application Shell
+├── login.html                           # Unified Authentication Portal
+├── service-worker.js                    # Offline-first Service Worker
+├── version.json                         # Build & APK version metadata
+└── manifest.json                        # PWA Manifest
 ```
 
 ---
 
-## Setup
+## 🚀 Setup & Deployment
 
-### 1. Supabase project
+### 1. Supabase Backend Setup
+1. Create a Supabase project at [supabase.com](https://supabase.com).
+2. In the **SQL Editor**, execute the schemas in order:
+   - `auth/setup.sql`
+   - `auth/ledger-data.sql`
+   - `auth/study-progress.sql`
+3. Under **Authentication → Providers**, configure **Email** and **Google OAuth**.
+4. Set the redirect URL to: `https://<username>.github.io/LedgerMate/login.html`.
 
-1. Create a project at [supabase.com](https://supabase.com)
-2. In **SQL Editor**, run (in order):
-   - `auth/setup.sql` — creates `user_profiles`, `access_requests`, RLS policies, `delete_user` RPC
-   - `auth/ledger-data.sql` — creates `ledger_data` cloud sync table
-   - `auth/study-progress.sql` — creates `study_progress` and `study_streak` tables
-3. In **Authentication → Providers**, enable:
-   - Email (enabled by default)
-   - Google — add Client ID and Client Secret from Google Cloud Console
-4. In **Authentication → URL Configuration**, add your site URL to **Redirect URLs**:
-   - `https://<your-username>.github.io/<repo>/login.html`
+### 2. GitHub Secrets Configuration
+In your GitHub repository under **Settings → Secrets and variables → Actions**, add:
+- `SUPABASE_URL`: Your Supabase Project URL (`https://xxxx.supabase.co`)
+- `SUPABASE_ANON`: Your Supabase Anon/Public API Key
+- `KEYSTORE_PASSWORD`: Keystore password for APK signing
+- `KEY_ALIAS`: Keystore key alias
+- `KEY_PASSWORD`: Keystore private key password
 
-### 2. Local development
-
-Create `auth/supabase-config.js` (this file is gitignored):
-
-```js
-var SUPABASE_URL  = 'https://xxxx.supabase.co';
-var SUPABASE_ANON = 'your-anon-key';
-var _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-  auth: {
-    persistSession    : true,
-    autoRefreshToken  : true,
-    detectSessionInUrl: true
-  }
-});
-```
-
-Then open `index.html` directly in a browser (no build step required).
-
-### 3. GitHub Pages deployment
-
-1. Go to your repository **Settings → Secrets and variables → Actions**
-2. Add two repository secrets:
-   - `SUPABASE_URL` — your Supabase project URL
-   - `SUPABASE_ANON` — your Supabase anon public key
-3. Push to `main` — GitHub Actions generates `auth/supabase-config.js` from secrets and deploys automatically
-
-### 4. First run
-
-- The **first user to sign up** is automatically promoted to `admin` with `active = true`
-- All subsequent signups start as `active = false` — the admin must approve them from the Admin Panel
-- To disable public signups (invite-only): Supabase Dashboard → Authentication → Settings → disable "Enable sign-ups"
+### 3. Deploying & Installing
+- **Web App**: Automatically deploys to GitHub Pages on every push to `main`.
+- **Android APK**: Automatically compiled, signed, and published under **Releases** (`latest` tag) by the `build-apk.yml` workflow.
+- **In-App Updates**: Once the APK is installed, any future push to `main` automatically notifies users inside the app and allows one-tap upgrading!
 
 ---
 
-## Data Architecture
+## 👨‍💻 Author
 
-```
-Browser (IndexedDB)                  Supabase (PostgreSQL)
-─────────────────────                ──────────────────────────────
-transactions                         auth.users
-budgets                                └─ user_profiles   (role, active, modules)
-loans                                  └─ ledger_data     (full JSON snapshot)
-savings / savings_goals                └─ study_progress  (per-item status)
-investments / sip_plan                 └─ study_streak    (daily streak)
-fd_rd                                  └─ access_requests (self-registration)
-subscriptions
-emi_loans
-trips / trip_routes
-notes / note_folders
-credentials
-net_worth_snapshots
-audit_logs
-dropdowns / settings
-```
-
-Multi-user isolation in IndexedDB: every record written by `StorePatch.js` gets a `profile` field set to the current user's Supabase UUID. `getAll()` filters to the current user's records automatically (admins see all).
-
----
-
-## Author
-
-Developed by **Jeeventhiran V**
+Developed with ❤️ by **Jeeventhiran V**
