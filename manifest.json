@@ -1,20 +1,21 @@
 {
-  "id": "./",
+  "id": "com.jeeva.ledgermate",
   "name": "LedgerMate",
   "short_name": "LedgerMate",
-  "launcherName": "LedgerMate",
   "description": "Smart finance tracker to manage expenses, investments, profits, credit cards, loans and live market insights with real-time cloud sync.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "display_override": [
-    "window-controls-overlay"
-  ],
   "orientation": "portrait",
   "theme_color": "#10b981",
-  "background_color": "#1e293b",
-  "navigationColor": "#10b981",
+  "background_color": "#0a0f1a",
   "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "categories": [
+    "finance",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "./assets/icons/icon-192.png",
@@ -35,31 +36,18 @@
       "purpose": "maskable"
     }
   ],
-  "enableNotifications": true,
-  "packageId": "com.jeeva.ledgermate",
-  "host": "https://jeeventhiranv.github.io",
-  "appVersionName": "1.0.0",
-  "appVersionCode": 1,
-  "signingKey": {
-    "path": "android.keystore",
-    "alias": "LedgermateJeeva"
-  },
-  "dir": "auto",
-  "edge_side_panel": {
-    "preferred_width": 0
-  },
-  "categories": [
-    "finance"
-  ],
-  "file_handlers": [
-  {
-    "action": "/import",
-    "name": "LedgerMate Backup Import",
-    "accept": {
-      "application/json": [".json"],
-      "text/csv": [".csv"]
+  "shortcuts": [
+    {
+      "name": "LedgerMate Dashboard",
+      "short_name": "Dashboard",
+      "url": "./index.html",
+      "icons": [
+        {
+          "src": "./assets/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
-  }
-]
-
+  ]
 }
