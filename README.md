@@ -58,44 +58,69 @@ Both products share unified Supabase authentication (`/login.html`), encrypted s
 ---
 
 ### 4. 💰 Wealth & Core Finance Management
-- **Transactions & Budgets**:
-  - Multi-category expense & income tracking with tags, receipts, and recurring schedulers.
-  - Visual monthly budget caps with automated threshold push alerts (85% warning, 100% exceeded).
+- **Transactions & Smart Entry**:
+  - Income, Expense, and Account Transfer tracking with categories, tags, receipts, and notes.
+  - **Voice-to-Text Input** (`VoiceText.js`): Speech-enabled rapid transaction logging.
+  - **Transaction Templates**: One-click re-usable templates for routine expenses.
+  - **Recurring Scheduler**: Daily, weekly, monthly, and annual automated recurring entries.
+  - **Google Drive Integration** (`Drive.js`): Secure cloud receipt storage and document linking.
+- **Budgeting & Spending Caps**:
+  - Dynamic monthly category budgets with live spend-vs-limit progress indicators.
+  - Proactive automated threshold alerts (85% warning, 100% exceeded) via toast, browser, and background native notifications.
 - **Loans & Debt Payoff**:
   - Personal lend/borrow tracker with interest calculations, repayment history, and due date alerts.
-  - EMI calculator with full amortization tables and Debt Snowball/Avalanche payoff optimizer.
+  - EMI calculator with full amortization tables.
+  - **Debt Optimizer** (`DebtOptimizer.js`): Debt Snowball and Avalanche payoff timeline visualizers.
 - **Wealth & FI/RE Insights**:
   - Financial Independence (FI) Score calculation, savings rate tracking, and net worth milestone projections.
-  - Interactive **Sankey Cashflow Diagram** and **Spending Heatmap** for expense pattern discovery.
-- **Bank Statement Parser & Rules**:
-  - Statement file parser (CSV / text) with automated keyword categorization rules (`CategoryRules.js`).
-- **Command Palette**:
-  - Quick action launcher via `Ctrl+K` / `Cmd+K` for instant global search and page navigation.
+  - Interactive **Sankey Cashflow Diagram** (`SankeyCashFlow.js`) mapping income &rarr; accounts &rarr; expenses.
+  - **Spending Heatmap** (`SpendingHeatmap.js`): GitHub-style 365-day calendar visualization of daily expenses.
+- **Productivity Utilities & Tools**:
+  - **Bank Statement Parser** (`StatementParser.js`): Ingests CSV and text bank statements with smart transaction auto-detection.
+  - **Category Auto-Rules** (`CategoryRules.js`): Custom keyword rules to auto-categorize incoming transactions.
+  - **Trip Planner** (`TripPlanner.js`): Multi-day travel itineraries, group expense splitting, and route mapping.
+  - **Rich Notes & Folders** (`Notes.js`): Markdown notes with folder organization and version history.
+  - **Encrypted Credentials Vault** (`Cred.js`): Secure local vault for sensitive passwords and API keys.
+  - **Monthly Summary & Report Generator** (`MonthlySummary.js`): PDF and Excel financial report export via `jsPDF` & `html2canvas`.
+  - **Command Palette** (`CommandPalette.js`): Quick keyboard launcher (`Ctrl+K` / `Cmd+K`) for global navigation and search.
 
 ---
 
-### 5. 📚 Study Resources — Interview Prep Suite
-- **Comprehensive Prep Kits**:
-  - **Java Prep Kit**: Core Java, Multithreading, JVM internals, Collections, Streams, and Design Patterns.
-  - **DSA Master Hub**: Categorized algorithmic patterns (Two Pointers, Sliding Window, Trees, Graphs, DP).
-  - **React Prep Hub**: Hooks, lifecycle, state management, reconciliation, and modern frontend patterns.
-  - **HR & Behavioral**: STAR technique question breakdowns and leadership principles.
-- **Interactive Learning Tools**:
-  - **In-Browser Code Runner** (`CodeRunner.js`): Interactive JavaScript and Python sandbox.
-  - **Spaced Repetition System (SRS)** (`StudySRS.js`): Flashcard learning algorithm optimizing long-term retention.
-  - **Study Timer / Pomodoro** (`StudyTimer.js`): Focused study sessions with streak tracking.
-  - **AI Interview Helper** (`AIInterviewHelper.js`) & **Quiz Engine** (`StudyQuizEngine.js`).
+### 5. 📚 Study Resources — Complete Interview & Career Hub
+- **10 Dedicated Preparation & Productivity Modules**:
+  1. **Java Prep Kit** (`Java-Prep-kit.html`): Core Java, Multithreading, JVM internals, Collections, Streams, Memory Management, and Design Patterns.
+  2. **DSA Master Hub** (`DSA-Prep-Hub.html`): Categorized algorithmic patterns (Two Pointers, Sliding Window, Trees, Graphs, DP, Backtracking).
+  3. **DSA CodeBase** (`DSA_CodeBase.html`): Curated LeetCode/HackerRank code repository with full solutions and explanations.
+  4. **System Design Hub** (`DSA_SystemDesign.html`): High-Level Design (HLD) & Low-Level Design (LLD) architecture blueprints, microservices, scaling, and caching.
+  5. **React Prep Hub** (`React-Prep.html`): Hooks, lifecycle, state management (Redux/Zustand), Virtual DOM, reconciliation, SSR, and modern frontend patterns.
+  6. **HR & Behavioral Questions** (`HR-Questions.html`): STAR technique breakdowns, behavioral questions, and leadership principles.
+  7. **Interview Prep Kit** (`Interview-Prep-Kit.html`): Cross-domain quick revision cheat sheets and core computer science fundamentals.
+  8. **Interview Tracker** (`Interview-Tracker.html`): Job application pipeline manager (Applied, OA, Technical Rounds, HR, Offer).
+  9. **Daily Learning Tracker** (`Daily-Learning-Tracker.html`): Day-by-day roadmap and topic progression logger.
+  10. **Quick Links Manager** (`Quick-Links-Manager.html`): Bookmark organizer for documentation, coding platforms, and study materials.
+- **Interactive Prep Tools**:
+  - **In-Browser Code Runner** (`CodeRunner.js`): Real-time interactive JavaScript and Python code execution sandbox.
+  - **Spaced Repetition System (SRS)** (`StudySRS.js`): Flashcard review engine based on memory decay curves.
+  - **Study Timer / Pomodoro** (`StudyTimer.js`): Focused study sessions with streak tracking (`study_streak` table).
+  - **AI Interview Helper** (`AIInterviewHelper.js`) & **Study Quiz Engine** (`StudyQuizEngine.js`).
+  - **Community Prep Hub** (`community-hub.js`): Peer discussions and shared preparation notes.
 
 ---
 
 ### 6. 🔐 Security, Authentication & Admin Panel
-- **Access Control**:
-  - Multi-user isolation in IndexedDB and Supabase with Row Level Security (RLS).
-  - Admin approval workflow (`user_profiles.active = true`) for new signups.
-  - Automatic session timeout, biometrics / PIN lock support, and client privilege escalation prevention.
-- **Admin Management Panel**:
-  - User role management, account approvals, data wipe, and detailed audit statistics.
-  - Backup/Restore tools with full encrypted JSON export/import and cloud sync management.
+- **Multi-Tenant Data Isolation**:
+  - Every IndexedDB record written by `StorePatch.js` is partitioned with a `profile` ID matching the user's Supabase UUID.
+  - Database-level isolation enforced via Supabase PostgreSQL Row Level Security (RLS).
+- **Access Control & Approval Gate**:
+  - New user signups default to `active = false` (invite-only access control).
+  - Admin users can approve, deactivate, or assign specific module permissions from the Admin Panel.
+- **Client Security & Safeguards**:
+  - Client-side role escalation prevention (`active` and `role` fields protected in Supabase).
+  - Web-to-Java Android Bridge callback IDs sanitized against XSS / injection attacks.
+  - Inactivity auto-logout with configurable timeout and optional Biometric / PIN lock screen.
+- **Admin Management & Data Portability**:
+  - Full system statistics, user audits, and pending approval management.
+  - Complete encrypted JSON backup export, file restore, and factory reset utilities.
 
 ---
 
