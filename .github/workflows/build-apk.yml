@@ -12,12 +12,18 @@ jobs:
   build-apk:
     name: Build Android APK
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/googlechromelabs/bubblewrap:latest
 
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 🛠️ Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
 
       - name: 🔑 Generate Keystore (if not present)
         run: |
@@ -34,7 +40,7 @@ jobs:
           BUBBLEWRAP_KEYSTORE_PASSWORD: "ledgermate123"
           BUBBLEWRAP_KEY_PASSWORD: "ledgermate123"
         run: |
-          bubblewrap build \
+          yes "" | bubblewrap build \
             --skipPwaValidation \
             --signingKeyPath="android.keystore" \
             --signingKeyAlias="ledgermate"
