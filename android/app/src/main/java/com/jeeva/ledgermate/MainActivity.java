@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
@@ -40,6 +41,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -437,10 +439,21 @@ public class MainActivity extends AppCompatActivity {
 
     private void installApkFile(File apkFile, String callbackId) {
         try {
-            if (apkFile == null || !apkFile.exists()) {
-                sendError(callbackId, "Downloaded APK file not found on disk");
+            if (apkFile == null || !apkFile.exists() || apkFile.length() < 100000) {
+                sendError(callbackId, "Downloaded APK file not found or incomplete. Please re-download.");
                 return;
             }
+
+            // Verify package integrity using Android PackageManager before launching installer
+            PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), PackageManager.GET_META_DATA);
+            if (archiveInfo == null) {
+                try { apkFile.delete(); } catch (Exception ignored) {}
+                sendError(callbackId, "Corrupted update package (invalid archive). Please try downloading again.");
+                return;
+            }
+
+            apkFile.setReadable(true, false);
+            apkFile.setWritable(true, false);
 
             pendingInstallApk = apkFile;
             pendingInstallCallbackId = callbackId;
@@ -466,15 +479,22 @@ public class MainActivity extends AppCompatActivity {
             Intent installIntent = new Intent(Intent.ACTION_VIEW);
             installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
             installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            installIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             installIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+            List<ResolveInfo> resolveInfoList = getPackageManager().queryIntentActivities(installIntent, PackageManager.MATCH_DEFAULT_ONLY);
+            for (ResolveInfo resolveInfo : resolveInfoList) {
+                String packageName = resolveInfo.activityInfo.packageName;
+                grantUriPermission(packageName, apkUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            }
 
             startActivity(installIntent);
             pendingInstallApk = null;
             pendingInstallCallbackId = null;
             sendProgress(callbackId, "complete", 100, "Installer launched successfully");
         } catch (Exception e) {
-            sendError(callbackId, "Failed to launch package installer: " + e.getMessage());
+            sendError(callbackId, "Failed to launch package installer: " + (e.getMessage() != null ? e.getMessage() : e.toString()));
         }
     }
 
@@ -872,34 +892,47 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public void downloadAndInstallApk(String apkUrl, String callbackId) {
             executorService.execute(() -> {
+                HttpURLConnection conn = null;
+                InputStream input = null;
+                FileOutputStream output = null;
+                File tempApkFile = null;
                 try {
-                    sendProgress(callbackId, "downloading", 0, "Starting download...");
-                    URL url = new URL(apkUrl);
-                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                    conn.setRequestMethod("GET");
-                    conn.setConnectTimeout(15000);
-                    conn.setReadTimeout(15000);
-                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 LedgerMate-AppUpdater/1.0");
+                    sendProgress(callbackId, "downloading", 0, "Connecting to update server...");
+                    String currentUrl = apkUrl;
+                    int redirectCount = 0;
+                    final int MAX_REDIRECTS = 6;
 
-                    int responseCode = conn.getResponseCode();
-                    // Follow redirects (e.g. GitHub Releases 302 redirect)
-                    if (responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||
-                        responseCode == HttpURLConnection.HTTP_MOVED_PERM ||
-                        responseCode == HttpURLConnection.HTTP_SEE_OTHER) {
-                        String newUrl = conn.getHeaderField("Location");
-                        conn.disconnect();
-                        url = new URL(newUrl);
+                    while (redirectCount < MAX_REDIRECTS) {
+                        URL url = new URL(currentUrl);
                         conn = (HttpURLConnection) url.openConnection();
                         conn.setRequestMethod("GET");
-                        conn.setConnectTimeout(15000);
-                        conn.setReadTimeout(15000);
-                        conn.setRequestProperty("User-Agent", "Mozilla/5.0 LedgerMate-AppUpdater/1.0");
-                        responseCode = conn.getResponseCode();
+                        conn.setInstanceFollowRedirects(true);
+                        conn.setConnectTimeout(20000);
+                        conn.setReadTimeout(30000);
+                        conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile; LedgerMate-AppUpdater/1.0)");
+                        conn.setRequestProperty("Accept", "*/*");
+
+                        int responseCode = conn.getResponseCode();
+                        if (responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||
+                            responseCode == HttpURLConnection.HTTP_MOVED_PERM ||
+                            responseCode == HttpURLConnection.HTTP_SEE_OTHER ||
+                            responseCode == 307 || responseCode == 308) {
+                            String location = conn.getHeaderField("Location");
+                            if (location == null || location.trim().isEmpty()) {
+                                break;
+                            }
+                            conn.disconnect();
+                            currentUrl = location;
+                            redirectCount++;
+                        } else {
+                            break;
+                        }
                     }
 
-                    if (responseCode != HttpURLConnection.HTTP_OK) {
-                        sendError(callbackId, "HTTP error " + responseCode + " while downloading APK update");
-                        conn.disconnect();
+                    if (conn == null || conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                        int code = conn != null ? conn.getResponseCode() : -1;
+                        sendError(callbackId, "Server returned HTTP " + code + " while downloading update");
+                        if (conn != null) conn.disconnect();
                         return;
                     }
 
@@ -908,15 +941,16 @@ public class MainActivity extends AppCompatActivity {
                     if (!updateDir.exists()) {
                         updateDir.mkdirs();
                     }
-                    File apkFile = new File(updateDir, "LedgerMate-update.apk");
-                    if (apkFile.exists()) {
-                        apkFile.delete();
+
+                    tempApkFile = new File(updateDir, "LedgerMate-update.apk.tmp");
+                    if (tempApkFile.exists()) {
+                        tempApkFile.delete();
                     }
 
-                    InputStream input = conn.getInputStream();
-                    FileOutputStream output = new FileOutputStream(apkFile);
+                    input = conn.getInputStream();
+                    output = new FileOutputStream(tempApkFile);
 
-                    byte[] data = new byte[8192];
+                    byte[] data = new byte[16384];
                     long total = 0;
                     int count;
                     long lastProgressUpdate = 0;
@@ -929,21 +963,64 @@ public class MainActivity extends AppCompatActivity {
                             long now = System.currentTimeMillis();
                             if (now - lastProgressUpdate > 250 || percent == 100) {
                                 lastProgressUpdate = now;
-                                sendProgress(callbackId, "downloading", percent, "Downloading: " + percent + "%");
+                                sendProgress(callbackId, "downloading", percent, "Downloading: " + percent + "% (" + (total / 1024) + " KB)");
                             }
                         }
                     }
 
                     output.flush();
                     output.close();
+                    output = null;
                     input.close();
+                    input = null;
                     conn.disconnect();
+                    conn = null;
+
+                    // Verify size and completeness
+                    if (fileLength > 0 && total < fileLength) {
+                        if (tempApkFile.exists()) tempApkFile.delete();
+                        sendError(callbackId, "Download incomplete (" + total + " / " + fileLength + " bytes). Please retry.");
+                        return;
+                    }
+
+                    if (total < 100000) {
+                        if (tempApkFile.exists()) tempApkFile.delete();
+                        sendError(callbackId, "Downloaded package file is too small or invalid. Please retry.");
+                        return;
+                    }
+
+                    // Verify valid APK package archive with PackageManager
+                    PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(tempApkFile.getAbsolutePath(), PackageManager.GET_META_DATA);
+                    if (archiveInfo == null) {
+                        if (tempApkFile.exists()) tempApkFile.delete();
+                        sendError(callbackId, "Downloaded file is corrupted or not a valid Android package. Please retry.");
+                        return;
+                    }
+
+                    File targetApkFile = new File(updateDir, "LedgerMate-update.apk");
+                    if (targetApkFile.exists()) {
+                        targetApkFile.delete();
+                    }
+
+                    if (!tempApkFile.renameTo(targetApkFile)) {
+                        targetApkFile = tempApkFile;
+                    }
+
+                    targetApkFile.setReadable(true, false);
+                    final File finalApkFile = targetApkFile;
 
                     // Trigger Android Package Installer
-                    runOnUiThread(() -> installApkFile(apkFile, callbackId));
+                    runOnUiThread(() -> installApkFile(finalApkFile, callbackId));
 
                 } catch (Exception e) {
-                    sendError(callbackId, e.getMessage() != null ? e.getMessage() : "Download failed");
+                    if (tempApkFile != null && tempApkFile.exists()) {
+                        try { tempApkFile.delete(); } catch (Exception ignored) {}
+                    }
+                    sendError(callbackId, "Download error: " + (e.getMessage() != null ? e.getMessage() : e.toString()));
+                } finally {
+                    try { if (output != null) output.close(); } catch (Exception ignored) {}
+                    try { if (input != null) input.close(); } catch (Exception ignored) {}
+                    try { if (conn != null) conn.disconnect(); } catch (Exception ignored) {}
                 }
             });
         }
@@ -970,7 +1047,13 @@ public class MainActivity extends AppCompatActivity {
         public boolean hasDownloadedUpdate() {
             File updateDir = new File(getCacheDir(), "updates");
             File apkFile = new File(updateDir, "LedgerMate-update.apk");
-            return apkFile.exists() && apkFile.length() > 100000;
+            if (!apkFile.exists() || apkFile.length() < 100000) return false;
+            PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
+            if (archiveInfo == null) {
+                try { apkFile.delete(); } catch (Exception ignored) {}
+                return false;
+            }
+            return true;
         }
 
         @JavascriptInterface
@@ -978,10 +1061,15 @@ public class MainActivity extends AppCompatActivity {
             File updateDir = new File(getCacheDir(), "updates");
             File apkFile = new File(updateDir, "LedgerMate-update.apk");
             if (apkFile.exists() && apkFile.length() > 100000) {
-                runOnUiThread(() -> installApkFile(apkFile, callbackId));
-            } else {
-                sendError(callbackId, "No downloaded update file found on disk");
+                PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
+                if (archiveInfo != null) {
+                    runOnUiThread(() -> installApkFile(apkFile, callbackId));
+                    return;
+                } else {
+                    try { apkFile.delete(); } catch (Exception ignored) {}
+                }
             }
+            sendError(callbackId, "No valid downloaded update file found on disk. Please re-download.");
         }
     }
 

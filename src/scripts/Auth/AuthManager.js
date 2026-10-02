@@ -963,13 +963,9 @@
       const data = await res.json();
       const newDeploy = data.version || ('lm-' + data.commit);
       const activeDeploy = localStorage.getItem('lm_active_deploy_commit');
-      if (newDeploy && activeDeploy && activeDeploy !== newDeploy) {
-        console.warn('[Auth] New deployment detected in background (' + activeDeploy + ' -> ' + newDeploy + '). Requiring re-login...');
+      if (newDeploy && activeDeploy !== newDeploy) {
+        console.log('[Auth] App update detected (' + activeDeploy + ' -> ' + newDeploy + '). Preserving active user session.');
         localStorage.setItem('lm_active_deploy_commit', newDeploy);
-        try { if (typeof _supabase !== 'undefined' && _supabase?.auth) await _supabase.auth.signOut(); } catch (e) {}
-        clearSession();
-        var _loginBase = window.location.href.split('/').slice(0, -1).join('/');
-        window.location.replace(_loginBase + '/login.html?action=logout&msg=deployed');
       }
     } catch (e) {}
   }
@@ -980,23 +976,10 @@
   setInterval(checkForUpdate, 5 * 60 * 1000);
 
   async function init() {
-    /* ── Check Commit Deployment ID ──────────────────────── */
+    /* ── Check Commit Deployment ID (Preserve user session) ── */
     const currentDeploy = window.LM_DEPLOY_ID || null;
-    const activeDeploy  = localStorage.getItem('lm_active_deploy_commit');
-    const hasExistingSession = !!(localStorage.getItem(SESSION_KEY) || localStorage.getItem('sb-' + (window.SUPABASE_URL1 || '') + '-auth-token'));
-
-    if (currentDeploy && activeDeploy !== currentDeploy) {
-      if (activeDeploy || hasExistingSession) {
-        console.warn('[Auth] Deployment version mismatch (' + activeDeploy + ' -> ' + currentDeploy + '). Invalidating session...');
-        localStorage.setItem('lm_active_deploy_commit', currentDeploy);
-        try { if (typeof _supabase !== 'undefined' && _supabase?.auth) await _supabase.auth.signOut(); } catch (e) {}
-        clearSession();
-        var _loginBase = window.location.href.split('/').slice(0, -1).join('/');
-        window.location.replace(_loginBase + '/login.html?action=logout&msg=deployed');
-        return;
-      } else {
-        localStorage.setItem('lm_active_deploy_commit', currentDeploy);
-      }
+    if (currentDeploy) {
+      localStorage.setItem('lm_active_deploy_commit', currentDeploy);
     }
 
     /* ── Check Supabase session ──────────────────────────── */
