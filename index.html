@@ -170,13 +170,13 @@
     <div class="sidebar-section">
       <div class="sidebar-section-label">Overview</div>
       <button class="sidebar-nav-item active" onclick="showPage('dashboard')" data-module="dashboard">
-        <span class="nav-icon">🏠</span> Dashboard
+        <span class="nav-icon">📊</span> <span class="nav-label">Dashboard</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('transactions')" data-module="transactions">
-        <span class="nav-icon">↕️</span> Transactions
+        <span class="nav-icon">↕️</span> <span class="nav-label">Transactions</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('analytics')" data-module="analytics">
-        <span class="nav-icon">📈</span> Analytics
+        <span class="nav-icon">📈</span> <span class="nav-label">Analytics</span>
       </button>
     </div>
 
@@ -184,31 +184,31 @@
     <div class="sidebar-section">
       <div class="sidebar-section-label">Money</div>
       <button class="sidebar-nav-item" id="openBudgets" data-module="budgets">
-        <span class="nav-icon">🎯</span> Budgets
+        <span class="nav-icon">🎯</span> <span class="nav-label">Budgets</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('loans')" data-module="loans">
-        <span class="nav-icon">🏦</span> Loans
+        <span class="nav-icon">🏦</span> <span class="nav-label">Loans &amp; EMIs</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('credit-cards')" id="openCreditCards" data-module="credit-cards">
-        <span class="nav-icon">💳</span> Credit Cards
+        <span class="nav-icon">💳</span> <span class="nav-label">Credit Cards</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('investments')" id="openInvestments" data-module="investments">
-        <span class="nav-icon">📊</span> Investments
+        <span class="nav-icon">💼</span> <span class="nav-label">Investments</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('stocks')" id="openStockPortfolio" data-module="stocks">
-        <span class="nav-icon">📈</span> Indian Stocks &amp; Portfolio
+        <span class="nav-icon">📈</span> <span class="nav-label">Stocks &amp; Portfolio</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('subscriptions')" data-module="subscriptions">
-        <span class="nav-icon">🔄</span> Subscriptions
+        <span class="nav-icon">🔄</span> <span class="nav-label">Subscriptions</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('savings-goals')" data-module="savings-goals">
-        <span class="nav-icon">🏆</span> Savings Goals
+        <span class="nav-icon">🏆</span> <span class="nav-label">Savings Goals</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('emergency-fund')" data-module="emergency-fund">
-        <span class="nav-icon">🛡️</span> Emergency Fund
+        <span class="nav-icon">🛡️</span> <span class="nav-label">Emergency Fund</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('debt-payoff')" data-module="debt-payoff">
-        <span class="nav-icon">⚡</span> Debt Payoff
+        <span class="nav-icon">⚡</span> <span class="nav-label">Debt Payoff</span>
       </button>
     </div>
 
@@ -216,19 +216,19 @@
     <div class="sidebar-section">
       <div class="sidebar-section-label">Wealth</div>
       <button class="sidebar-nav-item" onclick="showPage('wealth')" data-module="wealth">
-        <span class="nav-icon">💎</span> Net Worth
+        <span class="nav-icon">💎</span> <span class="nav-label">Net Worth</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('wealth-goals')" data-module="wealth-goals">
-        <span class="nav-icon">🎖️</span> Goals &amp; Milestones
+        <span class="nav-icon">🎖️</span> <span class="nav-label">Goals &amp; Milestones</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('essentials')" data-module="essentials">
-        <span class="nav-icon">📦</span> Essentials
+        <span class="nav-icon">📦</span> <span class="nav-label">Essentials</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('gold')" data-module="gold">
-        <span class="nav-icon">🏅</span> Gold Rates
+        <span class="nav-icon">🪙</span> <span class="nav-label">Gold &amp; Silver Rates</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('tax-planner')" data-module="tax-planner">
-        <span class="nav-icon">📑</span> Tax Planner
+        <span class="nav-icon">📑</span> <span class="nav-label">Tax Planner</span>
       </button>
     </div>
 
@@ -236,22 +236,22 @@
     <div class="sidebar-section">
       <div class="sidebar-section-label">Reports &amp; Analytics</div>
       <button class="sidebar-nav-item" onclick="window.LM_Sankey ? window.LM_Sankey.showModal() : (typeof openSankeyModal==='function'&&openSankeyModal())" data-module="analytics">
-        <span class="nav-icon">🌊</span> Cashflow Visualizer (Flow)
+        <span class="nav-icon">🌊</span> <span class="nav-label">Cashflow Flow (Sankey)</span>
       </button>
       <button class="sidebar-nav-item" id="openMonthlySummary" data-module="analytics">
-        <span class="nav-icon">📅</span> Monthly Summary
+        <span class="nav-icon">📅</span> <span class="nav-label">Monthly Summary</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('fy-summary')" data-module="fy-summary">
-        <span class="nav-icon">📋</span> FY Summary
+        <span class="nav-icon">📋</span> <span class="nav-label">FY Annual Summary</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('month-comparison')" data-module="month-comparison">
-        <span class="nav-icon">⚖️</span> Month vs Month
+        <span class="nav-icon">⚖️</span> <span class="nav-label">Month vs Month</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('spending-heatmap')" data-module="spending-heatmap">
-        <span class="nav-icon">🗓️</span> Spend Heatmap
+        <span class="nav-icon">🗓️</span> <span class="nav-label">Spend Heatmap</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('cash-flow-calendar')" data-module="cash-flow-calendar">
-        <span class="nav-icon">📆</span> Cash Flow Calendar
+        <span class="nav-icon">📆</span> <span class="nav-label">Cash Flow Calendar</span>
       </button>
     </div>
 
@@ -259,13 +259,13 @@
     <div class="sidebar-section">
       <div class="sidebar-section-label">Calculators</div>
       <button class="sidebar-nav-item" onclick="window.LM_DebtOptimizer?.showModal()" data-module="loans">
-        <span class="nav-icon">🎯</span> Debt Optimizer
+        <span class="nav-icon">🎯</span> <span class="nav-label">Debt Optimizer</span>
       </button>
       <button class="sidebar-nav-item" onclick="openEMIModal()" data-module="loans">
-        <span class="nav-icon">🧮</span> EMI Calculator
+        <span class="nav-icon">🧮</span> <span class="nav-label">EMI Calculator</span>
       </button>
       <button class="sidebar-nav-item" onclick="openWhatIfModal()" data-module="analytics">
-        <span class="nav-icon">🔮</span> What-If Simulator
+        <span class="nav-icon">🔮</span> <span class="nav-label">What-If Simulator</span>
       </button>
     </div>
 
@@ -273,25 +273,25 @@
     <div class="sidebar-section">
       <div class="sidebar-section-label">Productivity</div>
       <button class="sidebar-nav-item" onclick="window.LM_CommandPalette?.open()">
-        <span class="nav-icon">⚡</span> Command Palette
+        <span class="nav-icon">⚡</span> <span class="nav-label">Command Palette</span>
       </button>
       <button class="sidebar-nav-item" onclick="showNotesModal();" id="openNotes1" data-module="notes">
-        <span class="nav-icon">📝</span> Notes
+        <span class="nav-icon">📝</span> <span class="nav-label">Quick Notes</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('templates')" data-module="templates">
-        <span class="nav-icon">📋</span> Tx Templates
+        <span class="nav-icon">📋</span> <span class="nav-label">Tx Templates</span>
       </button>
       <button class="sidebar-nav-item" id="openTripPlannerBtn" data-module="trips">
-        <span class="nav-icon">✈️</span> Trips
+        <span class="nav-icon">✈️</span> <span class="nav-label">Trip Planner</span>
       </button>
       <button class="sidebar-nav-item" onclick="showCredentialsVault()" data-module="credentials">
-        <span class="nav-icon">🔐</span> Credentials Vault
+        <span class="nav-icon">🔐</span> <span class="nav-label">Credentials Vault</span>
       </button>
-      <button onclick="window.open('./study/index.html','_self')" class="sidebar-nav-item"  data-module="views-browser">
-        <span class="nav-icon">📚</span> Study Resources
+      <button onclick="window.open('./study/index.html','_self')" class="sidebar-nav-item" data-module="views-browser">
+        <span class="nav-icon">📚</span> <span class="nav-label">Study Resources</span>
       </button>
       <button class="sidebar-nav-item" onclick="openWidgetPage()" data-module="widget">
-        <span class="nav-icon">📱</span> Home Widget
+        <span class="nav-icon">📱</span> <span class="nav-label">Home Widget</span>
       </button>
     </div>
 
@@ -299,22 +299,22 @@
     <div class="sidebar-section">
       <div class="sidebar-section-label">Settings</div>
       <button class="sidebar-nav-item" onclick="window.LM_CategoryRules?.showRulesModal()" data-module="transactions">
-        <span class="nav-icon">🏷️</span> Category Rules
+        <span class="nav-icon">🏷️</span> <span class="nav-label">Category Rules</span>
       </button>
       <button class="sidebar-nav-item" onclick="openDashboardCustomizer()" data-module="dashboard-config">
-        <span class="nav-icon">🎛️</span> Customize Dashboard
+        <span class="nav-icon">🎛️</span> <span class="nav-label">Customize Dashboard</span>
       </button>
       <button class="sidebar-nav-item" id="openDropdownManagerBtn" data-module="transactions">
-        <span class="nav-icon">🔽</span> Dropdown Manager
+        <span class="nav-icon">🔽</span> <span class="nav-label">Dropdown Manager</span>
       </button>
       <button class="sidebar-nav-item" onclick="openAppLockSettingsModal()" data-module="pin-lock">
-        <span class="nav-icon">🛡️</span> App Security & Lock
+        <span class="nav-icon">🛡️</span> <span class="nav-label">App Security &amp; Lock</span>
       </button>
       <button class="sidebar-nav-item" onclick="window.LM_AppUpdateService?.checkForUpdates(true)" id="sidebarCheckUpdateBtn">
-        <span class="nav-icon" id="sidebarUpdateIcon" style="display:inline-block;">🔄</span> <span id="sidebarUpdateLabel">Check for Updates</span>
+        <span class="nav-icon" id="sidebarUpdateIcon" style="display:inline-block;">🔄</span> <span id="sidebarUpdateLabel" class="nav-label">Check for Updates</span>
       </button>
       <button class="sidebar-nav-item pwa-install-trigger" id="pwaInstallBtn" style="display:none;color:var(--teal,#00d4b4);" onclick="window.LM_PWA?.install()">
-        <span class="nav-icon">⬇️</span> Install App
+        <span class="nav-icon">⬇️</span> <span class="nav-label">Install App</span>
       </button>
     </div>
 
@@ -322,20 +322,20 @@
     <div class="sidebar-section">
       <div class="sidebar-section-label">Data</div>
       <button class="sidebar-nav-item" onclick="window.LM_StatementParser?.openFilePicker()">
-        <span class="nav-icon">📄</span> Import Statement (CSV)
+        <span class="nav-icon">📄</span> <span class="nav-label">Import Statement (CSV)</span>
       </button>
       <button class="sidebar-nav-item" id="btnSetFolder">
-        <span class="nav-icon">📁</span> <span id="folderLabel">Set Folder</span>
+        <span class="nav-icon">📁</span> <span id="folderLabel" class="nav-label">Set Folder</span>
       </button>
       <button class="sidebar-nav-item" id="btnFullExport">
-        <span class="nav-icon">📤</span> Export Data
+        <span class="nav-icon">📤</span> <span class="nav-label">Export Data Backup</span>
       </button>
       <button class="sidebar-nav-item" id="btnImport">
-        <span class="nav-icon">📥</span> Import Data
+        <span class="nav-icon">📥</span> <span class="nav-label">Import Data Backup</span>
       </button>
       <input type="file" id="importFile" accept=".json,.csv" style="display:none" onchange="window.importData&&window.importData(event)">
       <button class="sidebar-nav-item" id="clearData">
-        <span class="nav-icon">🗑️</span> Clear All Data
+        <span class="nav-icon">🗑️</span> <span class="nav-label">Clear All Data</span>
       </button>
     </div>
 
@@ -343,10 +343,10 @@
     <div class="sidebar-section" id="adminSidebarSection" style="display:none;">
       <div class="sidebar-section-label">Administration</div>
       <button class="sidebar-nav-item" onclick="window.LM_Admin?.show()">
-        <span class="nav-icon">⚙️</span> Admin Panel
+        <span class="nav-icon">⚙️</span> <span class="nav-label">Admin Panel</span>
       </button>
       <button class="sidebar-nav-item" onclick="window.open('./study/index.html?admin=open','_self')">
-        <span class="nav-icon">📚</span> Study Admin
+        <span class="nav-icon">📚</span> <span class="nav-label">Study Admin</span>
       </button>
     </div>
 
@@ -355,7 +355,7 @@
       <button class="sidebar-nav-item" id="btnLogout"
         onclick="if(confirm('Sign out of LedgerMate?')) window.LM_Auth.logout();"
         style="color:var(--rose);">
-        <span class="nav-icon">🚪</span> Sign Out
+        <span class="nav-icon">🚪</span> <span class="nav-label">Sign Out</span>
       </button>
     </div>
 
