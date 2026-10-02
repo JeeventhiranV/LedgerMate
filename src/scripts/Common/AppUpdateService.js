@@ -34,6 +34,28 @@
     }
   }
 
+  function updateSidebarVersionBadge(hasUpdate) {
+    try {
+      const badge = document.getElementById('sidebarAppVersion');
+      if (!badge) return;
+      const ver = getInstalledVersion();
+      let verStr = (ver && ver.versionName) ? ver.versionName : '1.0.0';
+      if (!verStr.startsWith('v')) verStr = 'v' + verStr;
+
+      if (hasUpdate) {
+        badge.innerHTML = `${verStr} <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ef4444;box-shadow:0 0 6px #ef4444;margin-left:2px;animation:pulse 1.5s infinite;"></span>`;
+        badge.title = `Update Available! Tap to install`;
+        badge.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+        badge.style.color = '#f87171';
+      } else {
+        badge.textContent = verStr;
+        badge.title = `App Version ${verStr} · Tap to check for updates`;
+        badge.style.borderColor = '';
+        badge.style.color = '';
+      }
+    } catch (e) {}
+  }
+
   async function fetchLatestVersionMeta() {
     try {
       const res = await fetch('version.json?_t=' + Date.now(), { cache: 'no-store' });
@@ -632,6 +654,7 @@
       console.log(`[AppUpdate] Installed: v${currentVer.versionName} (${currentCode}), Remote: v${remoteMeta.apkVersionName} (${remoteCode})`);
 
       if (remoteCode > currentCode) {
+        updateSidebarVersionBadge(true);
         if (!manual) {
           // Check snooze cooldown
           const snoozeCode = localStorage.getItem('lm_update_snooze_code');
@@ -643,6 +666,7 @@
         }
         renderUpdateUI(currentVer, remoteMeta);
       } else {
+        updateSidebarVersionBadge(false);
         if (manual && typeof window.showToast === 'function') {
           window.showToast(`✅ You're on the latest version (v${currentVer.versionName})`, 'success');
         }
@@ -662,15 +686,18 @@
   window.LM_AppUpdateService = {
     checkForUpdates: checkForUpdates,
     getInstalledVersion: getInstalledVersion,
-    isNativeAndroid: isNativeAndroid
+    isNativeAndroid: isNativeAndroid,
+    updateSidebarVersionBadge: updateSidebarVersionBadge
   };
 
-  // Auto-check on launch after DOM ready
+  // Immediate badge refresh on load
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
+      updateSidebarVersionBadge(false);
       setTimeout(() => checkForUpdates(false), 2500);
     });
   } else {
+    updateSidebarVersionBadge(false);
     setTimeout(() => checkForUpdates(false), 2500);
   }
 

@@ -157,8 +157,11 @@
   <aside id="sidebar">
     <div class="sidebar-logo">
       <div class="sidebar-logo-icon">📒</div>
-      <div>
-        <div class="sidebar-logo-text">LedgerMate</div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 7px; flex-wrap: wrap;">
+          <div class="sidebar-logo-text">LedgerMate</div>
+          <span id="sidebarAppVersion" class="sidebar-version-badge" title="App Version · Tap to check for updates" onclick="window.LM_AppUpdateService ? window.LM_AppUpdateService.checkForUpdates(true) : null">v1.0.0</span>
+        </div>
         <div class="sidebar-logo-sub" id="sidebarUserName">Loading…</div>
       </div>
     </div>
