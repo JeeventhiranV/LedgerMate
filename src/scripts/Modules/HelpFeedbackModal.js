@@ -659,55 +659,130 @@
         font-size: 16px !important;
         color: #94a3b8 !important;
         pointer-events: none !important;
+        line-height: 1 !important;
+        z-index: 2 !important;
       }
       .lm-help-pills-row {
         display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
         gap: 8px !important;
         overflow-x: auto !important;
-        padding-bottom: 12px !important;
-        margin-bottom: 16px !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding: 4px 2px 14px 2px !important;
+        margin: 0 0 16px 0 !important;
         scrollbar-width: thin !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+      }
+      .lm-help-pills-row::-webkit-scrollbar {
+        height: 6px !important;
+      }
+      .lm-help-pills-row::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.18) !important;
+        border-radius: 99px !important;
+      }
+      [data-theme="light"] .lm-help-pills-row::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.18) !important;
       }
       .lm-help-pill {
-        padding: 6px 12px !important;
+        flex: 0 0 auto !important;
+        flex-shrink: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+        padding: 7px 14px !important;
         border-radius: 99px !important;
-        font-size: 12px !important;
+        font-size: 12.5px !important;
         font-weight: 600 !important;
+        line-height: 1.2 !important;
         background: rgba(255, 255, 255, 0.05) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
         color: #94a3b8 !important;
         cursor: pointer !important;
         white-space: nowrap !important;
-        transition: all 0.2s !important;
+        word-break: keep-all !important;
+        transition: all 0.2s ease !important;
+        box-sizing: border-box !important;
+        height: auto !important;
+        min-height: unset !important;
+        min-width: max-content !important;
+        max-width: none !important;
+        margin: 0 !important;
+        text-decoration: none !important;
+        user-select: none !important;
+        outline: none !important;
       }
-      .lm-help-pill:hover,
+      [data-theme="light"] .lm-help-pill {
+        background: #f1f5f9 !important;
+        border-color: #cbd5e1 !important;
+        color: #475569 !important;
+      }
+      .lm-help-pill:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+        color: #ffffff !important;
+        border-color: rgba(255, 255, 255, 0.25) !important;
+      }
+      [data-theme="light"] .lm-help-pill:hover {
+        background: #e2e8f0 !important;
+        color: #0f172a !important;
+        border-color: #94a3b8 !important;
+      }
       .lm-help-pill.active {
-        background: rgba(0, 212, 180, 0.15) !important;
+        background: rgba(0, 212, 180, 0.16) !important;
         color: #00d4b4 !important;
-        border-color: rgba(0, 212, 180, 0.4) !important;
+        border-color: rgba(0, 212, 180, 0.5) !important;
+        box-shadow: 0 0 12px rgba(0, 212, 180, 0.25) !important;
+        font-weight: 700 !important;
       }
       [data-theme="light"] .lm-help-pill.active {
-        background: rgba(13, 148, 136, 0.12) !important;
+        background: rgba(13, 148, 136, 0.14) !important;
         color: #0d9488 !important;
-        border-color: rgba(13, 148, 136, 0.3) !important;
+        border-color: rgba(13, 148, 136, 0.4) !important;
+        box-shadow: 0 0 12px rgba(13, 148, 136, 0.2) !important;
       }
       .lm-faq-group {
         margin-bottom: 24px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        clear: both !important;
       }
       .lm-faq-group-header {
         display: flex !important;
         align-items: center !important;
         gap: 8px !important;
-        margin-bottom: 12px !important;
+        margin: 16px 0 12px 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
       }
       .lm-faq-group-title {
         margin: 0 !important;
-        font-size: 14.5px !important;
+        font-size: 15px !important;
         font-weight: 700 !important;
         color: #e2e8f0 !important;
+        line-height: 1.3 !important;
       }
       [data-theme="light"] .lm-faq-group-title {
-        color: #334155 !important;
+        color: #1e293b !important;
+      }
+      .lm-faq-badge {
+        font-size: 11px !important;
+        padding: 3px 9px !important;
+        border-radius: 99px !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        color: #94a3b8 !important;
+        font-weight: 600 !important;
+        line-height: 1 !important;
+        display: inline-block !important;
+      }
+      [data-theme="light"] .lm-faq-badge {
+        background: #e2e8f0 !important;
+        color: #475569 !important;
       }
       .lm-faq-item {
         background: rgba(255, 255, 255, 0.03) !important;
@@ -716,6 +791,9 @@
         margin-bottom: 10px !important;
         overflow: hidden !important;
         transition: all 0.2s !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        clear: both !important;
       }
       [data-theme="light"] .lm-faq-item {
         background: #f8fafc !important;
@@ -731,6 +809,10 @@
         font-weight: 600 !important;
         color: #f1f5f9 !important;
         gap: 12px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        user-select: none !important;
+        line-height: 1.4 !important;
       }
       [data-theme="light"] .lm-faq-question-row {
         color: #0f172a !important;
@@ -738,10 +820,15 @@
       .lm-faq-question-row:hover {
         background: rgba(255, 255, 255, 0.04) !important;
       }
+      [data-theme="light"] .lm-faq-question-row:hover {
+        background: #f1f5f9 !important;
+      }
       .lm-faq-arrow {
         font-size: 12px !important;
         color: #94a3b8 !important;
         transition: transform 0.25s ease !important;
+        flex-shrink: 0 !important;
+        line-height: 1 !important;
       }
       .lm-faq-item.open .lm-faq-arrow {
         transform: rotate(180deg) !important;
@@ -751,9 +838,10 @@
         display: none !important;
         padding: 0 18px 16px !important;
         font-size: 13px !important;
-        line-height: 1.6 !important;
+        line-height: 1.65 !important;
         color: #cbd5e1 !important;
         border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+        box-sizing: border-box !important;
       }
       [data-theme="light"] .lm-faq-answer {
         color: #475569 !important;
@@ -1004,78 +1092,106 @@
     const container = document.getElementById('lmHelpContent');
     if (!container) return;
 
+    let searchInput = container.querySelector('#lmFaqSearchInput');
+    let pillsRow = container.querySelector('.lm-help-pills-row');
+    let accordionList = container.querySelector('#lmFaqAccordionList');
+
+    if (!searchInput || !pillsRow || !accordionList) {
+      container.innerHTML = `
+        <div class="lm-help-search-row">
+          <span class="lm-help-search-icon">🔍</span>
+          <input type="text" class="lm-help-search-input" id="lmFaqSearchInput" placeholder="Search across all modules, shortcuts, features & guides..." value="${_searchQuery}">
+        </div>
+
+        <div class="lm-help-pills-row" id="lmHelpPillsRow">
+          <button class="lm-help-pill ${_selectedCategory === 'all' ? 'active' : ''}" data-cat="all">🌟 All Modules</button>
+          ${FAQ_MODULES.map(m => `
+            <button class="lm-help-pill ${_selectedCategory === m.id ? 'active' : ''}" data-cat="${m.id}">
+              ${m.icon} ${m.name}
+            </button>
+          `).join('')}
+        </div>
+
+        <div id="lmFaqAccordionList" style="width:100%;box-sizing:border-box;"></div>
+      `;
+
+      searchInput = container.querySelector('#lmFaqSearchInput');
+      pillsRow = container.querySelector('.lm-help-pills-row');
+      accordionList = container.querySelector('#lmFaqAccordionList');
+
+      searchInput.addEventListener('input', (e) => {
+        _searchQuery = e.target.value;
+        updateFAQListOnly();
+      });
+
+      pillsRow.querySelectorAll('.lm-help-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+          _selectedCategory = btn.getAttribute('data-cat');
+          pillsRow.querySelectorAll('.lm-help-pill').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          updateFAQListOnly();
+        });
+      });
+    }
+
+    updateFAQListOnly();
+  }
+
+  function updateFAQListOnly() {
+    const accordionList = document.getElementById('lmFaqAccordionList');
+    if (!accordionList) return;
+
     let filteredModules = FAQ_MODULES;
     if (_selectedCategory !== 'all') {
       filteredModules = FAQ_MODULES.filter(m => m.id === _selectedCategory);
     }
 
     const qLower = _searchQuery.toLowerCase().trim();
+    let totalRendered = 0;
 
-    container.innerHTML = `
-      <div class="lm-help-search-row">
-        <span class="lm-help-search-icon">🔍</span>
-        <input type="text" class="lm-help-search-input" id="lmFaqSearchInput" placeholder="Search across all modules, shortcuts, features & guides..." value="${_searchQuery}">
-      </div>
+    const html = filteredModules.map(mod => {
+      const matchedQuestions = mod.questions.filter(item => {
+        if (!qLower) return true;
+        return item.q.toLowerCase().includes(qLower) || item.a.toLowerCase().includes(qLower);
+      });
 
-      <div class="lm-help-pills-row">
-        <button class="lm-help-pill ${_selectedCategory === 'all' ? 'active' : ''}" data-cat="all">🌟 All Modules</button>
-        ${FAQ_MODULES.map(m => `
-          <button class="lm-help-pill ${_selectedCategory === m.id ? 'active' : ''}" data-cat="${m.id}">
-            ${m.icon} ${m.name}
-          </button>
-        `).join('')}
-      </div>
+      if (matchedQuestions.length === 0) return '';
+      totalRendered += matchedQuestions.length;
 
-      <div id="lmFaqAccordionList">
-        ${filteredModules.map(mod => {
-          const matchedQuestions = mod.questions.filter(item => {
-            if (!qLower) return true;
-            return item.q.toLowerCase().includes(qLower) || item.a.toLowerCase().includes(qLower);
-          });
+      return `
+        <div class="lm-faq-group">
+          <div class="lm-faq-group-header">
+            <span style="font-size:18px;line-height:1;">${mod.icon}</span>
+            <h4 class="lm-faq-group-title">${mod.name}</h4>
+            <span class="lm-faq-badge">${mod.badge}</span>
+          </div>
 
-          if (matchedQuestions.length === 0) return '';
-
-          return `
-            <div class="lm-faq-group">
-              <div class="lm-faq-group-header">
-                <span style="font-size:18px;">${mod.icon}</span>
-                <h4 class="lm-faq-group-title">${mod.name}</h4>
-                <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,0.06);color:#94a3b8;font-weight:600;">${mod.badge}</span>
+          ${matchedQuestions.map((qItem, idx) => `
+            <div class="lm-faq-item" id="faq_${mod.id}_${idx}">
+              <div class="lm-faq-question-row" onclick="this.parentElement.classList.toggle('open')">
+                <span>${qItem.q}</span>
+                <span class="lm-faq-arrow">▼</span>
               </div>
-
-              ${matchedQuestions.map((qItem, idx) => `
-                <div class="lm-faq-item" id="faq_${mod.id}_${idx}">
-                  <div class="lm-faq-question-row" onclick="this.parentElement.classList.toggle('open')">
-                    <span>${qItem.q}</span>
-                    <span class="lm-faq-arrow">▼</span>
-                  </div>
-                  <div class="lm-faq-answer">
-                    ${formatMarkdown(qItem.a)}
-                  </div>
-                </div>
-              `).join('')}
+              <div class="lm-faq-answer">
+                ${formatMarkdown(qItem.a)}
+              </div>
             </div>
-          `;
-        }).join('')}
-      </div>
-    `;
+          `).join('')}
+        </div>
+      `;
+    }).join('');
 
-    const searchInput = container.querySelector('#lmFaqSearchInput');
-    if (searchInput) {
-      searchInput.focus();
-      searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
-      searchInput.addEventListener('input', (e) => {
-        _searchQuery = e.target.value;
-        renderFAQTab();
-      });
+    if (totalRendered === 0) {
+      accordionList.innerHTML = `
+        <div style="text-align:center;padding:40px 20px;color:#94a3b8;">
+          <div style="font-size:36px;margin-bottom:10px;">🔍</div>
+          <div style="font-size:15px;font-weight:700;color:#f1f5f9;margin-bottom:6px;">No guides found</div>
+          <div style="font-size:13px;">No questions match "${_searchQuery}". Try selecting "All Modules" or clearing search.</div>
+        </div>
+      `;
+    } else {
+      accordionList.innerHTML = html;
     }
-
-    container.querySelectorAll('.lm-help-pills-row button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        _selectedCategory = btn.getAttribute('data-cat');
-        renderFAQTab();
-      });
-    });
   }
 
   function formatMarkdown(txt) {
