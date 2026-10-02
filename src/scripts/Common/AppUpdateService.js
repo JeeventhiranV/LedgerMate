@@ -24,14 +24,20 @@
 
   function getInstalledVersion() {
     if (!isNativeAndroid() || typeof window.AndroidBridge.getAppVersion !== 'function') {
-      return { versionCode: 1, versionName: '1.0.0' };
+      const deployId = window.LM_DEPLOY_ID || localStorage.getItem('lm_active_deploy_commit') || '1.0.288';
+      const cleanVer = deployId.replace(/^lm-v/, '');
+      return { versionCode: 288, versionName: cleanVer || '1.0.288', isWeb: true };
     }
     try {
       const verJson = window.AndroidBridge.getAppVersion();
-      return typeof verJson === 'string' ? JSON.parse(verJson) : verJson;
-    } catch (e) {
-      return { versionCode: 1, versionName: '1.0.0' };
-    }
+      const parsed = typeof verJson === 'string' ? JSON.parse(verJson) : verJson;
+      if (parsed && typeof parsed === 'object') {
+        const code = Number(parsed.versionCode) || 1;
+        let name = String(parsed.versionName || '1.0.0');
+        return { versionCode: code, versionName: name, packageName: parsed.packageName || 'com.jeeva.ledgermate', isWeb: false };
+      }
+    } catch (e) {}
+    return { versionCode: 1, versionName: '1.0.0', isWeb: false };
   }
 
   function updateSidebarVersionBadge(hasUpdate) {
@@ -561,20 +567,27 @@
         statusText.textContent = data.message || `Downloading update (${p}%)...`;
         updateBtn.innerHTML = `<span>⬇️ Downloading ${p}%</span>`;
       } else if (data.status === 'installing' || data.status === 'complete') {
+        isDownloading = false;
         try {
           localStorage.setItem('lm_update_snooze_code', String(remoteCode));
           localStorage.setItem('lm_update_snooze_time', String(Date.now()));
         } catch (e) {}
         progressBar.style.width = '100%';
         percentText.textContent = '100%';
-        statusText.textContent = '✅ Installer Launched! Follow the system prompt to finish.';
-        updateBtn.disabled = true;
-        updateBtn.innerHTML = '<span>✅ Installer Active</span>';
-        // Keep modal visible for 10s or until dismissed
-        setTimeout(() => {
-          if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-          _activeModal = null;
-        }, 10000);
+        statusText.textContent = '✅ Installer Launched! Follow the system prompt to finish installation.';
+        updateBtn.disabled = false;
+        updateBtn.innerHTML = '<span>🚀 Re-Launch Installer</span>';
+        updateBtn.onclick = function () {
+          if (window.AndroidBridge && typeof window.AndroidBridge.installPendingUpdate === 'function') {
+            const cbId = 'cb_relaunch_' + Date.now();
+            window.LM_NativeBridgeCallbacks = window.LM_NativeBridgeCallbacks || {};
+            window.LM_NativeBridgeCallbacks[cbId] = handleNativeCallback;
+            window.AndroidBridge.installPendingUpdate(cbId);
+          }
+        };
+        closeBtn.style.display = 'flex';
+        dismissBtn.style.display = 'inline-flex';
+        dismissBtn.textContent = '✕ Dismiss';
       } else if (data.status === 'permission_required') {
         isDownloading = false;
         statusText.textContent = '⚠️ Enable "Allow from this source" in Settings, then return here.';
@@ -589,6 +602,7 @@
         closeBtn.style.display = 'flex';
         dismissBtn.style.display = 'inline-flex';
         updateBtn.innerHTML = '<span>🔄 Retry Download</span>';
+        updateBtn.onclick = startApkDownload;
       }
     }
 
@@ -616,21 +630,41 @@
         closeBtn.style.display = 'flex';
         dismissBtn.style.display = 'inline-flex';
         updateBtn.innerHTML = '<span>🔄 Retry</span>';
+        updateBtn.onclick = startApkDownload;
       }
     }
 
-    // Auto-resume check when user returns from Android Settings
+    // Auto-resume check when user returns from Android Settings or Package Installer
     function onAppResume() {
+      const liveVer = getInstalledVersion();
+      const liveCode = Number(liveVer.versionCode) || 1;
+      if (liveCode >= remoteCode) {
+        // Upgrade complete!
+        try {
+          localStorage.removeItem('lm_update_snooze_code');
+          localStorage.removeItem('lm_update_snooze_time');
+        } catch (e) {}
+        updateSidebarVersionBadge(false);
+        if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        _activeModal = null;
+        showNotificationToast(`🎉 Successfully upgraded to v${liveVer.versionName}!`, 'success');
+        return;
+      }
+
       if (!overlay || !overlay.parentNode) return;
       if (window.AndroidBridge && typeof window.AndroidBridge.canInstallApk === 'function') {
         if (window.AndroidBridge.canInstallApk() && window.AndroidBridge.hasDownloadedUpdate()) {
-          statusText.textContent = '🚀 Permission granted! Launching installer...';
-          updateBtn.disabled = true;
-          updateBtn.innerHTML = '<span>🚀 Launching Installer...</span>';
-          const callbackId = 'cb_resume_' + Date.now();
-          window.LM_NativeBridgeCallbacks = window.LM_NativeBridgeCallbacks || {};
-          window.LM_NativeBridgeCallbacks[callbackId] = handleNativeCallback;
-          window.AndroidBridge.installPendingUpdate(callbackId);
+          statusText.textContent = '🚀 Ready to install! Tap below to launch installer.';
+          updateBtn.disabled = false;
+          updateBtn.innerHTML = '<span>🚀 Launch Installer</span>';
+          updateBtn.onclick = function () {
+            const callbackId = 'cb_resume_' + Date.now();
+            window.LM_NativeBridgeCallbacks = window.LM_NativeBridgeCallbacks || {};
+            window.LM_NativeBridgeCallbacks[callbackId] = handleNativeCallback;
+            window.AndroidBridge.installPendingUpdate(callbackId);
+          };
+          closeBtn.style.display = 'flex';
+          dismissBtn.style.display = 'inline-flex';
         }
       }
     }
@@ -685,16 +719,33 @@
       if (!isNative) {
         // Web / PWA mode
         if (remoteMeta) {
-          const verName = remoteMeta.apkVersionName || remoteMeta.version || 'v1.0.0';
-          if (manual) {
-            showNotificationToast(`App is up to date! (${verName})`, 'success');
+          const activeDeploy = (window.LM_DEPLOY_ID || localStorage.getItem('lm_active_deploy_commit') || '').replace(/^lm-v/, '');
+          const remoteDeploy = (remoteMeta.version || remoteMeta.apkVersionName || remoteMeta.commit || '').replace(/^lm-v/, '');
+          
+          if (remoteDeploy && activeDeploy && remoteDeploy !== activeDeploy) {
+            updateSidebarVersionBadge(true);
+            if (manual) {
+              showNotificationToast(`New build available (${remoteDeploy}). Updating...`, 'info');
+              if ('caches' in window) {
+                caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => {
+                  window.location.reload(true);
+                }).catch(() => window.location.reload(true));
+              } else {
+                window.location.reload(true);
+              }
+            }
+          } else {
+            updateSidebarVersionBadge(false);
+            if (manual) {
+              showNotificationToast(`App is up to date! (${remoteDeploy || activeDeploy || 'v1.0.288'})`, 'success');
+            }
           }
         } else {
+          updateSidebarVersionBadge(false);
           if (manual) {
-            showNotificationToast('App is up to date! (v1.0.0)', 'success');
+            showNotificationToast('App is up to date! (v1.0.288)', 'success');
           }
         }
-        updateSidebarVersionBadge(false);
         return;
       }
 

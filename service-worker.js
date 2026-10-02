@@ -8,7 +8,7 @@
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v2.26.0';
+const CACHE_VERSION = 'lm-v2.27.0';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
@@ -189,6 +189,9 @@ self.addEventListener('fetch', event => {
      Never serve it from cache — always let the browser fetch it fresh so a
      new deploy is picked up immediately without a SW update cycle. */
   if (url.pathname.endsWith('/auth/supabase-config.js')) return;
+
+  /* version.json and APK files must never be cached by SW (Network-Only) */
+  if (url.pathname.endsWith('/version.json') || url.pathname.endsWith('.apk')) return;
 
   /* External / network-only origins — never cache */
   const NETWORK_ONLY_HOSTS = [

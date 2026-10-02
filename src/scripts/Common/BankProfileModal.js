@@ -27,14 +27,20 @@
 
   function getInstalledVersion() {
     if (!isNativeAndroid() || typeof window.AndroidBridge.getAppVersion !== 'function') {
-      return { versionCode: 1, versionName: '1.0.0' };
+      const deployId = window.LM_DEPLOY_ID || localStorage.getItem('lm_active_deploy_commit') || '1.0.288';
+      const cleanVer = deployId.replace(/^lm-v/, '');
+      return { versionCode: 288, versionName: cleanVer || '1.0.288', isWeb: true };
     }
     try {
       const verJson = window.AndroidBridge.getAppVersion();
-      return typeof verJson === 'string' ? JSON.parse(verJson) : verJson;
-    } catch (e) {
-      return { versionCode: 1, versionName: '1.0.0' };
-    }
+      const parsed = typeof verJson === 'string' ? JSON.parse(verJson) : verJson;
+      if (parsed && typeof parsed === 'object') {
+        const code = Number(parsed.versionCode) || 1;
+        let name = String(parsed.versionName || '1.0.0');
+        return { versionCode: code, versionName: name, isWeb: false };
+      }
+    } catch (e) {}
+    return { versionCode: 1, versionName: '1.0.0', isWeb: false };
   }
 
   function ensureStyles() {
@@ -605,10 +611,12 @@
     }
 
     // Version
+    const isWeb = !!ver.isWeb;
+    const verText = isWeb ? `Web Build v${ver.versionName}` : `Version ${ver.versionName} (${ver.versionCode})`;
     const verDesc = document.getElementById('bpmVersionDesc');
-    if (verDesc) verDesc.textContent = `Version ${ver.versionName || 'v1.0.0'} (${ver.versionCode || 1})`;
+    if (verDesc) verDesc.textContent = verText;
     const finVerDesc = document.getElementById('bpmFinanceVersionDesc');
-    if (finVerDesc) finVerDesc.textContent = `Version ${ver.versionName || 'v1.0.0'} (${ver.versionCode || 1})`;
+    if (finVerDesc) finVerDesc.textContent = verText;
 
     // Admin button visibility
     const adminBtn = document.getElementById('bpmAdminBtn');

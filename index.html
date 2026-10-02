@@ -403,6 +403,12 @@
         <!-- hidden account filter -->
         <select id="accFilter" style="display:none;" onchange="renderAll()"><option value="all">All</option></select>
 
+        <!-- 📚 Module Switcher: Study Hub (Option A) -->
+        <a href="./study/index.html" class="topbar-switch-btn" title="Switch to Study Hub" aria-label="Switch to Study Hub">
+          <span class="switch-icon">📚</span>
+          <span class="switch-text">Study Hub</span>
+        </a>
+
         <!-- 🌊 Cashflow Visualizer -->
         <button class="icon-btn" title="Cashflow Visualizer (Flow Diagram)" onclick="window.LM_Sankey ? window.LM_Sankey.showModal() : (typeof openSankeyModal==='function'&&openSankeyModal())" style="font-size:14px;">🌊</button>
 

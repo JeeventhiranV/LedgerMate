@@ -76,6 +76,12 @@ if ('serviceWorker' in navigator) {
       </button>
     </div>
     <div class="topbar-utils">
+      <!-- 💰 Module Switcher: LedgerMate Finance (Option A) -->
+      <a href="../index.html" class="topbar-switch-btn finance-switch" title="Switch to LedgerMate Finance" aria-label="Switch to LedgerMate Finance" onclick="try{localStorage.setItem('lm_last_page','main');}catch(e){}">
+        <span class="switch-icon">💰</span>
+        <span class="switch-text">LedgerMate</span>
+      </a>
+
       <!-- Push notification bell -->
       <div style="position:relative;display:flex;align-items:center;">
         <button class="btn-push-bell" id="pushBellBtn" title="Study reminders" aria-label="Notification settings">

@@ -437,6 +437,21 @@
       });
     }
 
+    // ── Module Switcher: LedgerMate Finance OS (Option A) ───────────────────
+    var topbarContainer = document.querySelector('.topbar-utils, .topbar-actions, .topbar-right');
+    if (topbarContainer && !document.querySelector('.topbar-switch-btn')) {
+      var switchBtn = document.createElement('a');
+      switchBtn.className = 'topbar-switch-btn finance-switch';
+      switchBtn.href = mainUrl;
+      switchBtn.title = 'Switch to LedgerMate Finance';
+      switchBtn.setAttribute('aria-label', 'Switch to LedgerMate Finance');
+      switchBtn.innerHTML = '<span class="switch-icon">💰</span><span class="switch-text">LedgerMate</span>';
+      switchBtn.addEventListener('click', function () {
+        try { localStorage.setItem('lm_last_page', 'main'); } catch (e) {}
+      });
+      topbarContainer.insertBefore(switchBtn, topbarContainer.firstChild);
+    }
+
     // ── Wire existing or injected Topbar User Chip across Study Module ───────
     var existingChip = document.getElementById('studyUserChip');
     if (existingChip) {

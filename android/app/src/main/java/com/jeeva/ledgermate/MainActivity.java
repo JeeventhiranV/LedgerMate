@@ -546,15 +546,17 @@ public class MainActivity extends AppCompatActivity {
             Intent installIntent = new Intent(Intent.ACTION_VIEW);
             installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
             installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            installIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             installIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            installIntent.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
 
-            List<ResolveInfo> resolveInfoList = getPackageManager().queryIntentActivities(installIntent, PackageManager.MATCH_DEFAULT_ONLY);
-            for (ResolveInfo resolveInfo : resolveInfoList) {
-                String packageName = resolveInfo.activityInfo.packageName;
-                grantUriPermission(packageName, apkUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            }
+            try {
+                List<ResolveInfo> resolveInfoList = getPackageManager().queryIntentActivities(installIntent, PackageManager.MATCH_DEFAULT_ONLY);
+                for (ResolveInfo resolveInfo : resolveInfoList) {
+                    String packageName = resolveInfo.activityInfo.packageName;
+                    grantUriPermission(packageName, apkUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                }
+            } catch (Exception ignored) {}
 
             startActivity(installIntent);
             pendingInstallApk = null;
