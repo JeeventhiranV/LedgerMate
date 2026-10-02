@@ -89,6 +89,29 @@ public class MainActivity extends AppCompatActivity {
             }
     );
 
+    private long getInstalledVersionCode() {
+        try {
+            PackageManager pm = getPackageManager();
+            PackageInfo pInfo = pm.getPackageInfo(getPackageName(), 0);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                return pInfo.getLongVersionCode();
+            } else {
+                return pInfo.versionCode;
+            }
+        } catch (Exception e) {
+            return 1;
+        }
+    }
+
+    private long getArchiveVersionCode(PackageInfo archiveInfo) {
+        if (archiveInfo == null) return 0;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            return archiveInfo.getLongVersionCode();
+        } else {
+            return archiveInfo.versionCode;
+        }
+    }
+
     @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,6 +119,20 @@ public class MainActivity extends AppCompatActivity {
 
         createNotificationChannel();
         checkAndRequestNotificationPermission();
+
+        // Clean up obsolete/stale APK updates from cache if already installed
+        try {
+            File updateDir = new File(getCacheDir(), "updates");
+            File apkFile = new File(updateDir, "LedgerMate-update.apk");
+            if (apkFile.exists()) {
+                PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
+                long installedVersion = getInstalledVersionCode();
+                long apkVersion = getArchiveVersionCode(archiveInfo);
+                if (archiveInfo == null || apkVersion <= installedVersion) {
+                    apkFile.delete();
+                }
+            }
+        } catch (Exception ignored) {}
 
         // Initialize Background Reminder Services (WorkManager + Daily Alarm)
         try {
@@ -953,6 +990,21 @@ public class MainActivity extends AppCompatActivity {
                 File tempApkFile = null;
                 try {
                     sendProgress(callbackId, "downloading", 0, "Connecting to update server...");
+
+                    File updateDir = new File(getCacheDir(), "updates");
+                    if (!updateDir.exists()) {
+                        updateDir.mkdirs();
+                    }
+                    // Delete any leftover update APKs before downloading
+                    File existingApk = new File(updateDir, "LedgerMate-update.apk");
+                    if (existingApk.exists()) {
+                        existingApk.delete();
+                    }
+                    tempApkFile = new File(updateDir, "LedgerMate-update.apk.tmp");
+                    if (tempApkFile.exists()) {
+                        tempApkFile.delete();
+                    }
+
                     String currentUrl = apkUrl;
                     int redirectCount = 0;
                     final int MAX_REDIRECTS = 6;
@@ -964,6 +1016,11 @@ public class MainActivity extends AppCompatActivity {
                         conn.setInstanceFollowRedirects(true);
                         conn.setConnectTimeout(20000);
                         conn.setReadTimeout(30000);
+                        conn.setUseCaches(false);
+                        conn.setDefaultUseCaches(false);
+                        conn.setRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate");
+                        conn.setRequestProperty("Pragma", "no-cache");
+                        conn.setRequestProperty("Expires", "0");
                         conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile; LedgerMate-AppUpdater/1.0)");
                         conn.setRequestProperty("Accept", "*/*");
 
@@ -992,16 +1049,6 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     int fileLength = conn.getContentLength();
-                    File updateDir = new File(getCacheDir(), "updates");
-                    if (!updateDir.exists()) {
-                        updateDir.mkdirs();
-                    }
-
-                    tempApkFile = new File(updateDir, "LedgerMate-update.apk.tmp");
-                    if (tempApkFile.exists()) {
-                        tempApkFile.delete();
-                    }
-
                     input = conn.getInputStream();
                     output = new FileOutputStream(tempApkFile);
 
@@ -1049,6 +1096,14 @@ public class MainActivity extends AppCompatActivity {
                     if (archiveInfo == null) {
                         if (tempApkFile.exists()) tempApkFile.delete();
                         sendError(callbackId, "Downloaded file is corrupted or not a valid Android package. Please retry.");
+                        return;
+                    }
+
+                    long installedVersion = getInstalledVersionCode();
+                    long apkVersion = getArchiveVersionCode(archiveInfo);
+                    if (apkVersion <= installedVersion) {
+                        if (tempApkFile.exists()) tempApkFile.delete();
+                        sendError(callbackId, "Downloaded update (v" + (archiveInfo.versionName != null ? archiveInfo.versionName : "1.0." + apkVersion) + ") is already installed or older than current version.");
                         return;
                     }
 
@@ -1100,31 +1155,51 @@ public class MainActivity extends AppCompatActivity {
 
         @JavascriptInterface
         public boolean hasDownloadedUpdate() {
-            File updateDir = new File(getCacheDir(), "updates");
-            File apkFile = new File(updateDir, "LedgerMate-update.apk");
-            if (!apkFile.exists() || apkFile.length() < 100000) return false;
-            PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
-            if (archiveInfo == null) {
-                try { apkFile.delete(); } catch (Exception ignored) {}
+            try {
+                File updateDir = new File(getCacheDir(), "updates");
+                File apkFile = new File(updateDir, "LedgerMate-update.apk");
+                if (!apkFile.exists() || apkFile.length() < 100000) return false;
+                PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
+                if (archiveInfo == null) {
+                    apkFile.delete();
+                    return false;
+                }
+                long installedVersion = getInstalledVersionCode();
+                long apkVersion = getArchiveVersionCode(archiveInfo);
+                if (apkVersion <= installedVersion) {
+                    apkFile.delete();
+                    return false;
+                }
+                return true;
+            } catch (Exception e) {
                 return false;
             }
-            return true;
         }
 
         @JavascriptInterface
         public void installPendingUpdate(String callbackId) {
-            File updateDir = new File(getCacheDir(), "updates");
-            File apkFile = new File(updateDir, "LedgerMate-update.apk");
-            if (apkFile.exists() && apkFile.length() > 100000) {
-                PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
-                if (archiveInfo != null) {
-                    runOnUiThread(() -> installApkFile(apkFile, callbackId));
-                    return;
-                } else {
-                    try { apkFile.delete(); } catch (Exception ignored) {}
+            try {
+                File updateDir = new File(getCacheDir(), "updates");
+                File apkFile = new File(updateDir, "LedgerMate-update.apk");
+                if (apkFile.exists() && apkFile.length() > 100000) {
+                    PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
+                    if (archiveInfo != null) {
+                        long installedVersion = getInstalledVersionCode();
+                        long apkVersion = getArchiveVersionCode(archiveInfo);
+                        if (apkVersion > installedVersion) {
+                            runOnUiThread(() -> installApkFile(apkFile, callbackId));
+                            return;
+                        } else {
+                            apkFile.delete();
+                        }
+                    } else {
+                        apkFile.delete();
+                    }
                 }
+                sendError(callbackId, "No newer update package found on disk. Downloading fresh update...");
+            } catch (Exception e) {
+                sendError(callbackId, "Error checking update package: " + e.getMessage());
             }
-            sendError(callbackId, "No valid downloaded update file found on disk. Please re-download.");
         }
     }
 

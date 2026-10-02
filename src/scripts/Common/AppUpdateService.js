@@ -540,7 +540,13 @@
         updateBtn.innerHTML = '<span>⚙️ Grant Permission & Install</span>';
       } else if (data.status === 'error') {
         isDownloading = false;
-        statusText.textContent = '❌ ' + (data.error || 'Download failed');
+        const errMsg = data.error || 'Download failed';
+        if (errMsg.includes('No newer update package') || errMsg.includes('No valid downloaded update') || errMsg.includes('already installed')) {
+          console.log('[AppUpdate] Stale cache detected, starting fresh APK download...');
+          startApkDownload();
+          return;
+        }
+        statusText.textContent = '❌ ' + errMsg;
         updateBtn.disabled = false;
         closeBtn.style.display = 'flex';
         dismissBtn.style.display = 'inline-flex';
@@ -564,7 +570,8 @@
       window.LM_NativeBridgeCallbacks[callbackId] = handleNativeCallback;
 
       try {
-        window.AndroidBridge.downloadAndInstallApk(apkUrl, callbackId);
+        const cacheBustedUrl = apkUrl + (apkUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
+        window.AndroidBridge.downloadAndInstallApk(cacheBustedUrl, callbackId);
       } catch (err) {
         isDownloading = false;
         statusText.textContent = '❌ Native error: ' + err.message;
