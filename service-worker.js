@@ -8,7 +8,7 @@
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v2.27.0';
+const CACHE_VERSION = 'lm-v2.28.0';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
@@ -87,6 +87,13 @@ const STATIC_ASSETS = [
   './src/scripts/Modules/Stocks/StockPortfolioUI.js',
   './src/scripts/Modules/CreditCards/CreditCardsService.js',
   './src/scripts/Modules/CreditCards/CreditCardsUI.js',
+  './src/scripts/Modules/CreditCards/CardOptimizer.js',
+  './src/scripts/Auth/MasterCrypto.js',
+  './src/scripts/Modules/ReceiptVault.js',
+  './src/scripts/Modules/ReceiptOCR.js',
+  './src/scripts/Modules/BillSplitter.js',
+  './src/scripts/Modules/MonteCarloFIRE.js',
+  './src/scripts/Modules/HelpFeedbackModal.js',
 
   /* Auth (config excluded — see note below) */
   './auth/auth-guard.js',

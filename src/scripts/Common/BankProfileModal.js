@@ -435,6 +435,29 @@
             </button>
           </div>
 
+          <!-- ── Help, FAQ & Feedback ── -->
+          <div class="bpm-section-group" id="bpmHelpGroup">
+            <div class="bpm-group-title">HELP, FAQ &amp; FEEDBACK</div>
+
+            <button class="bpm-action-row" onclick="window.LM_ProfileModal.openFAQ()">
+              <span class="bpm-row-icon">❓</span>
+              <div class="bpm-row-text">
+                <div class="bpm-row-title">Knowledge Base &amp; FAQ</div>
+                <div class="bpm-row-desc">Module guides: Transactions, Loans, Wealth, Stocks, Gold &amp; more</div>
+              </div>
+              <span class="bpm-row-arrow">›</span>
+            </button>
+
+            <button class="bpm-action-row" onclick="window.LM_ProfileModal.openFeedback()">
+              <span class="bpm-row-icon">💬</span>
+              <div class="bpm-row-text">
+                <div class="bpm-row-title">Reviews, Suggestions &amp; Complaints</div>
+                <div class="bpm-row-desc">Share feedback, report issues &amp; discuss with community</div>
+              </div>
+              <span class="bpm-row-arrow">›</span>
+            </button>
+          </div>
+
           <!-- ── Sign Out ── -->
           <div class="bpm-section-group bpm-danger-group">
             <button class="bpm-action-row bpm-signout-btn" onclick="window.LM_ProfileModal.signOut()">
@@ -978,6 +1001,24 @@
       if (btn) btn.click();
     },
 
+    openFAQ: function () {
+      BankProfileModal.close();
+      _ensureHelpModal(function () {
+        if (window.LM_HelpModal && typeof window.LM_HelpModal.openFAQ === 'function') {
+          window.LM_HelpModal.openFAQ();
+        }
+      });
+    },
+
+    openFeedback: function () {
+      BankProfileModal.close();
+      _ensureHelpModal(function () {
+        if (window.LM_HelpModal && typeof window.LM_HelpModal.openFeedback === 'function') {
+          window.LM_HelpModal.openFeedback();
+        }
+      });
+    },
+
     signOut: function () {
       BankProfileModal.close();
       if (confirm('Sign out of your account?')) {
@@ -1000,6 +1041,31 @@
       }
     }
   };
+
+  function _ensureHelpModal(callback) {
+    if (window.LM_HelpModal) {
+      callback();
+      return;
+    }
+    var isStudy = isStudyContext();
+    var base = isStudy ? '../' : './';
+    if (window.location.pathname.indexOf('/prep/') !== -1) {
+      base = '../../';
+    }
+    var s = document.createElement('script');
+    s.src = base + 'src/scripts/Modules/HelpFeedbackModal.js';
+    s.onload = function () {
+      if (typeof callback === 'function') callback();
+    };
+    s.onerror = function () {
+      if (typeof window.showToast === 'function') {
+        window.showToast('Could not load Help & Feedback module.', 'error');
+      } else {
+        alert('Could not load Help & Feedback module.');
+      }
+    };
+    document.head.appendChild(s);
+  }
 
   // Close on Escape
   document.addEventListener('keydown', function (e) {

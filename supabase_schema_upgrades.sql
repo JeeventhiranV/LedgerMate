@@ -112,7 +112,77 @@ CREATE POLICY "Anyone authenticated can view and join study rooms"
     USING (true)
     WITH CHECK (true);
 
--- ─── 6. Automated Cleanup Routine (Free Tier Maintenance) ─────────────────────
+-- ─── 6. User Feedback, Reviews, Suggestions & Complaints ──────────────────────
+CREATE TABLE IF NOT EXISTS public.user_feedback (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_name TEXT NOT NULL,
+    user_email TEXT,
+    category TEXT NOT NULL, -- 'review', 'suggestion', 'complaint', 'bug_report', 'feature_request'
+    module TEXT NOT NULL,   -- 'finance_core', 'credit_cards', 'loans', 'wealth', 'stocks', 'gold', 'study_hub', 'sync_storage', 'ui_ux', 'general'
+    rating INT DEFAULT 5,   -- 1 to 5 stars
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    status TEXT DEFAULT 'open', -- 'open', 'in_review', 'resolved', 'planned'
+    upvotes INT DEFAULT 0,
+    upvoted_by JSONB DEFAULT '[]'::jsonb, -- array of user_ids
+    app_version TEXT,
+    device_info TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─── 7. Feedback Comments & Official Replies ──────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.feedback_comments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    feedback_id UUID NOT NULL REFERENCES public.user_feedback(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_name TEXT NOT NULL,
+    user_email TEXT,
+    comment_text TEXT NOT NULL,
+    is_official_reply BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE public.user_feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.feedback_comments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone authenticated can view feedback"
+    ON public.user_feedback
+    FOR SELECT
+    TO authenticated
+    USING (true);
+
+CREATE POLICY "Users can create feedback"
+    ON public.user_feedback
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update feedback or upvote"
+    ON public.user_feedback
+    FOR UPDATE
+    TO authenticated
+    USING (true)
+    WITH CHECK (true);
+
+CREATE POLICY "Anyone authenticated can view feedback comments"
+    ON public.feedback_comments
+    FOR SELECT
+    TO authenticated
+    USING (true);
+
+CREATE POLICY "Authenticated users can add comments"
+    ON public.feedback_comments
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_module_cat ON public.user_feedback(module, category);
+CREATE INDEX IF NOT EXISTS idx_feedback_comments_fb ON public.feedback_comments(feedback_id, created_at);
+
+-- ─── 8. Automated Cleanup Routine (Free Tier Maintenance) ─────────────────────
 -- Function to clean up stale ephemeral chat messages & inactive rooms (> 30 days old)
 CREATE OR REPLACE FUNCTION public.clean_stale_ephemeral_data()
 RETURNS VOID AS $$
@@ -130,7 +200,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- ─── 7. Storage Bucket Configuration Instructions ────────────────────────────
+-- ─── 9. Storage Bucket Configuration Instructions ────────────────────────────
 -- 1. Create a public/authenticated bucket named 'receipts_vault' in Supabase Storage.
 -- 2. Storage RLS Policy (SQL or Dashboard):
 --    Allow authenticated users to upload to their own folder: (bucket_id = 'receipts_vault' AND (storage.foldername(name))[1] = auth.uid()::text)

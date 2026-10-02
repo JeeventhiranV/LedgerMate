@@ -224,7 +224,9 @@ let state = {
   fd_rd: [],
   tx_templates: [],
   dashboard_config: {},
-  credit_cards: []
+  credit_cards: [],
+  timeRange: 30,
+  customRange: { start: '', end: '' }
 };
 
 // Charts
@@ -420,19 +422,23 @@ window.importData = async function(e) {
 };
 
 function bindUI(){
-  document.getElementById('btnSetFolder').onclick = setDataFolder;
-  document.getElementById('btnFullExport').onclick = fullExport;
+  const btnSetFolder = document.getElementById('btnSetFolder');
+  if (btnSetFolder) btnSetFolder.onclick = setDataFolder;
+
+  const btnFullExport = document.getElementById('btnFullExport');
+  if (btnFullExport) btnFullExport.onclick = fullExport;
 
   /* Import – bind to the correct file input ID (#importFile in HTML) */
   const importFileEl = document.getElementById('importFile') || document.getElementById('fileImport');
-  document.getElementById('btnImport').onclick = () => importFileEl?.click();
+  const btnImport = document.getElementById('btnImport');
+  if (btnImport) btnImport.onclick = () => importFileEl?.click();
   if (importFileEl && !importFileEl.dataset.bound) {
     importFileEl.dataset.bound = '1';
     importFileEl.addEventListener('change', window.importData);
   }
-  // document.getElementById('kpiRange').onchange = onKpiRangeChange;
-  //document.getElementById('btnQuickAdd').onclick = () => openAddTransactionModal();
-  document.getElementById('fabAddTx').onclick = () => openAddTransactionModal();
+
+  const fabAddTx = document.getElementById('fabAddTx');
+  if (fabAddTx) fabAddTx.onclick = () => openAddTransactionModal();
 
   // Global keyboard shortcuts
   document.addEventListener('keydown', (e) => {
@@ -444,28 +450,32 @@ function bindUI(){
     if (e.key === 't') { e.preventDefault(); showPage('transactions'); }
   });
 
-  document.getElementById('searchTx').oninput = refreshRecentList;
-  //document.getElementById('notifBell').onclick = ()=>toggleNotifPanel();
-  //document.getElementById('btnToggleTheme').onclick = toggleTheme;
-  // Add handlers for Quick Actions
+  const searchTx = document.getElementById('searchTx');
+  if (searchTx) searchTx.oninput = refreshRecentList;
 
-  //document.getElementById('openTransactions').onclick = showTransactionsModal;
-  document.getElementById('openBudgets').onclick = showBudgetsModal;
-  document.getElementById('openBudgets1').onclick = showBudgetsModal; 
+  const openBudgets = document.getElementById('openBudgets');
+  if (openBudgets) openBudgets.onclick = showBudgetsModal;
+  const openBudgets1 = document.getElementById('openBudgets1');
+  if (openBudgets1) openBudgets1.onclick = showBudgetsModal; 
   
-  //document.getElementById('openRemainders').onclick = showRemindersModal;
   const invBtn = document.getElementById('openInvestments');
   if (invBtn) invBtn.onclick = () => showPage('investments');
-  document.getElementById('accountFilter').onchange = refreshRecentList;
 
-  document.getElementById('clearData').addEventListener('click', clearAllData);
-  document.getElementById("openTripPlannerBtn").onclick = () => openTripPlanner();
-  /* Drive sync removed — button no longer in DOM, skip binding */
-  //document.getElementById('openNotes').onclick = showNotesModal;
+  const accFilter = document.getElementById('accountFilter');
+  if (accFilter) accFilter.onchange = refreshRecentList;
+
+  const clearData = document.getElementById('clearData');
+  if (clearData) clearData.addEventListener('click', clearAllData);
+
+  const openTripPlannerBtn = document.getElementById("openTripPlannerBtn");
+  if (openTripPlannerBtn) openTripPlannerBtn.onclick = () => openTripPlanner();
+
   // file import input
-  const fi = document.createElement('input'); fi.type='file'; fi.accept='.csv,.json'; fi.id='fileImport'; fi.style.display='none';
-  fi.onchange = async(e)=>{ const f = e.target.files[0]; if (!f) return; const txt = await f.text(); if (f.name.endsWith('.csv')) await smartImportCSV(txt); else await fullImportJSONText(txt); }
-  document.body.appendChild(fi);
+  if (!document.getElementById('fileImport')) {
+    const fi = document.createElement('input'); fi.type='file'; fi.accept='.csv,.json'; fi.id='fileImport'; fi.style.display='none';
+    fi.onchange = async(e)=>{ const f = e.target.files[0]; if (!f) return; const txt = await f.text(); if (f.name.endsWith('.csv')) await smartImportCSV(txt); else await fullImportJSONText(txt); }
+    document.body.appendChild(fi);
+  }
 }
  
 // --- Modal implementations --- for Quick Actions
@@ -4152,33 +4162,44 @@ window._LM_restoreLastPage = function() {
   const lastPage = localStorage.getItem(uKey) || localStorage.getItem('ledgerMate_lastPage') || 'dashboard';
   if (typeof showPage === 'function') showPage(lastPage);
 };
-document.getElementById("year").textContent = new Date().getFullYear();
-const helpModal = document.getElementById("helpModal");
-const closeHelpModal = document.getElementById("closeHelpModal");
-const closeHelpBtn = document.getElementById("closeHelpBtn");
 
-// Open modal (attach this to a button somewhere in sidebar/header)
-document.getElementById("openHelpBtn")?.addEventListener("click", () => {
-  helpModal.classList.remove("hidden");
-  helpModal.classList.add("flex");
-});
+document.addEventListener("DOMContentLoaded", () => {
+  const yearEl = document.getElementById("year");
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-// Close modal
-closeHelpModal.addEventListener("click", () => {
-  helpModal.classList.add("hidden");
-  helpModal.classList.remove("flex");
-});
-closeHelpBtn.addEventListener("click", () => {
-  helpModal.classList.add("hidden");
-  helpModal.classList.remove("flex");
-});
+  const helpModal = document.getElementById("helpModal");
+  const closeHelpModal = document.getElementById("closeHelpModal");
+  const closeHelpBtn = document.getElementById("closeHelpBtn");
 
-// Close modal when clicking outside the content
-helpModal.addEventListener("click", (e) => {
-  if (e.target === helpModal) {
-    helpModal.classList.add("hidden");
-    helpModal.classList.remove("flex");
-  }
+  // Open modal
+  document.getElementById("openHelpBtn")?.addEventListener("click", () => {
+    if (helpModal) {
+      helpModal.classList.remove("hidden");
+      helpModal.classList.add("flex");
+    }
+  });
+
+  // Close modal
+  closeHelpModal?.addEventListener("click", () => {
+    if (helpModal) {
+      helpModal.classList.add("hidden");
+      helpModal.classList.remove("flex");
+    }
+  });
+  closeHelpBtn?.addEventListener("click", () => {
+    if (helpModal) {
+      helpModal.classList.add("hidden");
+      helpModal.classList.remove("flex");
+    }
+  });
+
+  // Close modal when clicking outside the content
+  helpModal?.addEventListener("click", (e) => {
+    if (e.target === helpModal) {
+      helpModal.classList.add("hidden");
+      helpModal.classList.remove("flex");
+    }
+  });
 });
 
 /* =========================
@@ -4873,19 +4894,24 @@ function setTimeRange(range) {
    INIT
    ========================= */
 
-document.getElementById("customStart").onchange = function (e) {
-  state.customRange.start = e.target.value;
-  if (state.customRange.end) renderKPIs();
-};
-
-document.getElementById("customEnd").onchange = function (e) {
-  state.customRange.end = e.target.value;
-  if (state.customRange.start) renderKPIs();
-};
-/* ================================
-   CONNECT RANGE BUTTON CLICK EVENTS
-   ================================ */
 document.addEventListener("DOMContentLoaded", function () {
+  const cs = document.getElementById("customStart");
+  if (cs) {
+    cs.onchange = function (e) {
+      if (!state.customRange) state.customRange = { start: '', end: '' };
+      state.customRange.start = e.target.value;
+      if (state.customRange.end) renderKPIs();
+    };
+  }
+
+  const ce = document.getElementById("customEnd");
+  if (ce) {
+    ce.onchange = function (e) {
+      if (!state.customRange) state.customRange = { start: '', end: '' };
+      state.customRange.end = e.target.value;
+      if (state.customRange.start) renderKPIs();
+    };
+  }
 
   const ranges = ["7", "30", "90", "365", "custom"];
 
@@ -4897,7 +4923,6 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
   });
-
 });
 async function loadSettings() {
   /* Guard: DB not open yet → resolve immediately, theme comes from localStorage */

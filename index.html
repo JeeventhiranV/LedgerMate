@@ -458,6 +458,13 @@
               ⬇️ Install App
             </button>
             <div class="topbar-user-menu-divider"></div>
+            <button class="topbar-user-menu-item" onclick="document.getElementById('userDropdownMenu').classList.remove('open'); window.LM_HelpModal?.openFAQ()">
+              ❓ Knowledge Base &amp; FAQ
+            </button>
+            <button class="topbar-user-menu-item" onclick="document.getElementById('userDropdownMenu').classList.remove('open'); window.LM_HelpModal?.openFeedback()">
+              💬 Reviews &amp; Suggestions
+            </button>
+            <div class="topbar-user-menu-divider"></div>
             <button class="topbar-user-menu-item" onclick="document.getElementById('userDropdownMenu').classList.remove('open'); if(confirm('Sign out?')) window.LM_Auth.logout();" style="color:var(--rose)">
               🚪 Sign Out
             </button>
@@ -1375,6 +1382,21 @@ function showPage(page) {
 
   // 5. Page‑specific rendering – wrapped in try/catch so it never breaks the bottom nav
   try {
+    if (page === 'dashboard') {
+      try {
+        if (typeof renderAll === 'function') {
+          renderAll();
+        }
+        if (typeof renderKPIs === 'function') renderKPIs();
+        if (typeof renderCharts === 'function') renderCharts();
+        if (typeof refreshRecentList === 'function') refreshRecentList();
+        if (typeof renderAccountSummaries === 'function') renderAccountSummaries();
+        if (typeof renderDashboardCreditCardReminders === 'function') renderDashboardCreditCardReminders();
+        if (typeof renderDashboardWealthWidget === 'function') renderDashboardWealthWidget();
+      } catch (e) {
+        console.warn('[LM] Dashboard render error:', e);
+      }
+    }
     if (page === 'analytics') {
       setTimeout(() => {
         try { renderBudgetChart(); } catch (e) {}
@@ -1616,6 +1638,8 @@ function setGreeting() {
   <script src="./src/scripts/Modules/ReceiptOCR.js"></script>
   <script src="./src/scripts/Modules/BillSplitter.js"></script>
   <script src="./src/scripts/Modules/MonteCarloFIRE.js"></script>
+  <!-- Community Knowledge Base, FAQ & Feedback Reviews Module -->
+  <script src="./src/scripts/Modules/HelpFeedbackModal.js"></script>
   <!-- PWA install prompt — works on any page -->
   <script src="./src/scripts/pwa-install.js"></script>
   <!-- Real-time push notifications -->
