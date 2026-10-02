@@ -11,6 +11,28 @@
 
   var CRED_ID_KEY = 'lm_webauthn_cred_id';
 
+  function isNativeAndroid() {
+    return typeof window.AndroidBridge !== 'undefined' &&
+           typeof window.AndroidBridge.canAuthenticateBiometrics === 'function';
+  }
+
+  function callNativeBridge(methodName, ...args) {
+    return new Promise((resolve) => {
+      const callbackId = 'bio_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+      if (!window.LM_NativeBridgeCallbacks) window.LM_NativeBridgeCallbacks = {};
+      window.LM_NativeBridgeCallbacks[callbackId] = (data) => {
+        delete window.LM_NativeBridgeCallbacks[callbackId];
+        resolve(data);
+      };
+      try {
+        window.AndroidBridge[methodName](...args, callbackId);
+      } catch (e) {
+        delete window.LM_NativeBridgeCallbacks[callbackId];
+        resolve({ status: 'error', message: e.message });
+      }
+    });
+  }
+
   function _bufferToBase64(buffer) {
     var binary = '';
     var bytes = new Uint8Array(buffer);
@@ -35,8 +57,16 @@
     }
   }
 
-  // Check if platform authenticator (TouchID / FaceID / Windows Hello / Android Biometrics) is supported
+  // Check if platform authenticator (Android Biometrics / TouchID / FaceID / Windows Hello) is supported
   async function isBiometricsAvailable() {
+    if (isNativeAndroid()) {
+      try {
+        const res = await callNativeBridge('canAuthenticateBiometrics');
+        return !!(res && res.status === 'success' && res.available);
+      } catch (e) {
+        return false;
+      }
+    }
     if (!window.PublicKeyCredential) return false;
     try {
       if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
@@ -65,6 +95,24 @@
     }
 
     var uid = window.LM_Auth?.getCurrentUserId() || 'default';
+
+    if (isNativeAndroid()) {
+      const res = await callNativeBridge('authenticateBiometrics', 'Enroll Biometrics', 'Confirm fingerprint / face unlock for LedgerMate');
+      if (res && res.status === 'success' && res.authenticated) {
+        var key = `lm_u_${uid}_${CRED_ID_KEY}`;
+        localStorage.setItem(key, 'native_android_enrolled');
+        if (!silent && typeof showToast === 'function') {
+          showToast('🔐 Biometrics enrolled successfully!', 'success');
+        }
+        return true;
+      } else {
+        if (!silent && typeof showToast === 'function') {
+          showToast('Biometric authentication cancelled or failed.', 'error');
+        }
+        return false;
+      }
+    }
+
     var userEmail = window.LM_Auth?.getCurrentUser()?.email || 'user@ledgermate.local';
 
     var challenge = new Uint8Array(32);
@@ -132,6 +180,14 @@
   async function verifyBiometrics() {
     var available = await isBiometricsAvailable();
     if (!available) return false;
+
+    if (isNativeAndroid()) {
+      const res = await callNativeBridge('authenticateBiometrics', 'LedgerMate Security', 'Verify identity to unlock');
+      if (res && res.status === 'success' && res.authenticated) {
+        return true;
+      }
+      return false;
+    }
 
     var uid = window.LM_Auth?.getCurrentUserId() || 'default';
     var key = `lm_u_${uid}_${CRED_ID_KEY}`;

@@ -34,6 +34,9 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import android.view.WindowManager;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import java.util.concurrent.Executor;
 
 import androidx.documentfile.provider.DocumentFile;
 import java.io.BufferedReader;
@@ -1371,6 +1374,83 @@ public class MainActivity extends AppCompatActivity {
                     returnToJs(callbackId, resp.toString());
                 } catch (Exception e) {
                     sendError(callbackId, "Prune failed: " + e.getMessage());
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void canAuthenticateBiometrics(String callbackId) {
+            try {
+                BiometricManager biometricManager = BiometricManager.from(MainActivity.this);
+                int authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG | BiometricManager.Authenticators.BIOMETRIC_WEAK | BiometricManager.Authenticators.DEVICE_CREDENTIAL;
+                int canAuth = biometricManager.canAuthenticate(authenticators);
+                JSONObject resp = new JSONObject();
+                if (canAuth == BiometricManager.BIOMETRIC_SUCCESS) {
+                    resp.put("status", "success");
+                    resp.put("available", true);
+                    resp.put("enrolled", true);
+                } else if (canAuth == BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED) {
+                    resp.put("status", "success");
+                    resp.put("available", true);
+                    resp.put("enrolled", false);
+                    resp.put("reason", "none_enrolled");
+                } else {
+                    resp.put("status", "success");
+                    resp.put("available", false);
+                    resp.put("enrolled", false);
+                    resp.put("reason", "unsupported");
+                }
+                returnToJs(callbackId, resp.toString());
+            } catch (Exception e) {
+                sendError(callbackId, "Biometric check failed: " + e.getMessage());
+            }
+        }
+
+        @JavascriptInterface
+        public void authenticateBiometrics(String title, String subtitle, String callbackId) {
+            runOnUiThread(() -> {
+                try {
+                    Executor executor = ContextCompat.getMainExecutor(MainActivity.this);
+                    BiometricPrompt.AuthenticationCallback authCallback = new BiometricPrompt.AuthenticationCallback() {
+                        @Override
+                        public void onAuthenticationError(int errorCode, CharSequence errString) {
+                            super.onAuthenticationError(errorCode, errString);
+                            try {
+                                JSONObject resp = new JSONObject();
+                                resp.put("status", "error");
+                                resp.put("errorCode", errorCode);
+                                resp.put("message", errString != null ? errString.toString() : "Authentication error");
+                                returnToJs(callbackId, resp.toString());
+                            } catch (Exception ignored) {}
+                        }
+
+                        @Override
+                        public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                            super.onAuthenticationSucceeded(result);
+                            try {
+                                JSONObject resp = new JSONObject();
+                                resp.put("status", "success");
+                                resp.put("authenticated", true);
+                                returnToJs(callbackId, resp.toString());
+                            } catch (Exception ignored) {}
+                        }
+
+                        @Override
+                        public void onAuthenticationFailed() {
+                            super.onAuthenticationFailed();
+                        }
+                    };
+
+                    BiometricPrompt biometricPrompt = new BiometricPrompt(MainActivity.this, executor, authCallback);
+                    BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                            .setTitle((title != null && !title.isEmpty()) ? title : "LedgerMate Security")
+                            .setSubtitle((subtitle != null && !subtitle.isEmpty()) ? subtitle : "Verify your identity to unlock")
+                            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG | BiometricManager.Authenticators.BIOMETRIC_WEAK | BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+                            .build();
+
+                    biometricPrompt.authenticate(promptInfo);
+                } catch (Exception e) {
+                    sendError(callbackId, "Failed to launch biometrics: " + e.getMessage());
                 }
             });
         }

@@ -419,6 +419,7 @@
   let _isAppLockScreenActive = false;
 
   /* ── Modern Glassmorphism App Lock Screen ── */
+  /* ── Modern Glassmorphism App Lock Screen ── */
   function showAppLockScreen(onSuccess) {
     if (_isAppLockScreenActive) return;
     const existing = document.getElementById('pinLockScreen');
@@ -435,70 +436,91 @@
     el.id = 'pinLockScreen';
     el.className = 'lm-lock-screen-overlay';
 
-    const render = (err, isSuccess) => {
-      el.innerHTML = `
-        <div class="lm-lock-card">
-          <div class="lm-lock-logo">
-            <div class="lm-lock-avatar">${displayName.charAt(0).toUpperCase()}</div>
-          </div>
-          <div class="lm-lock-title">Welcome Back</div>
-          <div class="lm-lock-sub">${displayName}</div>
-          <div class="lm-lock-instruction">${biometricActive ? 'Use Fingerprint / Face ID or enter 4-digit PIN' : 'Enter 4-digit security PIN to unlock'}</div>
-          
-          ${err ? `<div class="lm-lock-error">${err}</div>` : ''}
-
-          <!-- 4 Dots Indicator -->
-          <div class="lm-lock-dots ${err ? 'shake' : ''}">
-            ${[0, 1, 2, 3].map(i => `
-              <div class="lm-lock-dot ${i < entered.length ? 'filled' : ''} ${isSuccess ? 'success' : ''}"></div>
-            `).join('')}
-          </div>
-
-          <!-- Touch Numpad -->
-          <div class="lm-lock-numpad">
-            ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => `
-              <button type="button" class="lm-numpad-btn" data-key="${num}">${num}</button>
-            `).join('')}
-            <!-- Bottom row: Biometrics button, 0, Backspace -->
-            <button type="button" class="lm-numpad-btn lm-numpad-bio ${biometricActive ? 'active' : 'disabled'}" data-key="bio" title="Scan Biometrics">
-              <span style="font-size:22px;line-height:1;">👆</span>
-            </button>
-            <button type="button" class="lm-numpad-btn" data-key="0">0</button>
-            <button type="button" class="lm-numpad-btn lm-numpad-back" data-key="del" title="Delete">
-              <span style="font-size:20px;line-height:1;">⌫</span>
-            </button>
-          </div>
-
-          <!-- Bottom Safe Option -->
-          <div class="lm-lock-footer">
-            <button type="button" class="lm-lock-pw-btn" id="lockUsePwBtn">🚪 Sign out / Use Password</button>
-          </div>
+    el.innerHTML = `
+      <div class="lm-lock-card">
+        <div class="lm-lock-logo">
+          <div class="lm-lock-avatar">${displayName.charAt(0).toUpperCase()}</div>
         </div>
-      `;
+        <div class="lm-lock-title">Welcome Back</div>
+        <div class="lm-lock-sub">${displayName}</div>
+        <div class="lm-lock-instruction">${biometricActive ? 'Use Fingerprint / Face ID or enter 4-digit PIN' : 'Enter 4-digit security PIN to unlock'}</div>
+        
+        <div class="lm-lock-error" id="lockScreenErr" style="display:none;"></div>
 
-      // Rebind click listeners
-      el.querySelectorAll('.lm-numpad-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          const k = btn.getAttribute('data-key');
-          if (k === 'bio') {
-            triggerBiometricUnlock();
-          } else if (k === 'del') {
-            handlePinKey('⌫');
-          } else if (k !== null) {
-            handlePinKey(k);
-          }
-        });
-      });
+        <!-- 4 Dots Indicator -->
+        <div class="lm-lock-dots" id="lockScreenDots">
+          ${[0, 1, 2, 3].map(() => `<div class="lm-lock-dot"></div>`).join('')}
+        </div>
 
-      const pwBtn = el.querySelector('#lockUsePwBtn');
-      if (pwBtn) {
-        pwBtn.addEventListener('click', () => {
-          unlockCleanup();
-          logout();
+        <!-- Touch Numpad -->
+        <div class="lm-lock-numpad">
+          ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => `
+            <button type="button" class="lm-numpad-btn" data-key="${num}">${num}</button>
+          `).join('')}
+          <!-- Bottom row: Biometrics button, 0, Backspace -->
+          <button type="button" class="lm-numpad-btn lm-numpad-bio ${biometricActive ? 'active' : 'disabled'}" data-key="bio" title="Scan Biometrics">
+            <span style="font-size:22px;line-height:1;">👆</span>
+          </button>
+          <button type="button" class="lm-numpad-btn" data-key="0">0</button>
+          <button type="button" class="lm-numpad-btn lm-numpad-back" data-key="del" title="Delete">
+            <span style="font-size:20px;line-height:1;">⌫</span>
+          </button>
+        </div>
+
+        <!-- Bottom Safe Option -->
+        <div class="lm-lock-footer">
+          <button type="button" class="lm-lock-pw-btn" id="lockUsePwBtn">🚪 Sign out / Use Password</button>
+        </div>
+      </div>
+    `;
+
+    function updateLockUI(err, isSuccess) {
+      const errEl = el.querySelector('#lockScreenErr');
+      if (errEl) {
+        if (err) {
+          errEl.textContent = err;
+          errEl.style.display = 'block';
+        } else {
+          errEl.textContent = '';
+          errEl.style.display = 'none';
+        }
+      }
+
+      const dotsWrap = el.querySelector('#lockScreenDots');
+      if (dotsWrap) {
+        if (err) {
+          dotsWrap.classList.add('shake');
+          setTimeout(() => dotsWrap.classList.remove('shake'), 500);
+        }
+        const dots = dotsWrap.querySelectorAll('.lm-lock-dot');
+        dots.forEach((dot, i) => {
+          dot.classList.toggle('filled', i < entered.length);
+          dot.classList.toggle('success', !!isSuccess);
         });
       }
-    };
+    }
+
+    el.querySelectorAll('.lm-numpad-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const k = btn.getAttribute('data-key');
+        if (k === 'bio') {
+          triggerBiometricUnlock();
+        } else if (k === 'del') {
+          handlePinKey('⌫');
+        } else if (k !== null) {
+          handlePinKey(k);
+        }
+      });
+    });
+
+    const pwBtn = el.querySelector('#lockUsePwBtn');
+    if (pwBtn) {
+      pwBtn.addEventListener('click', () => {
+        unlockCleanup();
+        logout();
+      });
+    }
 
     function unlockCleanup() {
       _isAppLockScreenActive = false;
@@ -507,7 +529,7 @@
     }
 
     function grantUnlock() {
-      render(null, true);
+      updateLockUI(null, true);
       try { navigator.vibrate?.(40); } catch (e) {}
       setTimeout(() => {
         unlockCleanup();
@@ -519,13 +541,13 @@
       if (k === '⌫') {
         if (entered.length > 0) {
           entered = entered.slice(0, -1);
-          render();
+          updateLockUI();
         }
         return;
       }
       if (entered.length >= 4) return;
       entered += k;
-      render();
+      updateLockUI();
 
       if (entered.length === 4) {
         if (verifyPin(entered, uid)) {
@@ -533,7 +555,7 @@
         } else {
           try { navigator.vibrate?.([50, 50, 50]); } catch (e) {}
           entered = '';
-          render('Incorrect PIN. Please try again.');
+          updateLockUI('Incorrect PIN. Please try again.');
         }
       }
     }
@@ -560,7 +582,7 @@
       }
     };
 
-    render();
+    updateLockUI();
     document.body.appendChild(el);
     document.addEventListener('keydown', keyHandler);
 
@@ -609,7 +631,7 @@
     let lockEnabled = isAppLockEnabled(uid);
     let bioEnabled = isBiometricEnabled(uid);
     let currentTimeout = getLockTimeout(uid);
-    const hasPin = isPinSet(uid);
+    let hasPin = isPinSet(uid);
 
     let bioSupported = false;
     if (window.LM_Biometrics && typeof window.LM_Biometrics.isAvailable === 'function') {
@@ -623,10 +645,14 @@
     modal.style.zIndex = '10005';
 
     function renderModal(view, viewData) {
-      if (view === 'setPin' || view === 'changePin') {
+      if (view === 'setPin' || view === 'changePin' || view === 'verifyToDisable') {
         renderPinFlow(view, viewData);
         return;
       }
+
+      lockEnabled = isAppLockEnabled(uid);
+      bioEnabled = isBiometricEnabled(uid);
+      hasPin = isPinSet(uid);
 
       modal.innerHTML = `
         <div class="modal" style="max-width:440px;width:92%;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:0;overflow:hidden;box-shadow:var(--shadow), 0 10px 40px rgba(0,0,0,0.5);">
@@ -760,27 +786,36 @@
           const checked = e.target.checked;
           if (checked) {
             if (!isPinSet(uid)) {
-              renderModal('setPin', { onComplete: () => {
-                setAppLockEnabled(true, uid);
-                lockEnabled = true;
-                renderModal();
-                if (typeof showToast === 'function') showToast('🛡️ App Lock enabled successfully!', 'success');
-              }, onCancel: () => {
-                renderModal();
-              }});
+              renderModal('setPin', {
+                onComplete: () => {
+                  setAppLockEnabled(true, uid);
+                  renderModal();
+                  if (typeof showToast === 'function') showToast('🛡️ App Lock enabled successfully!', 'success');
+                },
+                onCancel: () => {
+                  renderModal();
+                }
+              });
             } else {
               setAppLockEnabled(true, uid);
-              lockEnabled = true;
               renderModal();
               if (typeof showToast === 'function') showToast('🛡️ App Lock enabled!', 'success');
             }
           } else {
-            // Confirm with PIN or Biometrics before disabling
+            // Confirm with PIN before disabling
             if (isPinSet(uid)) {
-              renderModal('verifyToDisable', {});
+              renderModal('verifyToDisable', {
+                onComplete: () => {
+                  setAppLockEnabled(false, uid);
+                  renderModal();
+                  if (typeof showToast === 'function') showToast('App Lock disabled.', 'info');
+                },
+                onCancel: () => {
+                  renderModal();
+                }
+              });
             } else {
               setAppLockEnabled(false, uid);
-              lockEnabled = false;
               renderModal();
             }
           }
@@ -797,7 +832,6 @@
               const enrolled = await window.LM_Biometrics.register();
               if (enrolled) {
                 setBiometricEnabled(true, uid);
-                bioEnabled = true;
                 renderModal();
               } else {
                 bioToggle.checked = false;
@@ -805,7 +839,6 @@
             }
           } else {
             setBiometricEnabled(false, uid);
-            bioEnabled = false;
             renderModal();
             if (typeof showToast === 'function') showToast('Biometric unlock disabled.', 'info');
           }
@@ -815,7 +848,13 @@
       // Change / Set PIN button
       modal.querySelector('#changePinBtn')?.addEventListener('click', () => {
         if (isPinSet(uid)) {
-          renderModal('changePin', {});
+          renderModal('changePin', {
+            onComplete: () => {
+              renderModal();
+              if (typeof showToast === 'function') showToast('✅ PIN updated successfully!', 'success');
+            },
+            onCancel: () => renderModal()
+          });
         } else {
           renderModal('setPin', {
             onComplete: () => {
@@ -876,28 +915,74 @@
     }
 
     function renderPinFlow(mode, flowData) {
-      let step = (mode === 'changePin' ? 'verifyCurrent' : 'enterNew');
+      let step = (mode === 'changePin' ? 'verifyCurrent' : (mode === 'verifyToDisable' ? 'verifyToDisable' : 'enterNew'));
       let firstPin = '';
       let entered = '';
 
-      function drawPinStep(title, sub, errorText) {
-        modal.innerHTML = `
-          <div class="modal" style="max-width:340px;width:90%;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:24px;text-align:center;box-shadow:var(--shadow);">
-            <div style="font-size:32px;margin-bottom:8px;">🔐</div>
-            <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">${title}</div>
-            <div style="font-size:12px;color:var(--text-3);margin-bottom:16px;">${sub}</div>
+      function getStepInfo() {
+        if (mode === 'verifyToDisable' || step === 'verifyToDisable') {
+          return { title: 'Turn Off App Lock', sub: 'Enter your 4-digit PIN to disable App Lock' };
+        }
+        if (step === 'verifyCurrent') {
+          return { title: 'Verify Current PIN', sub: 'Enter your current PIN to continue' };
+        }
+        if (step === 'confirmNew') {
+          return { title: 'Confirm PIN', sub: 'Re-enter your 4-digit PIN to confirm' };
+        }
+        return { title: mode === 'changePin' ? 'Create New PIN' : 'Create 4-Digit PIN', sub: 'Enter a 4-digit PIN for App Lock' };
+      }
 
-            ${errorText ? `<div style="font-size:12px;color:var(--rose);margin-bottom:12px;background:rgba(251,113,133,0.1);padding:6px 10px;border-radius:8px;">${errorText}</div>` : ''}
+      function updateUI(errorText) {
+        const info = getStepInfo();
+        const titleEl = modal.querySelector('#pinFlowTitle');
+        const subEl = modal.querySelector('#pinFlowSub');
+        const errEl = modal.querySelector('#pinFlowError');
+        const dotsWrap = modal.querySelector('#pinFlowDots');
+
+        if (titleEl) titleEl.textContent = info.title;
+        if (subEl) subEl.textContent = info.sub;
+
+        if (errEl) {
+          if (errorText) {
+            errEl.textContent = errorText;
+            errEl.style.display = 'block';
+          } else {
+            errEl.textContent = '';
+            errEl.style.display = 'none';
+          }
+        }
+
+        if (dotsWrap) {
+          if (errorText) {
+            dotsWrap.classList.add('shake');
+            setTimeout(() => dotsWrap.classList.remove('shake'), 500);
+          }
+          const dots = dotsWrap.querySelectorAll('.lm-lock-dot');
+          dots.forEach((dot, i) => {
+            dot.classList.toggle('filled', i < entered.length);
+          });
+        }
+      }
+
+      function setupDOM() {
+        const info = getStepInfo();
+        modal.innerHTML = `
+          <div class="modal" style="max-width:340px;width:90%;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:24px;text-align:center;box-shadow:var(--shadow), 0 10px 40px rgba(0,0,0,0.5);">
+            <div style="font-size:32px;margin-bottom:8px;">🔐</div>
+            <div id="pinFlowTitle" style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">${info.title}</div>
+            <div id="pinFlowSub" style="font-size:12px;color:var(--text-3);margin-bottom:16px;">${info.sub}</div>
+
+            <div id="pinFlowError" style="display:none;font-size:12px;color:var(--rose);margin-bottom:12px;background:rgba(251,113,133,0.1);padding:6px 10px;border-radius:8px;"></div>
 
             <!-- 4 Dots -->
-            <div class="lm-lock-dots ${errorText ? 'shake' : ''}" style="margin:16px auto 20px;">
-              ${[0, 1, 2, 3].map(i => `<div class="lm-lock-dot ${i < entered.length ? 'filled' : ''}"></div>`).join('')}
+            <div id="pinFlowDots" class="lm-lock-dots" style="margin:16px auto 20px;">
+              ${[0, 1, 2, 3].map(() => `<div class="lm-lock-dot"></div>`).join('')}
             </div>
 
             <!-- Mini Numpad -->
             <div class="lm-lock-numpad" style="max-width:240px;margin:0 auto 16px;">
               ${[1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map(k => `
-                <button type="button" class="lm-numpad-btn" data-key="${k}" style="${k===''?'opacity:0;pointer-events:none;':''}">
+                <button type="button" class="lm-numpad-btn" data-key="${k}" style="${k === '' ? 'opacity:0;pointer-events:none;' : ''}">
                   ${k}
                 </button>
               `).join('')}
@@ -910,15 +995,19 @@
         `;
 
         modal.querySelectorAll('.lm-numpad-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
             const k = btn.getAttribute('data-key');
             if (k === '⌫') {
-              if (entered.length > 0) { entered = entered.slice(0, -1); drawPinStep(title, sub); }
+              if (entered.length > 0) {
+                entered = entered.slice(0, -1);
+                updateUI();
+              }
             } else if (k !== '' && k !== null && entered.length < 4) {
               entered += k;
-              drawPinStep(title, sub);
+              updateUI();
               if (entered.length === 4) {
-                processPinStep(entered);
+                setTimeout(() => processPinStep(entered), 50);
               }
             }
           });
@@ -931,15 +1020,19 @@
       }
 
       function processPinStep(pinVal) {
-        if (mode === 'verifyToDisable') {
+        if (mode === 'verifyToDisable' || step === 'verifyToDisable') {
           if (verifyPin(pinVal, uid)) {
-            setAppLockEnabled(false, uid);
-            lockEnabled = false;
-            renderModal();
-            if (typeof showToast === 'function') showToast('App Lock disabled.', 'info');
+            if (flowData?.onComplete) {
+              flowData.onComplete();
+            } else {
+              setAppLockEnabled(false, uid);
+              renderModal();
+              if (typeof showToast === 'function') showToast('App Lock disabled.', 'info');
+            }
           } else {
+            try { navigator.vibrate?.([50, 50, 50]); } catch (e) {}
             entered = '';
-            drawPinStep('Turn Off App Lock', 'Enter your 4-digit PIN to disable App Lock', 'Incorrect PIN. Try again.');
+            updateUI('Incorrect PIN. Try again.');
           }
           return;
         }
@@ -948,16 +1041,17 @@
           if (verifyPin(pinVal, uid)) {
             step = 'enterNew';
             entered = '';
-            drawPinStep('Create New PIN', 'Enter a 4-digit PIN for App Lock');
+            updateUI();
           } else {
+            try { navigator.vibrate?.([50, 50, 50]); } catch (e) {}
             entered = '';
-            drawPinStep('Verify Current PIN', 'Enter your current PIN to continue', 'Incorrect PIN. Try again.');
+            updateUI('Incorrect PIN. Try again.');
           }
         } else if (step === 'enterNew') {
           firstPin = pinVal;
           step = 'confirmNew';
           entered = '';
-          drawPinStep('Confirm PIN', 'Re-enter your 4-digit PIN to confirm');
+          updateUI();
         } else if (step === 'confirmNew') {
           if (pinVal === firstPin) {
             setPin(pinVal, uid);
@@ -967,21 +1061,16 @@
               if (typeof showToast === 'function') showToast('✅ PIN updated successfully!', 'success');
             }
           } else {
+            try { navigator.vibrate?.([50, 50, 50]); } catch (e) {}
             step = 'enterNew';
             firstPin = '';
             entered = '';
-            drawPinStep('Create New PIN', 'Enter a 4-digit PIN for App Lock', 'PINs did not match. Please try again.');
+            updateUI('PINs did not match. Please try again.');
           }
         }
       }
 
-      if (mode === 'changePin') {
-        drawPinStep('Verify Current PIN', 'Enter your current PIN to continue');
-      } else if (mode === 'verifyToDisable') {
-        drawPinStep('Turn Off App Lock', 'Enter your 4-digit PIN to disable App Lock');
-      } else {
-        drawPinStep('Create 4-Digit PIN', 'Enter a 4-digit PIN for App Lock');
-      }
+      setupDOM();
     }
 
     renderModal();
