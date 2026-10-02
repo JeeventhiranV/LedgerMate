@@ -709,6 +709,44 @@ body.sidebar-open #voiceTxBtn {
 /* ═══════════════════════════════════════════════
    ✅ TRANSACTION ITEM — MODERN FINTECH ACTIVITY ROW
 ═══════════════════════════════════════════════ */
+.tx-date-separator {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 8px 12px 6px;
+  background: var(--bg2, #0d111c);
+  margin: 6px 0 2px 0;
+  border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.06));
+}
+
+.tx-date-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--teal, #00d4b4);
+  background: rgba(0, 212, 180, 0.08);
+  border: 1px solid rgba(0, 212, 180, 0.2);
+  padding: 3px 10px;
+  border-radius: 99px;
+}
+
+[data-theme="light"] .tx-date-separator {
+  background: var(--bg2, #f8fafc);
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .tx-date-badge {
+  background: rgba(0, 168, 142, 0.1);
+  color: #0d9488;
+  border-color: rgba(0, 168, 142, 0.25);
+}
+
 .tx-item {
   border-bottom: 1px solid var(--border-subtle, var(--border));
   transition: background 0.15s ease, transform 0.15s ease;

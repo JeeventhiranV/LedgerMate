@@ -371,6 +371,19 @@
     return stored === hashPin(pin);
   }
 
+  function _syncNativeScreenSecurity() {
+    try {
+      if (window.AndroidBridge && typeof window.AndroidBridge.setScreenSecurityEnabled === 'function') {
+        const uid = getCurrentUserId();
+        const appLock = isAppLockEnabled(uid);
+        const privacy = localStorage.getItem('lm_privacy_mode') === '1';
+        window.AndroidBridge.setScreenSecurityEnabled(appLock || privacy);
+      }
+    } catch (e) {
+      console.warn('[Auth] Error syncing screen security:', e);
+    }
+  }
+
   function isAppLockEnabled(userId) {
     const uid = userId || getCurrentUserId();
     return localStorage.getItem(getAppLockKey(uid)) === 'true' && isPinSet(uid);
@@ -379,6 +392,7 @@
   function setAppLockEnabled(enabled, userId) {
     const uid = userId || getCurrentUserId();
     localStorage.setItem(getAppLockKey(uid), enabled ? 'true' : 'false');
+    _syncNativeScreenSecurity();
   }
 
   function isBiometricEnabled(userId) {
@@ -694,6 +708,23 @@
               </div>
             </div>
 
+            <!-- Android Screenshot Protection & Screen Privacy -->
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="max-width:82%;">
+                  <div style="font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;">
+                    <span>🛡️ Screenshot &amp; App Switcher Protection</span>
+                    <span style="font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;${lockEnabled || (localStorage.getItem('lm_privacy_mode') === '1') ? 'background:rgba(52,211,153,0.15);color:var(--emerald);' : 'background:rgba(255,255,255,0.06);color:var(--text-3);'}">
+                      ${lockEnabled || (localStorage.getItem('lm_privacy_mode') === '1') ? 'ACTIVE (FLAG_SECURE)' : 'STANDBY'}
+                    </span>
+                  </div>
+                  <div style="font-size:12px;color:var(--text-3);margin-top:4px;">
+                    Prevents Android screen captures and masks recents preview switcher when App Lock or Stealth Mode is engaged.
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Lock Now Quick Test -->
             ${lockEnabled ? `
               <div style="text-align:center;margin-top:4px;">
@@ -702,6 +733,19 @@
                 </button>
               </div>
             ` : ''}
+
+            <!-- Panic Emergency Reset -->
+            <div style="background:rgba(239,68,68,0.04);border:1px dashed rgba(239,68,68,0.25);border-radius:14px;padding:14px;margin-top:4px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:var(--rose);">⚠️ Emergency Local Data Wipe</div>
+                  <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Purge all local session data, cached balances &amp; offline storage on this device</div>
+                </div>
+                <button type="button" id="panicWipeBtn" class="btn btn-danger btn-sm" style="font-size:11px;padding:6px 12px;white-space:nowrap;background:rgba(239,68,68,0.2);color:var(--rose);border:1px solid rgba(239,68,68,0.4);">
+                  Wipe Data
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       `;
@@ -798,6 +842,36 @@
       modal.querySelector('#lockNowTestBtn')?.addEventListener('click', () => {
         modal.remove();
         showAppLockScreen();
+      });
+
+      // Panic Local Data Wipe
+      modal.querySelector('#panicWipeBtn')?.addEventListener('click', async () => {
+        const confirmed = confirm('⚠️ DANGER: Are you sure you want to completely wipe all local data and sign out from this device?\n\nThis cannot be undone.');
+        if (!confirmed) return;
+        const doubleConfirmed = prompt('Type WIPE to confirm immediate data purge:');
+        if (doubleConfirmed !== 'WIPE') {
+          if (typeof showToast === 'function') showToast('Data wipe cancelled.', 'info');
+          return;
+        }
+
+        modal.remove();
+        if (typeof showToast === 'function') showToast('Purging local data...', 'warning');
+
+        try {
+          if (window.indexedDB && window.indexedDB.databases) {
+            const dbs = await window.indexedDB.databases();
+            dbs.forEach(db => { if (db.name) window.indexedDB.deleteDatabase(db.name); });
+          }
+        } catch (e) {}
+
+        try { localStorage.clear(); } catch (e) {}
+        try { sessionStorage.clear(); } catch (e) {}
+
+        if (typeof _supabase !== 'undefined' && _supabase?.auth) {
+          try { await _supabase.auth.signOut(); } catch (e) {}
+        }
+
+        window.location.replace(window.location.pathname + '?action=logout');
       });
     }
 
@@ -1031,6 +1105,7 @@
         hideLoginScreen();
         updateUIForUser(session);
         startInactivityWatcher();
+        _syncNativeScreenSecurity();
 
         if (isAppLockEnabled(user.id)) {
           showAppLockScreen(async () => {
@@ -1051,6 +1126,7 @@
         hideLoginScreen();
         updateUIForUser(existingLocalSession);
         startInactivityWatcher();
+        _syncNativeScreenSecurity();
 
         if (isAppLockEnabled(existingLocalSession.userId)) {
           showAppLockScreen(async () => {

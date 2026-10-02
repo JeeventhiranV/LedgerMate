@@ -19,6 +19,16 @@
   var _txExchangeFilter = 'ALL';
   var _expandedStockIds = new Set();
 
+  function _escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   function toggleStockExpand(holdingId) {
     if (!holdingId) return;
     if (_expandedStockIds.has(holdingId)) {

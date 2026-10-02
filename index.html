@@ -1309,6 +1309,7 @@ function updateFabVisibility(page) {
    PAGE NAVIGATION
 ───────────────────────────────────────────── */
 function showPage(page) {
+  try { window.LM_Haptic?.light(); } catch (e) {}
   if (typeof window.closeSidebar === 'function') window.closeSidebar();
   updateFabVisibility(page);
   // 1. Show / hide pages

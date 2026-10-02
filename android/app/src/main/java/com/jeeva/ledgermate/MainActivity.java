@@ -33,6 +33,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import android.view.WindowManager;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -834,6 +835,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public class AndroidBridge {
+        @JavascriptInterface
+        public void setScreenSecurityEnabled(final boolean enable) {
+            runOnUiThread(() -> {
+                try {
+                    if (enable) {
+                        getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+                    } else {
+                        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                    }
+                } catch (Exception ignored) {}
+            });
+        }
+
+        @JavascriptInterface
+        public boolean isScreenSecuritySupported() {
+            return true;
+        }
+
         @JavascriptInterface
         public void syncRemindersToNative(String duesJson) {
             if (duesJson == null || duesJson.isEmpty()) return;

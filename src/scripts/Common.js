@@ -1,6 +1,36 @@
 let transactions = []; // All transactions will be stored here
 const fmtINR = (v) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Math.round(v) || 0);
 if (typeof window !== 'undefined') window.fmtINR = fmtINR;
+
+/* Micro-haptics helper for Android & modern mobile web */
+const LM_Haptic = {
+  light: () => {
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10);
+    } catch (e) {}
+  },
+  medium: () => {
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(25);
+    } catch (e) {}
+  },
+  success: () => {
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate([15, 50, 15]);
+    } catch (e) {}
+  },
+  warning: () => {
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate([35, 45, 35]);
+    } catch (e) {}
+  },
+  error: () => {
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate([50, 60, 50, 60]);
+    } catch (e) {}
+  }
+};
+if (typeof window !== 'undefined') window.LM_Haptic = LM_Haptic;
 const nowISO = () => new Date().toISOString().slice(0,10);
 const uid = (prefix='id') => prefix + '_' + Math.random().toString(36).slice(2,9);
 function parseCSV(text){
@@ -1970,7 +2000,35 @@ if (!q) {
     return String(text).replace(re, '<mark>$1</mark>');
   };
 
+  let lastDateGroup = null;
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  const _getDateLabel = (dStr) => {
+    if (!dStr) return 'Transactions';
+    try {
+      const parts = dStr.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+        if (isSameDay(d, today)) return 'Today';
+        if (isSameDay(d, yesterday)) return 'Yesterday';
+        return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      }
+    } catch (e) {}
+    return dStr;
+  };
+
   items.forEach((t) => {
+    // Render sticky date group header when group transitions
+    const dateGroup = _getDateLabel(t.date);
+    if (dateGroup !== lastDateGroup) {
+      lastDateGroup = dateGroup;
+      const sep = document.createElement('div');
+      sep.className = 'tx-date-separator';
+      sep.innerHTML = `<span class="tx-date-badge">${dateGroup}</span>`;
+      list.appendChild(sep);
+    }
+
     const row = document.createElement('div');
     row.className = 'tx-item';
 
@@ -2032,12 +2090,14 @@ if (!q) {
   document.querySelectorAll('.delTx').forEach((btn) =>
     btn.onclick = async (e) => {
       const id = e.target.dataset.id;
-        if (!confirm('Are you sure you want to delete this transaction?')) return;
+      try { window.LM_Haptic?.warning(); } catch (err) {}
+      if (!confirm('Are you sure you want to delete this transaction?')) return;
       try {
         await del('transactions', id);
         state.transactions = state.transactions.filter((x) => x.id !== id);
         renderAll();
         autoBackup();
+        try { window.LM_Haptic?.success(); } catch (err) {}
         showToast('Transaction deleted!', 'success');
       } catch (err) {
         showToast('Failed to delete transaction', 'error');
@@ -3374,6 +3434,7 @@ function onKpiRangeChange(e) {
 ═══════════════════════════════════════════════ */
 window.LM_togglePrivacyMode = function() {
   const isPrivacy = document.body.classList.toggle('privacy-mode');
+  try { window.LM_Haptic?.light(); } catch (e) {}
   const btns = document.querySelectorAll('.privacy-toggle-btn, #btnPrivacyToggle');
   const icon = isPrivacy ? '🙈' : '👁️';
   btns.forEach(btn => {
@@ -3389,6 +3450,15 @@ window.LM_togglePrivacyMode = function() {
     }
   });
   localStorage.setItem('lm_privacy_mode', isPrivacy ? '1' : '0');
+
+  // Sync with native Android screenshot protection
+  try {
+    if (window.AndroidBridge && typeof window.AndroidBridge.setScreenSecurityEnabled === 'function') {
+      const appLock = window.LM_Auth?.isAppLockEnabled?.() || false;
+      window.AndroidBridge.setScreenSecurityEnabled(isPrivacy || appLock);
+    }
+  } catch (e) {}
+
   if (typeof showToast === 'function') {
     showToast(isPrivacy ? '🙈 Stealth Mode: Balances Masked' : '👁️ Balance Privacy Disabled', 'info', 2200);
   }
