@@ -108,7 +108,12 @@
             </div>
             <div class="cc-header-actions" style="display:flex;align-items:center;gap:8px;">
               <button class="overview-tool-btn privacy-toggle-btn" style="background:var(--bg2,#11151f);border:1px solid var(--border,#1e2436);border-radius:10px;padding:7px 12px;" title="Toggle Balance Privacy (Stealth Mode)" onclick="window.LM_togglePrivacyMode()" aria-label="Privacy Mode">
-                ${document.body.classList.contains('privacy-mode') ? '🙈' : '👁️'} <span class="overview-tool-label">Privacy</span>
+                <span class="privacy-btn-icon">${document.body.classList.contains('privacy-mode') ? '🙈' : '👁️'}</span>
+                <span class="overview-tool-label">Privacy</span>
+                <div class="bpm-switch-pill ${document.body.classList.contains('privacy-mode') ? 'active' : ''}">
+                  <span class="bpm-switch-knob"></span>
+                  <span class="bpm-switch-label">${document.body.classList.contains('privacy-mode') ? 'ON' : 'OFF'}</span>
+                </div>
               </button>
               <button class="cc-add-btn" onclick="window.LM_CreditCardsUI.showAddEditModal()">
                 <span>＋</span> Add Credit Card

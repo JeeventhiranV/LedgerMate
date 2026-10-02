@@ -495,7 +495,12 @@ function showWealthPage() {
       <div class="page-header-right">
         <div class="overview-quick-tools">
           <button class="overview-tool-btn privacy-toggle-btn" title="Toggle Balance Privacy (Stealth Mode)" onclick="window.LM_togglePrivacyMode()" aria-label="Privacy Mode">
-            ${document.body.classList.contains('privacy-mode') ? '🙈' : '👁️'} <span class="overview-tool-label">Privacy</span>
+            <span class="privacy-btn-icon">${document.body.classList.contains('privacy-mode') ? '🙈' : '👁️'}</span>
+            <span class="overview-tool-label">Privacy</span>
+            <div class="bpm-switch-pill ${document.body.classList.contains('privacy-mode') ? 'active' : ''}">
+              <span class="bpm-switch-knob"></span>
+              <span class="bpm-switch-label">${document.body.classList.contains('privacy-mode') ? 'ON' : 'OFF'}</span>
+            </div>
           </button>
         </div>
         <button class="btn-submit" style="width:auto;padding:9px 18px;margin:0;font-size:13px;"
