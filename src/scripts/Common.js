@@ -3807,32 +3807,80 @@ searchInput.addEventListener('blur', () => setTimeout(() => suggestionsBox.class
 function getAccountSummaries() {
   const summaries = {};
   
-  state.transactions.forEach(t => {
-    if (!summaries[t.account]) {
-      summaries[t.account] = { income: 0, expense: 0, balance: 0 };
+  // Pre-fill configured accounts from dropdowns so all accounts are visible
+  const configuredAccounts = (state.dropdowns && Array.isArray(state.dropdowns.accounts)) 
+    ? state.dropdowns.accounts 
+    : ['Cash', 'Bank', 'Savings'];
+    
+  configuredAccounts.forEach(acc => {
+    if (acc && typeof acc === 'string' && acc.trim()) {
+      summaries[acc.trim()] = { income: 0, expense: 0, balance: 0 };
     }
-    if (t.type === 'in') {
-      summaries[t.account].income += Number(t.amount);
-      summaries[t.account].balance += Number(t.amount);
-    } else if (t.type === 'out') {
-      summaries[t.account].expense += Number(t.amount);
-      summaries[t.account].balance -= Number(t.amount);
+  });
+
+  const txs = Array.isArray(state.transactions) ? state.transactions : [];
+  txs.forEach(t => {
+    const rawAccount = (t.account || t.accountName || 'Cash').trim();
+    if (!summaries[rawAccount]) {
+      summaries[rawAccount] = { income: 0, expense: 0, balance: 0 };
+    }
+    
+    const amt = parseFloat(String(t.amount || 0).replace(/,/g, '')) || 0;
+    const type = String(t.type || '').toLowerCase();
+    
+    // Credits / Incomes / Deposits
+    if (type === 'in' || type === 'income' || type === 'credit' || type === 'cr' || type === 'deposit') {
+      summaries[rawAccount].income += amt;
+      summaries[rawAccount].balance += amt;
+    } 
+    // Debits / Expenses / Withdrawals
+    else if (type === 'out' || type === 'expense' || type === 'debit' || type === 'dr' || type === 'withdraw' || type === 'withdrawal') {
+      summaries[rawAccount].expense += amt;
+      summaries[rawAccount].balance -= amt;
+    } 
+    // Transfers (debit source account, credit destination account)
+    else if (type === 'transfer') {
+      summaries[rawAccount].expense += amt;
+      summaries[rawAccount].balance -= amt;
+      
+      const destAccount = (t.toAccount || t.transferTo || '').trim();
+      if (destAccount) {
+        if (!summaries[destAccount]) {
+          summaries[destAccount] = { income: 0, expense: 0, balance: 0 };
+        }
+        summaries[destAccount].income += amt;
+        summaries[destAccount].balance += amt;
+      }
     }
   });
   
   return summaries;
 }
+
 function renderAccountSummaries() {
   const summaries = getAccountSummaries();
   const container = document.getElementById('accountSummaries');
   if (!container) return;
   container.innerHTML = '';
 
-  for (const account in summaries) {
+  const accounts = Object.keys(summaries);
+  if (!accounts.length) {
+    container.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-3);font-size:13px;">
+        No account data found. Add transactions to see account balances.
+      </div>
+    `;
+    return;
+  }
+
+  for (const account of accounts) {
     const summary = summaries[account];
 
     const card = document.createElement('div');
     card.className = 'kpi-card teal';
+    card.style.cursor = 'pointer';
+    card.title = `View all transactions for ${account}`;
+    card.onclick = () => window.LM_filterTxByAccount(account);
 
     card.innerHTML = `
       <div class="kpi-icon teal">💼</div>
@@ -3843,12 +3891,12 @@ function renderAccountSummaries() {
         ${fmtINR(summary.balance)}
       </div>
 
-      <div class="kpi-sub">
-        <span class="chip income">
+      <div class="kpi-sub" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <span class="chip income" onclick="event.stopPropagation(); window.LM_filterTxByAccountAndType('${account}', 'in')" style="cursor:pointer;" title="View credits for ${account}">
           + <span class="acc-bal" data-amount="${summary.income}">${fmtINR(summary.income)}</span>
         </span>
 
-        <span class="chip expense ml-1">
+        <span class="chip expense" onclick="event.stopPropagation(); window.LM_filterTxByAccountAndType('${account}', 'out')" style="cursor:pointer;" title="View debits for ${account}">
           - <span class="acc-bal" data-amount="${summary.expense}">${fmtINR(summary.expense)}</span>
         </span>
       </div>
@@ -4577,6 +4625,22 @@ window.LM_filterTxByAccount = function (account) {
     const accEl = document.getElementById('accountFilter');
     if (accEl) {
       accEl.value = (account && account !== 'ALL') ? account : 'all';
+    }
+    if (typeof refreshRecentList === 'function') refreshRecentList();
+  }, 60);
+};
+
+window.LM_filterTxByAccountAndType = function (account, type) {
+  showPage('transactions');
+  setTimeout(() => {
+    const accEl = document.getElementById('accountFilter');
+    if (accEl) {
+      accEl.value = (account && account !== 'ALL') ? account : 'all';
+    }
+    const searchEl = document.getElementById('searchTx');
+    if (searchEl) {
+      searchEl.value = (type === 'in' || type === 'income') ? 'income' : 'expense';
+      searchEl.dispatchEvent(new Event('input'));
     }
     if (typeof refreshRecentList === 'function') refreshRecentList();
   }, 60);
