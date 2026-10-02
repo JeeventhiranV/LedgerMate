@@ -120,19 +120,8 @@ public class MainActivity extends AppCompatActivity {
         createNotificationChannel();
         checkAndRequestNotificationPermission();
 
-        // Clean up obsolete/stale APK updates from cache if already installed
-        try {
-            File updateDir = new File(getCacheDir(), "updates");
-            File apkFile = new File(updateDir, "LedgerMate-update.apk");
-            if (apkFile.exists()) {
-                PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
-                long installedVersion = getInstalledVersionCode();
-                long apkVersion = getArchiveVersionCode(archiveInfo);
-                if (archiveInfo == null || apkVersion <= installedVersion) {
-                    apkFile.delete();
-                }
-            }
-        } catch (Exception ignored) {}
+        // Clean up obsolete/stale APK updates from cache to reclaim space
+        BootReceiver.deleteUpdateCache(this);
 
         // Initialize Background Reminder Services (WorkManager + Daily Alarm)
         try {
@@ -472,6 +461,9 @@ public class MainActivity extends AppCompatActivity {
                 pendingInstallCallbackId = null;
                 installApkFile(toInstall, cbId);
             }
+        } else {
+            // Clean up update APKs after successful installation
+            BootReceiver.deleteUpdateCache(this);
         }
     }
 
@@ -888,6 +880,11 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public boolean isScreenSecuritySupported() {
             return true;
+        }
+
+        @JavascriptInterface
+        public void clearUpdateCache() {
+            BootReceiver.deleteUpdateCache(MainActivity.this);
         }
 
         @JavascriptInterface

@@ -674,6 +674,11 @@
         renderUpdateUI(currentVer, remoteMeta);
       } else {
         updateSidebarVersionBadge(false);
+        try {
+          if (window.AndroidBridge && typeof window.AndroidBridge.clearUpdateCache === 'function') {
+            window.AndroidBridge.clearUpdateCache();
+          }
+        } catch (e) {}
         if (manual && typeof window.showToast === 'function') {
           window.showToast(`✅ You're on the latest version (v${currentVer.versionName})`, 'success');
         }
