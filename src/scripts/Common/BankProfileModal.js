@@ -66,6 +66,17 @@
 
   function getCloudSyncText() {
     try {
+      const isOffline = (window.LM_CloudSync && typeof window.LM_CloudSync.isOfflineMode === 'function')
+        ? window.LM_CloudSync.isOfflineMode()
+        : (localStorage.getItem('lm_sync_mode') === 'offline');
+
+      if (isOffline) {
+        return 'Offline';
+      }
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        return 'No Net';
+      }
+
       const lastSync = localStorage.getItem('lm_last_cloud_sync_time');
       if (lastSync) {
         const d = new Date(Number(lastSync));
@@ -74,7 +85,7 @@
         }
       }
     } catch (e) {}
-    return 'Active';
+    return 'Synced';
   }
 
   function createModalDOM() {
@@ -110,10 +121,6 @@
                 <span class="bank-profile-email" id="bpmEmail">user@example.com</span>
                 <span class="bank-profile-copy-btn" id="bpmCopyIcon">📋</span>
               </div>
-              <div class="bank-profile-vault-tag">
-                <span class="bpm-sec-icon">🛡️</span>
-                <span>256-Bit Encrypted Vault · Offline First</span>
-              </div>
             </div>
           </div>
           <button class="bank-profile-close-btn" onclick="window.LM_ProfileModal.close()" title="Close">✕</button>
@@ -122,13 +129,16 @@
         <div class="bank-profile-body">
           <!-- ── Micro Status Matrix ── -->
           <div class="bank-profile-matrix">
-            <div class="bpm-matrix-card" onclick="window.LM_ProfileModal.triggerSync()">
-              <div class="bpm-matrix-icon">☁️</div>
+            <div class="bpm-matrix-card" onclick="window.LM_ProfileModal.handleSyncCardClick(event)">
+              <div class="bpm-matrix-icon" id="bpmSyncIcon">☁️</div>
               <div class="bpm-matrix-info">
-                <div class="bpm-matrix-label">Cloud Sync</div>
+                <div class="bpm-matrix-label" id="bpmSyncLabel">Cloud Sync</div>
                 <div class="bpm-matrix-val" id="bpmSyncStatus">Synced</div>
               </div>
-              <span class="bpm-matrix-action">Sync</span>
+              <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+                <span class="bpm-sync-mode-tag" id="bpmSyncModeTag" onclick="event.stopPropagation(); window.LM_ProfileModal.toggleSyncMode();" title="Tap to switch sync mode">CLOUD</span>
+                <span class="bpm-matrix-action" id="bpmSyncAction" style="margin-top:0;">Sync</span>
+              </div>
             </div>
 
             <div class="bpm-matrix-card" onclick="window.LM_ProfileModal.togglePrivacy()">
@@ -137,7 +147,10 @@
                 <div class="bpm-matrix-label">Privacy Shield</div>
                 <div class="bpm-matrix-val" id="bpmPrivacyStatus">Hidden</div>
               </div>
-              <div class="bpm-toggle-indicator" id="bpmPrivacyToggle"></div>
+              <div class="bpm-switch-pill" id="bpmPrivacySwitch">
+                <span class="bpm-switch-knob"></span>
+                <span id="bpmPrivacySwitchText">OFF</span>
+              </div>
             </div>
 
             <div class="bpm-matrix-card" onclick="window.LM_ProfileModal.openSecurity()">
@@ -176,20 +189,24 @@
           <div class="bpm-section-group">
             <div class="bpm-group-title">EXPERIENCE &amp; ALERTS</div>
 
-            <button class="bpm-action-row" onclick="window.LM_ProfileModal.toggleTheme()">
+            <!-- Segmented Theme Interface -->
+            <div class="bpm-action-row" style="cursor:default;">
               <span class="bpm-row-icon" id="bpmThemeIcon">🌓</span>
               <div class="bpm-row-text">
                 <div class="bpm-row-title">Theme Interface</div>
-                <div class="bpm-row-desc" id="bpmThemeDesc">Switch between Dark &amp; Light palette</div>
+                <div class="bpm-row-desc">Switch dark &amp; light palette</div>
               </div>
-              <span class="bpm-badge" id="bpmThemeBadge">Dark Mode</span>
-            </button>
+              <div class="bpm-theme-segmented">
+                <button type="button" class="bpm-theme-btn" id="bpmThemeDarkBtn" onclick="window.LM_ProfileModal.setTheme('dark')">🌙 Dark</button>
+                <button type="button" class="bpm-theme-btn" id="bpmThemeLightBtn" onclick="window.LM_ProfileModal.setTheme('light')">☀️ Light</button>
+              </div>
+            </div>
 
             <button class="bpm-action-row" onclick="window.LM_ProfileModal.openPreferences()">
               <span class="bpm-row-icon">🔔</span>
               <div class="bpm-row-text">
-                <div class="bpm-row-title">Preferences &amp; Bill Reminders</div>
-                <div class="bpm-row-desc">Notification thresholds &amp; alert timings</div>
+                <div class="bpm-row-title">Preferences &amp; Sync Settings</div>
+                <div class="bpm-row-desc">Data sync mode, local backup &amp; alerts</div>
               </div>
               <span class="bpm-row-arrow">›</span>
             </button>
@@ -206,6 +223,15 @@
 
           <div class="bpm-section-group">
             <div class="bpm-group-title">DATA BACKUP &amp; UPDATES</div>
+
+            <button class="bpm-action-row" onclick="window.LM_ProfileModal.manageLocalBackup()">
+              <span class="bpm-row-icon">💾</span>
+              <div class="bpm-row-text">
+                <div class="bpm-row-title">Local Device Auto-Backup</div>
+                <div class="bpm-row-desc" id="bpmLocalBackupDesc">30-day retention · Max 100 snapshots</div>
+              </div>
+              <span class="bpm-badge" id="bpmLocalBackupBadge">Configure</span>
+            </button>
 
             <button class="bpm-action-row" onclick="window.LM_ProfileModal.checkUpdates()">
               <span class="bpm-row-icon" id="bpmUpdateIcon">🔄</span>
@@ -248,7 +274,7 @@
           </div>
 
           <div class="bpm-footer-meta">
-            <span>LedgerMate Finance OS</span> · <span>Zero-Knowledge Secure Vault</span>
+            <span>LedgerMate Finance OS</span> · <span>Secure Financial Intelligence</span>
           </div>
         </div>
       </div>
@@ -264,6 +290,9 @@
     const isPrivacy = isPrivacyModeActive();
     const ver = getInstalledVersion();
     const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    const isOffline = (window.LM_CloudSync && typeof window.LM_CloudSync.isOfflineMode === 'function')
+      ? window.LM_CloudSync.isOfflineMode()
+      : (localStorage.getItem('lm_sync_mode') === 'offline');
 
     // Avatar initial
     const initial = (user.displayName || user.username || 'A').charAt(0).toUpperCase();
@@ -287,27 +316,59 @@
     if (emailEl) emailEl.textContent = user.username || user.email || 'user@ledgermate.local';
 
     // Matrix status
+    const syncIcon = document.getElementById('bpmSyncIcon');
+    if (syncIcon) syncIcon.textContent = isOffline ? '💾' : '☁️';
+
+    const syncLabel = document.getElementById('bpmSyncLabel');
+    if (syncLabel) syncLabel.textContent = isOffline ? 'Offline Mode' : 'Cloud Sync';
+
     const syncStatus = document.getElementById('bpmSyncStatus');
-    if (syncStatus) syncStatus.textContent = getCloudSyncText();
+    if (syncStatus) syncStatus.textContent = isOffline ? 'Local Vault' : getCloudSyncText();
+
+    const modeTag = document.getElementById('bpmSyncModeTag');
+    if (modeTag) {
+      modeTag.textContent = isOffline ? 'OFFLINE' : 'CLOUD';
+      modeTag.className = 'bpm-sync-mode-tag ' + (isOffline ? 'offline' : 'cloud');
+    }
+
+    const syncAction = document.getElementById('bpmSyncAction');
+    if (syncAction) {
+      syncAction.textContent = isOffline ? 'Backup' : 'Sync';
+    }
 
     const privStatus = document.getElementById('bpmPrivacyStatus');
     if (privStatus) privStatus.textContent = isPrivacy ? 'Masked' : 'Visible';
 
-    const privToggle = document.getElementById('bpmPrivacyToggle');
-    if (privToggle) privToggle.classList.toggle('active', isPrivacy);
+    const privSwitch = document.getElementById('bpmPrivacySwitch');
+    const privSwitchText = document.getElementById('bpmPrivacySwitchText');
+    if (privSwitch) {
+      privSwitch.classList.toggle('active', isPrivacy);
+    }
+    if (privSwitchText) {
+      privSwitchText.textContent = isPrivacy ? 'ON' : 'OFF';
+    }
 
     const lockStatus = document.getElementById('bpmLockStatus');
     if (lockStatus) lockStatus.textContent = isLock ? 'Protected' : 'Off';
 
-    // Theme info
+    // Theme Segmented Buttons
+    const darkBtn = document.getElementById('bpmThemeDarkBtn');
+    const lightBtn = document.getElementById('bpmThemeLightBtn');
+    if (darkBtn) darkBtn.classList.toggle('active', isDark);
+    if (lightBtn) lightBtn.classList.toggle('active', !isDark);
+
     const themeIcon = document.getElementById('bpmThemeIcon');
     if (themeIcon) themeIcon.textContent = isDark ? '🌙' : '☀️';
 
-    const themeBadge = document.getElementById('bpmThemeBadge');
-    if (themeBadge) themeBadge.textContent = isDark ? 'Dark' : 'Light';
-
-    const themeDesc = document.getElementById('bpmThemeDesc');
-    if (themeDesc) themeDesc.textContent = isDark ? 'Obsidian Fintech Dark Theme' : 'Clean Porcelain Light Theme';
+    // Local Backup badge & desc
+    const isLocalAuto = (window.LM_LocalBackup && typeof window.LM_LocalBackup.isLocalBackupEnabled === 'function')
+      ? window.LM_LocalBackup.isLocalBackupEnabled()
+      : (localStorage.getItem('lm_local_backup_enabled') === 'true');
+    const localBadge = document.getElementById('bpmLocalBackupBadge');
+    if (localBadge) {
+      localBadge.textContent = isLocalAuto ? 'Active' : 'Disabled';
+      localBadge.style.color = isLocalAuto ? 'var(--teal,#00d4b4)' : 'var(--text-3)';
+    }
 
     // Version
     const verDesc = document.getElementById('bpmVersionDesc');
@@ -357,14 +418,80 @@
       if (window.LM_Haptic) window.LM_Haptic.notificationSuccess();
     },
 
-    triggerSync: async function () {
-      const btn = document.getElementById('bpmSyncStatus');
-      if (btn) btn.textContent = 'Syncing...';
-      if (typeof window.LM_manualSync === 'function') {
-        await window.LM_manualSync();
+    toggleSyncMode: function () {
+      const isCurrentlyOffline = (window.LM_CloudSync && typeof window.LM_CloudSync.isOfflineMode === 'function')
+        ? window.LM_CloudSync.isOfflineMode()
+        : (localStorage.getItem('lm_sync_mode') === 'offline');
+
+      const nextMode = isCurrentlyOffline ? 'cloud' : 'offline';
+      if (window.LM_CloudSync && typeof window.LM_CloudSync.setSyncMode === 'function') {
+        window.LM_CloudSync.setSyncMode(nextMode);
+      } else {
+        localStorage.setItem('lm_sync_mode', nextMode);
       }
-      if (btn) btn.textContent = 'Synced';
+
+      renderProfileDetails();
+      if (typeof window.showToast === 'function') {
+        window.showToast(nextMode === 'cloud' ? '☁️ Switched to Cloud Sync' : '💾 Switched to Offline Mode', 'info');
+      }
+      if (window.LM_Haptic) window.LM_Haptic.impactLight();
+    },
+
+    handleSyncCardClick: async function () {
+      const isOffline = (window.LM_CloudSync && typeof window.LM_CloudSync.isOfflineMode === 'function')
+        ? window.LM_CloudSync.isOfflineMode()
+        : (localStorage.getItem('lm_sync_mode') === 'offline');
+
+      if (isOffline) {
+        // In Offline mode: execute local backup or request folder permission
+        if (window.LM_LocalBackup) {
+          const info = await window.LM_LocalBackup.getFolderInfo();
+          if (!info.configured) {
+            if (typeof window.showToast === 'function') {
+              window.showToast('📁 Select a folder for offline backups...', 'info');
+            }
+            try {
+              await window.LM_LocalBackup.selectFolder();
+            } catch (e) {}
+          } else {
+            const btn = document.getElementById('bpmSyncAction');
+            if (btn) btn.textContent = 'Saving...';
+            await window.LM_LocalBackup.performBackup({ force: true, silent: false });
+            if (btn) btn.textContent = 'Backup';
+          }
+        }
+      } else {
+        // In Cloud mode: execute direct cloud sync
+        const btn = document.getElementById('bpmSyncAction');
+        if (btn) btn.textContent = 'Syncing...';
+        if (typeof window.LM_manualSync === 'function') {
+          await window.LM_manualSync();
+        } else if (window.LM_CloudSync && typeof window.LM_CloudSync.save === 'function') {
+          await window.LM_CloudSync.save();
+        }
+        if (btn) btn.textContent = 'Sync';
+        if (typeof window.showToast === 'function') {
+          window.showToast('☁️ Cloud sync completed', 'success');
+        }
+      }
+      renderProfileDetails();
       if (window.LM_Haptic) window.LM_Haptic.notificationSuccess();
+    },
+
+    setTheme: function (theme) {
+      if (theme === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        try { localStorage.setItem('ledgerMate_theme', 'light'); } catch (e) {}
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        try { localStorage.setItem('ledgerMate_theme', 'dark'); } catch (e) {}
+      }
+      renderProfileDetails();
+      if (window.LM_Haptic) window.LM_Haptic.impactLight();
+    },
+
+    manageLocalBackup: function () {
+      BankProfileModal.openPreferences();
     },
 
     togglePrivacy: function () {
@@ -446,6 +573,21 @@
       BankProfileModal.close();
     }
   });
+
+  if (typeof window.LM_Bus !== 'undefined' && window.LM_Bus.on) {
+    window.LM_Bus.on('lm:sync:mode-changed', function () {
+      if (_modalEl && _modalEl.classList.contains('open')) renderProfileDetails();
+    });
+    window.LM_Bus.on('lm:cloud:saved', function () {
+      if (_modalEl && _modalEl.classList.contains('open')) renderProfileDetails();
+    });
+    window.LM_Bus.on('lm:local-backup:status-changed', function () {
+      if (_modalEl && _modalEl.classList.contains('open')) renderProfileDetails();
+    });
+    window.LM_Bus.on('lm:local-backup:saved', function () {
+      if (_modalEl && _modalEl.classList.contains('open')) renderProfileDetails();
+    });
+  }
 
   window.LM_ProfileModal = BankProfileModal;
   window.openBankProfileModal = BankProfileModal.open;

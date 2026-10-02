@@ -3215,14 +3215,19 @@ async function performBackup() {
   const txt = JSON.stringify(snapshot);
 
   // try all locations; we consider success if at least one succeeds
-  //const ts = snapshot._createdAt.replace(/[:.]/g,'-');
   const ts = snapshot._createdAt.replace(/[^0-9A-Za-z-_]/g, '-');
 
   const r1 = await writeToFolder(txt);
 //  const r2 = await writeToOPFS(txt, ts);
   const r3 = await writeToIndexedDB(snapshot);
 
-  if (r1 ||  r3) {
+  if (window.LM_LocalBackup) {
+    try {
+      window.LM_LocalBackup.performBackup({ silent: true });
+    } catch (e) {}
+  }
+
+  if (r1 || r3) {
     console.log('✅ Backup complete', { folder: r1, idb: r3 });
   } else {
     console.warn('❌ Backup failed: no location succeeded');
@@ -3232,8 +3237,6 @@ async function performBackup() {
 // keep your existing call sites working
 function autoBackup() {
   if (autoBackupTimer) clearTimeout(autoBackupTimer);
-  // slight debounce so bursts of writes coalesce
-  //autoBackupTimer = setTimeout(performBackup, 800);
   autoBackupTimer = setTimeout(performBackup, 3000);
 }
 
@@ -3297,25 +3300,25 @@ async function tryAutoRestoreOnStart() {
   return false;
 }
 
-
-
 // ----------------------------
-// Set Data Folder (File System Access API)
+// Set Data Folder (Native SAF + File System Access API)
 // ----------------------------
 async function setDataFolder(){
+  if (window.LM_LocalBackup) {
+    try {
+      await window.LM_LocalBackup.selectFolder();
+      return;
+    } catch (e) {
+      console.warn('LocalBackup selectFolder:', e);
+      return;
+    }
+  }
   if (!window.showDirectoryPicker){ alert('Directory access not supported in this browser.'); return; }
   try{
     const dir = await window.showDirectoryPicker();
     state.dataFolderHandle = dir;
     await put('settings', {key:'dataFolderHandle', value:dir});
     document.getElementById('folderLabel').innerText = '✔';
-    // try auto-load most recent csv/json
-  /*  if(confirm('Load latest backup from this folder? Existing data will be merged.'))
-  {
-   await tryAutoLoadFolder();
-  }*/
-    
-    //autoBackup();
   }catch(err){ console.warn(err); }
 }
 
@@ -3987,14 +3990,20 @@ window.LM_StartApp = async function LM_StartApp() {
     return;
   }
 
-  /* ── Supabase cloud load (replaces IndexedDB as truth source) ── */
-  if (window.LM_CloudSync) {
+  /* ── Supabase cloud load (if sync mode is 'cloud' and online) ── */
+  const syncMode = (typeof window.LM_CloudSync?.getSyncMode === 'function')
+    ? window.LM_CloudSync.getSyncMode()
+    : (localStorage.getItem('lm_sync_mode') || 'cloud');
+
+  if (syncMode === 'cloud' && window.LM_CloudSync && (typeof navigator === 'undefined' || navigator.onLine)) {
     try {
       const loaded = await window.LM_CloudSync.load();
       if (loaded) console.log("☁️ Data loaded from Supabase cloud");
     } catch (e) {
       console.warn("⚠️ Cloud load failed, using local IndexedDB:", e);
     }
+  } else {
+    console.log(`💾 Starting in ${syncMode === 'offline' ? 'Offline Mode' : 'Local IndexedDB Cache'}`);
   }
 
   try {
@@ -4047,9 +4056,23 @@ window.LM_StartApp = async function LM_StartApp() {
     if (window.LM_CloudSync) {
       window.LM_CloudSync.startAutoSave(60000);
     }
+
+    /* ── Start Local Device Automated Backup Service ─── */
+    if (window.LM_LocalBackup) {
+      try {
+        window.LM_LocalBackup.startAutoBackup(10 * 60 * 1000);
+      } catch (e) {
+        console.warn('[LM] LocalBackup auto-start error:', e);
+      }
+    }
+
     /* Kick off initial notification check after DB is ready (periodic checking managed in Notifications.js) */
     if (typeof window.checkAllNotifications === 'function') {
       window.checkAllNotifications();
+    }
+
+    if (typeof window.LM_updateTopbarSyncButton === 'function') {
+      window.LM_updateTopbarSyncButton();
     }
     
   } catch (err) {
@@ -5544,12 +5567,51 @@ function checkSpendingAnomalyAlerts() {
 }
 
 /* ════════════════════════════════════════════════════════════
-   PREFERENCES MODAL – alert thresholds, session timeout
+   PREFERENCES MODAL – sync mode, local backup, alert thresholds, session timeout
 ════════════════════════════════════════════════════════════ */
-function openPreferencesModal() {
+async function openPreferencesModal() {
   const s = state.settings || {};
   const el = document.getElementById('preferencesModal');
   if (!el) return;
+
+  // Sync Mode
+  const curSyncMode = (typeof window.LM_CloudSync?.getSyncMode === 'function')
+    ? window.LM_CloudSync.getSyncMode()
+    : (localStorage.getItem('lm_sync_mode') || s.syncMode || 'cloud');
+  const cloudRadio = document.getElementById('prefSyncModeCloud');
+  const offlineRadio = document.getElementById('prefSyncModeOffline');
+  if (cloudRadio && offlineRadio) {
+    if (curSyncMode === 'offline') {
+      offlineRadio.checked = true;
+    } else {
+      cloudRadio.checked = true;
+    }
+  }
+
+  // Local Backup
+  const autoLocal = (typeof window.LM_LocalBackup?.isLocalBackupEnabled === 'function')
+    ? window.LM_LocalBackup.isLocalBackupEnabled()
+    : (localStorage.getItem('lm_local_backup_enabled') === 'true' || !!s.autoLocalBackupEnabled);
+  const autoLocalEl = document.getElementById('prefAutoLocalBackup');
+  if (autoLocalEl) autoLocalEl.checked = autoLocal;
+
+  // Update folder status display
+  if (window.LM_LocalBackup) {
+    try {
+      const info = await window.LM_LocalBackup.getFolderInfo();
+      const statusEl = document.getElementById('prefLocalFolderStatus');
+      const btnText = document.getElementById('prefLocalFolderBtnText');
+      if (statusEl) {
+        if (info.configured && info.folderName) {
+          statusEl.textContent = 'Active Folder: ' + info.folderName;
+          if (btnText) btnText.textContent = 'Change Folder';
+        } else {
+          statusEl.textContent = 'No local backup folder configured.';
+          if (btnText) btnText.textContent = 'Choose Backup Folder';
+        }
+      }
+    } catch (e) {}
+  }
 
   const threshold = document.getElementById('prefLowBalanceThreshold');
   const anomaly   = document.getElementById('prefAnomalyAlerts');
@@ -5570,12 +5632,32 @@ function closePreferencesModal() {
 }
 
 async function savePreferences() {
+  // Sync mode
+  const offlineRadio = document.getElementById('prefSyncModeOffline');
+  const selectedSyncMode = (offlineRadio && offlineRadio.checked) ? 'offline' : 'cloud';
+  if (window.LM_CloudSync?.setSyncMode) {
+    window.LM_CloudSync.setSyncMode(selectedSyncMode);
+  } else {
+    try { localStorage.setItem('lm_sync_mode', selectedSyncMode); } catch (e) {}
+  }
+
+  // Local Backup
+  const autoLocalEl = document.getElementById('prefAutoLocalBackup');
+  const autoLocal = autoLocalEl ? autoLocalEl.checked : false;
+  if (window.LM_LocalBackup?.setLocalBackupEnabled) {
+    window.LM_LocalBackup.setLocalBackupEnabled(autoLocal);
+  } else {
+    try { localStorage.setItem('lm_local_backup_enabled', String(autoLocal)); } catch (e) {}
+  }
+
   const threshold = parseFloat(document.getElementById('prefLowBalanceThreshold')?.value || 0);
   const anomaly   = document.getElementById('prefAnomalyAlerts')?.checked !== false;
   const timeoutMins = parseInt(document.getElementById('prefSessionTimeout')?.value || 30);
 
   state.settings = {
     ...(state.settings || {}),
+    syncMode: selectedSyncMode,
+    autoLocalBackupEnabled: autoLocal,
     lowBalanceThreshold: isNaN(threshold) ? 0 : threshold,
     anomalyAlertsEnabled: anomaly,
     sessionTimeoutMins: timeoutMins
@@ -5591,7 +5673,7 @@ async function savePreferences() {
   }
 
   closePreferencesModal();
-  showToast('Preferences saved.', 'success');
+  showToast('Preferences and sync settings saved.', 'success');
 }
 
 /* ══════════════════════════════════════════════════════════════

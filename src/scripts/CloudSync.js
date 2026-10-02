@@ -21,8 +21,45 @@
   var _saving    = false;
   var _dirty     = false;
 
+  // ── Sync Mode (Cloud vs Offline) ───────────────────────────
+  function getSyncMode() {
+    try {
+      var saved = localStorage.getItem('lm_sync_mode');
+      if (saved === 'offline' || saved === 'cloud') return saved;
+      if (window.state && window.state.settings && window.state.settings.syncMode) {
+        return window.state.settings.syncMode;
+      }
+    } catch (e) {}
+    return 'cloud';
+  }
+
+  function setSyncMode(mode) {
+    var validMode = (mode === 'offline') ? 'offline' : 'cloud';
+    try {
+      localStorage.setItem('lm_sync_mode', validMode);
+      if (window.state && window.state.settings) {
+        window.state.settings.syncMode = validMode;
+      }
+    } catch (e) {}
+
+    console.log('[CloudSync] Sync mode changed to:', validMode);
+    if (window.LM_Bus) {
+      window.LM_Bus.emit('lm:sync:mode-changed', { mode: validMode });
+    }
+
+    if (validMode === 'cloud' && navigator.onLine) {
+      save();
+    }
+    return validMode;
+  }
+
+  function isOfflineMode() {
+    return getSyncMode() === 'offline';
+  }
+
   // ── Supabase user ID ────────────────────────────────────────
   function _uid() {
+    if (isOfflineMode()) return Promise.resolve(null);
     if (typeof _supabase === 'undefined' || !_supabase || !_supabase.auth) {
       return Promise.resolve(null);
     }
@@ -43,6 +80,9 @@
 
   // ── Push a JSON string to Supabase ──────────────────────────
   function _push(jsonStr) {
+    if (isOfflineMode() || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+      return Promise.resolve();
+    }
     var data;
     try { data = JSON.parse(jsonStr); } catch { return Promise.resolve(); }
     return _uid().then(function (uid) {
@@ -60,6 +100,7 @@
             if (window.LM_Bus) LM_Bus.emit('lm:cloud:failed', { message: 'Cloud sync failed — check connection' });
           } else {
             console.log('[CloudSync] ✅ saved to cloud');
+            try { localStorage.setItem('lm_last_cloud_sync_time', String(Date.now())); } catch (e) {}
             if (window.LM_Bus) LM_Bus.emit('lm:cloud:saved', {});
           }
         });
@@ -68,6 +109,9 @@
 
   // ── Public: save current state now ──────────────────────────
   function save() {
+    if (isOfflineMode()) {
+      return Promise.resolve();
+    }
     if (_saving) { _dirty = true; return Promise.resolve(); }
     if (!window.LM_DB_READY) return Promise.resolve();
 
@@ -86,7 +130,7 @@
       })
       .then(function () {
         _saving = false;
-        if (_dirty) queueSave(5000);
+        if (_dirty && !isOfflineMode()) queueSave(5000);
       });
   }
 
@@ -138,6 +182,10 @@
   // ── Public: fetch cloud data and import into IndexedDB ──────
   // Clears stale local data FIRST so cloud is always the source of truth.
   function load() {
+    if (isOfflineMode() || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+      console.log('[CloudSync] Offline mode or no internet — skipping cloud load and using local data');
+      return Promise.resolve(false);
+    }
     return _uid().then(function (uid) {
       if (!uid) return false;
       return _supabase
@@ -158,6 +206,8 @@
           var payload = r.data.data;
           var jsonStr = JSON.stringify(payload);
 
+          try { localStorage.setItem('lm_last_cloud_sync_time', String(Date.now())); } catch (e) {}
+
           // Wipe IndexedDB first — guarantees no stale local rows survive
           return _clearDataStores().then(function () {
             if (typeof window.fullImportJSONText === 'function') {
@@ -171,38 +221,55 @@
           });
         });
     }).catch(function (e) {
-      console.warn('[CloudSync] load exception:', e && e.message || e);
+      console.warn('[CloudSync] load exception (retaining local data):', e && e.message || e);
       return false;
     });
   }
 
   // ── Public: start AppBus hook + periodic + beforeunload ─────
   function startAutoSave(intervalMs) {
-    // React to every data-changed event (1.5 s debounce — fast enough to
-    // complete before most reloads, slow enough to batch rapid edits)
+    // React to every data-changed event (1.5 s debounce)
     if (window.LM_Bus) {
-      LM_Bus.on('lm:data:changed', function () { queueSave(1500); });
+      LM_Bus.on('lm:data:changed', function () {
+        if (!isOfflineMode()) queueSave(1500);
+      });
+      LM_Bus.on('lm:sync:mode-changed', function (ev) {
+        if (ev && ev.mode === 'cloud') {
+          _initRealtime();
+          if (navigator.onLine && window.LM_DB_READY) save();
+        } else if (_realtimeChannel && _supabase) {
+          try { _supabase.removeChannel(_realtimeChannel); _realtimeChannel = null; } catch (e) {}
+        }
+      });
     }
 
     // Periodic fallback (catches mutations that don't emit the event)
     setInterval(function () {
-      if (window.LM_DB_READY && _dirty) save();
+      if (window.LM_DB_READY && _dirty && !isOfflineMode() && navigator.onLine) save();
     }, intervalMs || 60000);
 
     // Save when tab becomes hidden (switch tabs, reload, close).
-    // visibilitychange fires BEFORE beforeunload and gives more time for async ops.
     document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'hidden' && window.LM_DB_READY && _dirty) {
+      if (document.visibilityState === 'hidden' && window.LM_DB_READY && _dirty && !isOfflineMode() && navigator.onLine) {
         save();
+      }
+    });
+
+    // React to online recovery
+    window.addEventListener('online', function() {
+      console.log('[CloudSync] 🌐 Connection restored (online)');
+      if (!isOfflineMode() && window.LM_DB_READY) {
+        _initRealtime();
+        if (_dirty) save();
       }
     });
 
     // ── Supabase Realtime Channel Subscription ───────────────
     var _realtimeChannel = null;
     function _initRealtime() {
-      if (!_supabase || typeof _supabase.channel !== 'function') return;
+      if (isOfflineMode() || !_supabase || typeof _supabase.channel !== 'function') return;
       _uid().then(function (uid) {
-        if (!uid) return;
+        if (!uid || isOfflineMode()) return;
         try {
           if (_realtimeChannel) _supabase.removeChannel(_realtimeChannel);
           _realtimeChannel = _supabase
@@ -211,8 +278,7 @@
               'postgres_changes',
               { event: '*', schema: 'public', table: TABLE, filter: 'user_id=eq.' + uid },
               function (payload) {
-                // If we are currently actively saving, ignore our own echo
-                if (_saving) return;
+                if (_saving || isOfflineMode()) return;
                 console.log('[CloudSync] ⚡ Realtime update received from cloud:', payload);
                 if (window.LM_Bus) {
                   LM_Bus.emit('lm:cloud:remote-update', payload);
@@ -220,7 +286,6 @@
                 if (typeof showToast === 'function') {
                   showToast('☁️ Cloud data updated from another session. Refreshing...', 'info');
                 }
-                // Automatically refresh state from cloud if not dirty
                 if (!_dirty && typeof window.LM_StartApp === 'function') {
                   load().then(function(ok) {
                     if (ok && typeof window.renderAll === 'function') window.renderAll();
@@ -239,18 +304,23 @@
       });
     }
 
-    _initRealtime();
+    if (!isOfflineMode()) {
+      _initRealtime();
+    }
 
-    console.log('[CloudSync] 🔄 auto-save & realtime sync active');
+    console.log('[CloudSync] 🔄 auto-save & realtime sync initialized (Mode: ' + getSyncMode() + ')');
   }
 
   // ── Expose ───────────────────────────────────────────────────
   window.LM_CloudSync = {
-    save        : save,
-    load        : load,
-    queueSave   : queueSave,
-    saveOnLogout: saveOnLogout,
-    startAutoSave: startAutoSave
+    save          : save,
+    load          : load,
+    queueSave     : queueSave,
+    saveOnLogout  : saveOnLogout,
+    startAutoSave : startAutoSave,
+    getSyncMode   : getSyncMode,
+    setSyncMode   : setSyncMode,
+    isOfflineMode : isOfflineMode
   };
 
 }());
