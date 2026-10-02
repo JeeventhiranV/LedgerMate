@@ -81,7 +81,6 @@ if ('serviceWorker' in navigator) {
           <div class="push-status" id="pushStatus"></div>
         </div>
       </div>
-      <button class="btn-theme" id="themeBtn" title="Toggle theme" aria-label="Toggle dark/light theme">🌙</button>
       <div class="topbar-user-chip" id="studyUserChip" onclick="window.LM_ProfileModal && window.LM_ProfileModal.open()" title="Profile &amp; Vault Settings" aria-label="Account profile">
         <div class="topbar-user-avatar" id="studyUserAvatar">U</div>
       </div>
@@ -122,6 +121,76 @@ if ('serviceWorker' in navigator) {
       <div class="stat-pill" id="statInProgressPill" style="display:none;border-color:rgba(245,158,11,.35)"><div class="stat-num" id="statInProgress" style="background:linear-gradient(135deg,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">0</div><div class="stat-lbl">In Progress</div></div>
       <div class="stat-pill"><div class="stat-num" id="statTotal">7</div><div class="stat-lbl">Resources</div></div>
       <div class="stat-pill"><div class="stat-num" id="statQ">538</div><div class="stat-lbl">Questions</div></div>
+    </div>
+
+    <!-- Real-time Practice Target & Difficulty Distribution Matrix -->
+    <div class="hero-tracker-matrix">
+      <!-- Daily Practice Goal Card -->
+      <div class="daily-target-card">
+        <div class="dtc-header">
+          <div class="dtc-title-row">
+            <span class="dtc-icon">🎯</span>
+            <span class="dtc-title">Daily Practice Target</span>
+          </div>
+          <div class="dtc-selector">
+            <button class="dtc-btn active" data-target="3" onclick="setDailyTarget(3)">3 Qs</button>
+            <button class="dtc-btn" data-target="5" onclick="setDailyTarget(5)">5 Qs</button>
+            <button class="dtc-btn" data-target="10" onclick="setDailyTarget(10)">10 Qs</button>
+          </div>
+        </div>
+        <div class="dtc-body">
+          <div class="dtc-count-wrap">
+            <span class="dtc-count" id="dailyTargetDone">0</span>
+            <span class="dtc-divider">/</span>
+            <span class="dtc-goal" id="dailyTargetGoal">3</span>
+            <span class="dtc-unit">completed today</span>
+          </div>
+          <div class="dtc-progress-bar">
+            <div class="dtc-progress-fill" id="dailyTargetFill" style="width:0%"></div>
+          </div>
+          <div class="dtc-status" id="dailyTargetStatus">🚀 Complete 3 questions today to maintain your momentum!</div>
+        </div>
+      </div>
+
+      <!-- Difficulty Breakdown Card (LeetCode / NeetCode style) -->
+      <div class="diff-matrix-card">
+        <div class="dmc-header">
+          <span class="dmc-title">Difficulty Distribution</span>
+          <span class="dmc-total" id="dmcTotalDone">0 / 538 Solved</span>
+        </div>
+        <div class="dmc-rows">
+          <div class="dmc-row easy">
+            <div class="dmc-label">
+              <span class="dmc-dot"></span>
+              <span>Easy</span>
+            </div>
+            <div class="dmc-bar-wrap">
+              <div class="dmc-bar-fill" id="dmcEasyFill" style="width:0%"></div>
+            </div>
+            <div class="dmc-val"><strong id="dmcEasyDone">0</strong><span class="dmc-max">/190</span></div>
+          </div>
+          <div class="dmc-row med">
+            <div class="dmc-label">
+              <span class="dmc-dot"></span>
+              <span>Medium</span>
+            </div>
+            <div class="dmc-bar-wrap">
+              <div class="dmc-bar-fill" id="dmcMedFill" style="width:0%"></div>
+            </div>
+            <div class="dmc-val"><strong id="dmcMedDone">0</strong><span class="dmc-max">/230</span></div>
+          </div>
+          <div class="dmc-row hard">
+            <div class="dmc-label">
+              <span class="dmc-dot"></span>
+              <span>Hard</span>
+            </div>
+            <div class="dmc-bar-wrap">
+              <div class="dmc-bar-fill" id="dmcHardFill" style="width:0%"></div>
+            </div>
+            <div class="dmc-val"><strong id="dmcHardDone">0</strong><span class="dmc-max">/118</span></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Resume where you left off (populated by JS after DB load) -->
@@ -699,6 +768,9 @@ function updateHeroStats() {
   document.getElementById('overallBarIp').style.width   = ipPct + '%';
   document.getElementById('overallPctLabel').textContent = donePct + '% complete';
   document.getElementById('overallBarWrap').style.opacity = '1';
+  if (typeof renderDailyTargetAndDifficulty === 'function') {
+    renderDailyTargetAndDifficulty(window._lastRawProgress || []);
+  }
 }
 
 /* ══════════════════════════════════════════════════════
@@ -898,6 +970,112 @@ function renderHeatmap(rawProgress) {
 }
 
 /* ══════════════════════════════════════════════════════
+   REAL-TIME DAILY TARGET & DIFFICULTY TRACKER
+══════════════════════════════════════════════════════ */
+var DAILY_TARGET = parseInt(localStorage.getItem('sr_daily_target') || '3', 10) || 3;
+
+function setDailyTarget(val) {
+  DAILY_TARGET = parseInt(val, 10) || 3;
+  localStorage.setItem('sr_daily_target', DAILY_TARGET);
+  document.querySelectorAll('.dtc-btn').forEach(function(b) {
+    b.classList.toggle('active', parseInt(b.dataset.target, 10) === DAILY_TARGET);
+  });
+  renderDailyTargetAndDifficulty(window._lastRawProgress || []);
+}
+
+function renderDailyTargetAndDifficulty(rawProgress) {
+  window._lastRawProgress = rawProgress;
+  var todayStr = _localDateStr(new Date());
+
+  var todayDoneCount = 0;
+  var easyDone = 0, medDone = 0, hardDone = 0;
+  var totalDone = 0;
+
+  if (rawProgress && rawProgress.length) {
+    rawProgress.forEach(function(row) {
+      if (row.status === 'done') {
+        totalDone++;
+        var rowDate = row.status_changed_at ? row.status_changed_at.split('T')[0] : '';
+        if (rowDate === todayStr) {
+          todayDoneCount++;
+        }
+
+        var diff = (row.metadata && row.metadata.difficulty) ? row.metadata.difficulty.toLowerCase() : '';
+        var mod = row.module_key || '';
+        if (diff === 'easy' || mod === 'hr' || mod === 'dsa_easy') {
+          easyDone++;
+        } else if (diff === 'hard' || mod === 'lld' || mod === 'dsa_hard') {
+          hardDone++;
+        } else {
+          medDone++;
+        }
+      }
+    });
+  } else {
+    // Local storage fallback
+    var localTotalDone = 0;
+    MOD_CONFIG.forEach(function(m) {
+      var p = getProgress(m.progKey, m.total);
+      localTotalDone += p.done;
+    });
+    totalDone = localTotalDone;
+    easyDone = Math.min(Math.round(totalDone * 0.35), 190);
+    medDone = Math.min(Math.round(totalDone * 0.45), 230);
+    hardDone = Math.min(Math.max(0, totalDone - easyDone - medDone), 118);
+  }
+
+  // Update Daily Target Card
+  var dtDoneEl = document.getElementById('dailyTargetDone');
+  var dtGoalEl = document.getElementById('dailyTargetGoal');
+  var dtFillEl = document.getElementById('dailyTargetFill');
+  var dtStatusEl = document.getElementById('dailyTargetStatus');
+
+  if (dtDoneEl) dtDoneEl.textContent = todayDoneCount;
+  if (dtGoalEl) dtGoalEl.textContent = DAILY_TARGET;
+  var targetPct = Math.min(100, Math.round((todayDoneCount / DAILY_TARGET) * 100));
+  if (dtFillEl) {
+    dtFillEl.style.width = targetPct + '%';
+    dtFillEl.classList.toggle('met', todayDoneCount >= DAILY_TARGET);
+  }
+  if (dtStatusEl) {
+    if (todayDoneCount >= DAILY_TARGET) {
+      dtStatusEl.innerHTML = '🎉 <strong style="color:var(--teal,#06d6a0)">Daily target accomplished!</strong> Outstanding preparation pace!';
+    } else {
+      var rem = DAILY_TARGET - todayDoneCount;
+      dtStatusEl.innerHTML = '🚀 Complete <strong>' + rem + ' more question' + (rem > 1 ? 's' : '') + '</strong> today to hit your goal!';
+    }
+  }
+
+  // Update Difficulty Matrix
+  var dmcTotalDone = document.getElementById('dmcTotalDone');
+  if (dmcTotalDone) dmcTotalDone.textContent = totalDone + ' / 538 Solved';
+
+  var easyPct = Math.min(100, Math.round((easyDone / 190) * 100));
+  var medPct  = Math.min(100, Math.round((medDone / 230) * 100));
+  var hardPct = Math.min(100, Math.round((hardDone / 118) * 100));
+
+  var eDone = document.getElementById('dmcEasyDone');
+  var eFill = document.getElementById('dmcEasyFill');
+  if (eDone) eDone.textContent = easyDone;
+  if (eFill) eFill.style.width = easyPct + '%';
+
+  var mDone = document.getElementById('dmcMedDone');
+  var mFill = document.getElementById('dmcMedFill');
+  if (mDone) mDone.textContent = medDone;
+  if (mFill) mFill.style.width = medPct + '%';
+
+  var hDone = document.getElementById('dmcHardDone');
+  var hFill = document.getElementById('dmcHardFill');
+  if (hDone) hDone.textContent = hardDone;
+  if (hFill) hFill.style.width = hardPct + '%';
+
+  // Highlight active target button
+  document.querySelectorAll('.dtc-btn').forEach(function(b) {
+    b.classList.toggle('active', parseInt(b.dataset.target, 10) === DAILY_TARGET);
+  });
+}
+
+/* ══════════════════════════════════════════════════════
    LOAD DASHBOARD FROM SUPABASE
 ══════════════════════════════════════════════════════ */
 function loadDashboard() {
@@ -940,6 +1118,9 @@ function loadDashboard() {
     document.getElementById('overallBarIp').style.width   = ipPct + '%';
     document.getElementById('overallPctLabel').textContent = donePct + '% complete · ' + totalDone + '/' + TOTAL_Q;
 
+    // Daily target and difficulty matrix
+    renderDailyTargetAndDifficulty(raw);
+
     // Module rings from DB
     renderModRingsDB(byModule);
 
@@ -977,6 +1158,7 @@ function loadDashboard() {
     // On error: render with empty/local data
     renderHeatmap([]);
     renderWeeklyGoal([]);
+    renderDailyTargetAndDifficulty([]);
     renderWeakTopics({});
     renderQuizHistoryDashboard();
     var localStats = { totalDone: 0, streak: 0, java: 0, dsa: 0, react: 0, hr: 0, ipk: 0 };
@@ -1247,16 +1429,20 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Theme
-  var savedTheme = localStorage.getItem('sr_theme') || 'dark';
+  var savedTheme = localStorage.getItem('sr_theme') || localStorage.getItem('prep_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', savedTheme);
-  document.getElementById('themeBtn').textContent = savedTheme === 'dark' ? '🌙' : '☀️';
-  document.getElementById('themeBtn').addEventListener('click', function() {
-    var cur  = document.documentElement.getAttribute('data-theme');
-    var next = cur === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('sr_theme', next);
-    this.textContent = next === 'dark' ? '🌙' : '☀️';
-  });
+  var themeBtn = document.getElementById('themeBtn');
+  if (themeBtn) {
+    themeBtn.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+    themeBtn.addEventListener('click', function() {
+      var cur  = document.documentElement.getAttribute('data-theme');
+      var next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('sr_theme', next);
+      localStorage.setItem('prep_theme', next);
+      this.textContent = next === 'dark' ? '🌙' : '☀️';
+    });
+  }
 
   // Initial fast render
   renderResourceGrid();

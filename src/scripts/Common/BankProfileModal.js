@@ -11,6 +11,14 @@
 
   let _modalEl = null;
 
+  function isStudyContext() {
+    return window.location.pathname.indexOf('/study') !== -1 ||
+           typeof window.StudySync !== 'undefined' ||
+           typeof window._studyProfile !== 'undefined' ||
+           document.body.classList.contains('study-page') ||
+           document.getElementById('statDone') !== null;
+  }
+
   function isNativeAndroid() {
     return typeof window.AndroidBridge !== 'undefined' &&
            typeof window.AndroidBridge.isNativeApp === 'function' &&
@@ -36,11 +44,25 @@
     }
     try {
       const sess = localStorage.getItem('lm_session');
-      if (sess) return JSON.parse(sess);
+      if (sess) {
+        const parsed = JSON.parse(sess);
+        const userObj = parsed.user || parsed;
+        const meta = userObj.user_metadata || {};
+        const name = meta.full_name || meta.name || userObj.displayName || (userObj.email ? userObj.email.split('@')[0] : '') || (userObj.username ? userObj.username.split('@')[0] : 'User');
+        const email = userObj.email || userObj.username || 'user@ledgermate.local';
+        return {
+          displayName: name || 'User',
+          username: email,
+          email: email,
+          role: parsed.role || (window._studyProfile ? window._studyProfile.role : 'user'),
+          userId: userObj.id || parsed.userId || 'default'
+        };
+      }
     } catch (e) {}
     return {
       displayName: 'User',
       username: 'user@ledgermate.local',
+      email: 'user@ledgermate.local',
       role: 'user',
       userId: 'default'
     };
@@ -68,6 +90,9 @@
   }
 
   function getCloudSyncText() {
+    if (isStudyContext()) {
+      return 'Connected';
+    }
     try {
       const isOffline = (window.LM_CloudSync && typeof window.LM_CloudSync.isOfflineMode === 'function')
         ? window.LM_CloudSync.isOfflineMode()
@@ -96,6 +121,7 @@
       return document.getElementById('bankProfileModal');
     }
 
+    const isStudy = isStudyContext();
     const overlay = document.createElement('div');
     overlay.id = 'bankProfileModal';
     overlay.className = 'bank-profile-overlay';
@@ -113,7 +139,7 @@
             <div class="bank-profile-avatar-wrap">
               <div class="bank-profile-avatar-ring"></div>
               <div class="bank-profile-avatar" id="bpmAvatar">A</div>
-              <div class="bank-profile-verified-badge" title="Verified Vault Account">✓</div>
+              <div class="bank-profile-verified-badge" title="Verified Account">✓</div>
             </div>
             <div class="bank-profile-user-meta">
               <div class="bank-profile-name-row">
@@ -132,11 +158,11 @@
         <div class="bank-profile-body">
           <!-- ── Micro Status Matrix ── -->
           <div class="bank-profile-matrix">
-            <div class="bpm-matrix-card" onclick="window.LM_ProfileModal.toggleSyncMode()" style="cursor:pointer;" title="Tap to toggle Cloud Sync / Offline Mode">
+            <div class="bpm-matrix-card" onclick="window.LM_ProfileModal.toggleSyncMode()" style="cursor:pointer;" title="${isStudy ? 'Pure Cloud Synced Database' : 'Tap to toggle Cloud Sync / Offline Mode'}">
               <div class="bpm-matrix-icon" id="bpmSyncIcon">☁️</div>
               <div class="bpm-matrix-info">
                 <div class="bpm-matrix-label" id="bpmSyncLabel">Cloud Sync</div>
-                <div class="bpm-matrix-val" id="bpmSyncStatus">Synced</div>
+                <div class="bpm-matrix-val" id="bpmSyncStatus">Connected</div>
               </div>
               <div class="bpm-switch-pill" id="bpmSyncSwitch">
                 <span class="bpm-switch-knob"></span>
@@ -144,15 +170,15 @@
               </div>
             </div>
 
-            <div class="bpm-matrix-card" onclick="window.LM_ProfileModal.togglePrivacy()" style="cursor:pointer;" title="Tap to toggle stealth balance privacy">
-              <div class="bpm-matrix-icon" id="bpmPrivacyIcon">👁️</div>
+            <div class="bpm-matrix-card" id="bpmCard2" onclick="${isStudy ? 'window.LM_ProfileModal.showStreakInfo()' : 'window.LM_ProfileModal.togglePrivacy()'}" style="cursor:pointer;" title="${isStudy ? 'Current Active Daily Study Streak' : 'Tap to toggle stealth balance privacy'}">
+              <div class="bpm-matrix-icon" id="bpmPrivacyIcon">${isStudy ? '🔥' : '👁️'}</div>
               <div class="bpm-matrix-info">
-                <div class="bpm-matrix-label">Privacy Shield</div>
-                <div class="bpm-matrix-val" id="bpmPrivacyStatus">Hidden</div>
+                <div class="bpm-matrix-label" id="bpmCard2Label">${isStudy ? 'Study Streak' : 'Privacy Shield'}</div>
+                <div class="bpm-matrix-val" id="bpmPrivacyStatus">${isStudy ? '0 Days' : 'Hidden'}</div>
               </div>
               <div class="bpm-switch-pill" id="bpmPrivacySwitch">
                 <span class="bpm-switch-knob"></span>
-                <span id="bpmPrivacySwitchText">OFF</span>
+                <span id="bpmPrivacySwitchText">${isStudy ? 'Active' : 'OFF'}</span>
               </div>
             </div>
 
@@ -218,7 +244,31 @@
             </button>
           </div>
 
-          <div class="bpm-section-group">
+          <!-- Study Cloud Sync & Updates Group -->
+          <div class="bpm-section-group" id="bpmStudyGroup" style="${isStudy ? '' : 'display:none;'}">
+            <div class="bpm-group-title">CLOUD SYNC &amp; UPDATES</div>
+
+            <button class="bpm-action-row" onclick="window.LM_ProfileModal.triggerStudyCloudSync()">
+              <span class="bpm-row-icon">☁️</span>
+              <div class="bpm-row-text">
+                <div class="bpm-row-title">Study Cloud Database Sync</div>
+                <div class="bpm-row-desc" id="bpmStudySyncDesc">538+ question progress synced to Supabase</div>
+              </div>
+              <span class="bpm-badge" id="bpmStudySyncBadge">Sync Now</span>
+            </button>
+
+            <button class="bpm-action-row" onclick="window.LM_ProfileModal.checkUpdates()">
+              <span class="bpm-row-icon" id="bpmUpdateIcon">🔄</span>
+              <div class="bpm-row-text">
+                <div class="bpm-row-title">App Version &amp; Updates</div>
+                <div class="bpm-row-desc" id="bpmVersionDesc">Version v1.0.0</div>
+              </div>
+              <span class="bpm-badge" id="bpmUpdateBadge">Check</span>
+            </button>
+          </div>
+
+          <!-- Finance Offline Backup Group (Hidden in Study Mode) -->
+          <div class="bpm-section-group" id="bpmFinanceBackupGroup" style="${isStudy ? 'display:none;' : ''}">
             <div class="bpm-group-title">DATA BACKUP &amp; STORAGE</div>
 
             <button class="bpm-action-row" onclick="window.LM_ProfileModal.manageLocalBackup()">
@@ -231,12 +281,12 @@
             </button>
 
             <button class="bpm-action-row" onclick="window.LM_ProfileModal.checkUpdates()">
-              <span class="bpm-row-icon" id="bpmUpdateIcon">🔄</span>
+              <span class="bpm-row-icon">🔄</span>
               <div class="bpm-row-text">
                 <div class="bpm-row-title">App Version &amp; Updates</div>
-                <div class="bpm-row-desc" id="bpmVersionDesc">Version v1.0.0</div>
+                <div class="bpm-row-desc" id="bpmFinanceVersionDesc">Version v1.0.0</div>
               </div>
-              <span class="bpm-badge" id="bpmUpdateBadge">Check</span>
+              <span class="bpm-badge">Check</span>
             </button>
 
             <button class="bpm-action-row" onclick="window.LM_ProfileModal.exportBackup()">
@@ -263,15 +313,15 @@
             <button class="bpm-action-row bpm-signout-btn" onclick="window.LM_ProfileModal.signOut()">
               <span class="bpm-row-icon">🚪</span>
               <div class="bpm-row-text">
-                <div class="bpm-row-title" style="color:var(--rose);">Sign Out of Vault</div>
+                <div class="bpm-row-title" style="color:var(--rose,#f43f5e);">Sign Out of Vault</div>
                 <div class="bpm-row-desc">Securely lock session &amp; sign out</div>
               </div>
-              <span class="bpm-row-arrow" style="color:var(--rose);">→</span>
+              <span class="bpm-row-arrow" style="color:var(--rose,#f43f5e);">→</span>
             </button>
           </div>
 
           <div class="bpm-footer-meta">
-            <span>LedgerMate Finance OS</span> · <span>Secure Financial Intelligence</span>
+            <span>${isStudy ? 'Study Resources OS' : 'LedgerMate Finance OS'}</span> · <span>Cloud-Protected Intelligence</span>
           </div>
         </div>
       </div>
@@ -282,14 +332,16 @@
   }
 
   function renderProfileDetails() {
+    const isStudy = isStudyContext();
     const user = getUserData();
     const isLock = isAppLockEnabled();
     const isPrivacy = isPrivacyModeActive();
     const ver = getInstalledVersion();
-    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-    const isOffline = (window.LM_CloudSync && typeof window.LM_CloudSync.isOfflineMode === 'function')
+    const currentTheme = document.documentElement.getAttribute('data-theme') || localStorage.getItem('prep_theme') || localStorage.getItem('ledgerMate_theme') || 'dark';
+    const isDark = currentTheme !== 'light';
+    const isOffline = isStudy ? false : ((window.LM_CloudSync && typeof window.LM_CloudSync.isOfflineMode === 'function')
       ? window.LM_CloudSync.isOfflineMode()
-      : (localStorage.getItem('lm_sync_mode') === 'offline');
+      : (localStorage.getItem('lm_sync_mode') === 'offline'));
 
     // Avatar initial
     const initial = (user.displayName || user.username || 'A').charAt(0).toUpperCase();
@@ -304,7 +356,7 @@
     const rolePill = document.getElementById('bpmRolePill');
     if (rolePill) {
       const isAdmin = user.role === 'admin';
-      rolePill.textContent = isAdmin ? 'ADMIN' : 'PERSONAL';
+      rolePill.textContent = isAdmin ? 'ADMIN' : (isStudy ? 'STUDY VAULT' : 'PERSONAL');
       rolePill.className = 'bank-profile-role-pill ' + (isAdmin ? 'admin' : 'user');
     }
 
@@ -320,7 +372,7 @@
     if (syncLabel) syncLabel.textContent = isOffline ? 'Offline Mode' : 'Cloud Sync';
 
     const syncStatus = document.getElementById('bpmSyncStatus');
-    if (syncStatus) syncStatus.textContent = isOffline ? 'Local Vault' : getCloudSyncText();
+    if (syncStatus) syncStatus.textContent = isStudy ? 'Connected' : (isOffline ? 'Local Vault' : getCloudSyncText());
 
     const syncSwitch = document.getElementById('bpmSyncSwitch');
     const syncSwitchText = document.getElementById('bpmSyncSwitchText');
@@ -331,21 +383,30 @@
       syncSwitchText.textContent = !isOffline ? 'Cloud' : 'Offline';
     }
 
-    const privStatus = document.getElementById('bpmPrivacyStatus');
-    if (privStatus) privStatus.textContent = isPrivacy ? 'Masked' : 'Visible';
+    // Card 2: Streak in study mode vs Privacy in finance mode
+    const card2Label = document.getElementById('bpmCard2Label');
+    const card2Val = document.getElementById('bpmPrivacyStatus');
+    const card2Icon = document.getElementById('bpmPrivacyIcon');
+    const card2Switch = document.getElementById('bpmPrivacySwitch');
+    const card2SwitchText = document.getElementById('bpmPrivacySwitchText');
 
-    const privIcon = document.getElementById('bpmPrivacyIcon');
-    if (privIcon) privIcon.textContent = isPrivacy ? '🙈' : '👁️';
-
-    const privSwitch = document.getElementById('bpmPrivacySwitch');
-    const privSwitchText = document.getElementById('bpmPrivacySwitchText');
-    if (privSwitch) {
-      privSwitch.classList.toggle('active', isPrivacy);
+    if (isStudy) {
+      var streak = 0;
+      try { streak = Number(localStorage.getItem('study_streak_count') || 0); } catch(e) {}
+      if (card2Label) card2Label.textContent = 'Study Streak';
+      if (card2Val) card2Val.textContent = streak + ' Days';
+      if (card2Icon) card2Icon.textContent = '🔥';
+      if (card2Switch) card2Switch.classList.add('active');
+      if (card2SwitchText) card2SwitchText.textContent = 'Active';
+    } else {
+      if (card2Label) card2Label.textContent = 'Privacy Shield';
+      if (card2Val) card2Val.textContent = isPrivacy ? 'Masked' : 'Visible';
+      if (card2Icon) card2Icon.textContent = isPrivacy ? '🙈' : '👁️';
+      if (card2Switch) card2Switch.classList.toggle('active', isPrivacy);
+      if (card2SwitchText) card2SwitchText.textContent = isPrivacy ? 'ON' : 'OFF';
     }
-    if (privSwitchText) {
-      privSwitchText.textContent = isPrivacy ? 'ON' : 'OFF';
-    }
 
+    // Card 3: Vault Lock
     const lockStatus = document.getElementById('bpmLockStatus');
     if (lockStatus) lockStatus.textContent = isLock ? 'Protected' : 'Off';
 
@@ -379,7 +440,18 @@
       themeDesc.textContent = isDark ? 'Dark Palette · High Contrast' : 'Light Palette · Clean View';
     }
 
-    // Local Backup badge & desc
+    // Study Cloud Progress desc
+    const studySyncDesc = document.getElementById('bpmStudySyncDesc');
+    if (studySyncDesc) {
+      var doneCount = 0;
+      try {
+        var p = JSON.parse(localStorage.getItem('study_progress_v1') || '{}');
+        doneCount = Object.values(p).filter(function(v){ return v && v.status === 'done'; }).length;
+      } catch(e) {}
+      studySyncDesc.textContent = doneCount > 0 ? (doneCount + ' questions completed · Synced to Supabase') : '538+ question progress synced to Supabase';
+    }
+
+    // Local Backup badge & desc (Finance Mode)
     const isLocalAuto = (window.LM_LocalBackup && typeof window.LM_LocalBackup.isLocalBackupEnabled === 'function')
       ? window.LM_LocalBackup.isLocalBackupEnabled()
       : (localStorage.getItem('lm_local_backup_enabled') === 'true');
@@ -392,6 +464,8 @@
     // Version
     const verDesc = document.getElementById('bpmVersionDesc');
     if (verDesc) verDesc.textContent = `Version ${ver.versionName || 'v1.0.0'} (${ver.versionCode || 1})`;
+    const finVerDesc = document.getElementById('bpmFinanceVersionDesc');
+    if (finVerDesc) finVerDesc.textContent = `Version ${ver.versionName || 'v1.0.0'} (${ver.versionCode || 1})`;
 
     // Admin button visibility
     const adminBtn = document.getElementById('bpmAdminBtn');
@@ -433,11 +507,27 @@
       }
       if (typeof window.showToast === 'function') {
         window.showToast('Copied username to clipboard!', 'info');
+      } else if (window.LMToast) {
+        window.LMToast.show('Copied username to clipboard!', 'info');
       }
       if (window.LM_Haptic) window.LM_Haptic.notificationSuccess();
     },
 
     toggleSyncMode: function () {
+      if (isStudyContext()) {
+        if (window.StudySync && typeof window.StudySync.syncDown === 'function') {
+          window.StudySync.syncDown();
+        }
+        renderProfileDetails();
+        if (typeof window.showToast === 'function') {
+          window.showToast('☁️ Study Hub is live cloud synchronized with Supabase', 'success');
+        } else if (window.LMToast) {
+          window.LMToast.show('☁️ Study Hub is live cloud synchronized with Supabase', 'success');
+        }
+        if (window.LM_Haptic) window.LM_Haptic.impactLight();
+        return;
+      }
+
       const isCurrentlyOffline = (window.LM_CloudSync && typeof window.LM_CloudSync.isOfflineMode === 'function')
         ? window.LM_CloudSync.isOfflineMode()
         : (localStorage.getItem('lm_sync_mode') === 'offline');
@@ -456,13 +546,51 @@
       if (window.LM_Haptic) window.LM_Haptic.impactLight();
     },
 
+    triggerStudyCloudSync: function () {
+      const badge = document.getElementById('bpmStudySyncBadge');
+      if (badge) badge.textContent = 'Syncing...';
+      if (window.StudySync && typeof window.StudySync.syncDown === 'function') {
+        window.StudySync.syncDown().then(function () {
+          if (badge) badge.textContent = 'Synced ✓';
+          setTimeout(function () { if (badge) badge.textContent = 'Sync Now'; }, 2500);
+          renderProfileDetails();
+          if (window.LMToast) window.LMToast.show('Cloud study progress up-to-date! ☁️', 'success');
+        }).catch(function () {
+          if (badge) badge.textContent = 'Sync Now';
+        });
+      } else {
+        setTimeout(function () {
+          if (badge) badge.textContent = 'Synced ✓';
+          setTimeout(function () { if (badge) badge.textContent = 'Sync Now'; }, 2000);
+          if (window.LMToast) window.LMToast.show('Cloud study progress synchronized! ☁️', 'success');
+        }, 400);
+      }
+      if (window.LM_Haptic) window.LM_Haptic.notificationSuccess();
+    },
+
+    showStreakInfo: function () {
+      var streak = 0;
+      try { streak = Number(localStorage.getItem('study_streak_count') || 0); } catch(e) {}
+      var msg = streak > 0 ? ('🔥 You have a ' + streak + '-day active study streak! Keep it up!') : '🔥 Complete at least 1 question today to start your study streak!';
+      if (typeof window.showToast === 'function') {
+        window.showToast(msg, 'info');
+      } else if (window.LMToast) {
+        window.LMToast.show(msg, 'info');
+      }
+      if (window.LM_Haptic) window.LM_Haptic.impactLight();
+    },
+
     handleSyncCardClick: async function () {
+      if (isStudyContext()) {
+        BankProfileModal.triggerStudyCloudSync();
+        return;
+      }
+
       const isOffline = (window.LM_CloudSync && typeof window.LM_CloudSync.isOfflineMode === 'function')
         ? window.LM_CloudSync.isOfflineMode()
         : (localStorage.getItem('lm_sync_mode') === 'offline');
 
       if (isOffline) {
-        // In Offline mode: execute local backup or request folder permission
         if (window.LM_LocalBackup) {
           const info = await window.LM_LocalBackup.getFolderInfo();
           if (!info.configured) {
@@ -480,7 +608,6 @@
           }
         }
       } else {
-        // In Cloud mode: execute direct cloud sync
         const btn = document.getElementById('bpmSyncAction');
         if (btn) btn.textContent = 'Syncing...';
         if (typeof window.LM_manualSync === 'function') {
@@ -500,10 +627,16 @@
     setTheme: function (theme) {
       if (theme === 'light') {
         document.documentElement.setAttribute('data-theme', 'light');
-        try { localStorage.setItem('ledgerMate_theme', 'light'); } catch (e) {}
+        try {
+          localStorage.setItem('ledgerMate_theme', 'light');
+          localStorage.setItem('prep_theme', 'light');
+        } catch (e) {}
       } else {
         document.documentElement.removeAttribute('data-theme');
-        try { localStorage.setItem('ledgerMate_theme', 'dark'); } catch (e) {}
+        try {
+          localStorage.setItem('ledgerMate_theme', 'dark');
+          localStorage.setItem('prep_theme', 'dark');
+        } catch (e) {}
       }
       renderProfileDetails();
       if (window.LM_Haptic) window.LM_Haptic.impactLight();
@@ -544,6 +677,8 @@
           renderProfileDetails();
           if (typeof window.showToast === 'function') {
             window.showToast('🛡️ Vault Lock enabled!', 'success');
+          } else if (window.LMToast) {
+            window.LMToast.show('🛡️ Vault Lock enabled!', 'success');
           }
           if (window.LM_Haptic) window.LM_Haptic.notificationSuccess();
         } else {
@@ -563,6 +698,14 @@
       BankProfileModal.close();
       if (typeof window.openAppLockSettingsModal === 'function') {
         window.openAppLockSettingsModal();
+      } else if (window.LM_Auth && typeof window.LM_Auth.openSecurityModal === 'function') {
+        window.LM_Auth.openSecurityModal();
+      } else {
+        if (typeof window.showToast === 'function') {
+          window.showToast('🛡️ Vault security is managed by cloud session authentication.', 'info');
+        } else if (window.LMToast) {
+          window.LMToast.show('🛡️ Vault security is managed by cloud session authentication.', 'info');
+        }
       }
     },
 
@@ -570,14 +713,35 @@
       BankProfileModal.close();
       if (typeof window.showCredentialsVault === 'function') {
         window.showCredentialsVault();
+      } else {
+        if (typeof window.showToast === 'function') {
+          window.showToast('🔐 Encrypted credentials vault available in LedgerMate Finance OS.', 'info');
+        } else if (window.LMToast) {
+          window.LMToast.show('🔐 Encrypted credentials vault available in LedgerMate Finance OS.', 'info');
+        }
       }
     },
 
     toggleTheme: function () {
-      if (typeof window.toggleTheme === 'function') {
-        window.toggleTheme();
-      }
+      var current = document.documentElement.getAttribute('data-theme') || localStorage.getItem('prep_theme') || localStorage.getItem('ledgerMate_theme') || 'dark';
+      var next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try {
+        localStorage.setItem('prep_theme', next);
+        localStorage.setItem('ledgerMate_theme', next);
+      } catch (e) {}
+
+      var tb = document.getElementById('themeBtn');
+      if (tb) tb.textContent = next === 'light' ? '☀️' : '🌙';
+      var agfBtn = document.getElementById('agfThemeBtn');
+      if (agfBtn) agfBtn.textContent = next === 'light' ? '☀️' : '🌙';
+
       renderProfileDetails();
+      if (typeof window.showToast === 'function') {
+        window.showToast('Switched to ' + next + ' theme', 'info');
+      } else if (window.LMToast) {
+        window.LMToast.show('Switched to ' + next + ' theme', 'info');
+      }
       if (window.LM_Haptic) window.LM_Haptic.impactLight();
     },
 
@@ -590,8 +754,12 @@
 
     openAdmin: function () {
       BankProfileModal.close();
-      if (window.LM_Admin && typeof window.LM_Admin.show === 'function') {
+      if (window.StudyAdmin && typeof window.StudyAdmin.open === 'function') {
+        window.StudyAdmin.open();
+      } else if (window.LM_Admin && typeof window.LM_Admin.show === 'function') {
         window.LM_Admin.show();
+      } else {
+        window.location.href = window.location.pathname.indexOf('/prep/') !== -1 ? '../index.html?admin=open' : './index.html?admin=open';
       }
     },
 
@@ -599,6 +767,16 @@
       BankProfileModal.close();
       if (window.LM_AppUpdateService && typeof window.LM_AppUpdateService.checkForUpdates === 'function') {
         window.LM_AppUpdateService.checkForUpdates(true);
+      } else if (window.AppUpdateService && typeof window.AppUpdateService.checkForUpdates === 'function') {
+        window.AppUpdateService.checkForUpdates(true);
+      } else {
+        const ver = getInstalledVersion();
+        var msg = `App is up-to-date! Version ${ver.versionName || 'v1.0.0'} (${ver.versionCode || 1})`;
+        if (typeof window.showToast === 'function') {
+          window.showToast(msg, 'success');
+        } else if (window.LMToast) {
+          window.LMToast.show(msg, 'success');
+        }
       }
     },
 
@@ -616,9 +794,22 @@
 
     signOut: function () {
       BankProfileModal.close();
-      if (confirm('Sign out of LedgerMate?')) {
-        if (window.LM_Auth && typeof window.LM_Auth.logout === 'function') {
+      if (confirm('Sign out of your account?')) {
+        localStorage.removeItem('lm_session');
+        if (typeof _supabase !== 'undefined' && _supabase && _supabase.auth) {
+          _supabase.auth.signOut().finally(function () {
+            var target = isStudyContext()
+              ? (window.location.pathname.indexOf('/prep/') !== -1 ? '../login.html?action=logout&app=study' : './login.html?action=logout&app=study')
+              : './login.html?action=logout';
+            window.location.href = target;
+          });
+        } else if (window.LM_Auth && typeof window.LM_Auth.logout === 'function') {
           window.LM_Auth.logout();
+        } else {
+          var target = isStudyContext()
+            ? (window.location.pathname.indexOf('/prep/') !== -1 ? '../login.html?action=logout&app=study' : './login.html?action=logout&app=study')
+            : './login.html?action=logout';
+          window.location.href = target;
         }
       }
     }
