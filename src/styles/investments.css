@@ -7,7 +7,7 @@
 .inv-container {
   max-width: 1240px;
   margin: 0 auto;
-  padding: 16px 0 36px 0;
+  padding: 8px 0 16px 0;
   box-sizing: border-box;
 }
 
@@ -17,26 +17,26 @@
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .inv-title-area h1 {
-  font-size: 1.75rem;
+  font-size: clamp(16px, 2.6vw, 20px);
   font-weight: 700;
   color: var(--text);
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   font-family: var(--font-h, 'Sora', sans-serif);
   letter-spacing: -0.02em;
 }
 
 .inv-title-area p {
   color: var(--text-3);
-  font-size: 0.875rem;
-  margin: 4px 0 0 0;
+  font-size: 11.5px;
+  margin: 2px 0 0 0;
 }
 
 .inv-header-actions {

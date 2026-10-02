@@ -32,13 +32,13 @@ html, body {
   box-sizing: border-box !important;
   min-width: 0 !important;
   overflow-x: hidden !important;
-  padding-bottom: calc(105px + env(safe-area-inset-bottom, 20px)) !important;
+  padding-bottom: calc(68px + env(safe-area-inset-bottom, 10px)) !important;
   -webkit-overflow-scrolling: touch;
 }
 
 @media (min-width: 1024px) {
   #main {
-    padding-bottom: 30px !important;
+    padding-bottom: 20px !important;
   }
 }
 
@@ -344,19 +344,20 @@ html, body {
 .page-title {
   word-break: break-word !important;
   overflow-wrap: break-word !important;
-  font-size: clamp(20px, 4.5vw, 28px) !important;
-  line-height: 1.25 !important;
+  font-size: clamp(16px, 2.6vw, 20px) !important;
+  line-height: 1.15 !important;
   font-weight: 700 !important;
-  letter-spacing: -0.5px !important;
+  letter-spacing: -0.3px !important;
+  margin: 0 !important;
 }
 
 .page-greeting {
-  font-size: 11.5px !important;
-  letter-spacing: 0.8px !important;
+  font-size: 10.5px !important;
+  letter-spacing: 0.6px !important;
   text-transform: uppercase !important;
   color: var(--text-3) !important;
   font-family: var(--font-m) !important;
-  margin-bottom: 4px !important;
+  margin-bottom: 2px !important;
 }
 
 .range-pills {

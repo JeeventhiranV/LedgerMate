@@ -136,7 +136,7 @@ body::before {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(110px + env(safe-area-inset-bottom, 24px)) !important;
+  padding-bottom: calc(40px + env(safe-area-inset-bottom, 16px)) !important;
   box-sizing: border-box !important;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -149,7 +149,7 @@ body::before {
     top: 0;
     height: 100vh;
     transform: translateX(0);
-    padding-bottom: 30px !important;
+    padding-bottom: 24px !important;
   }
   #sidebarOverlay { display: none !important; }
 }
@@ -166,8 +166,8 @@ body::before {
 
 /* Safe bottom spacing for the last options in sidebar */
 #sidebar .sidebar-section:last-child {
-  margin-bottom: 24px !important;
-  padding-bottom: 24px !important;
+  margin-bottom: 0px !important;
+  padding-bottom: 0px !important;
 }
 
 /* Hide floating mobile bottom dock and FAB when sidebar is open to prevent overlapping */
@@ -193,27 +193,29 @@ body.sidebar-open #voiceTxBtn {
   flex-shrink: 0;
   box-shadow: 0 4px 16px rgba(0,240,255,0.25);
 }
-.sidebar-logo-text { font-family: var(--font-h); font-weight: 700; font-size: 19px; letter-spacing: -0.5px; }
-.sidebar-logo-sub  { font-size: 11px; color: var(--text-3); margin-top: 1px; font-family: var(--font-m); }
+.sidebar-logo-text { font-family: var(--font-h); font-weight: 700; font-size: 16.5px; letter-spacing: -0.4px; white-space: nowrap; }
+.sidebar-logo-sub  { font-size: 10.5px; color: var(--text-3); margin-top: 1px; font-family: var(--font-m); }
 .sidebar-version-badge {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  font-size: 10px;
+  gap: 2px;
+  font-size: 9px;
   font-weight: 700;
   font-family: var(--font-m, monospace);
-  padding: 2px 7px;
+  padding: 1.5px 6px;
   border-radius: 999px;
   background: linear-gradient(135deg, rgba(0, 212, 180, 0.15), rgba(124, 58, 237, 0.15));
   border: 1px solid rgba(0, 212, 180, 0.38);
   color: var(--teal, #00d4b4);
-  box-shadow: 0 0 10px rgba(0, 212, 180, 0.15);
-  letter-spacing: 0.3px;
+  box-shadow: 0 0 8px rgba(0, 212, 180, 0.15);
+  letter-spacing: 0.2px;
   line-height: 1.2;
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
   vertical-align: middle;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .sidebar-version-badge:hover {
   background: linear-gradient(135deg, rgba(0, 212, 180, 0.25), rgba(124, 58, 237, 0.25));
@@ -229,6 +231,31 @@ body.sidebar-open #voiceTxBtn {
   border: 1px solid rgba(13, 148, 136, 0.35);
   color: #0d9488;
   box-shadow: 0 1px 4px rgba(13, 148, 136, 0.1);
+}
+
+/* ── Sidebar Footer ─────────────────────────── */
+.sidebar-footer {
+  padding: 14px 16px 20px;
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-3);
+  user-select: none;
+}
+.sidebar-footer-copy {
+  font-weight: 600;
+  color: var(--text-2);
+}
+.sidebar-footer-copy span {
+  color: var(--teal);
+  font-weight: 700;
+}
+.sidebar-footer-author {
+  font-size: 10px;
+  color: var(--text-3);
+  margin-top: 2px;
+  opacity: 0.8;
 }
 
 .sidebar-section { padding: 16px 12px 6px; }
@@ -315,9 +342,9 @@ body.sidebar-open #voiceTxBtn {
 ═══════════════════════════════════════════════ */
 #main {
   flex: 1; min-width: 0; display: flex; flex-direction: column;
-  padding-bottom: 80px;
+  padding-bottom: calc(68px + env(safe-area-inset-bottom, 10px));
 }
-@media (min-width: 1024px) { #main { padding-bottom: 0; } }
+@media (min-width: 1024px) { #main { padding-bottom: 20px; } }
 
 /* ═══════════════════════════════════════════════
    TOPBAR

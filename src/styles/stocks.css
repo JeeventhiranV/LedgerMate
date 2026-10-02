@@ -19,7 +19,7 @@
 .stocks-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px 16px 80px;
+  padding: 10px 12px 20px;
   box-sizing: border-box;
 }
 
@@ -29,29 +29,29 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 14px;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--border, #1e2436);
 }
 
 .stocks-header-title-group h1 {
   font-family: 'Syne', sans-serif;
-  font-size: clamp(20px, 3.5vw, 28px);
+  font-size: clamp(16px, 2.6vw, 20px);
   font-weight: 800;
   color: var(--text1, #e6eaf3);
-  margin: 0 0 4px 0;
+  margin: 0 0 2px 0;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .stocks-header-title-group .market-badge {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 3px 8px;
+  padding: 2px 7px;
   border-radius: 20px;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
   text-transform: uppercase;
 }
 
@@ -68,7 +68,7 @@
 }
 
 .stocks-header-sub {
-  font-size: 13px;
+  font-size: 11.5px;
   color: var(--text3, #9ca3af);
   margin: 0;
 }

@@ -158,7 +158,7 @@
     <div class="sidebar-logo">
       <div class="sidebar-logo-icon">📒</div>
       <div style="flex: 1; min-width: 0;">
-        <div style="display: flex; align-items: center; gap: 7px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; min-width: 0;">
           <div class="sidebar-logo-text">LedgerMate</div>
           <span id="sidebarAppVersion" class="sidebar-version-badge" title="App Version · Tap to check for updates" onclick="window.LM_AppUpdateService ? window.LM_AppUpdateService.checkForUpdates(true) : null">v1.0.0</span>
         </div>
@@ -357,6 +357,12 @@
         style="color:var(--rose);">
         <span class="nav-icon">🚪</span> Sign Out
       </button>
+    </div>
+
+    <!-- ── SIDEBAR FOOTER ─────────────────────────────────── -->
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-copy">© <span id="year"></span> <span>LedgerMate</span></div>
+      <div class="sidebar-footer-author">by Jeeventhiran</div>
     </div>
 
   </aside>
@@ -995,7 +1001,6 @@
       </div>
 
     </div><!-- /pageContent -->
-    <footer>© <span id="year"></span> <span>LedgerMate</span> by Jeeventhiran</footer>
   </main>
 </div>
 
