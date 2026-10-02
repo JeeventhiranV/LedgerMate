@@ -1661,8 +1661,8 @@ body.privacy-mode [data-amount]:active {
 
 /* ── Light Theme Adjustments ── */
 [data-theme="light"] .sidebar-nav-item.active {
-  background: rgba(2, 132, 199, 0.10) !important;
-  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.15) !important;
+  background: rgba(13, 148, 136, 0.12) !important;
+  box-shadow: 0 2px 10px rgba(13, 148, 136, 0.15) !important;
 }
 [data-theme="light"] .bnav-item.active {
   box-shadow: 0 2px 10px rgba(2, 132, 199, 0.2) !important;
