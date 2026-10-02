@@ -4292,13 +4292,15 @@ function kpiCard(title, value, sub, type, valueColor, onclickAttr) {
 
   return `
     <div class="kpi-card ${cls} ${glowClass}" ${clickHandler}>
-      <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:2px;">
-        <div class="kpi-icon ${cls}">
-          ${getKpiIcon(title)}
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:4px;">
+        <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+          <div class="kpi-icon ${cls}">
+            ${getKpiIcon(title)}
+          </div>
+          <div class="kpi-label" style="margin-bottom:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${title}</div>
         </div>
         ${liveBadge}
       </div>
-      <div class="kpi-label">${title}</div>
       <div class="kpi-value animate-in ${textGlowClass}" style="color:${valueColor || 'var(--text)'};display:flex;align-items:center;gap:4px;">
         ${liveArrow}<span>${value}</span>
       </div>

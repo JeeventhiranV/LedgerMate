@@ -1365,7 +1365,6 @@ function renderWealthLoans(container) {
 
       mainContentHtml = `<div class="compact-loans-list">${cardsHtml}</div>`;
     }
-  }
   } else {
     // --- By Person Summary View ---
     const groups = buildLoanGroups();

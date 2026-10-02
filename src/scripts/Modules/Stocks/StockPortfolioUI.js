@@ -164,112 +164,114 @@
           </div>
         </div>
 
-        <!-- ── KPI Summary Cards ── -->
-        <div class="stocks-kpi-grid">
-          <!-- Card 1: Current Portfolio Value -->
-          <div class="stock-kpi-card">
-            <div class="stock-kpi-lbl">
-              <span>Current Portfolio Value</span>
-              <span>💼</span>
+        <!-- ── Professional Trading App Portfolio Ribbon ── -->
+        <div class="stocks-trading-ribbon">
+          <div class="trading-ribbon-main">
+            <!-- Left: Current Portfolio Value & Invested -->
+            <div class="trading-val-block">
+              <div class="trading-val-label">
+                <span>Portfolio Value</span>
+                <span class="trading-live-tag">● LIVE</span>
+              </div>
+              <div class="trading-val-amount">${calc.formatINR(summary.currentPortfolioValue)}</div>
+              <div class="trading-val-meta">
+                <span>Invested: <strong>${calc.formatINR(summary.totalInvested)}</strong></span>
+                <span>·</span>
+                <span class="${isTotalPlPositive ? 'stock-pill-gain' : 'stock-pill-loss'}">
+                  ${calc.formatPercent(summary.totalReturnPct)}
+                </span>
+              </div>
             </div>
-            <div class="stock-kpi-val">${calc.formatINR(summary.currentPortfolioValue)}</div>
-            <div class="stock-kpi-sub">
-              <span>Invested:</span>
-              <strong style="color:var(--text2,#cbd5e1);font-family:'JetBrains Mono',monospace;">
-                ${calc.formatINR(summary.totalInvested)}
-              </strong>
-            </div>
-          </div>
 
-          <!-- Card 2: Total Profit & Loss -->
-          <div class="stock-kpi-card ${isTotalPlPositive ? 'stock-kpi-card-gain' : 'stock-kpi-card-loss'}">
-            <div class="stock-kpi-lbl">
-              <span>Total Profit / Loss</span>
-              <span>${isTotalPlPositive ? '🚀' : '📉'}</span>
-            </div>
-            <div class="stock-kpi-val ${isTotalPlPositive ? 'stock-pill-gain' : 'stock-pill-loss'}">
-              ${calc.formatINR(summary.totalPortfolioPL, { showSign: true })}
-            </div>
-            <div class="stock-kpi-sub">
-              <span>Overall Return:</span>
-              <strong class="${isTotalPlPositive ? 'stock-pill-gain' : 'stock-pill-loss'}">
-                ${calc.formatPercent(summary.totalReturnPct)}
-              </strong>
-              <span style="font-size:10px;color:var(--text3,#9ca3af);">
-                (Unrealized: ${calc.formatINR(summary.totalUnrealizedPL)})
-              </span>
-            </div>
-          </div>
+            <!-- Right: Total P&L and 1D Day Change -->
+            <div class="trading-pl-grid">
+              <!-- Total P&L Box -->
+              <div class="trading-metric-box ${isTotalPlPositive ? 'box-gain' : 'box-loss'}">
+                <div class="trading-box-label">Total P&L</div>
+                <div class="trading-box-value ${isTotalPlPositive ? 'stock-pill-gain' : 'stock-pill-loss'}">
+                  ${calc.formatINR(summary.totalPortfolioPL, { showSign: true })}
+                </div>
+                <div class="trading-box-sub ${isTotalPlPositive ? 'stock-pill-gain' : 'stock-pill-loss'}">
+                  ${calc.formatPercent(summary.totalReturnPct)}
+                </div>
+              </div>
 
-          <!-- Card 3: Today's Day Change -->
-          <div class="stock-kpi-card ${isDayChangePositive ? 'stock-kpi-card-gain' : 'stock-kpi-card-loss'}">
-            <div class="stock-kpi-lbl">
-              <span>Today's Change</span>
-              <span>⚡</span>
-            </div>
-            <div class="stock-kpi-val ${isDayChangePositive ? 'stock-pill-gain' : 'stock-pill-loss'}">
-              ${calc.formatINR(summary.todayChangeAmount, { showSign: true })}
-            </div>
-            <div class="stock-kpi-sub">
-              <span>Day Movement:</span>
-              <strong class="${isDayChangePositive ? 'stock-pill-gain' : 'stock-pill-loss'}">
-                ${calc.formatPercent(summary.todayChangePct)}
-              </strong>
-            </div>
-          </div>
-
-          <!-- Card 4: Portfolio Holdings Health -->
-          <div class="stock-kpi-card">
-            <div class="stock-kpi-lbl">
-              <span>Holdings Overview</span>
-              <span>📊</span>
-            </div>
-            <div class="stock-kpi-val">${summary.totalHoldingsCount} <span style="font-size:13px;font-weight:500;color:var(--text3,#9ca3af);">Stocks</span></div>
-            <div class="stock-kpi-sub">
-              <span class="stock-pill-gain">${summary.profitableCount} Profit</span>
-              <span>·</span>
-              <span class="stock-pill-loss">${summary.lossCount} Loss</span>
-              ${summary.totalRealizedPL !== 0 ? `<span style="margin-left:auto;font-size:11px;color:var(--text3,#9ca3af);">Realized: ${calc.formatINR(summary.totalRealizedPL, { showSign: true })}</span>` : ''}
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Top Performers Mini-Grid ── -->
-        ${summary.totalHoldingsCount > 0 && summary.bestPerformer ? (() => {
-          var bestM = summary.bestPerformer.metrics || {};
-          var isBestPos = (bestM.unrealizedPL || 0) >= 0;
-          var largestM = summary.largestGain ? (summary.largestGain.metrics || {}) : null;
-          var isLargestGainPos = largestM && (largestM.unrealizedPL || 0) >= 0;
-          var worstM = summary.worstPerformer ? (summary.worstPerformer.metrics || {}) : null;
-          var isWorstLoss = worstM && (worstM.unrealizedPL || 0) < 0;
-
-          return `
-          <div class="performers-grid">
-            <div class="performer-card">
-              <div class="performer-card-lbl">${isBestPos ? 'Top Gainer (%)' : 'Best Performer (%)'}</div>
-              <div class="performer-card-sym">${summary.bestPerformer.symbol}</div>
-              <div class="performer-card-val ${isBestPos ? 'stock-pill-gain' : 'stock-pill-loss'}">${calc.formatPercent(bestM.unrealizedPLPct)}</div>
-            </div>
-            <div class="performer-card">
-              <div class="performer-card-lbl">${isLargestGainPos ? 'Top Gainer (₹)' : 'Best Performer (₹)'}</div>
-              <div class="performer-card-sym">${summary.largestGain ? summary.largestGain.symbol : '—'}</div>
-              <div class="performer-card-val ${isLargestGainPos ? 'stock-pill-gain' : 'stock-pill-loss'}">${largestM ? calc.formatINR(largestM.unrealizedPL, { showSign: true }) : '₹0'}</div>
-            </div>
-            <div class="performer-card">
-              <div class="performer-card-lbl">Highest Allocation</div>
-              <div class="performer-card-sym">${summary.highestAllocation ? summary.highestAllocation.symbol : '—'}</div>
-              <div class="performer-card-val" style="color:var(--stock-blue,#3b82f6);">${summary.highestAllocation ? calc.formatINR(summary.highestAllocation.metrics.currentValue) : '₹0'}</div>
-            </div>
-            <div class="performer-card">
-              <div class="performer-card-lbl">${isWorstLoss ? 'Top Drag / Loss' : 'Lowest Gainer (%)'}</div>
-              <div class="performer-card-sym">${summary.worstPerformer ? summary.worstPerformer.symbol : '—'}</div>
-              <div class="performer-card-val ${isWorstLoss ? 'stock-pill-loss' : 'stock-pill-gain'}">
-                ${worstM ? calc.formatPercent(worstM.unrealizedPLPct) : '0%'}
+              <!-- Today's Change Box -->
+              <div class="trading-metric-box ${isDayChangePositive ? 'box-gain' : 'box-loss'}">
+                <div class="trading-box-label">1D / Today's P&L</div>
+                <div class="trading-box-value ${isDayChangePositive ? 'stock-pill-gain' : 'stock-pill-loss'}">
+                  ${calc.formatINR(summary.todayChangeAmount, { showSign: true })}
+                </div>
+                <div class="trading-box-sub ${isDayChangePositive ? 'stock-pill-gain' : 'stock-pill-loss'}">
+                  ${calc.formatPercent(summary.todayChangePct)}
+                </div>
               </div>
             </div>
           </div>
-          `;
-        })() : ''}
+
+          <!-- Bottom Micro-Chips Strip (Holdings count, Realized P&L, Top Movers) -->
+          <div class="trading-ribbon-sub">
+            <div class="trading-chip">
+              <span>💼</span>
+              <strong>${summary.totalHoldingsCount}</strong>
+              <span style="color:var(--text3,#9ca3af);">Holdings</span>
+              ${summary.totalHoldingsCount > 0 ? `
+                <span style="color:var(--stock-green);font-size:10.5px;font-weight:700;">(${summary.profitableCount}🟢 ${summary.lossCount}🔴)</span>
+              ` : ''}
+            </div>
+
+            ${summary.totalRealizedPL !== 0 ? `
+              <div class="trading-chip">
+                <span>💰</span>
+                <span style="color:var(--text3,#9ca3af);">Realized:</span>
+                <strong class="${summary.totalRealizedPL >= 0 ? 'stock-pill-gain' : 'stock-pill-loss'}">
+                  ${calc.formatINR(summary.totalRealizedPL, { showSign: true })}
+                </strong>
+              </div>
+            ` : ''}
+
+            ${summary.bestPerformer ? (() => {
+              var bestM = summary.bestPerformer.metrics || {};
+              var isBestPos = (bestM.unrealizedPL || 0) >= 0;
+              return `
+                <div class="trading-chip">
+                  <span>🚀</span>
+                  <span style="color:var(--text3,#9ca3af);">Top:</span>
+                  <strong>${summary.bestPerformer.symbol}</strong>
+                  <span class="${isBestPos ? 'stock-pill-gain' : 'stock-pill-loss'}" style="font-size:11px;">
+                    ${calc.formatPercent(bestM.unrealizedPLPct)}
+                  </span>
+                </div>
+              `;
+            })() : ''}
+
+            ${summary.worstPerformer && summary.totalHoldingsCount > 1 ? (() => {
+              var worstM = summary.worstPerformer.metrics || {};
+              var isWorstLoss = (worstM.unrealizedPL || 0) < 0;
+              return `
+                <div class="trading-chip">
+                  <span>📉</span>
+                  <span style="color:var(--text3,#9ca3af);">Drag:</span>
+                  <strong>${summary.worstPerformer.symbol}</strong>
+                  <span class="${isWorstLoss ? 'stock-pill-loss' : 'stock-pill-gain'}" style="font-size:11px;">
+                    ${calc.formatPercent(worstM.unrealizedPLPct)}
+                  </span>
+                </div>
+              `;
+            })() : ''}
+
+            ${summary.highestAllocation ? `
+              <div class="trading-chip">
+                <span>💎</span>
+                <span style="color:var(--text3,#9ca3af);">Max Alloc:</span>
+                <strong>${summary.highestAllocation.symbol}</strong>
+                <span style="font-size:11px;color:var(--stock-blue,#3b82f6);font-family:'JetBrains Mono',monospace;">
+                  (${calc.formatINR(summary.highestAllocation.metrics.currentValue)})
+                </span>
+              </div>
+            ` : ''}
+          </div>
+        </div>
 
         <!-- ── Navigation Tabs ── -->
         <div class="stocks-tabs">
