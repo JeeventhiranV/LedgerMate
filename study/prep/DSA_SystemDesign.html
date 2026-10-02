@@ -2,7 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<script>(function(){try{var k=['ledgerMate_theme','prep_theme','sr_theme','dsa_theme','ql_theme','react_prep_theme','theme'];for(var i=0;i<k.length;i++){var t=localStorage.getItem(k[i]);if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);break;}}}catch(e){}})();</script>
 <title>Java Backend · LLD · System Design — Interview Handbook</title>
 <meta name="description" content="Enterprise Java Backend, Low-Level Design and System Design interview handbook — Java 21, Spring Boot 3, Kafka, Redis, Resilience4j, design patterns, with diagrams, full code and interview Q&A.">
 <meta name="robots" content="index,follow">
@@ -18,15 +19,21 @@
 <script src="../js/StudySRS.js"></script>
 <script src="../js/StudyQuizEngine.js"></script>
 <style>
-  :root{
+  :root, :root[data-theme="dark"]{
     --bg:#0b0e14; --bg2:#11151f; --surface:#141925; --surface2:#1b2130; --border:#262d3d;
     --text:#e6eaf3; --text2:#9aa4bd; --muted:#6b7488;
     --accent:#6c8ef5; --accent2:#4ecdc4; --good:#4ade80; --warn:#fbbf24; --bad:#f87171; --purple:#a78bfa;
     --must:#f87171; --imp:#fbbf24; --adv:#4ecdc4; --spec:#a78bfa; --opt:#6b7488;
   }
+  :root[data-theme="light"], html[data-theme="light"]{
+    --bg:#f4f6fc; --bg2:#ffffff; --surface:#ffffff; --surface2:#eef2f9; --border:#cbd5e1;
+    --text:#0f172a; --text2:#334155; --muted:#64748b;
+    --accent:#2563eb; --accent2:#059669; --good:#16a34a; --warn:#d97706; --bad:#dc2626; --purple:#7c3aed;
+    --must:#dc2626; --imp:#d97706; --adv:#059669; --spec:#7c3aed; --opt:#64748b;
+  }
   *{margin:0;padding:0;box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;line-height:1.6}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;line-height:1.6;transition:background .25s,color .25s}
   a{color:var(--accent);text-decoration:none}
 
   /* ── Header ── */
@@ -220,6 +227,26 @@
     .sd-cat-grid{grid-template-columns:1fr}
     .sd-prevnext{flex-direction:column}
   }
+
+  /* ── Light Mode Styles ── */
+  [data-theme="light"] header{background:rgba(255,255,255,.95);border-bottom-color:#cbd5e1;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+  [data-theme="light"] .hdr-search{background:#f8fafc;border-color:#cbd5e1}
+  [data-theme="light"] .sd-sidebar{background:#ffffff;border-right-color:#cbd5e1}
+  [data-theme="light"] .sd-block{background:#ffffff;border-color:#cbd5e1;box-shadow:0 2px 8px rgba(0,0,0,.03)}
+  [data-theme="light"] .sd-h2{background:#f8fafc;border-bottom-color:#cbd5e1;color:#0f172a}
+  [data-theme="light"] .sd-block-body{color:#1e293b}
+  [data-theme="light"] .sd-code-wrap{background:#0f172a;border-color:#334155}
+  [data-theme="light"] .sd-code-bar{background:#1e293b;border-bottom-color:#334155}
+  [data-theme="light"] .sd-callout{background:#f1f5f9;border-color:#2563eb;color:#1e293b}
+  [data-theme="light"] .sd-cat-card{background:#ffffff;border-color:#cbd5e1}
+  [data-theme="light"] .sd-cat-card:hover{border-color:#2563eb;box-shadow:0 6px 20px rgba(37,99,235,.1)}
+  [data-theme="light"] .sd-stat-card{background:#ffffff;border-color:#cbd5e1}
+  [data-theme="light"] .sd-nav-search-input{background:#f8fafc;border-color:#cbd5e1;color:#0f172a}
+  [data-theme="light"] .theme-btn{background:#ffffff!important;border-color:#cbd5e1!important;color:#334155!important}
+  [data-theme="light"] .theme-btn:hover{border-color:#2563eb!important;color:#2563eb!important;background:#eff6ff!important}
+
+  /* Mobile Touch Targets */
+  .hdr-back, .hdr-burger, .theme-btn, .sd-btn, .sd-code-btn{min-height:36px;touch-action:manipulation}
 </style>
 </head>
 <body>
@@ -236,6 +263,7 @@
       <span id="progText">0 / 0</span>
       <div class="hdr-prog-bar"><div class="hdr-prog-fill" id="progFill"></div></div>
     </div>
+    <button class="theme-btn" id="themeBtn" aria-label="Toggle theme" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 9px;cursor:pointer;color:var(--text2);font-size:14px;line-height:1">🌙</button>
   </div>
 </header>
 

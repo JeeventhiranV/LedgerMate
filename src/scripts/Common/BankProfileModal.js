@@ -793,18 +793,17 @@
     },
 
     setTheme: function (theme) {
-      if (theme === 'light') {
-        document.documentElement.setAttribute('data-theme', 'light');
-        try {
-          localStorage.setItem('ledgerMate_theme', 'light');
-          localStorage.setItem('prep_theme', 'light');
-        } catch (e) {}
+      if (window.LM_Theme && typeof window.LM_Theme.set === 'function') {
+        window.LM_Theme.set(theme);
       } else {
-        document.documentElement.removeAttribute('data-theme');
-        try {
-          localStorage.setItem('ledgerMate_theme', 'dark');
-          localStorage.setItem('prep_theme', 'dark');
-        } catch (e) {}
+        const next = theme === 'light' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        document.documentElement.classList.toggle('light-theme', next === 'light');
+        document.documentElement.classList.toggle('dark-theme', next === 'dark');
+        const keys = ['ledgerMate_theme', 'prep_theme', 'sr_theme', 'dsa_theme', 'ql_theme', 'react_prep_theme', 'theme'];
+        keys.forEach(function(k) {
+          try { localStorage.setItem(k, next); } catch (e) {}
+        });
       }
       renderProfileDetails();
       if (window.LM_Haptic) window.LM_Haptic.impactLight();

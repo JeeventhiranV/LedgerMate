@@ -11,6 +11,90 @@
 
 (function () {
 
+  // ── Centralized Unified Theme Management ────────────────────────────────────
+  var THEME_KEYS = ['ledgerMate_theme', 'prep_theme', 'sr_theme', 'dsa_theme', 'ql_theme', 'react_prep_theme', 'theme'];
+  
+  function _getSavedTheme() {
+    for (var i = 0; i < THEME_KEYS.length; i++) {
+      var val = localStorage.getItem(THEME_KEYS[i]);
+      if (val === 'dark' || val === 'light') return val;
+    }
+    return 'dark';
+  }
+
+  function _syncThemeButtonsUI(theme) {
+    if (!theme) theme = (window.LM_Theme && window.LM_Theme.get()) || _getSavedTheme();
+    var icon = theme === 'dark' ? '🌙' : '☀️';
+    var btns = document.querySelectorAll('#themeBtn, .theme-btn, .btn-theme, #agfThemeBtn, .agf-theme-btn, #topThemeBtn');
+    btns.forEach(function(b) {
+      if (b.tagName === 'BUTTON' || b.tagName === 'A' || b.tagName === 'SPAN' || b.tagName === 'DIV') {
+        b.textContent = icon;
+      }
+    });
+
+    var bpmSwitch = document.getElementById('bpmThemeSwitch');
+    var bpmSwitchText = document.getElementById('bpmThemeSwitchText');
+    var bpmIcon = document.getElementById('bpmThemeIcon');
+    var bpmDesc = document.getElementById('bpmThemeDesc');
+    if (bpmSwitch) bpmSwitch.classList.toggle('active', theme === 'dark');
+    if (bpmSwitchText) bpmSwitchText.textContent = theme === 'dark' ? 'Dark' : 'Light';
+    if (bpmIcon) bpmIcon.textContent = icon;
+    if (bpmDesc) bpmDesc.textContent = theme === 'dark' ? 'Dark Palette · High Contrast' : 'Light Palette · Clean View';
+  }
+
+  function _applyTheme(theme, broadcast) {
+    if (theme !== 'light' && theme !== 'dark') theme = 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.classList.toggle('light-theme', theme === 'light');
+    document.documentElement.classList.toggle('dark-theme', theme === 'dark');
+    
+    THEME_KEYS.forEach(function(k) {
+      try { localStorage.setItem(k, theme); } catch (e) {}
+    });
+
+    _syncThemeButtonsUI(theme);
+
+    if (broadcast !== false) {
+      document.dispatchEvent(new CustomEvent('lm:theme:change', { detail: { theme: theme } }));
+    }
+  }
+
+  window.LM_Theme = {
+    get: function() {
+      return document.documentElement.getAttribute('data-theme') || _getSavedTheme();
+    },
+    set: function(theme) {
+      _applyTheme(theme, true);
+    },
+    toggle: function() {
+      var cur = this.get();
+      var next = cur === 'dark' ? 'light' : 'dark';
+      this.set(next);
+      return next;
+    },
+    syncUI: function() {
+      _syncThemeButtonsUI(this.get());
+    }
+  };
+
+  // Immediate theme initialization on script load
+  _applyTheme(_getSavedTheme(), false);
+
+  // Sync on DOM ready and listen for storage events across tabs
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      _syncThemeButtonsUI(window.LM_Theme.get());
+    });
+  } else {
+    _syncThemeButtonsUI(window.LM_Theme.get());
+  }
+
+  window.addEventListener('storage', function(e) {
+    if (THEME_KEYS.indexOf(e.key) !== -1 && (e.newValue === 'dark' || e.newValue === 'light')) {
+      _applyTheme(e.newValue, true);
+    }
+  });
+
   // ── 1. Animated Loader & Hide body immediately ──────────────────────────────
   var _hideStyle = document.createElement('style');
   _hideStyle.textContent = 'body{visibility:hidden!important}';
@@ -409,36 +493,26 @@
       });
     }
 
-    // ── Wire theme toggle (proxies to the page's own #themeBtn) ─────────────
+    // ── Wire theme toggle using LM_Theme ────────────────────────────────────
     var agfThemeBtn = document.getElementById('agfThemeBtn');
     var agfThemeRow = document.getElementById('agfThemeRow');
 
-    // Sync initial icon from localStorage
-    var savedTheme = localStorage.getItem('prep_theme') || 'dark';
     if (agfThemeBtn) {
-      agfThemeBtn.textContent = savedTheme === 'light' ? '🌙' : '☀️';
-    }
-
-    function _toggleTheme() {
-      var tb = document.getElementById('themeBtn');
-      if (tb) {
-        tb.click();
-        // Sync icon after page theme handler runs
-        setTimeout(function () {
-          if (agfThemeBtn) agfThemeBtn.textContent = tb.textContent;
-        }, 40);
-      }
-    }
-
-    if (agfThemeBtn) {
+      agfThemeBtn.textContent = (window.LM_Theme ? window.LM_Theme.get() : _getSavedTheme()) === 'dark' ? '🌙' : '☀️';
       agfThemeBtn.addEventListener('click', function (e) {
         e.stopPropagation();
-        _toggleTheme();
+        if (window.LM_Theme) {
+          window.LM_Theme.toggle();
+        }
       });
     }
     if (agfThemeRow) {
       agfThemeRow.addEventListener('click', function (e) {
-        if (e.target !== agfThemeBtn) _toggleTheme();
+        if (e.target !== agfThemeBtn) {
+          if (window.LM_Theme) {
+            window.LM_Theme.toggle();
+          }
+        }
       });
     }
   }

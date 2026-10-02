@@ -2,7 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <script>(function(){try{var k=['ledgerMate_theme','prep_theme','sr_theme','dsa_theme','ql_theme','react_prep_theme','theme'];for(var i=0;i<k.length;i++){var t=localStorage.getItem(k[i]);if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);break;}}}catch(e){}})();</script>
     <title>HR Questions & Answers</title>
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
@@ -47,8 +48,14 @@
       .q-fav-btn:hover{opacity:1;transform:scale(1.2)}
       .q-fav-btn.active{opacity:1}
       details[data-hidden="true"]{display:none}
-      body.light{--bg1:#f8f9fa;--bg2:#ffffff;--bg3:#f1f3f5;--bg4:#e9ecef;--border:#dee2e6;--text1:#111827;--text2:#374151;--text3:#6b7280;--blue:#2563eb;--accent1:#2563eb}
-      :root[data-theme="dark"]{--blue:#4f8ef7;--accent1:#4f8ef7}
+      :root, :root[data-theme="dark"]{--bg1:#0a0c10;--bg2:#111318;--bg3:#181c24;--bg4:#1e2330;--border:#252b3a;--text1:#e8eaf2;--text2:#9aa3bf;--text3:#6b7494;--blue:#4f8ef7;--accent1:#4f8ef7}
+      :root[data-theme="light"], html[data-theme="light"]{--bg1:#f8f9fa;--bg2:#ffffff;--bg3:#f1f3f5;--bg4:#e9ecef;--border:#dee2e6;--text1:#111827;--text2:#374151;--text3:#6b7280;--blue:#2563eb;--accent1:#2563eb}
+      [data-theme="light"] details{background:#ffffff;border-color:#dee2e6;box-shadow:0 1px 4px rgba(0,0,0,.03)}
+      [data-theme="light"] summary{color:#0f172a}
+      [data-theme="light"] .hr-progress{background:#ffffff;border-color:#dee2e6}
+      [data-theme="light"] .topbar-search{background:#ffffff;border-color:#dee2e6;color:#0f172a}
+      [data-theme="light"] .progress-chip{background:#ffffff;border-color:#dee2e6}
+      [data-theme="light"] .theme-btn, [data-theme="light"] .back-btn{background:#ffffff;border-color:#dee2e6;color:#374151}
       /* progress chips — mirrors Java topbar */
       .progress-chip{display:inline-flex;align-items:center;gap:4px;background:var(--bg3,#141820);border:1px solid var(--border,#1e2436);border-radius:8px;padding:4px 10px;font-size:12px;white-space:nowrap}
       .progress-chip span{color:var(--text3,#6b7280)}
@@ -554,15 +561,20 @@
 
   // ── Theme ───────────────────────────────────────
   (function(){
-    const saved=localStorage.getItem('prep_theme')||'dark';
-    document.body.classList.toggle('light',saved==='light');
-    const btn=document.getElementById('themeBtn');
-    if(btn) btn.textContent=saved==='light'?'🌙':'☀️';
-    if(btn) btn.addEventListener('click',()=>{
-      const isLight=document.body.classList.toggle('light');
-      localStorage.setItem('prep_theme',isLight?'light':'dark');
-      btn.textContent=isLight?'🌙':'☀️';
-    });
+    const btn = document.getElementById('themeBtn');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        if (window.LM_Theme) {
+          window.LM_Theme.toggle();
+        } else {
+          const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+          const next = cur === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('prep_theme', next);
+          btn.textContent = next === 'dark' ? '🌙' : '☀️';
+        }
+      });
+    }
   })();
 
   // ── Search ──────────────────────────────────────

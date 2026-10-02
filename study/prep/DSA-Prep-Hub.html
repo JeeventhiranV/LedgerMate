@@ -2,7 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<script>(function(){try{var k=['ledgerMate_theme','prep_theme','sr_theme','dsa_theme','ql_theme','react_prep_theme','theme'];for(var i=0;i<k.length;i++){var t=localStorage.getItem(k[i]);if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);break;}}}catch(e){}})();</script>
 <title>DSA Animator — Algorithm Visualizer</title>
 <meta name="description" content="Interactive, animated visualizations of data structures and algorithms — sorting, searching, stacks, queues, linked lists, trees and graphs."/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -1745,17 +1746,21 @@ function initChrome(){
     });
   });
 
-  /* theme — uses data-theme + dsa_theme key; auth-guard footer proxies to #themeBtn */
-  const saved=localStorage.getItem('dsa_theme')||'dark';
-  document.documentElement.setAttribute('data-theme',saved);
-  $('themeBtn').textContent=saved==='dark'?'🌙':'☀️';
-  $('themeBtn').addEventListener('click',()=>{
-    const cur=document.documentElement.getAttribute('data-theme');
-    const next=cur==='dark'?'light':'dark';
-    document.documentElement.setAttribute('data-theme',next);
-    localStorage.setItem('dsa_theme',next);
-    $('themeBtn').textContent=next==='dark'?'🌙':'☀️';
-  });
+  /* theme — uses LM_Theme with graceful fallback */
+  const themeBtn = $('themeBtn');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
+      if (window.LM_Theme) {
+        window.LM_Theme.toggle();
+      } else {
+        const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+        const next = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('dsa_theme', next);
+        themeBtn.textContent = next === 'dark' ? '🌙' : '☀️';
+      }
+    });
+  }
 
   /* keyboard shortcuts */
   document.addEventListener('keydown',e=>{

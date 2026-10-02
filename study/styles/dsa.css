@@ -1,11 +1,14 @@
-:root {
+:root, :root[data-theme="dark"] {
     --bg: #0f1117;
     --surface: #1a1d27;
     --surface2: #22263a;
+    --surface3: #2c324c;
     --border: #2e3348;
+    --border2: #3d4560;
     --accent: #6c8ef5;
     --accent2: #4ecdc4;
     --text: #e2e8f0;
+    --text2: #94a3b8;
     --muted: #8892b0;
     --easy: #4ade80;
     --medium: #fbbf24;
@@ -13,9 +16,35 @@
     --p1: #f87171;
     --p2: #fbbf24;
     --p3: #64748b;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+    --code-bg: #141722;
+    --card-bg: #1a1d27;
+    --shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+:root[data-theme="light"], html[data-theme="light"] {
+    --bg: #f4f6fc;
+    --surface: #ffffff;
+    --surface2: #eef2f9;
+    --surface3: #e2e8f0;
+    --border: #cbd5e1;
+    --border2: #94a3b8;
+    --accent: #2563eb;
+    --accent2: #059669;
+    --text: #0f172a;
+    --text2: #334155;
+    --muted: #475569;
+    --easy: #16a34a;
+    --medium: #d97706;
+    --hard: #dc2626;
+    --p1: #dc2626;
+    --p2: #d97706;
+    --p3: #64748b;
+    --code-bg: #f8fafc;
+    --card-bg: #ffffff;
+    --shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; transition: background .25s ease, color .25s ease; }
 
   header {
     background: var(--surface);
@@ -527,4 +556,105 @@
     .ans-content pre.code-block { font-size: 0.68rem; padding: 11px 12px; }
     .ans-content table { font-size: 0.72rem; }
     .problem-card .ans-badge { font-size: 0.56rem; padding: 1px 5px; margin-left: 4px; }
+  }
+
+  /* ══════════════════════════════════════════════════════
+     DSA HIGH-CONTRAST LIGHT MODE & POLISH UPGRADES
+     ══════════════════════════════════════════════════════ */
+  [data-theme="light"] header {
+    background: rgba(255, 255, 255, 0.95);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  }
+  [data-theme="light"] .sequence-banner {
+    background: linear-gradient(135deg, #ffffff, #f1f5f9);
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  }
+  [data-theme="light"] .sequence-banner h2 {
+    color: #059669;
+  }
+  [data-theme="light"] .seq-step {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #1e293b;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+  [data-theme="light"] .priority-legend {
+    background: #ffffff;
+    border-color: #cbd5e1;
+  }
+  [data-theme="light"] .view-tab {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #334155;
+  }
+  [data-theme="light"] .view-tab.active {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+  }
+  [data-theme="light"] .problem-card {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  }
+  [data-theme="light"] .problem-card:hover {
+    border-color: #2563eb;
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.1);
+  }
+  [data-theme="light"] .prob-title {
+    color: #0f172a;
+    font-weight: 600;
+  }
+  [data-theme="light"] .ans-top {
+    background: #ffffff;
+    border-bottom: 1px solid #cbd5e1;
+  }
+  [data-theme="light"] #ans-drawer {
+    background: #f8fafc;
+    border-left-color: #cbd5e1;
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.12);
+  }
+  [data-theme="light"] .ans-content pre.code-block {
+    background: #0f172a;
+    color: #f8fafc;
+    border-color: #334155;
+  }
+  [data-theme="light"] .ans-content code:not(.code-block code) {
+    background: #e2e8f0;
+    color: #0f172a;
+    border-color: #cbd5e1;
+  }
+  [data-theme="light"] .search-input,
+  [data-theme="light"] input[type="text"] {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #0f172a;
+  }
+  [data-theme="light"] .pattern-card,
+  [data-theme="light"] .trick-card {
+    background: #ffffff;
+    border-color: #cbd5e1;
+  }
+
+  /* Touch Target & Mobile Improvements */
+  .hdr-back, .nav-toggle, .view-tab, .btn-action, button, .ans-close {
+    min-height: 38px;
+    min-width: 38px;
+    touch-action: manipulation;
+  }
+  @media (max-width: 600px) {
+    header {
+      padding: 10px 14px;
+    }
+    .stats {
+      display: none;
+    }
+    .view-tabs {
+      overflow-x: auto;
+      white-space: nowrap;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+    }
   }

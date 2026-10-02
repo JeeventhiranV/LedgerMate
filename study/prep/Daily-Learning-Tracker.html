@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
@@ -1638,13 +1638,21 @@ function exportCSV() {
 
 /* ── Theme ── */
 function toggleTheme() {
-  var cur=document.documentElement.getAttribute('data-theme')||'dark';
-  var next=cur==='dark'?'light':'dark';
-  document.documentElement.setAttribute('data-theme',next);
-  localStorage.setItem('sr_theme',next);
-  document.getElementById('themeBtn').textContent=next==='dark'?'🌙':'☀️';
+  if (window.LM_Theme) {
+    window.LM_Theme.toggle();
+  } else {
+    var cur=document.documentElement.getAttribute('data-theme')||'dark';
+    var next=cur==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    localStorage.setItem('sr_theme',next);
+    var btn = document.getElementById('themeBtn');
+    if (btn) btn.textContent=next==='dark'?'🌙':'☀️';
+  }
   setTimeout(_renderCharts,100);
 }
+document.addEventListener('lm:theme:change', function() {
+  setTimeout(_renderCharts, 100);
+});
 
 /* ── Public API ── */
 window.DLT={

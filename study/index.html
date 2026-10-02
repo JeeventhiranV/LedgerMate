@@ -2,7 +2,8 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<script>(function(){try{var k=['ledgerMate_theme','prep_theme','sr_theme','dsa_theme','ql_theme','react_prep_theme','theme'];for(var i=0;i<k.length;i++){var t=localStorage.getItem(k[i]);if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);break;}}}catch(e){}})();</script>
 <!-- <title>Study Resources Hub</title> -->
 <script>try { localStorage.setItem('lm_last_page', 'study'); } catch (e) {}</script>
 <link rel="manifest" href="../manifest.json"/>
@@ -1455,18 +1456,19 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Theme
-  var savedTheme = localStorage.getItem('sr_theme') || localStorage.getItem('prep_theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', savedTheme);
   var themeBtn = document.getElementById('themeBtn');
   if (themeBtn) {
-    themeBtn.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
     themeBtn.addEventListener('click', function() {
-      var cur  = document.documentElement.getAttribute('data-theme');
-      var next = cur === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('sr_theme', next);
-      localStorage.setItem('prep_theme', next);
-      this.textContent = next === 'dark' ? '🌙' : '☀️';
+      if (window.LM_Theme) {
+        window.LM_Theme.toggle();
+      } else {
+        var cur  = document.documentElement.getAttribute('data-theme') || 'dark';
+        var next = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('sr_theme', next);
+        localStorage.setItem('prep_theme', next);
+        this.textContent = next === 'dark' ? '🌙' : '☀️';
+      }
     });
   }
 

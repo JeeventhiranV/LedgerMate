@@ -1,4 +1,4 @@
-:root[data-theme="dark"] {
+:root, :root[data-theme="dark"] {
   --bg: #0a0c10;
   --bg2: #111318;
   --bg3: #181c24;
@@ -23,7 +23,7 @@
   --shadow: 0 4px 24px rgba(0,0,0,0.5);
   --sidebar-w: 280px;
 }
-:root[data-theme="light"] {
+:root[data-theme="light"], html[data-theme="light"] {
   --bg: #f4f6fc;
   --bg2: #ffffff;
   --bg3: #f8fafc;
@@ -677,4 +677,63 @@ body{
   border-color: #2563eb;
   color: #2563eb;
   background: #eff6ff;
+}
+
+[data-theme="light"] .q-answer {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+[data-theme="light"] .q-answer pre {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+[data-theme="light"] .q-answer code {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+[data-theme="light"] .q-num {
+  background: #eef2f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+[data-theme="light"] .tip-box {
+  background: #f1f5f9;
+  border-color: #2563eb;
+  color: #1e293b;
+}
+
+[data-theme="light"] .q-list-item {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .progress-section {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .sidebar-logo {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+/* Mobile & Touch Target Improvements */
+.back-btn, .theme-btn, .menu-btn, .btn-mark, .btn-toggle, .q-fav-btn, .q-status-btn {
+  min-height: 36px;
+  touch-action: manipulation;
+}
+@media (max-width: 600px) {
+  .topbar {
+    padding: 8px 12px;
+  }
+  .progress-chip {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
 }
