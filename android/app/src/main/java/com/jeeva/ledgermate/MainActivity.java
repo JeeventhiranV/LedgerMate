@@ -784,7 +784,6 @@ public class MainActivity extends AppCompatActivity {
             try {
                 SharedPreferences prefs = getSharedPreferences(BackgroundReminderWorker.PREFS_NAME, Context.MODE_PRIVATE);
                 prefs.edit().putString(BackgroundReminderWorker.KEY_DUES_PAYLOAD, duesJson).apply();
-                executorService.execute(() -> BackgroundReminderWorker.evaluateAndTriggerAlerts(MainActivity.this));
             } catch (Exception ignored) {}
         }
 

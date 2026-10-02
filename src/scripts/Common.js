@@ -3977,10 +3977,9 @@ window.LM_StartApp = async function LM_StartApp() {
     if (window.LM_CloudSync) {
       window.LM_CloudSync.startAutoSave(60000);
     }
-    /* Kick off notification polling after DB is ready */
+    /* Kick off initial notification check after DB is ready (periodic checking managed in Notifications.js) */
     if (typeof window.checkAllNotifications === 'function') {
       window.checkAllNotifications();
-      setInterval(window.checkAllNotifications, 60 * 60 * 1000);
     }
     
   } catch (err) {

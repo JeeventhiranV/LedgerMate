@@ -63,23 +63,30 @@ public class BackgroundReminderWorker extends Worker {
                     boolean completed = r.optBoolean("completed", false);
                     if (completed) continue;
 
-                    String id = r.optString("id", "rem_" + i);
+                    String tag = r.optString("tag", "Bills");
                     String title = r.optString("title", "Bill Reminder");
+
+                    // Filter out loan reminders so they are handled exclusively by the Loan section below
+                    if ("loan".equalsIgnoreCase(tag) || title.toLowerCase().startsWith("loan due:") || title.toLowerCase().startsWith("loan:")) {
+                        continue;
+                    }
+
+                    String id = r.optString("id", "rem_" + i);
                     String dueDate = r.optString("dueDate", "");
                     String time = r.optString("time", "");
-                    String tag = r.optString("tag", "Bills");
                     String note = r.optString("note", "");
 
                     if (!dueDate.isEmpty()) {
                         int diffDays = calculateDiffDays(dueDate, todayStr);
                         if (diffDays <= 2) { // Overdue, Today, or next 2 days
-                            String dedupeKey = "alert_rem_" + id + "_" + todayStr;
+                            String canonicalTag = "lm_rem_" + id + "_" + dueDate;
+                            String dedupeKey = "lm_alert_" + canonicalTag;
                             if (!prefs.getBoolean(dedupeKey, false)) {
                                 String dueText = (diffDays < 0) ? Math.abs(diffDays) + " day(s) OVERDUE" : (diffDays == 0) ? "Due TODAY" : "Due in " + diffDays + " day(s)";
                                 String notifTitle = (diffDays <= 0) ? "🚨 " + title + " (" + dueText + ")" : "⏰ " + title + " (" + dueText + ")";
                                 String notifBody = (note != null && !note.isEmpty()) ? note + " · Due: " + dueDate : "Reminder for " + tag + " · Due: " + dueDate + (time.isEmpty() ? "" : " " + time);
 
-                                showNotification(context, notifTitle, notifBody, "rem_" + id, "./#page-reminders");
+                                showNotification(context, notifTitle, notifBody, canonicalTag, "./#page-dashboard");
                                 prefs.edit().putBoolean(dedupeKey, true).apply();
                             }
                         }
@@ -99,34 +106,36 @@ public class BackgroundReminderWorker extends Worker {
                     int daysUntilDue = card.optInt("daysUntilDue", 999);
                     String nextDueDate = card.optString("nextDueDate", "");
 
-                    if (currentDue > 0 && daysUntilDue <= 3) {
-                        String dedupeKey = "alert_cc_" + cardId + "_" + todayStr;
+                    if (currentDue > 0 && daysUntilDue <= 3 && !nextDueDate.isEmpty()) {
+                        String canonicalTag = "lm_cc_" + cardId + "_" + nextDueDate;
+                        String dedupeKey = "lm_alert_" + canonicalTag;
                         if (!prefs.getBoolean(dedupeKey, false)) {
                             String dueLabel = (daysUntilDue < 0) ? Math.abs(daysUntilDue) + " day(s) OVERDUE" : (daysUntilDue == 0) ? "Due TODAY" : "Due in " + daysUntilDue + " day(s)";
                             String notifTitle = (daysUntilDue <= 0) ? "🚨 Credit Card Bill " + dueLabel : "💳 Credit Card Bill " + dueLabel;
                             String notifBody = cardName + " (" + bankName + ") · ₹" + String.format(Locale.getDefault(), "%,.2f", currentDue) + " due on " + nextDueDate;
 
-                            showNotification(context, notifTitle, notifBody, "cc_" + cardId, "./#page-credit-cards");
+                            showNotification(context, notifTitle, notifBody, canonicalTag, "./#page-credit-cards");
                             prefs.edit().putBoolean(dedupeKey, true).apply();
                         }
                     }
                 }
             }
 
-            // 3. Process Loans Due
+            // 3. Process Loans Due (Single canonical engine for background loans)
             JSONArray loans = root.optJSONArray("loans");
             if (loans != null) {
                 for (int i = 0; i < loans.length(); i++) {
                     JSONObject loan = loans.getJSONObject(i);
-                    String loanId = loan.optString("id", String.valueOf(i));
                     String person = loan.optString("person", "Contact");
+                    String personSlug = person.trim().replaceAll("\\s+", "_");
                     String type = loan.optString("type", "given");
                     double total = loan.optDouble("total", 0.0);
                     int diffDays = loan.optInt("diffDays", 999);
                     String dueDate = loan.optString("dueDate", "");
 
-                    if (total > 0 && diffDays <= 3) {
-                        String dedupeKey = "alert_loan_" + loanId + "_" + todayStr;
+                    if (total > 0 && diffDays <= 3 && !dueDate.isEmpty()) {
+                        String canonicalTag = "lm_loan_" + type + "_" + personSlug + "_" + dueDate;
+                        String dedupeKey = "lm_alert_" + canonicalTag;
                         if (!prefs.getBoolean(dedupeKey, false)) {
                             boolean isCollect = "given".equalsIgnoreCase(type);
                             String action = isCollect ? "Collect from " : "Repay to ";
@@ -134,7 +143,7 @@ public class BackgroundReminderWorker extends Worker {
                             String notifTitle = (diffDays <= 0) ? "🚨 Loan Overdue: " + action + person : "🤝 Loan Due Soon: " + action + person;
                             String notifBody = action + person + " · ₹" + String.format(Locale.getDefault(), "%,.2f", total) + " · " + dueLabel + " (" + dueDate + ")";
 
-                            showNotification(context, notifTitle, notifBody, "loan_" + loanId, "./#page-wealth");
+                            showNotification(context, notifTitle, notifBody, canonicalTag, "./#page-wealth");
                             prefs.edit().putBoolean(dedupeKey, true).apply();
                         }
                     }
@@ -147,17 +156,19 @@ public class BackgroundReminderWorker extends Worker {
                 for (int i = 0; i < budgets.length(); i++) {
                     JSONObject b = budgets.getJSONObject(i);
                     String category = b.optString("category", "General");
+                    String catSlug = category.trim().replaceAll("\\s+", "_");
                     int pct = b.optInt("pct", 0);
                     double spent = b.optDouble("spent", 0.0);
                     double limit = b.optDouble("limit", 0.0);
                     String month = b.optString("month", todayStr.substring(0, 7));
 
                     if (pct >= 100) {
-                        String dedupeKey = "alert_bgt_100_" + category + "_" + month;
+                        String canonicalTag = "lm_bgt_" + catSlug + "_100_" + month;
+                        String dedupeKey = "lm_alert_" + canonicalTag;
                         if (!prefs.getBoolean(dedupeKey, false)) {
                             String notifTitle = "🚨 Budget Exceeded: " + category;
                             String notifBody = "You have spent " + pct + "% (₹" + (long)spent + " / ₹" + (long)limit + ") of your " + category + " budget.";
-                            showNotification(context, notifTitle, notifBody, "bgt_" + category, "./#page-budgets");
+                            showNotification(context, notifTitle, notifBody, canonicalTag, "./#page-budgets");
                             prefs.edit().putBoolean(dedupeKey, true).apply();
                         }
                     }
