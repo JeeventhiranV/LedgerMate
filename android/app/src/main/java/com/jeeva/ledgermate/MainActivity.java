@@ -35,11 +35,13 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import android.view.WindowManager;
 
+import androidx.documentfile.provider.DocumentFile;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
@@ -111,6 +113,43 @@ public class MainActivity extends AppCompatActivity {
             return archiveInfo.versionCode;
         }
     }
+
+    private String pendingFolderCallbackId = null;
+
+    private final ActivityResultLauncher<Intent> folderPickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                String callbackId = pendingFolderCallbackId;
+                pendingFolderCallbackId = null;
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Uri treeUri = result.getData().getData();
+                    if (treeUri != null) {
+                        try {
+                            final int takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
+                            getContentResolver().takePersistableUriPermission(treeUri, takeFlags);
+
+                            String folderName = getFolderDisplayName(treeUri);
+                            SharedPreferences prefs = getSharedPreferences("ledgermate_backup_prefs", Context.MODE_PRIVATE);
+                            prefs.edit()
+                                    .putString("backup_folder_uri", treeUri.toString())
+                                    .putString("backup_folder_name", folderName)
+                                    .apply();
+
+                            JSONObject resp = new JSONObject();
+                            resp.put("status", "success");
+                            resp.put("uri", treeUri.toString());
+                            resp.put("folderName", folderName);
+                            returnToJs(callbackId, resp.toString());
+                            return;
+                        } catch (Exception e) {
+                            sendError(callbackId, "Failed to persist folder permission: " + e.getMessage());
+                            return;
+                        }
+                    }
+                }
+                sendError(callbackId, "Folder selection cancelled or failed");
+            }
+    );
 
     @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
     @Override
@@ -526,6 +565,64 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             sendError(callbackId, "Failed to launch package installer: " + (e.getMessage() != null ? e.getMessage() : e.toString()));
         }
+    }
+
+    private String getFolderDisplayName(Uri treeUri) {
+        try {
+            DocumentFile dir = DocumentFile.fromTreeUri(this, treeUri);
+            if (dir != null && dir.getName() != null && !dir.getName().isEmpty()) {
+                return dir.getName();
+            }
+            String path = treeUri.getLastPathSegment();
+            return path != null ? path : "Selected Folder";
+        } catch (Exception e) {
+            return "Selected Folder";
+        }
+    }
+
+    private int performBackupPruning(DocumentFile dir, int maxDays, int maxCount) {
+        int deletedCount = 0;
+        try {
+            DocumentFile[] files = dir.listFiles();
+            if (files == null || files.length == 0) return 0;
+
+            long now = System.currentTimeMillis();
+            long maxAgeMs = (long) (maxDays > 0 ? maxDays : 30) * 24L * 60L * 60L * 1000L;
+            int cap = maxCount > 0 ? maxCount : 100;
+
+            List<DocumentFile> backupFiles = new java.util.ArrayList<>();
+            for (DocumentFile f : files) {
+                if (f != null && f.isFile() && f.getName() != null &&
+                        (f.getName().startsWith("LedgerMate_Backup_") || f.getName().endsWith(".json"))) {
+                    // Check 30-day (1 month) expiration
+                    long fileTime = f.lastModified();
+                    if (fileTime > 0 && (now - fileTime) > maxAgeMs) {
+                        try {
+                            if (f.delete()) {
+                                deletedCount++;
+                                continue;
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                    backupFiles.add(f);
+                }
+            }
+
+            // Check count cap (max 100 files, keep newest, delete oldest in LIFO/FIFO)
+            if (backupFiles.size() > cap) {
+                backupFiles.sort((a, b) -> Long.compare(b.lastModified(), a.lastModified()));
+                for (int i = cap; i < backupFiles.size(); i++) {
+                    try {
+                        if (backupFiles.get(i).delete()) {
+                            deletedCount++;
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+        } catch (Exception e) {
+            android.util.Log.w("MainActivity", "Backup pruning error: " + e.getMessage());
+        }
+        return deletedCount;
     }
 
     private void returnToJs(String callbackId, String jsonPayload) {
@@ -1197,6 +1294,133 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 sendError(callbackId, "Error checking update package: " + e.getMessage());
             }
+        }
+
+        @JavascriptInterface
+        public void selectBackupFolder(String callbackId) {
+            runOnUiThread(() -> {
+                try {
+                    pendingFolderCallbackId = callbackId;
+                    Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                            | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                            | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
+                    folderPickerLauncher.launch(intent);
+                } catch (Exception e) {
+                    sendError(callbackId, "Cannot open folder picker: " + e.getMessage());
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void getBackupFolder(String callbackId) {
+            executorService.execute(() -> {
+                try {
+                    SharedPreferences prefs = getSharedPreferences("ledgermate_backup_prefs", Context.MODE_PRIVATE);
+                    String uri = prefs.getString("backup_folder_uri", null);
+                    String name = prefs.getString("backup_folder_name", null);
+                    JSONObject resp = new JSONObject();
+                    if (uri != null && !uri.isEmpty()) {
+                        resp.put("status", "success");
+                        resp.put("configured", true);
+                        resp.put("uri", uri);
+                        resp.put("folderName", name != null ? name : "Configured Folder");
+                    } else {
+                        resp.put("status", "success");
+                        resp.put("configured", false);
+                    }
+                    returnToJs(callbackId, resp.toString());
+                } catch (Exception e) {
+                    sendError(callbackId, e.getMessage());
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void writeBackupFile(String uriStr, String fileName, String jsonContent, String callbackId) {
+            executorService.execute(() -> {
+                try {
+                    String targetUriStr = uriStr;
+                    if (targetUriStr == null || targetUriStr.isEmpty()) {
+                        SharedPreferences prefs = getSharedPreferences("ledgermate_backup_prefs", Context.MODE_PRIVATE);
+                        targetUriStr = prefs.getString("backup_folder_uri", null);
+                    }
+                    if (targetUriStr == null || targetUriStr.isEmpty()) {
+                        sendError(callbackId, "No backup folder configured on device.");
+                        return;
+                    }
+
+                    Uri treeUri = Uri.parse(targetUriStr);
+                    DocumentFile dir = DocumentFile.fromTreeUri(MainActivity.this, treeUri);
+                    if (dir == null || !dir.exists() || !dir.isDirectory()) {
+                        sendError(callbackId, "Backup directory not accessible. Please re-select the folder.");
+                        return;
+                    }
+
+                    String name = (fileName != null && !fileName.isEmpty()) ? fileName : ("LedgerMate_Backup_" + System.currentTimeMillis() + ".json");
+                    if (!name.endsWith(".json")) name += ".json";
+
+                    DocumentFile backupFile = dir.createFile("application/json", name);
+                    if (backupFile == null) {
+                        sendError(callbackId, "Could not create backup file in selected directory.");
+                        return;
+                    }
+
+                    try (OutputStream out = getContentResolver().openOutputStream(backupFile.getUri())) {
+                        if (out == null) {
+                            sendError(callbackId, "Could not open stream to write backup file.");
+                            return;
+                        }
+                        out.write(jsonContent.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                        out.flush();
+                    }
+
+                    // Auto-prune backups older than 30 days or beyond 100 files cap
+                    int pruned = performBackupPruning(dir, 30, 100);
+
+                    JSONObject resp = new JSONObject();
+                    resp.put("status", "success");
+                    resp.put("fileName", name);
+                    resp.put("fileUri", backupFile.getUri().toString());
+                    resp.put("prunedCount", pruned);
+                    resp.put("timestamp", System.currentTimeMillis());
+                    returnToJs(callbackId, resp.toString());
+
+                } catch (Exception e) {
+                    sendError(callbackId, "Failed to save backup: " + (e.getMessage() != null ? e.getMessage() : e.toString()));
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void pruneBackups(String uriStr, int maxDays, int maxCount, String callbackId) {
+            executorService.execute(() -> {
+                try {
+                    String targetUriStr = uriStr;
+                    if (targetUriStr == null || targetUriStr.isEmpty()) {
+                        SharedPreferences prefs = getSharedPreferences("ledgermate_backup_prefs", Context.MODE_PRIVATE);
+                        targetUriStr = prefs.getString("backup_folder_uri", null);
+                    }
+                    if (targetUriStr == null || targetUriStr.isEmpty()) {
+                        sendError(callbackId, "No backup folder configured.");
+                        return;
+                    }
+                    Uri treeUri = Uri.parse(targetUriStr);
+                    DocumentFile dir = DocumentFile.fromTreeUri(MainActivity.this, treeUri);
+                    if (dir == null || !dir.exists() || !dir.isDirectory()) {
+                        sendError(callbackId, "Backup directory not accessible.");
+                        return;
+                    }
+                    int pruned = performBackupPruning(dir, maxDays > 0 ? maxDays : 30, maxCount > 0 ? maxCount : 100);
+                    JSONObject resp = new JSONObject();
+                    resp.put("status", "success");
+                    resp.put("prunedCount", pruned);
+                    returnToJs(callbackId, resp.toString());
+                } catch (Exception e) {
+                    sendError(callbackId, "Prune failed: " + e.getMessage());
+                }
+            });
         }
     }
 

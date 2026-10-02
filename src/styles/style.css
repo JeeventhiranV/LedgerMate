@@ -4128,6 +4128,106 @@ footer span { color: var(--teal); font-weight: 600; }
   transform: translateX(10px);
 }
 
+/* ── Bank-Grade ON/OFF Switch Component ── */
+.bpm-switch-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px 2px 5px;
+  border-radius: 99px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 2px;
+}
+
+.bpm-switch-pill.active {
+  background: rgba(16, 185, 129, 0.18);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
+.bpm-switch-knob {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ── Theme Segmented Buttons ── */
+.bpm-theme-segmented {
+  display: flex;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+}
+
+[data-theme="light"] .bpm-theme-segmented {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.bpm-theme-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.bpm-theme-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.bpm-theme-btn.active {
+  background: var(--surface, #131b2e);
+  color: var(--teal, #00d4b4);
+  border-color: rgba(0, 212, 180, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  font-weight: 700;
+}
+
+[data-theme="light"] .bpm-theme-btn.active {
+  background: #ffffff;
+  color: var(--teal, #0d9488);
+  border-color: rgba(13, 148, 136, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Sync Mode Inline Pill ── */
+.bpm-sync-mode-tag {
+  font-size: 8.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(0, 212, 180, 0.15);
+  color: var(--teal, #00d4b4);
+}
+
+.bpm-sync-mode-tag.offline {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--gold, #f59e0b);
+}
+
 /* ── Group Sections ── */
 .bpm-section-group {
   background: rgba(255, 255, 255, 0.02);

@@ -321,9 +321,6 @@
       <button class="sidebar-nav-item" id="openTripPlannerBtn" data-module="trips">
         <span class="nav-icon">✈️</span> <span class="nav-label">Trip Planner</span>
       </button>
-      <button class="sidebar-nav-item" onclick="showCredentialsVault()" data-module="credentials">
-        <span class="nav-icon">🔐</span> <span class="nav-label">Credentials Vault</span>
-      </button>
       <button onclick="window.open('./study/index.html','_self')" class="sidebar-nav-item" data-module="views-browser">
         <span class="nav-icon">📚</span> <span class="nav-label">Study Resources</span>
       </button>
@@ -344,12 +341,6 @@
       <button class="sidebar-nav-item" id="openDropdownManagerBtn" data-module="transactions">
         <span class="nav-icon">🔽</span> <span class="nav-label">Dropdown Manager</span>
       </button>
-      <button class="sidebar-nav-item" onclick="openAppLockSettingsModal()" data-module="pin-lock">
-        <span class="nav-icon">🛡️</span> <span class="nav-label">App Security &amp; Lock</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="window.LM_AppUpdateService?.checkForUpdates(true)" id="sidebarCheckUpdateBtn">
-        <span class="nav-icon" id="sidebarUpdateIcon" style="display:inline-block;">🔄</span> <span id="sidebarUpdateLabel" class="nav-label">Check for Updates</span>
-      </button>
       <button class="sidebar-nav-item pwa-install-trigger" id="pwaInstallBtn" style="display:none;color:var(--teal,#00d4b4);" onclick="window.LM_PWA?.install()">
         <span class="nav-icon">⬇️</span> <span class="nav-label">Install App</span>
       </button>
@@ -361,38 +352,21 @@
       <button class="sidebar-nav-item" onclick="window.LM_StatementParser?.openFilePicker()">
         <span class="nav-icon">📄</span> <span class="nav-label">Import Statement (CSV)</span>
       </button>
-      <button class="sidebar-nav-item" id="btnSetFolder">
-        <span class="nav-icon">📁</span> <span id="folderLabel" class="nav-label">Set Folder</span>
-      </button>
-      <button class="sidebar-nav-item" id="btnFullExport">
-        <span class="nav-icon">📤</span> <span class="nav-label">Export Data Backup</span>
-      </button>
-      <button class="sidebar-nav-item" id="btnImport">
-        <span class="nav-icon">📥</span> <span class="nav-label">Import Data Backup</span>
-      </button>
-      <input type="file" id="importFile" accept=".json,.csv" style="display:none" onchange="window.importData&&window.importData(event)">
       <button class="sidebar-nav-item" id="clearData">
         <span class="nav-icon">🗑️</span> <span class="nav-label">Clear All Data</span>
       </button>
+      <!-- Hidden programmatic hooks for import/export -->
+      <button id="btnSetFolder" style="display:none;"><span id="folderLabel"></span></button>
+      <button id="btnFullExport" style="display:none;"></button>
+      <button id="btnImport" style="display:none;"></button>
+      <input type="file" id="importFile" accept=".json,.csv" style="display:none" onchange="window.importData&&window.importData(event)">
     </div>
 
     <!-- ── ADMIN (hidden unless admin) ───────────────────── -->
     <div class="sidebar-section" id="adminSidebarSection" style="display:none;">
       <div class="sidebar-section-label">Administration</div>
-      <button class="sidebar-nav-item" onclick="window.LM_Admin?.show()">
-        <span class="nav-icon">⚙️</span> <span class="nav-label">Admin Panel</span>
-      </button>
       <button class="sidebar-nav-item" onclick="window.open('./study/index.html?admin=open','_self')">
         <span class="nav-icon">📚</span> <span class="nav-label">Study Admin</span>
-      </button>
-    </div>
-
-    <!-- ── SIGN OUT ───────────────────────────────────────── -->
-    <div class="sidebar-section">
-      <button class="sidebar-nav-item" id="btnLogout"
-        onclick="if(confirm('Sign out of LedgerMate?')) window.LM_Auth.logout();"
-        style="color:var(--rose);">
-        <span class="nav-icon">🚪</span> <span class="nav-label">Sign Out</span>
       </button>
     </div>
 
@@ -442,8 +416,8 @@
           <span id="notifCount" class="notif-count-badge">0</span>
         </button>
 
-        <!-- ☁️ Cloud Sync -->
-        <button id="cloudSyncBtn" class="icon-btn" title="Sync to cloud" onclick="LM_manualSync()">☁️</button>
+        <!-- ☁️ / 💾 Dynamic Sync / Backup -->
+        <button id="cloudSyncBtn" class="icon-btn" title="Sync / Backup" onclick="window.LM_handleTopbarSyncClick ? window.LM_handleTopbarSyncClick() : (window.LM_manualSync && window.LM_manualSync())">☁️</button>
 
         <!-- 👤 User profile (far right) -->
         <div style="position:relative;">
@@ -1574,6 +1548,8 @@ function setGreeting() {
   <script src="./src/scripts/Common.js"></script>
   <!-- CloudSync: cloud save/load — after Common.js so FinalJson is available -->
   <script src="./src/scripts/CloudSync.js"></script>
+  <!-- LocalBackupService: Android SAF & Local Folder Backups with retention -->
+  <script src="./src/scripts/Common/LocalBackupService.js"></script>
   <!-- StorePatch MUST come right after Common.js to wrap put/getAll -->
   <script src="./src/scripts/Auth/StorePatch.js"></script>
   <script src="./src/scripts/Wealth/Wealth.js"></script>
@@ -1671,31 +1647,100 @@ function setGreeting() {
     if (menu && chip && !chip.contains(e.target)) menu.classList.remove('open');
   });
 
-  /* ── Cloud Sync button ──────────────────────────────── */
+  /* ── Dynamic Topbar Sync & Backup Handler ───────────────── */
   var _syncLastSaved = null;
   var _syncBusy = false;
 
-  window.LM_manualSync = async function () {
-    if (_syncBusy || !window.LM_CloudSync) return;
+  window.LM_updateTopbarSyncButton = function () {
     const btn = document.getElementById('cloudSyncBtn');
-    _syncBusy = true;
-    if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
-    try {
-      await LM_CloudSync.save();
-    } catch(e) {}
-    _syncBusy = false;
-    if (btn) { btn.textContent = '✅'; btn.disabled = false; }
-    setTimeout(() => { const b = document.getElementById('cloudSyncBtn'); if (b) b.textContent = '☁️'; }, 2000);
+    if (!btn) return;
+    const isOffline = (window.LM_CloudSync && typeof window.LM_CloudSync.isOfflineMode === 'function')
+      ? window.LM_CloudSync.isOfflineMode()
+      : (localStorage.getItem('lm_sync_mode') === 'offline');
+
+    if (isOffline) {
+      btn.textContent = '💾';
+      btn.title = 'Offline Mode · Click to save local backup';
+      btn.setAttribute('aria-label', 'Save local backup');
+    } else {
+      btn.textContent = '☁️';
+      const timeStr = _syncLastSaved ? (' · Last saved ' + _syncLastSaved.toLocaleTimeString()) : '';
+      btn.title = 'Cloud Sync' + timeStr + ' · Click to sync';
+      btn.setAttribute('aria-label', 'Sync to cloud');
+    }
   };
 
-  /* Update button tooltip with last-saved time */
+  window.LM_handleTopbarSyncClick = async function () {
+    if (_syncBusy) return;
+    const btn = document.getElementById('cloudSyncBtn');
+    const isOffline = (window.LM_CloudSync && typeof window.LM_CloudSync.isOfflineMode === 'function')
+      ? window.LM_CloudSync.isOfflineMode()
+      : (localStorage.getItem('lm_sync_mode') === 'offline');
+
+    if (isOffline) {
+      if (!window.LM_LocalBackup) return;
+      _syncBusy = true;
+      if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+      try {
+        const info = await window.LM_LocalBackup.getFolderInfo();
+        if (!info.configured) {
+          if (typeof window.showToast === 'function') {
+            window.showToast('📁 Select a folder for offline backups...', 'info');
+          }
+          await window.LM_LocalBackup.selectFolder();
+        } else {
+          await window.LM_LocalBackup.performBackup({ force: true, silent: false });
+        }
+      } catch (e) {
+        console.warn('[LM] Topbar offline backup error:', e);
+      }
+      _syncBusy = false;
+      if (btn) { btn.textContent = '✅'; btn.disabled = false; }
+      setTimeout(() => { window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton(); }, 1800);
+    } else {
+      if (!window.LM_CloudSync) return;
+      _syncBusy = true;
+      if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+      try {
+        await window.LM_CloudSync.save();
+        if (typeof window.showToast === 'function') {
+          window.showToast('☁️ Cloud sync completed', 'success');
+        }
+      } catch (e) {
+        console.warn('[LM] Topbar cloud sync error:', e);
+      }
+      _syncBusy = false;
+      if (btn) { btn.textContent = '✅'; btn.disabled = false; }
+      setTimeout(() => { window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton(); }, 1800);
+    }
+  };
+
+  window.LM_manualSync = window.LM_handleTopbarSyncClick;
+
+  /* Reactive Listeners for Topbar Sync Button */
   if (window.LM_Bus) {
+    LM_Bus.on('lm:sync:mode-changed', function () {
+      window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton();
+    });
     LM_Bus.on('lm:cloud:saved', function () {
       _syncLastSaved = new Date();
-      const btn = document.getElementById('cloudSyncBtn');
-      if (btn) btn.title = 'Cloud Sync · Last saved ' + _syncLastSaved.toLocaleTimeString();
+      window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton();
+    });
+    LM_Bus.on('lm:local-backup:status-changed', function () {
+      window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton();
+    });
+    LM_Bus.on('lm:local-backup:saved', function () {
+      window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton();
+    });
+    LM_Bus.on('lm:app:ready', function () {
+      window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton();
     });
   }
+
+  // Initial call on page load
+  window.addEventListener('DOMContentLoaded', function() {
+    window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton();
+  });
 
   /* ── Hide default-credentials hint post first login */
   const users = window.LM_UserStore?.getUsers() || [];
@@ -1799,12 +1844,65 @@ function setGreeting() {
 
 <!-- ─── PREFERENCES MODAL ─────────────────────────────── -->
 <div id="preferencesModal" class="modal-overlay" style="display:none;">
-  <div class="modal" style="max-width:420px;">
+  <div class="modal" style="max-width:460px;">
     <div class="modal-header">
-      <div class="modal-title">🔔 Preferences &amp; Alerts</div>
+      <div class="modal-title">⚙️ Preferences &amp; Sync Settings</div>
       <button class="modal-close" onclick="closePreferencesModal()">&times;</button>
     </div>
-    <div class="modal-body" style="display:flex;flex-direction:column;gap:16px;">
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:16px;max-height:75vh;overflow-y:auto;padding-right:4px;">
+      
+      <!-- Sync Mode & Network Strategy -->
+      <div style="background:var(--surface-2, rgba(255,255,255,0.03));border:1px solid var(--border);border-radius:12px;padding:12px 14px;">
+        <label class="form-label" style="font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+          <span>🔄</span> Data Synchronization Mode
+        </label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+          <label id="lblSyncModeCloud" style="display:flex;flex-direction:column;gap:3px;border:1px solid var(--border);border-radius:10px;padding:10px;cursor:pointer;background:var(--surface);">
+            <div style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:13px;">
+              <input type="radio" name="prefSyncMode" id="prefSyncModeCloud" value="cloud" checked style="accent-color:var(--teal,#00d4b4);">
+              <span>☁️ Cloud Sync</span>
+            </div>
+            <span style="font-size:11px;color:var(--text-3);padding-left:22px;">Supabase Realtime + Cloud backup</span>
+          </label>
+          <label id="lblSyncModeOffline" style="display:flex;flex-direction:column;gap:3px;border:1px solid var(--border);border-radius:10px;padding:10px;cursor:pointer;background:var(--surface);">
+            <div style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:13px;">
+              <input type="radio" name="prefSyncMode" id="prefSyncModeOffline" value="offline" style="accent-color:var(--teal,#00d4b4);">
+              <span>💾 Offline Mode</span>
+            </div>
+            <span style="font-size:11px;color:var(--text-3);padding-left:22px;">Local device storage only (zero cloud)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Automated Local Device Backup & Folder Permission -->
+      <div style="background:var(--surface-2, rgba(255,255,255,0.03));border:1px solid var(--border);border-radius:12px;padding:12px 14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <label class="form-label" style="font-weight:700;display:flex;align-items:center;gap:6px;margin:0;">
+            <span>📁</span> Automated Local Device Backup
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;">
+            <input type="checkbox" id="prefAutoLocalBackup" style="width:16px;height:16px;accent-color:var(--teal,#00d4b4);">
+            <span style="font-size:12px;font-weight:600;">Enable</span>
+          </label>
+        </div>
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:10px;line-height:1.4;">
+          Automatically saves full JSON snapshots to your device. Retained for <strong>30 days</strong> and auto-pruned to <strong>max 100 backups</strong>.
+        </div>
+        
+        <div id="prefLocalBackupFolderSection" style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="window.LM_LocalBackup?.selectFolder()" style="flex:1;font-size:12px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+              <span>📁</span> <span id="prefLocalFolderBtnText">Choose Backup Folder</span>
+            </button>
+            <button type="button" class="btn btn-sm" onclick="window.LM_LocalBackup?.performBackup({force:true, silent:false})" style="font-size:12px;padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface-3, rgba(255,255,255,0.06));color:var(--text);cursor:pointer;white-space:nowrap;" title="Create snapshot now">
+              ⚡ Backup Now
+            </button>
+          </div>
+          <div id="prefLocalFolderStatus" style="font-size:11px;color:var(--teal,#00d4b4);word-break:break-all;"></div>
+        </div>
+      </div>
+
+      <!-- Alert Thresholds -->
       <div>
         <label class="form-label">Low Balance Alert Threshold (₹)</label>
         <input type="number" id="prefLowBalanceThreshold" class="form-input" min="0" step="100"
@@ -1813,13 +1911,15 @@ function setGreeting() {
           You'll be notified when any account balance drops below this amount.
         </div>
       </div>
+
       <div>
         <label class="form-label">Spending Anomaly Alerts</label>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-          <input type="checkbox" id="prefAnomalyAlerts" style="width:16px;height:16px;">
+          <input type="checkbox" id="prefAnomalyAlerts" style="width:16px;height:16px;accent-color:var(--teal,#00d4b4);">
           <span style="font-size:13px;">Warn when a category spends 80%+ above average</span>
         </label>
       </div>
+
       <div>
         <label class="form-label">Session Timeout</label>
         <select id="prefSessionTimeout" class="form-input" style="width:100%;">
@@ -1829,12 +1929,14 @@ function setGreeting() {
           <option value="0">Never (not recommended)</option>
         </select>
       </div>
+
       <div>
         <label class="form-label">App Security & Lock</label>
         <button type="button" class="btn btn-secondary btn-sm" onclick="closePreferencesModal(); openAppLockSettingsModal();" style="width:100%;font-size:12px;padding:9px 12px;display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);cursor:pointer;">
           <span>🛡️</span> Configure App Lock (PIN & Biometrics)
         </button>
       </div>
+
     </div>
     <div class="modal-footer" style="display:flex;gap:10px;justify-content:flex-end;padding:16px;">
       <button class="btn-cancel" onclick="closePreferencesModal()">Cancel</button>
