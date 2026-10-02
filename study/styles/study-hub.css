@@ -88,6 +88,51 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .overall-bar-done{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:6px;transition:width .8s cubic-bezier(.4,0,.2,1)}
 .overall-bar-ip{height:100%;background:var(--gold);transition:width .8s}
 
+/* ── HERO REAL-TIME TRACKER MATRIX (LeetCode / Striver Style) ── */
+.hero-tracker-matrix{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;max-width:860px;margin:0 auto 24px;text-align:left}
+.daily-target-card,.diff-matrix-card{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:16px;position:relative;backdrop-filter:blur(8px);transition:border-color .2s,box-shadow .2s}
+.daily-target-card:hover,.diff-matrix-card:hover{border-color:var(--border2);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.dtc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
+.dtc-title-row{display:flex;align-items:center;gap:6px}
+.dtc-icon{font-size:16px}
+.dtc-title,.dmc-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);letter-spacing:.02em}
+.dtc-selector{display:flex;align-items:center;gap:4px}
+.dtc-btn{background:var(--bg4);border:1px solid var(--border);border-radius:6px;padding:3px 7px;font-size:10px;font-weight:600;color:var(--text3);cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .15s}
+.dtc-btn:hover{color:var(--text);border-color:var(--text3)}
+.dtc-btn.active{background:rgba(6,214,160,.15);border-color:var(--teal,#06d6a0);color:var(--teal,#06d6a0)}
+.dtc-body{display:flex;flex-direction:column;gap:8px}
+.dtc-count-wrap{display:flex;align-items:baseline;gap:4px;font-family:'JetBrains Mono',monospace}
+.dtc-count{font-size:22px;font-weight:800;color:var(--teal,#06d6a0)}
+.dtc-divider{font-size:15px;color:var(--text3)}
+.dtc-goal{font-size:16px;font-weight:700;color:var(--text2)}
+.dtc-unit{font-size:11px;color:var(--text3);font-family:'Inter',sans-serif;margin-left:4px}
+.dtc-progress-bar{height:6px;background:var(--bg4);border-radius:6px;overflow:hidden}
+.dtc-progress-fill{height:100%;background:linear-gradient(90deg,var(--blue,#4f8ef7),var(--teal,#06d6a0));border-radius:6px;transition:width .6s ease}
+.dtc-progress-fill.met{background:linear-gradient(90deg,var(--teal,#06d6a0),#10b981)}
+.dtc-status{font-size:11px;color:var(--text2);line-height:1.4}
+
+/* Difficulty Distribution Matrix */
+.dmc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.dmc-total{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--text2)}
+.dmc-rows{display:flex;flex-direction:column;gap:8px}
+.dmc-row{display:flex;align-items:center;gap:10px;font-size:11px}
+.dmc-label{display:flex;align-items:center;gap:6px;width:68px;flex-shrink:0;font-weight:600}
+.dmc-dot{width:8px;height:8px;border-radius:50%}
+.dmc-row.easy .dmc-dot{background:#06d6a0;box-shadow:0 0 6px rgba(6,214,160,.4)}
+.dmc-row.easy .dmc-label{color:#06d6a0}
+.dmc-row.med .dmc-dot{background:#f59e0b;box-shadow:0 0 6px rgba(245,158,11,.4)}
+.dmc-row.med .dmc-label{color:#f59e0b}
+.dmc-row.hard .dmc-dot{background:#f43f5e;box-shadow:0 0 6px rgba(244,63,94,.4)}
+.dmc-row.hard .dmc-label{color:#f43f5e}
+.dmc-bar-wrap{flex:1;height:5px;background:var(--bg4);border-radius:5px;overflow:hidden}
+.dmc-bar-fill{height:100%;border-radius:5px;transition:width .6s ease}
+.dmc-row.easy .dmc-bar-fill{background:#06d6a0}
+.dmc-row.med .dmc-bar-fill{background:#f59e0b}
+.dmc-row.hard .dmc-bar-fill{background:#f43f5e}
+.dmc-val{font-family:'JetBrains Mono',monospace;font-size:11px;min-width:55px;text-align:right}
+.dmc-val strong{color:var(--text);font-weight:700}
+.dmc-max{color:var(--text3);font-size:10px}
+
 /* ── SEARCH ── */
 .search-wrap{max-width:520px;margin:0 auto;position:relative}
 .search-wrap input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:13px 16px 13px 44px;font-size:14px;color:var(--text);outline:none;font-family:'Inter',sans-serif;transition:all .25s}
