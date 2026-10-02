@@ -723,4 +723,21 @@
     }
   }
 
+  // ── 9. Service Worker Auto-Update Check on Deploy ─────────────────────────
+  if ('serviceWorker' in navigator) {
+    var swPath = window.location.pathname.indexOf('/prep/') !== -1 ? '../../service-worker.js' : '../service-worker.js';
+    var swScope = window.location.pathname.indexOf('/prep/') !== -1 ? '../../' : '../';
+    navigator.serviceWorker.register(swPath, { scope: swScope }).then(function(reg) {
+      reg.update().catch(function(){});
+    }).catch(function(){});
+
+    var _refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+      if (!_refreshing) {
+        _refreshing = true;
+        window.location.reload();
+      }
+    });
+  }
+
 }());

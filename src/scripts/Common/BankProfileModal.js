@@ -765,6 +765,11 @@
 
     checkUpdates: function () {
       BankProfileModal.close();
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(function(reg) {
+          reg.update().catch(function(){});
+        }).catch(function(){});
+      }
       if (window.LM_AppUpdateService && typeof window.LM_AppUpdateService.checkForUpdates === 'function') {
         window.LM_AppUpdateService.checkForUpdates(true);
       } else if (window.AppUpdateService && typeof window.AppUpdateService.checkForUpdates === 'function') {

@@ -8,7 +8,7 @@
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v2.22.6';
+const CACHE_VERSION = 'lm-v2.23.0';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
@@ -46,12 +46,16 @@ const STATIC_ASSETS = [
   './src/scripts/Auth/UserStore.js',
   './src/scripts/Auth/StorePatch.js',
   './src/scripts/Auth/Biometrics.js',
+  './src/scripts/Auth/BiometricManager.js',
   './src/scripts/Admin/AdminPanel.js',
   './src/scripts/CloudSync.js',
   './src/scripts/pwa-install.js',
   './src/scripts/pwa-push.js',
   './src/scripts/Common.js',
   './src/scripts/Common/SharedToast.js',
+  './src/scripts/Common/BankProfileModal.js',
+  './src/scripts/Common/LocalBackupService.js',
+  './src/scripts/Common/HapticFeedback.js',
   './src/scripts/Wealth/Wealth.js',
   './src/scripts/Wealth/Essentials.js',
   './src/scripts/Investments.js',
@@ -110,6 +114,7 @@ const STATIC_ASSETS = [
   './study/js/StudySRS.js',
   './study/js/CodeRunner.js',
   './study/js/AIInterviewHelper.js',
+  './study/js/StudyAdmin.js',
   './study/js/dsa-answers.js',
   './study/js/dsa-systemdesign-content.js',
   './study/js/study-features.js',
@@ -132,20 +137,31 @@ const STATIC_ASSETS = [
 
 
 
-/* ── Install: pre-cache all static assets ─────────────── */
+/* ── Install: pre-cache fresh static assets and skip waiting ── */
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_STATIC)
-      .then(cache => cache.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting())
+      .then(cache => {
+        return Promise.allSettled(
+          STATIC_ASSETS.map(url => {
+            return fetch(url, { cache: 'reload' })
+              .then(res => {
+                if (res && res.ok) return cache.put(url, res);
+              })
+              .catch(err => {
+                console.warn('[SW] Pre-cache skipped asset:', url, err);
+              });
+          })
+        );
+      })
       .catch(err => {
-        console.warn('[SW] Pre-cache failed (some assets may be missing):', err);
-        return self.skipWaiting();
+        console.warn('[SW] Pre-cache failed:', err);
       })
   );
 });
 
-/* ── Activate: purge stale caches ─────────────────────── */
+/* ── Activate: purge stale caches and claim clients immediately ── */
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
@@ -161,7 +177,7 @@ self.addEventListener('activate', event => {
   );
 });
 
-/* ── Fetch: cache-first for static, network-first for rest ── */
+/* ── Fetch: Network-First for App Code & HTML, Cache-First for static media ── */
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
@@ -194,7 +210,7 @@ self.addEventListener('fetch', event => {
       fetch(event.request, { cache: 'no-store' })
         .then(response => {
           if (response && response.ok) {
-            const toCache = response.clone(); // clone synchronously before body is consumed
+            const toCache = response.clone();
             caches.open(CACHE_STATIC).then(c => c.put(event.request, toCache));
           }
           return response;
@@ -206,40 +222,32 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  /* Static assets (CSS/JS/fonts) → Cache-First with background revalidate */
-  const isStaticAsset = STATIC_ASSETS.some(a => url.pathname.endsWith(a.replace('./', '/')));
+  /* Vendor Libs & Static Media (Images, Fonts, Vendor Bundles) → Cache-First */
+  const isVendorOrMedia = /\.(png|jpg|jpeg|svg|ico|webp|gif|woff|woff2|ttf|eot)$/i.test(url.pathname) ||
+                          url.pathname.includes('/assets/vendor/');
 
-  if (isStaticAsset) {
+  if (isVendorOrMedia) {
     event.respondWith(
       caches.match(event.request)
         .then(cached => {
-          if (cached) {
-            fetch(event.request, { cache: 'no-store' })
-              .then(fresh => {
-                if (fresh && fresh.ok) {
-                  const toCache = fresh.clone();
-                  caches.open(CACHE_STATIC).then(c => c.put(event.request, toCache));
-                }
-              })
-              .catch(() => {});
-            return cached;
-          }
-          return fetch(event.request, { cache: 'no-store' })
+          if (cached) return cached;
+          return fetch(event.request)
             .then(response => {
               if (!response || !response.ok) return response;
               const toCache = response.clone();
               caches.open(CACHE_STATIC).then(c => c.put(event.request, toCache));
               return response;
             })
-            .catch(() => caches.match('./index.html'));
+            .catch(() => null);
         })
     );
     return;
   }
 
-  /* Everything else → Network-First with cache fallback */
+  /* Application Code (JS/CSS/JSON) & All Other Assets → Network-First with Fast Cache Fallback
+     Guarantees that on first load after deployment, the browser executes 100% fresh code immediately! */
   event.respondWith(
-    fetch(event.request, { cache: 'no-store' })
+    fetch(event.request, { cache: 'no-cache' })
       .then(response => {
         if (response && response.ok) {
           const toCache = response.clone();
@@ -247,9 +255,13 @@ self.addEventListener('fetch', event => {
         }
         return response;
       })
-      .catch(() =>
-        caches.match(event.request).then(c => c || caches.match('./index.html'))
-      )
+      .catch(() => {
+        return caches.match(event.request).then(cached => {
+          if (cached) return cached;
+          if (url.pathname.endsWith('.html')) return caches.match('./index.html');
+          return new Response('Network error and not found in offline cache', { status: 503, statusText: 'Offline' });
+        });
+      })
   );
 });
 
@@ -330,5 +342,19 @@ self.addEventListener('message', event => {
     const id = event.data.tag;
     if (_scheduled.has(id)) { clearTimeout(_scheduled.get(id)); _scheduled.delete(id); }
     self.registration.getNotifications({ tag: id }).then(ns => ns.forEach(n => n.close()));
+  }
+
+  if (event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+
+  if (event.data.type === 'CLEAR_ALL_CACHES' || event.data.type === 'FORCE_PURGE_CACHE') {
+    event.waitUntil(
+      caches.keys().then(keys => {
+        return Promise.all(keys.map(k => caches.delete(k)));
+      }).then(() => {
+        return self.skipWaiting();
+      })
+    );
   }
 });
