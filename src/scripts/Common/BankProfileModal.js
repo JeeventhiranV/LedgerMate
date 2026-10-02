@@ -37,21 +37,65 @@
     }
   }
 
+  function ensureStyles() {
+    if (document.getElementById('bpmInjectedStyles')) return;
+    var link = document.createElement('link');
+    link.id = 'bpmInjectedStyles';
+    link.rel = 'stylesheet';
+    var isPrep = window.location.pathname.indexOf('/prep/') !== -1;
+    var isStudy = window.location.pathname.indexOf('/study') !== -1;
+    var prefix = isPrep ? '../../' : (isStudy ? '../' : './');
+    link.href = prefix + 'src/styles/responsive-upgrades.css';
+    document.head.appendChild(link);
+  }
+
   function getUserData() {
+    // 1. In-memory study user
+    if (window._studyUser && (window._studyUser.email || window._studyUser.displayName)) {
+      return {
+        displayName: window._studyUser.displayName || 'User',
+        username: window._studyUser.username || window._studyUser.email || 'user@ledgermate.local',
+        email: window._studyUser.email || window._studyUser.username || 'user@ledgermate.local',
+        role: window._studyUser.role || (window._studyProfile ? window._studyProfile.role : 'user'),
+        userId: window._studyUser.userId || window._studyUser.id || 'default'
+      };
+    }
+
+    // 2. LocalStorage study user metadata
+    try {
+      const studyMeta = localStorage.getItem('study_user_meta');
+      if (studyMeta) {
+        const parsedMeta = JSON.parse(studyMeta);
+        if (parsedMeta && (parsedMeta.email || parsedMeta.displayName)) {
+          return {
+            displayName: parsedMeta.displayName || (parsedMeta.email ? parsedMeta.email.split('@')[0] : 'User'),
+            username: parsedMeta.username || parsedMeta.email || 'user@ledgermate.local',
+            email: parsedMeta.email || parsedMeta.username || 'user@ledgermate.local',
+            role: parsedMeta.role || (window._studyProfile ? window._studyProfile.role : 'user'),
+            userId: parsedMeta.userId || parsedMeta.id || 'default'
+          };
+        }
+      }
+    } catch(e) {}
+
+    // 3. Finance LM_Auth
     if (window.LM_Auth && typeof window.LM_Auth.getCurrentUser === 'function') {
       const u = window.LM_Auth.getCurrentUser();
       if (u) return u;
     }
+
+    // 4. Finance lm_session
     try {
       const sess = localStorage.getItem('lm_session');
       if (sess) {
         const parsed = JSON.parse(sess);
         const userObj = parsed.user || parsed;
         const meta = userObj.user_metadata || {};
-        const name = meta.full_name || meta.name || userObj.displayName || (userObj.email ? userObj.email.split('@')[0] : '') || (userObj.username ? userObj.username.split('@')[0] : 'User');
+        const rawName = meta.full_name || meta.name || userObj.displayName || (userObj.email ? userObj.email.split('@')[0] : '') || (userObj.username ? userObj.username.split('@')[0] : 'User');
+        const formattedName = rawName ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : 'User';
         const email = userObj.email || userObj.username || 'user@ledgermate.local';
         return {
-          displayName: name || 'User',
+          displayName: formattedName,
           username: email,
           email: email,
           role: parsed.role || (window._studyProfile ? window._studyProfile.role : 'user'),
@@ -59,6 +103,34 @@
         };
       }
     } catch (e) {}
+
+    // 5. Scan Supabase tokens in localStorage (sb-*-auth-token or supabase.auth.token)
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && ((k.indexOf('sb-') === 0 && k.indexOf('-auth-token') !== -1) || k === 'supabase.auth.token')) {
+          const item = localStorage.getItem(k);
+          if (item) {
+            const parsed = JSON.parse(item);
+            const userObj = parsed.user || (parsed.currentSession && parsed.currentSession.user);
+            if (userObj && (userObj.email || userObj.id)) {
+              const meta = userObj.user_metadata || {};
+              const rawName = meta.full_name || meta.name || (userObj.email ? userObj.email.split('@')[0] : 'User');
+              const formattedName = rawName ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : 'User';
+              const email = userObj.email || 'user@ledgermate.local';
+              return {
+                displayName: formattedName,
+                username: email,
+                email: email,
+                role: (window._studyProfile && window._studyProfile.role) || 'user',
+                userId: userObj.id || 'default'
+              };
+            }
+          }
+        }
+      }
+    } catch (e) {}
+
     return {
       displayName: 'User',
       username: 'user@ledgermate.local',
@@ -348,6 +420,18 @@
     const av = document.getElementById('bpmAvatar');
     if (av) av.textContent = initial;
 
+    // Synchronize all topbar & sidebar avatars across current page
+    try {
+      const allAvatars = document.querySelectorAll('#studyUserAvatar, #topbarUserChip, #topbarUserChipMenu, .topbar-user-avatar, .agf-avatar');
+      allAvatars.forEach(function(el) {
+        if (el) el.textContent = initial;
+      });
+      const agfName = document.querySelector('.agf-name');
+      if (agfName) agfName.textContent = user.displayName || user.username || 'User';
+      const agfEmail = document.querySelector('.agf-email');
+      if (agfEmail) agfEmail.textContent = user.username || user.email || 'user@ledgermate.local';
+    } catch(e) {}
+
     // Display Name
     const nameEl = document.getElementById('bpmDisplayName');
     if (nameEl) nameEl.textContent = user.displayName || user.username || 'Account Holder';
@@ -392,7 +476,17 @@
 
     if (isStudy) {
       var streak = 0;
-      try { streak = Number(localStorage.getItem('study_streak_count') || 0); } catch(e) {}
+      try {
+        streak = window._studyStreak || Number(localStorage.getItem('study_streak_count') || 0);
+        if (!streak) {
+          var pStreak = JSON.parse(localStorage.getItem('prep_streak_v1') || '{}');
+          if (pStreak && pStreak.streak) streak = Number(pStreak.streak);
+        }
+        if (!streak) {
+          var val = document.getElementById('streakVal');
+          if (val && val.textContent) streak = Number(val.textContent) || 0;
+        }
+      } catch(e) {}
       if (card2Label) card2Label.textContent = 'Study Streak';
       if (card2Val) card2Val.textContent = streak + ' Days';
       if (card2Icon) card2Icon.textContent = '🔥';
@@ -474,6 +568,7 @@
 
   const BankProfileModal = {
     open: function () {
+      ensureStyles();
       _modalEl = createModalDOM();
       renderProfileDetails();
       _modalEl.style.display = 'flex';
@@ -481,6 +576,30 @@
         _modalEl.classList.add('open');
         document.body.classList.add('bpm-modal-open');
       });
+
+      // Async live refresh from Supabase if available
+      if (typeof _supabase !== 'undefined' && _supabase && _supabase.auth) {
+        _supabase.auth.getSession().then(function (res) {
+          var s = res && res.data && res.data.session;
+          if (s && s.user) {
+            var u = s.user;
+            var em = u.email || '';
+            var m = u.user_metadata || {};
+            var n = m.full_name || m.name || (em ? em.split('@')[0] : 'User');
+            var disp = n ? (n.charAt(0).toUpperCase() + n.slice(1)) : 'User';
+            window._studyUser = {
+              displayName: disp,
+              username: em,
+              email: em,
+              role: (window._studyProfile && window._studyProfile.role) || 'user',
+              userId: u.id
+            };
+            try { localStorage.setItem('study_user_meta', JSON.stringify(window._studyUser)); } catch(e){}
+            renderProfileDetails();
+          }
+        }).catch(function(){});
+      }
+
       if (window.LM_Haptic) window.LM_Haptic.impactLight();
     },
 

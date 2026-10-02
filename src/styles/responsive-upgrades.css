@@ -293,12 +293,13 @@ html, body {
   font-size: 13.5px !important;
   font-weight: 700 !important;
   border-radius: 10px !important;
-  background: linear-gradient(135deg, var(--teal), var(--violet)) !important;
-  color: #070914 !important;
+  background: linear-gradient(135deg, var(--teal, #00d4b4), var(--purple, #8b5cf6)) !important;
+  color: #ffffff !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  box-shadow: 0 2px 10px rgba(0, 240, 255, 0.25) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 2px 10px rgba(0, 212, 180, 0.25) !important;
   transition: transform 0.2s var(--ease-spring) !important;
 }
 .topbar-user-chip:hover .topbar-user-avatar {
@@ -3867,6 +3868,83 @@ body.privacy-mode [data-amount]:active {
   font-size: 10px;
   color: var(--text-3, #535d7e);
   padding: 4px 0 2px;
+}
+
+/* Light Mode Contrast Upgrades for Bank Profile Modal */
+[data-theme="light"] .bank-profile-sheet {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme="light"] .bank-profile-name {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .bank-profile-email {
+  color: #475569 !important;
+}
+
+[data-theme="light"] .bank-profile-close-btn {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+[data-theme="light"] .bank-profile-close-btn:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .bpm-matrix-card {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme="light"] .bpm-matrix-label {
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+[data-theme="light"] .bpm-matrix-val {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .bpm-section-group {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+[data-theme="light"] .bpm-group-title {
+  color: #475569 !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .bpm-row-icon {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme="light"] .bpm-row-title {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .bpm-row-desc {
+  color: #475569 !important;
+  font-weight: 500 !important;
+}
+
+[data-theme="light"] .bpm-row-arrow {
+  color: #64748b !important;
+  opacity: 0.8 !important;
+}
+
+[data-theme="light"] .bpm-footer-meta {
+  color: #64748b !important;
 }
 
 

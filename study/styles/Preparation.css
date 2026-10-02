@@ -24,28 +24,28 @@
   --sidebar-w: 280px;
 }
 :root[data-theme="light"] {
-  --bg: #f0f2f8;
+  --bg: #f4f6fc;
   --bg2: #ffffff;
-  --bg3: #f7f8fc;
-  --bg4: #eef0f8;
-  --border: #dde1f0;
-  --border2: #c8ceea;
-  --text: #1a1e2e;
-  --text1: #1a1e2e;
-  --text2: #4a5278;
-  --text3: #8891b8;
+  --bg3: #f8fafc;
+  --bg4: #eef2f9;
+  --border: #cbd5e1;
+  --border2: #94a3b8;
+  --text: #0f172a;
+  --text1: #0f172a;
+  --text2: #334155;
+  --text3: #475569;
   --accent: #2563eb;
   --accent2: #6d28d9;
   --accent3: #059669;
   --accent4: #dc2626;
   --accent5: #d97706;
   --card: #ffffff;
-  --card2: #f7f8fc;
+  --card2: #f8fafc;
   --glow: rgba(37,99,235,0.08);
   --glow2: rgba(109,40,217,0.07);
   --tag-bg: rgba(37,99,235,0.1);
   --tag-text: #2563eb;
-  --shadow: 0 4px 24px rgba(0,0,0,0.1);
+  --shadow: 0 4px 24px rgba(0,0,0,0.08);
   --sidebar-w: 280px;
 }
 
@@ -571,3 +571,110 @@ body{
   font-size:14px;display:none;
 }
 .hidden{display:none!important}
+
+/* ══════════════════════════════════════════════════════
+   PREPARATION KIT LIGHT MODE CONTRAST UPGRADES
+══════════════════════════════════════════════════════ */
+[data-theme="light"] .q-card {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .q-card:hover {
+  border-color: #2563eb;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12);
+}
+
+[data-theme="light"] .q-card.answered {
+  background: #f8fafc;
+  border-color: #059669;
+}
+
+[data-theme="light"] .stat-chip {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .stat-chip .stat-label {
+  color: #475569;
+  font-weight: 600;
+}
+
+[data-theme="light"] .hero-desc {
+  color: #334155;
+}
+
+[data-theme="light"] .search-input {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+[data-theme="light"] .search-input::placeholder {
+  color: #64748b;
+}
+
+[data-theme="light"] .nav-item {
+  color: #334155;
+}
+
+[data-theme="light"] .nav-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+[data-theme="light"] .nav-item.active {
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 700;
+}
+
+[data-theme="light"] .nav-item .nav-count {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+[data-theme="light"] .nav-item.active .nav-count {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+[data-theme="light"] .progress-chip {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .progress-chip span {
+  color: #475569;
+  font-weight: 600;
+}
+
+[data-theme="light"] .expand-all-btn {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+[data-theme="light"] .expand-all-btn:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+[data-theme="light"] .theme-btn,
+[data-theme="light"] .back-btn,
+[data-theme="light"] .menu-btn {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+[data-theme="light"] .theme-btn:hover,
+[data-theme="light"] .back-btn:hover,
+[data-theme="light"] .menu-btn:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+  background: #eff6ff;
+}

@@ -265,9 +265,26 @@
     var user    = session.user;
     var email   = user.email || '';
     var meta    = user.user_metadata || {};
-    var name    = meta.full_name || meta.name || email.split('@')[0] || 'User';
+    var rawName = meta.full_name || meta.name || (email ? email.split('@')[0] : 'User');
+    var name    = rawName ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : 'User';
     var initial = name.charAt(0).toUpperCase();
     var hubUrl  = _getHubUrl();
+
+    // Cache user metadata globally for BankProfileModal
+    window._studyUser = {
+      displayName: name,
+      username: email,
+      email: email,
+      role: (window._studyProfile && window._studyProfile.role) || 'user',
+      userId: user.id
+    };
+    try {
+      localStorage.setItem('study_user_meta', JSON.stringify(window._studyUser));
+    } catch (e) {}
+
+    // Update existing avatar in topbar if present
+    var studyAv = document.getElementById('studyUserAvatar');
+    if (studyAv) studyAv.textContent = initial;
 
     // ── Build auth footer element ────────────────────────────────────────────
     var mainUrl = _getMainAppUrl();
@@ -336,19 +353,26 @@
       });
     }
 
-    // ── Inject Topbar User Chip across Study Module ─────────────────────────
-    var topbarUtils = document.querySelector('.topbar-utils, .topbar-actions, .topbar-right');
-    if (topbarUtils && !document.getElementById('studyUserChip')) {
-      var chip = document.createElement('div');
-      chip.className = 'topbar-user-chip';
-      chip.id = 'studyUserChip';
-      chip.title = 'Account Vault & Profile Settings';
-      chip.setAttribute('aria-label', 'Open profile modal');
-      chip.innerHTML = '<div class="topbar-user-avatar">' + initial + '</div>';
-      chip.addEventListener('click', function () {
+    // ── Wire existing or injected Topbar User Chip across Study Module ───────
+    var existingChip = document.getElementById('studyUserChip');
+    if (existingChip) {
+      existingChip.onclick = function () {
         _openProfileModal();
-      });
-      topbarUtils.appendChild(chip);
+      };
+    } else {
+      var topbarUtils = document.querySelector('.topbar-utils, .topbar-actions, .topbar-right');
+      if (topbarUtils) {
+        var chip = document.createElement('div');
+        chip.className = 'topbar-user-chip';
+        chip.id = 'studyUserChip';
+        chip.title = 'Account Vault & Profile Settings';
+        chip.setAttribute('aria-label', 'Open profile modal');
+        chip.innerHTML = '<div class="topbar-user-avatar">' + initial + '</div>';
+        chip.addEventListener('click', function () {
+          _openProfileModal();
+        });
+        topbarUtils.appendChild(chip);
+      }
     }
 
     // ── Wire LedgerMate nav ──────────────────────────────────────────────────
