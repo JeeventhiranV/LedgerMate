@@ -91,6 +91,29 @@ public class MainActivity extends AppCompatActivity {
             }
     );
 
+    private long getInstalledVersionCode() {
+        try {
+            PackageManager pm = getPackageManager();
+            PackageInfo pInfo = pm.getPackageInfo(getPackageName(), 0);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                return pInfo.getLongVersionCode();
+            } else {
+                return pInfo.versionCode;
+            }
+        } catch (Exception e) {
+            return 1;
+        }
+    }
+
+    private long getArchiveVersionCode(PackageInfo archiveInfo) {
+        if (archiveInfo == null) return 0;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            return archiveInfo.getLongVersionCode();
+        } else {
+            return archiveInfo.versionCode;
+        }
+    }
+
     private String pendingFolderCallbackId = null;
 
     private final ActivityResultLauncher<Intent> folderPickerLauncher = registerForActivityResult(
