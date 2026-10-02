@@ -252,7 +252,7 @@
 }
 
 /* ═════════════════════════════════════════════════════════════════
-   LEDGERMATE ANIMATED PAGE LOADER
+   LEDGERMATE BANK-GRADE STARTUP EXPERIENCE & LOADER
    ═════════════════════════════════════════════════════════════════ */
 .lm-page-loader {
   position: fixed;
@@ -264,12 +264,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #070913;
+  background: #050711;
   opacity: 1;
   visibility: visible;
-  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
-              visibility 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: all;
   user-select: none;
   overflow: hidden;
@@ -277,26 +278,44 @@
 }
 
 [data-theme="light"] .lm-page-loader {
-  background: #f4f6fb;
+  background: #f8fafc;
 }
 
 .lm-page-loader.lm-loader-hidden {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
-  transform: scale(1.04);
+  transform: scale(1.06);
+  filter: blur(10px);
 }
 
 .lm-loader-backdrop {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 45%, rgba(0, 212, 180, 0.1) 0%, rgba(79, 142, 247, 0.07) 35%, rgba(139, 92, 246, 0.05) 60%, transparent 80%);
+  background: radial-gradient(circle at 50% 40%, rgba(0, 212, 180, 0.16) 0%, rgba(124, 58, 237, 0.12) 35%, rgba(6, 182, 212, 0.06) 65%, transparent 80%);
   pointer-events: none;
-  animation: lmLoaderAuraPulse 3.5s ease-in-out infinite alternate;
+  animation: lmLoaderAuraPulse 3.8s ease-in-out infinite alternate;
 }
 
 [data-theme="light"] .lm-loader-backdrop {
-  background: radial-gradient(circle at 50% 45%, rgba(0, 212, 180, 0.14) 0%, rgba(79, 142, 247, 0.09) 35%, rgba(139, 92, 246, 0.06) 60%, transparent 80%);
+  background: radial-gradient(circle at 50% 40%, rgba(13, 148, 136, 0.15) 0%, rgba(124, 58, 237, 0.1) 35%, rgba(14, 165, 233, 0.08) 65%, transparent 80%);
+}
+
+.lm-loader-grid-bg {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: center center;
+  mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 75%);
+  pointer-events: none;
+}
+
+[data-theme="light"] .lm-loader-grid-bg {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.025) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0, 0, 0, 0.025) 1px, transparent 1px);
 }
 
 .lm-loader-content {
@@ -306,28 +325,38 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 24px;
+  padding: 32px 24px;
   max-width: 90vw;
-  animation: lmLoaderFloat 3s ease-in-out infinite alternate;
+  z-index: 2;
+  animation: lmLoaderFloat 3.2s ease-in-out infinite alternate;
 }
 
 .lm-loader-orb-wrap {
   position: relative;
-  width: 88px;
-  height: 88px;
+  width: 98px;
+  height: 98px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 22px;
+  margin-bottom: 24px;
+}
+
+.lm-loader-ping-ring {
+  position: absolute;
+  inset: -20px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 212, 180, 0.35);
+  animation: lmLoaderSonarPing 2.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  pointer-events: none;
 }
 
 .lm-loader-glow-ring {
   position: absolute;
-  inset: -12px;
+  inset: -14px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(0, 212, 180, 0.35) 0%, rgba(79, 142, 247, 0.25) 50%, transparent 70%);
-  filter: blur(14px);
-  animation: lmLoaderGlowPulse 2.2s ease-in-out infinite alternate;
+  background: radial-gradient(circle, rgba(0, 212, 180, 0.45) 0%, rgba(124, 58, 237, 0.3) 50%, transparent 70%);
+  filter: blur(18px);
+  animation: lmLoaderGlowPulse 2.4s ease-in-out infinite alternate;
 }
 
 .lm-loader-spin-ring {
@@ -335,82 +364,109 @@
   inset: 0;
   border-radius: 50%;
   padding: 2.5px;
-  background: linear-gradient(135deg, #00d4b4, #4f8ef7, #8b5cf6, #00d4b4);
+  background: linear-gradient(135deg, #00d4b4, #3b82f6, #8b5cf6, #00d4b4);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: lmLoaderSpin 1.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
-  box-shadow: 0 0 20px rgba(0, 212, 180, 0.3);
+  animation: lmLoaderSpin 2.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  box-shadow: 0 0 24px rgba(0, 212, 180, 0.4);
 }
 
 .lm-loader-spin-ring-inner {
   position: absolute;
-  inset: 6px;
+  inset: 7px;
   border-radius: 50%;
-  border: 1.5px dashed rgba(79, 142, 247, 0.4);
-  animation: lmLoaderSpinReverse 5s linear infinite;
+  border: 1.5px dashed rgba(0, 212, 180, 0.45);
+  animation: lmLoaderSpinReverse 6s linear infinite;
 }
 
 .lm-loader-badge {
-  width: 64px;
-  height: 64px;
-  border-radius: 20px;
-  background: rgba(18, 24, 43, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
+  background: rgba(13, 19, 36, 0.88);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), inset 0 1.5px 2px rgba(255, 255, 255, 0.3);
   z-index: 2;
   transition: transform 0.2s ease;
 }
 
 [data-theme="light"] .lm-loader-badge {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.92);
   border-color: rgba(0, 0, 0, 0.08);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08), inset 0 1.5px 2px rgba(255, 255, 255, 0.9);
 }
 
 .lm-loader-icon {
-  font-size: 30px;
+  font-size: 34px;
   line-height: 1;
   display: inline-block;
-  animation: lmLoaderIconBounce 2s ease-in-out infinite alternate;
-  filter: drop-shadow(0 4px 10px rgba(0, 212, 180, 0.3));
+  animation: lmLoaderIconBounce 2.2s ease-in-out infinite alternate;
+  filter: drop-shadow(0 6px 14px rgba(0, 212, 180, 0.4));
 }
 
 .lm-loader-brand {
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
 
 .lm-loader-title {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-  color: #f1f4fd;
-  background: linear-gradient(135deg, #ffffff 30%, #00d4b4 70%, #4f8ef7 100%);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #ffffff;
+  margin-bottom: 6px;
+  font-family: var(--font-h, sans-serif);
+}
+
+.lm-loader-title .lm-loader-title-mate {
+  background: linear-gradient(135deg, #00d4b4, #7c3aed);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  margin-bottom: 5px;
 }
 
 [data-theme="light"] .lm-loader-title {
   color: #0f172a;
-  background: linear-gradient(135deg, #0f172a 30%, #0d9488 70%, #2563eb 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+}
+
+.lm-loader-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--teal, #00d4b4);
+  background: rgba(0, 212, 180, 0.1);
+  border: 1px solid rgba(0, 212, 180, 0.25);
+  padding: 2.5px 9px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+}
+
+.lm-loader-pill-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--teal, #00d4b4);
+  box-shadow: 0 0 6px var(--teal, #00d4b4);
+  animation: lmPulseDot 1.4s infinite;
 }
 
 .lm-loader-subtitle {
   font-size: 13px;
   font-weight: 500;
-  color: #7b88aa;
+  color: #94a3b8;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 2px;
+  min-height: 20px;
 }
 
 [data-theme="light"] .lm-loader-subtitle {
@@ -420,7 +476,7 @@
 .lm-loader-dots span {
   display: inline-block;
   animation: lmLoaderDots 1.4s infinite ease-in-out both;
-  color: #00d4b4;
+  color: var(--teal, #00d4b4);
   font-weight: 700;
 }
 
@@ -429,13 +485,14 @@
 .lm-loader-dots span:nth-child(3) { animation-delay: 0.4s; }
 
 .lm-loader-bar-wrap {
-  width: 170px;
+  width: 200px;
   height: 4px;
   background: rgba(255, 255, 255, 0.08);
   border-radius: 99px;
   overflow: hidden;
   position: relative;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+  margin-bottom: 24px;
 }
 
 [data-theme="light"] .lm-loader-bar-wrap {
@@ -446,11 +503,45 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 50%;
+  width: 45%;
   border-radius: 99px;
-  background: linear-gradient(90deg, #00d4b4, #4f8ef7, #8b5cf6);
-  animation: lmLoaderBarSlide 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  box-shadow: 0 0 12px rgba(0, 212, 180, 0.6);
+  background: linear-gradient(90deg, #00d4b4, #3b82f6, #8b5cf6, #00d4b4);
+  background-size: 200% 100%;
+  animation: lmLoaderBarSlide 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite, lmGradientMove 2s linear infinite;
+  box-shadow: 0 0 14px rgba(0, 212, 180, 0.7);
+}
+
+.lm-loader-security-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.2px;
+}
+
+[data-theme="light"] .lm-loader-security-footer {
+  color: rgba(15, 23, 42, 0.45);
+}
+
+.lm-loader-sec-icon {
+  font-size: 11px;
+}
+
+@keyframes lmLoaderSonarPing {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+@keyframes lmPulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.7); }
+}
+
+@keyframes lmGradientMove {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
 }
 
 @keyframes lmLoaderSpin {
@@ -489,9 +580,9 @@
 }
 
 @keyframes lmLoaderBarSlide {
-  0% { left: -50%; width: 30%; }
-  50% { left: 25%; width: 60%; }
-  100% { left: 100%; width: 30%; }
+  0% { left: -50%; width: 35%; }
+  50% { left: 25%; width: 55%; }
+  100% { left: 100%; width: 35%; }
 }
 
 /* ═══════════════════════════════════════════════════════════════

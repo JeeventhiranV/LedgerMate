@@ -78,11 +78,13 @@
 </head>
 <body>
 
-<!-- ─── ANIMATED PAGE LOADER ──────────────────────────── -->
+<!-- ─── ANIMATED PAGE LOADER (Bank-Grade Startup Experience) ──────────────── -->
 <div id="lmPageLoader" class="lm-page-loader" aria-hidden="false">
   <div class="lm-loader-backdrop"></div>
+  <div class="lm-loader-grid-bg"></div>
   <div class="lm-loader-content">
     <div class="lm-loader-orb-wrap">
+      <div class="lm-loader-ping-ring"></div>
       <div class="lm-loader-glow-ring"></div>
       <div class="lm-loader-spin-ring"></div>
       <div class="lm-loader-spin-ring-inner"></div>
@@ -91,14 +93,49 @@
       </div>
     </div>
     <div class="lm-loader-brand">
-      <div class="lm-loader-title">LedgerMate</div>
-      <div class="lm-loader-subtitle">Loading your financial hub<span class="lm-loader-dots"><span>.</span><span>.</span><span>.</span></span></div>
+      <div class="lm-loader-title">Ledger<span class="lm-loader-title-mate">Mate</span></div>
+      <div class="lm-loader-pill">
+        <span class="lm-loader-pill-dot"></span>
+        <span>256-Bit Encrypted Financial Vault</span>
+      </div>
+      <div class="lm-loader-subtitle" id="lmLoaderStatusText">
+        <span>Initializing secure local vault</span><span class="lm-loader-dots"><span>.</span><span>.</span><span>.</span></span>
+      </div>
     </div>
     <div class="lm-loader-bar-wrap">
       <div class="lm-loader-bar"></div>
     </div>
+    <div class="lm-loader-security-footer">
+      <span class="lm-loader-sec-icon">🔒</span>
+      <span>Zero-Knowledge Architecture · Offline First</span>
+    </div>
   </div>
 </div>
+
+<script>
+/* ── Dynamic Bank-Grade Startup Loader Step Ticker ──────────── */
+(function() {
+  try {
+    const statusEl = document.getElementById('lmLoaderStatusText');
+    if (!statusEl) return;
+    const steps = [
+      'Initializing secure local vault',
+      'Decrypting ledger & portfolios',
+      'Verifying cloud sync gateway',
+      'Ready · Launching LedgerMate'
+    ];
+    let idx = 0;
+    const timer = setInterval(() => {
+      idx++;
+      if (idx < steps.length && statusEl && !document.getElementById('lmPageLoader')?.classList.contains('lm-loader-hidden')) {
+        statusEl.innerHTML = `<span>${steps[idx]}</span><span class="lm-loader-dots"><span>.</span><span>.</span><span>.</span></span>`;
+      } else {
+        clearInterval(timer);
+      }
+    }, 400);
+  } catch(e) {}
+})();
+</script>
 
 <!-- ─── PAGE LOAD BAR & SCROLL PROGRESS BAR ──────────── -->
 <div id="pageLoadBar"></div>
@@ -155,12 +192,12 @@
   <!-- ─── SIDEBAR ─────────────────────────────────────── -->
   <div id="sidebarOverlay"></div>
   <aside id="sidebar">
-    <div class="sidebar-logo">
+    <div class="sidebar-logo" onclick="window.LM_ProfileModal ? window.LM_ProfileModal.open() : null" style="cursor:pointer;" title="Tap to open Account &amp; Vault Profile">
       <div class="sidebar-logo-icon">📒</div>
       <div style="flex: 1; min-width: 0;">
         <div style="display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; min-width: 0;">
           <div class="sidebar-logo-text">LedgerMate</div>
-          <span id="sidebarAppVersion" class="sidebar-version-badge" title="App Version · Tap to check for updates" onclick="window.LM_AppUpdateService ? window.LM_AppUpdateService.checkForUpdates(true) : null">v1.0.0</span>
+          <span id="sidebarAppVersion" class="sidebar-version-badge" title="App Version · Tap to check for updates" onclick="event.stopPropagation(); window.LM_AppUpdateService ? window.LM_AppUpdateService.checkForUpdates(true) : null">v1.0.0</span>
         </div>
         <div class="sidebar-logo-sub" id="sidebarUserName">Loading…</div>
       </div>
@@ -410,7 +447,7 @@
 
         <!-- 👤 User profile (far right) -->
         <div style="position:relative;">
-          <div class="topbar-user-chip" id="topbarUserChipWrap" onclick="document.getElementById('userDropdownMenu').classList.toggle('open')" title="Account">
+          <div class="topbar-user-chip" id="topbarUserChipWrap" onclick="window.LM_ProfileModal ? window.LM_ProfileModal.open() : document.getElementById('userDropdownMenu').classList.toggle('open')" title="Account &amp; Vault Profile">
             <div class="topbar-user-avatar" id="topbarUserChip">A</div>
           </div>
           <div class="topbar-user-menu" id="userDropdownMenu">
@@ -1547,6 +1584,7 @@ function setGreeting() {
   <script src="./src/scripts/Common/Notifications.js"></script>
   <script src="./src/scripts/Common/GoldRateFetch.js"></script>
   <script src="./src/scripts/Common/AppUpdateService.js"></script>
+  <script src="./src/scripts/Common/BankProfileModal.js"></script>
   <script src="./src/scripts/Common/TripPlanner.js"></script>
   <script src="./src/scripts/Common/Dropdown.js"></script>
   <script src="./src/scripts/Common/MonthlySummary.js"></script>
