@@ -2849,9 +2849,9 @@ async function fullImportJSONText(txt, source = "Unknown"){
       try { localStorage.setItem(`lm_u_${currentUid}_gold_data`, JSON.stringify(data.gold_data)); } catch(e){}
     }
 
-    await loadAllFromDB();
-    if (typeof renderAll === 'function') renderAll();
-    if (source === "Manual" || source === "AdminPanel" || source === "UserAction") {
+    if (source !== "Drive"){
+      await loadAllFromDB();
+      if (typeof renderAll === 'function') renderAll();
       showToast('✅ Import complete! All data restored.', 'success');
     }
 
@@ -2869,10 +2869,8 @@ async function fullImportJSONText(txt, source = "Unknown"){
       window.LM_Bus.emit('lm:import:complete');
     }
   } catch(err) {
-    console.error('[LM] Import/Restore failed:', err);
-    if (typeof showToast === 'function') {
-      showToast('❌ Import/Restore failed: ' + (err.message || err), 'error');
-    }
+    console.error('[LM] Import failed:', err);
+    showToast('❌ Import failed: ' + err.message, 'error');
   }
 }
 

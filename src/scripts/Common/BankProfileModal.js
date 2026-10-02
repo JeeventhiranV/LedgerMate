@@ -47,6 +47,9 @@
   }
 
   function isAppLockEnabled() {
+    if (window.LM_Auth && typeof window.LM_Auth.isAppLockEnabled === 'function') {
+      return window.LM_Auth.isAppLockEnabled();
+    }
     try {
       const pin = localStorage.getItem('lm_app_lock_pin');
       return !!pin;
@@ -137,7 +140,7 @@
               </div>
               <div class="bpm-switch-pill" id="bpmSyncSwitch">
                 <span class="bpm-switch-knob"></span>
-                <span id="bpmSyncSwitchText">ON</span>
+                <span id="bpmSyncSwitchText">Cloud</span>
               </div>
             </div>
 
@@ -198,7 +201,7 @@
               </div>
               <div class="bpm-switch-pill" id="bpmThemeSwitch">
                 <span class="bpm-switch-knob"></span>
-                <span id="bpmThemeSwitchText">ON</span>
+                <span id="bpmThemeSwitchText">Dark</span>
               </div>
             </button>
 
@@ -218,7 +221,7 @@
             <button class="bpm-action-row" onclick="window.LM_ProfileModal.manageLocalBackup()">
               <span class="bpm-row-icon">💾</span>
               <div class="bpm-row-text">
-                <div class="bpm-row-title">Local Device Auto-Backup &amp; Storage</div>
+                <div class="bpm-row-title">Auto Backup &amp; Storage</div>
                 <div class="bpm-row-desc" id="bpmLocalBackupDesc">Automated snapshots · 30-day retention &amp; 100 max cap</div>
               </div>
               <span class="bpm-badge" id="bpmLocalBackupBadge">Configure</span>
@@ -322,7 +325,7 @@
       syncSwitch.classList.toggle('active', !isOffline);
     }
     if (syncSwitchText) {
-      syncSwitchText.textContent = !isOffline ? 'ON' : 'OFF';
+      syncSwitchText.textContent = !isOffline ? 'Cloud' : 'Offline';
     }
 
     const privStatus = document.getElementById('bpmPrivacyStatus');
@@ -350,7 +353,7 @@
       themeSwitch.classList.toggle('active', isDark);
     }
     if (themeSwitchText) {
-      themeSwitchText.textContent = isDark ? 'ON' : 'OFF';
+      themeSwitchText.textContent = isDark ? 'Dark' : 'Light';
     }
 
     const themeIcon = document.getElementById('bpmThemeIcon');

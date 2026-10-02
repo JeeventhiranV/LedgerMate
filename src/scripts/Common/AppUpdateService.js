@@ -540,13 +540,7 @@
         updateBtn.innerHTML = '<span>⚙️ Grant Permission & Install</span>';
       } else if (data.status === 'error') {
         isDownloading = false;
-        const errMsg = data.error || 'Download failed';
-        if (errMsg.includes('No newer update package') || errMsg.includes('No valid downloaded update') || errMsg.includes('already installed')) {
-          console.log('[AppUpdate] Stale cache detected, starting fresh APK download...');
-          startApkDownload();
-          return;
-        }
-        statusText.textContent = '❌ ' + errMsg;
+        statusText.textContent = '❌ ' + (data.error || 'Download failed');
         updateBtn.disabled = false;
         closeBtn.style.display = 'flex';
         dismissBtn.style.display = 'inline-flex';
@@ -570,8 +564,7 @@
       window.LM_NativeBridgeCallbacks[callbackId] = handleNativeCallback;
 
       try {
-        const cacheBustedUrl = apkUrl + (apkUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
-        window.AndroidBridge.downloadAndInstallApk(cacheBustedUrl, callbackId);
+        window.AndroidBridge.downloadAndInstallApk(apkUrl, callbackId);
       } catch (err) {
         isDownloading = false;
         statusText.textContent = '❌ Native error: ' + err.message;
@@ -674,11 +667,6 @@
         renderUpdateUI(currentVer, remoteMeta);
       } else {
         updateSidebarVersionBadge(false);
-        try {
-          if (window.AndroidBridge && typeof window.AndroidBridge.clearUpdateCache === 'function') {
-            window.AndroidBridge.clearUpdateCache();
-          }
-        } catch (e) {}
         if (manual && typeof window.showToast === 'function') {
           window.showToast(`✅ You're on the latest version (v${currentVer.versionName})`, 'success');
         }

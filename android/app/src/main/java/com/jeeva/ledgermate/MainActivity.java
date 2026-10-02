@@ -34,6 +34,9 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import android.view.WindowManager;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import java.util.concurrent.Executor;
 
 import androidx.documentfile.provider.DocumentFile;
 import java.io.BufferedReader;
@@ -151,6 +154,7 @@ public class MainActivity extends AppCompatActivity {
             }
     );
 
+
     @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -158,9 +162,6 @@ public class MainActivity extends AppCompatActivity {
 
         createNotificationChannel();
         checkAndRequestNotificationPermission();
-
-        // Clean up obsolete/stale APK updates from cache to reclaim space
-        BootReceiver.deleteUpdateCache(this);
 
         // Initialize Background Reminder Services (WorkManager + Daily Alarm)
         try {
@@ -500,9 +501,6 @@ public class MainActivity extends AppCompatActivity {
                 pendingInstallCallbackId = null;
                 installApkFile(toInstall, cbId);
             }
-        } else {
-            // Clean up update APKs after successful installation
-            BootReceiver.deleteUpdateCache(this);
         }
     }
 
@@ -980,11 +978,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
-        public void clearUpdateCache() {
-            BootReceiver.deleteUpdateCache(MainActivity.this);
-        }
-
-        @JavascriptInterface
         public void syncRemindersToNative(String duesJson) {
             if (duesJson == null || duesJson.isEmpty()) return;
             try {
@@ -1084,21 +1077,6 @@ public class MainActivity extends AppCompatActivity {
                 File tempApkFile = null;
                 try {
                     sendProgress(callbackId, "downloading", 0, "Connecting to update server...");
-
-                    File updateDir = new File(getCacheDir(), "updates");
-                    if (!updateDir.exists()) {
-                        updateDir.mkdirs();
-                    }
-                    // Delete any leftover update APKs before downloading
-                    File existingApk = new File(updateDir, "LedgerMate-update.apk");
-                    if (existingApk.exists()) {
-                        existingApk.delete();
-                    }
-                    tempApkFile = new File(updateDir, "LedgerMate-update.apk.tmp");
-                    if (tempApkFile.exists()) {
-                        tempApkFile.delete();
-                    }
-
                     String currentUrl = apkUrl;
                     int redirectCount = 0;
                     final int MAX_REDIRECTS = 6;
@@ -1110,11 +1088,6 @@ public class MainActivity extends AppCompatActivity {
                         conn.setInstanceFollowRedirects(true);
                         conn.setConnectTimeout(20000);
                         conn.setReadTimeout(30000);
-                        conn.setUseCaches(false);
-                        conn.setDefaultUseCaches(false);
-                        conn.setRequestProperty("Cache-Control", "no-cache, no-store, must-revalidate");
-                        conn.setRequestProperty("Pragma", "no-cache");
-                        conn.setRequestProperty("Expires", "0");
                         conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile; LedgerMate-AppUpdater/1.0)");
                         conn.setRequestProperty("Accept", "*/*");
 
@@ -1143,6 +1116,16 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     int fileLength = conn.getContentLength();
+                    File updateDir = new File(getCacheDir(), "updates");
+                    if (!updateDir.exists()) {
+                        updateDir.mkdirs();
+                    }
+
+                    tempApkFile = new File(updateDir, "LedgerMate-update.apk.tmp");
+                    if (tempApkFile.exists()) {
+                        tempApkFile.delete();
+                    }
+
                     input = conn.getInputStream();
                     output = new FileOutputStream(tempApkFile);
 
@@ -1190,14 +1173,6 @@ public class MainActivity extends AppCompatActivity {
                     if (archiveInfo == null) {
                         if (tempApkFile.exists()) tempApkFile.delete();
                         sendError(callbackId, "Downloaded file is corrupted or not a valid Android package. Please retry.");
-                        return;
-                    }
-
-                    long installedVersion = getInstalledVersionCode();
-                    long apkVersion = getArchiveVersionCode(archiveInfo);
-                    if (apkVersion <= installedVersion) {
-                        if (tempApkFile.exists()) tempApkFile.delete();
-                        sendError(callbackId, "Downloaded update (v" + (archiveInfo.versionName != null ? archiveInfo.versionName : "1.0." + apkVersion) + ") is already installed or older than current version.");
                         return;
                     }
 
@@ -1249,51 +1224,31 @@ public class MainActivity extends AppCompatActivity {
 
         @JavascriptInterface
         public boolean hasDownloadedUpdate() {
-            try {
-                File updateDir = new File(getCacheDir(), "updates");
-                File apkFile = new File(updateDir, "LedgerMate-update.apk");
-                if (!apkFile.exists() || apkFile.length() < 100000) return false;
-                PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
-                if (archiveInfo == null) {
-                    apkFile.delete();
-                    return false;
-                }
-                long installedVersion = getInstalledVersionCode();
-                long apkVersion = getArchiveVersionCode(archiveInfo);
-                if (apkVersion <= installedVersion) {
-                    apkFile.delete();
-                    return false;
-                }
-                return true;
-            } catch (Exception e) {
+            File updateDir = new File(getCacheDir(), "updates");
+            File apkFile = new File(updateDir, "LedgerMate-update.apk");
+            if (!apkFile.exists() || apkFile.length() < 100000) return false;
+            PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
+            if (archiveInfo == null) {
+                try { apkFile.delete(); } catch (Exception ignored) {}
                 return false;
             }
+            return true;
         }
 
         @JavascriptInterface
         public void installPendingUpdate(String callbackId) {
-            try {
-                File updateDir = new File(getCacheDir(), "updates");
-                File apkFile = new File(updateDir, "LedgerMate-update.apk");
-                if (apkFile.exists() && apkFile.length() > 100000) {
-                    PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
-                    if (archiveInfo != null) {
-                        long installedVersion = getInstalledVersionCode();
-                        long apkVersion = getArchiveVersionCode(archiveInfo);
-                        if (apkVersion > installedVersion) {
-                            runOnUiThread(() -> installApkFile(apkFile, callbackId));
-                            return;
-                        } else {
-                            apkFile.delete();
-                        }
-                    } else {
-                        apkFile.delete();
-                    }
+            File updateDir = new File(getCacheDir(), "updates");
+            File apkFile = new File(updateDir, "LedgerMate-update.apk");
+            if (apkFile.exists() && apkFile.length() > 100000) {
+                PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
+                if (archiveInfo != null) {
+                    runOnUiThread(() -> installApkFile(apkFile, callbackId));
+                    return;
+                } else {
+                    try { apkFile.delete(); } catch (Exception ignored) {}
                 }
-                sendError(callbackId, "No newer update package found on disk. Downloading fresh update...");
-            } catch (Exception e) {
-                sendError(callbackId, "Error checking update package: " + e.getMessage());
             }
+            sendError(callbackId, "No valid downloaded update file found on disk. Please re-download.");
         }
 
         @JavascriptInterface
@@ -1419,6 +1374,83 @@ public class MainActivity extends AppCompatActivity {
                     returnToJs(callbackId, resp.toString());
                 } catch (Exception e) {
                     sendError(callbackId, "Prune failed: " + e.getMessage());
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void canAuthenticateBiometrics(String callbackId) {
+            try {
+                BiometricManager biometricManager = BiometricManager.from(MainActivity.this);
+                int authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG | BiometricManager.Authenticators.BIOMETRIC_WEAK | BiometricManager.Authenticators.DEVICE_CREDENTIAL;
+                int canAuth = biometricManager.canAuthenticate(authenticators);
+                JSONObject resp = new JSONObject();
+                if (canAuth == BiometricManager.BIOMETRIC_SUCCESS) {
+                    resp.put("status", "success");
+                    resp.put("available", true);
+                    resp.put("enrolled", true);
+                } else if (canAuth == BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED) {
+                    resp.put("status", "success");
+                    resp.put("available", true);
+                    resp.put("enrolled", false);
+                    resp.put("reason", "none_enrolled");
+                } else {
+                    resp.put("status", "success");
+                    resp.put("available", false);
+                    resp.put("enrolled", false);
+                    resp.put("reason", "unsupported");
+                }
+                returnToJs(callbackId, resp.toString());
+            } catch (Exception e) {
+                sendError(callbackId, "Biometric check failed: " + e.getMessage());
+            }
+        }
+
+        @JavascriptInterface
+        public void authenticateBiometrics(String title, String subtitle, String callbackId) {
+            runOnUiThread(() -> {
+                try {
+                    Executor executor = ContextCompat.getMainExecutor(MainActivity.this);
+                    BiometricPrompt.AuthenticationCallback authCallback = new BiometricPrompt.AuthenticationCallback() {
+                        @Override
+                        public void onAuthenticationError(int errorCode, CharSequence errString) {
+                            super.onAuthenticationError(errorCode, errString);
+                            try {
+                                JSONObject resp = new JSONObject();
+                                resp.put("status", "error");
+                                resp.put("errorCode", errorCode);
+                                resp.put("message", errString != null ? errString.toString() : "Authentication error");
+                                returnToJs(callbackId, resp.toString());
+                            } catch (Exception ignored) {}
+                        }
+
+                        @Override
+                        public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                            super.onAuthenticationSucceeded(result);
+                            try {
+                                JSONObject resp = new JSONObject();
+                                resp.put("status", "success");
+                                resp.put("authenticated", true);
+                                returnToJs(callbackId, resp.toString());
+                            } catch (Exception ignored) {}
+                        }
+
+                        @Override
+                        public void onAuthenticationFailed() {
+                            super.onAuthenticationFailed();
+                        }
+                    };
+
+                    BiometricPrompt biometricPrompt = new BiometricPrompt(MainActivity.this, executor, authCallback);
+                    BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                            .setTitle((title != null && !title.isEmpty()) ? title : "LedgerMate Security")
+                            .setSubtitle((subtitle != null && !subtitle.isEmpty()) ? subtitle : "Verify your identity to unlock")
+                            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG | BiometricManager.Authenticators.BIOMETRIC_WEAK | BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+                            .build();
+
+                    biometricPrompt.authenticate(promptInfo);
+                } catch (Exception e) {
+                    sendError(callbackId, "Failed to launch biometrics: " + e.getMessage());
                 }
             });
         }

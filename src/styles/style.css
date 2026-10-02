@@ -4132,8 +4132,8 @@ footer span { color: var(--teal); font-weight: 600; }
 .bpm-switch-pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 7px 2px 5px;
+  gap: 5px;
+  padding: 2.5px 8px 2.5px 6px;
   border-radius: 99px;
   font-size: 9.5px;
   font-weight: 800;
@@ -4144,6 +4144,7 @@ footer span { color: var(--teal); font-weight: 600; }
   border: 1px solid rgba(255, 255, 255, 0.1);
   margin-top: 2px;
   user-select: none;
+  white-space: nowrap;
 }
 
 [data-theme="light"] .bpm-switch-pill {
