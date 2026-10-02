@@ -1107,46 +1107,51 @@ function renderWealthLoans(container) {
       <button class="loan-filter-pill" style="background:rgba(251,113,133,0.2);color:var(--rose);border:1px solid rgba(251,113,133,0.4);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;" onclick="setLoanSubtab('overdue')">View Overdue →</button>
     </div>` : '';
 
-  // KPI Summary Strip
+  // Modern Compact KPI Summary Ribbon
   const netColor = s.netBalance >= 0 ? 'var(--emerald)' : 'var(--rose)';
-  const netLabel = s.netBalance > 0 ? '🟢 You Are Net Creditor' : s.netBalance < 0 ? '🔴 You Are Net Debtor' : '⚪ Fully Balanced';
+  const netLabel = s.netBalance > 0 ? 'Net Creditor' : s.netBalance < 0 ? 'Net Debtor' : 'Balanced';
   const totalInterestCombined = (s.totalInterestGiven || 0) + (s.totalInterestTaken || 0);
 
   const kpiStripHtml = `
-    <div class="loan-kpi-strip" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;margin-bottom:18px;">
-      <div class="kpi-card emerald" style="position:relative;overflow:hidden;border-radius:14px;padding:14px 16px;">
-        <div class="kpi-label" style="font-size:11px;font-weight:700;letter-spacing:0.5px;color:var(--text-3);display:flex;justify-content:space-between;">
+    <div class="loan-kpi-ribbon" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:10px;margin-bottom:16px;">
+      <div class="kpi-card emerald" style="position:relative;border-radius:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);">
+        <div style="font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:var(--text-3);display:flex;justify-content:space-between;align-items:center;">
           <span>💸 GIVEN (OUTSTANDING)</span>
-          <span style="color:var(--emerald);">${s.totalGiven > 0 ? Math.round((s.collectedGiven / s.totalGiven) * 100) : 0}% collected</span>
+          <span style="color:var(--emerald);font-size:10px;">${s.totalGiven > 0 ? Math.round((s.collectedGiven / s.totalGiven) * 100) : 0}% collected</span>
         </div>
-        <div class="kpi-value" style="color:var(--emerald);font-size:clamp(18px,2.2vw,24px);font-weight:800;margin:4px 0;">${fmtINR(s.givenOut)}</div>
-        <div class="kpi-change" style="font-size:11px;color:var(--text-3);">
+        <div style="color:var(--emerald);font-size:clamp(16px,2vw,20px);font-weight:800;margin:3px 0;font-family:var(--font-m);">${fmtINR(s.givenOut)}</div>
+        <div style="font-size:10.5px;color:var(--text-3);">
           Principal: ${fmtINR(s.totalGiven)} ${s.totalInterestGiven > 0 ? `· <span style="color:var(--gold);">+${fmtINR(s.totalInterestGiven)} Int</span>` : ''}
         </div>
       </div>
 
-      <div class="kpi-card rose" style="position:relative;overflow:hidden;border-radius:14px;padding:14px 16px;">
-        <div class="kpi-label" style="font-size:11px;font-weight:700;letter-spacing:0.5px;color:var(--text-3);display:flex;justify-content:space-between;">
+      <div class="kpi-card rose" style="position:relative;border-radius:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);">
+        <div style="font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:var(--text-3);display:flex;justify-content:space-between;align-items:center;">
           <span>📥 TAKEN (OUTSTANDING)</span>
-          <span style="color:var(--rose);">${s.totalTaken > 0 ? Math.round((s.collectedTaken / s.totalTaken) * 100) : 0}% repaid</span>
+          <span style="color:var(--rose);font-size:10px;">${s.totalTaken > 0 ? Math.round((s.collectedTaken / s.totalTaken) * 100) : 0}% repaid</span>
         </div>
-        <div class="kpi-value" style="color:var(--rose);font-size:clamp(18px,2.2vw,24px);font-weight:800;margin:4px 0;">${fmtINR(s.takenOut)}</div>
-        <div class="kpi-change" style="font-size:11px;color:var(--text-3);">
+        <div style="color:var(--rose);font-size:clamp(16px,2vw,20px);font-weight:800;margin:3px 0;font-family:var(--font-m);">${fmtINR(s.takenOut)}</div>
+        <div style="font-size:10.5px;color:var(--text-3);">
           Principal: ${fmtINR(s.totalTaken)} ${s.totalInterestTaken > 0 ? `· <span style="color:var(--gold);">+${fmtINR(s.totalInterestTaken)} Int</span>` : ''}
         </div>
       </div>
 
-      <div class="kpi-card teal" style="position:relative;overflow:hidden;border-radius:14px;padding:14px 16px;">
-        <div class="kpi-label" style="font-size:11px;font-weight:700;letter-spacing:0.5px;color:var(--text-3);">⚖️ NET POSITION</div>
-        <div class="kpi-value" style="color:${netColor};font-size:clamp(18px,2.2vw,24px);font-weight:800;margin:4px 0;">${s.netBalance >= 0 ? '+' : ''}${fmtINR(s.netBalance)}</div>
-        <div class="kpi-change" style="font-size:11px;color:${netColor};">${netLabel}</div>
+      <div class="kpi-card teal" style="position:relative;border-radius:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);">
+        <div style="font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:var(--text-3);display:flex;justify-content:space-between;align-items:center;">
+          <span>⚖️ NET POSITION</span>
+          <span style="color:${netColor};font-size:10px;">${netLabel}</span>
+        </div>
+        <div style="color:${netColor};font-size:clamp(16px,2vw,20px);font-weight:800;margin:3px 0;font-family:var(--font-m);">${s.netBalance >= 0 ? '+' : ''}${fmtINR(s.netBalance)}</div>
+        <div style="font-size:10.5px;color:var(--text-3);">
+          ${s.netBalance > 0 ? 'You are owed overall' : s.netBalance < 0 ? 'You owe overall' : 'All accounts settled'}
+        </div>
       </div>
 
       ${totalInterestCombined > 0 ? `
-        <div class="kpi-card gold" style="position:relative;overflow:hidden;border-radius:14px;padding:14px 16px;">
-          <div class="kpi-label" style="font-size:11px;font-weight:700;letter-spacing:0.5px;color:var(--text-3);">✨ TOTAL INTEREST ACCRUED</div>
-          <div class="kpi-value" style="color:var(--gold);font-size:clamp(18px,2.2vw,24px);font-weight:800;margin:4px 0;">+${fmtINR(totalInterestCombined)}</div>
-          <div class="kpi-change" style="font-size:11px;color:var(--text-3);">Given: +${fmtINR(s.totalInterestGiven)} · Taken: +${fmtINR(s.totalInterestTaken)}</div>
+        <div class="kpi-card gold" style="position:relative;border-radius:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);">
+          <div style="font-size:10.5px;font-weight:700;letter-spacing:0.5px;color:var(--text-3);">✨ ACCRUED INTEREST</div>
+          <div style="color:var(--gold);font-size:clamp(16px,2vw,20px);font-weight:800;margin:3px 0;font-family:var(--font-m);">+${fmtINR(totalInterestCombined)}</div>
+          <div style="font-size:10.5px;color:var(--text-3);">Given: +${fmtINR(s.totalInterestGiven)} · Taken: +${fmtINR(s.totalInterestTaken)}</div>
         </div>
       ` : ''}
     </div>
@@ -1180,7 +1185,7 @@ function renderWealthLoans(container) {
           ${window._loanSearchQuery ? `<button onclick="handleLoanSearch('')" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-3);font-size:14px;cursor:pointer;">×</button>` : ''}
         </div>
         <div class="loan-view-toggle" style="display:inline-flex;background:var(--bg3);padding:3px;border-radius:10px;border:1px solid var(--border);">
-          <button class="loan-view-btn ${viewMode === 'cards' ? 'active' : ''}" onclick="setLoanViewMode('cards')" title="Cards Grid View" style="padding:4px 10px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:${viewMode === 'cards' ? 'var(--teal)' : 'transparent'};color:${viewMode === 'cards' ? '#000' : 'var(--text-3)'};">📇 Cards</button>
+          <button class="loan-view-btn ${viewMode === 'cards' ? 'active' : ''}" onclick="setLoanViewMode('cards')" title="Cards Grid View" style="padding:4px 10px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:${viewMode === 'cards' ? 'var(--teal)' : 'transparent'};color:${viewMode === 'cards' ? '#000' : 'var(--text-3)'};">📇 Compact</button>
           <button class="loan-view-btn ${viewMode === 'people' ? 'active' : ''}" onclick="setLoanViewMode('people')" title="By Person Summary" style="padding:4px 10px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:${viewMode === 'people' ? 'var(--teal)' : 'transparent'};color:${viewMode === 'people' ? '#000' : 'var(--text-3)'};">👥 People</button>
         </div>
         <button class="btn-submit" style="width:auto;padding:7px 16px;font-size:12px;border-radius:10px;cursor:pointer;white-space:nowrap;" onclick="openAddLoanModal()">+ Add Loan</button>
@@ -1205,11 +1210,12 @@ function renderWealthLoans(container) {
         const isGiven = l.type === 'given';
         const totalTarget = fin.principal + fin.accruedInterest;
         const progressPct = totalTarget > 0 ? Math.min(100, Math.round((fin.totalRepaid / totalTarget) * 100)) : (fin.isSettled ? 100 : 0);
+        const isExpanded = window._expandedLoanIds && window._expandedLoanIds.has(l.id);
 
         // Days calculation
         let dueStatusHtml = '';
         if (fin.isSettled) {
-          dueStatusHtml = `<span style="color:var(--text-3);">Settled ${l.collectedAt ? new Date(l.collectedAt).toLocaleDateString() : ''}</span>`;
+          dueStatusHtml = `<span style="font-size:11px;font-weight:600;color:var(--emerald);">Settled</span>`;
         } else if (l.dueDate) {
           const due = new Date(l.dueDate);
           const today = new Date();
@@ -1217,11 +1223,11 @@ function renderWealthLoans(container) {
           due.setHours(0,0,0,0);
           const days = Math.round((due - today) / (1000 * 60 * 60 * 24));
           if (days < 0) {
-            dueStatusHtml = `<span style="color:var(--rose);font-weight:700;">⚠️ ${Math.abs(days)}d overdue</span>`;
+            dueStatusHtml = `<span style="color:var(--rose);font-weight:700;font-size:11px;">⚠️ ${Math.abs(days)}d overdue</span>`;
           } else if (days === 0) {
-            dueStatusHtml = `<span style="color:var(--gold);font-weight:700;">⏳ Due Today</span>`;
+            dueStatusHtml = `<span style="color:var(--gold);font-weight:700;font-size:11px;">⏳ Due Today</span>`;
           } else {
-            dueStatusHtml = `<span style="color:var(--text-3);">Due in ${days}d</span>`;
+            dueStatusHtml = `<span style="color:var(--text-3);font-size:11px;">Due in ${days}d</span>`;
           }
         }
 
@@ -1230,7 +1236,7 @@ function renderWealthLoans(container) {
         const repaymentsHtml = repayments.length > 0 ? repayments.map((r) => `
           <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:11.5px;">
             <div>
-              <span style="font-weight:600;color:var(--text);">${r.date || 'N/A'}</span>
+              <span style="font-weight:600;color:var(--text);font-family:var(--font-m);">${r.date || 'N/A'}</span>
               <span style="color:var(--text-3);margin-left:6px;">· ${escapeHtml(r.account || 'Cash')}</span>
               ${r.note ? `<span style="color:var(--text-3);margin-left:6px;font-style:italic;">"${escapeHtml(r.note)}"</span>` : ''}
             </div>
@@ -1242,121 +1248,124 @@ function renderWealthLoans(container) {
         `).join('') : '<div style="font-size:11px;color:var(--text-3);font-style:italic;padding:6px 0;">No partial repayments recorded yet.</div>';
 
         return `
-          <div class="loan-card ${fin.isSettled ? 'settled' : ''} ${fin.isOverdue && !fin.isSettled ? 'overdue' : ''}" style="background:var(--surface);border:1px solid ${fin.isOverdue && !fin.isSettled ? 'rgba(251,113,133,0.4)' : 'var(--border)'};border-radius:14px;padding:16px;box-shadow:var(--shadow-sm);transition:all 0.2s ease;">
-            <!-- Card Header -->
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;">
-              <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-                <div style="width:38px;height:38px;border-radius:50%;background:${isGiven ? 'rgba(52,211,153,0.15)' : 'rgba(251,113,133,0.15)'};color:${isGiven ? 'var(--emerald)' : 'var(--rose)'};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;">
+          <div class="compact-loan-card ${fin.isSettled ? 'settled' : ''} ${fin.isOverdue && !fin.isSettled ? 'overdue' : ''} ${isExpanded ? 'expanded' : ''}" id="loan_card_${l.id}">
+            <!-- Collapsed Header Row -->
+            <div class="compact-loan-head" onclick="toggleLoanExpand('${l.id}')">
+              <!-- Left: Avatar + Name + Subtitle -->
+              <div class="compact-loan-left">
+                <div class="compact-loan-avatar ${isGiven ? 'given' : 'taken'}">
                   ${(l.person || '?').charAt(0).toUpperCase()}
                 </div>
-                <div style="min-width:0;">
-                  <div style="font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                    ${escapeHtml(l.person || 'Unknown')}
+                <div class="compact-loan-meta">
+                  <div class="compact-loan-name-row">
+                    <span class="compact-loan-name">${escapeHtml(l.person || 'Unknown')}</span>
+                    <span class="loan-badge ${isGiven ? 'badge-given' : 'badge-taken'}">${isGiven ? '💸 Given' : '📥 Taken'}</span>
+                    ${fin.interestRate > 0 ? `<span class="compact-loan-int-badge">${fin.interestRate}% p.a.</span>` : ''}
                   </div>
-                  <div style="font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px;">
+                  <div class="compact-loan-sub">
                     <span>${escapeHtml(l.category || 'Personal')}</span>
                     <span>·</span>
                     <span>${escapeHtml(l.loanAccount || 'Cash')}</span>
+                    ${l.dueDate ? `<span>· Due ${l.dueDate}</span>` : ''}
                   </div>
                 </div>
               </div>
-              
-              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
-                <div style="display:flex;gap:4px;">
-                  <span class="loan-badge ${isGiven ? 'badge-given' : 'badge-taken'}">${isGiven ? '💸 Given' : '📥 Taken'}</span>
-                  ${fin.isSettled ? `<span class="loan-badge badge-settled">✅ Settled</span>` : (fin.isOverdue ? `<span class="loan-badge badge-warn">⚠️ Overdue</span>` : '')}
-                </div>
-                ${fin.interestRate > 0 ? `
-                  <span class="loan-badge badge-interest" style="background:rgba(234,179,8,0.12);color:var(--gold);border:1px solid rgba(234,179,8,0.3);font-size:10px;">
-                    ✨ ${fin.interestRate}% p.a.
-                  </span>
-                ` : ''}
-              </div>
-            </div>
 
-            <!-- Progress Bar -->
-            <div style="margin-bottom:14px;">
-              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;color:var(--text-3);">
-                <span>Repayment Progress</span>
-                <span style="font-weight:600;color:${progressPct === 100 ? 'var(--emerald)' : 'var(--text-2)'};">${progressPct}% (${fmtINR(fin.totalRepaid)} of ${fmtINR(totalTarget)})</span>
+              <!-- Center: Mini Progress Bar -->
+              <div class="compact-loan-center">
+                <div class="compact-loan-prog-wrap">
+                  <div class="compact-loan-prog-bar" style="width:${progressPct}%;background:${isGiven ? 'linear-gradient(90deg, #10b981, #14b8a6)' : 'linear-gradient(90deg, #f43f5e, #fb7185)'};"></div>
+                </div>
+                <div class="compact-loan-prog-txt">
+                  ${progressPct}% (${fmtINR(fin.totalRepaid)} / ${fmtINR(totalTarget)})
+                </div>
               </div>
-              <div style="height:6px;background:var(--bg3);border-radius:99px;overflow:hidden;position:relative;">
-                <div style="height:100%;width:${progressPct}%;background:${isGiven ? 'linear-gradient(90deg, #10b981, #14b8a6)' : 'linear-gradient(90deg, #f43f5e, #fb7185)'};border-radius:99px;transition:width 0.4s ease;"></div>
-              </div>
-            </div>
 
-            <!-- 5-Metric Strip -->
-            <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;">
-              <div>
-                <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Original Principal</div>
-                <div style="font-weight:700;color:var(--text);font-size:13px;">${fmtINR(fin.principal)}</div>
-              </div>
-              <div>
-                <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Interest Accrued</div>
-                <div style="font-weight:700;color:${fin.accruedInterest > 0 ? 'var(--gold)' : 'var(--text-3)'};font-size:13px;">
-                  ${fin.accruedInterest > 0 ? `+${fmtINR(fin.accruedInterest)}` : '₹0 (0%)'}
-                </div>
-              </div>
-              <div>
-                <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Due Date</div>
-                <div style="font-size:12px;color:var(--text-2);font-weight:600;">
-                  ${l.dueDate || 'N/A'} <span style="font-size:10px;">${dueStatusHtml}</span>
-                </div>
-              </div>
-              <div>
-                <div style="color:var(--text-3);font-size:10px;text-transform:uppercase;">Remaining Balance</div>
-                <div style="font-family:var(--font-m);font-weight:800;font-size:15px;color:${fin.isSettled ? 'var(--text-3)' : (isGiven ? 'var(--emerald)' : 'var(--rose)')};">
+              <!-- Right: Outstanding Balance & Status -->
+              <div class="compact-loan-right">
+                <div class="compact-loan-bal" style="color:${fin.isSettled ? 'var(--text-3)' : (isGiven ? 'var(--emerald)' : 'var(--rose)')};">
                   ${fmtINR(fin.totalBalance)}
                 </div>
+                <div class="compact-loan-status">
+                  ${dueStatusHtml}
+                </div>
               </div>
+
+              <!-- Expand Toggle Chevron -->
+              <span class="compact-loan-chevron ${isExpanded ? 'expanded' : ''}">❯</span>
             </div>
 
-            ${l.note ? `
-              <div style="font-size:11.5px;color:var(--text-3);margin-bottom:12px;padding:0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                📝 <em>${escapeHtml(l.note)}</em>
+            <!-- Expandable Drawer -->
+            ${isExpanded ? `
+              <div class="compact-loan-drawer">
+                <!-- 4-Metric Grid -->
+                <div class="compact-loan-stats">
+                  <div class="compact-loan-stat-item">
+                    <span class="compact-loan-stat-lbl">Original Principal</span>
+                    <span class="compact-loan-stat-val">${fmtINR(fin.principal)}</span>
+                  </div>
+                  <div class="compact-loan-stat-item">
+                    <span class="compact-loan-stat-lbl">Accrued Interest</span>
+                    <span class="compact-loan-stat-val ${fin.accruedInterest > 0 ? 'gold' : ''}">
+                      ${fin.accruedInterest > 0 ? `+${fmtINR(fin.accruedInterest)} (${fin.interestRate}%)` : '₹0 (0%)'}
+                    </span>
+                  </div>
+                  <div class="compact-loan-stat-item">
+                    <span class="compact-loan-stat-lbl">Due Date</span>
+                    <span class="compact-loan-stat-val">${l.dueDate || 'N/A'}</span>
+                  </div>
+                  <div class="compact-loan-stat-item">
+                    <span class="compact-loan-stat-lbl">Total Repaid</span>
+                    <span class="compact-loan-stat-val" style="color:var(--emerald);">${fmtINR(fin.totalRepaid)}</span>
+                  </div>
+                </div>
+
+                ${l.note ? `
+                  <div style="font-size:12px;color:var(--text-2);margin-bottom:12px;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--border);">
+                    📝 <em>${escapeHtml(l.note)}</em>
+                  </div>
+                ` : ''}
+
+                <!-- Repayment Ledger -->
+                <div style="margin-bottom:12px;">
+                  <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+                    <span>📜 Repayment Ledger</span>
+                    <span>${fin.repaymentsCount} entry(ies)</span>
+                  </div>
+                  <div class="loan-history-list" style="background:var(--bg3);border-radius:8px;padding:8px 10px;max-height:160px;overflow-y:auto;border:1px solid var(--border);">
+                    ${repaymentsHtml}
+                  </div>
+                </div>
+
+                <!-- Action Buttons Toolbar -->
+                <div class="compact-loan-actions">
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    ${!fin.isSettled ? `
+                      <button onclick="openRepayLoanModal('${l.id}')" style="background:${isGiven ? 'var(--emerald)' : '#3b82f6'};color:#000;border:none;border-radius:8px;padding:6px 14px;font-size:11.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+                        💳 ${isGiven ? 'Collect / Repay' : 'Make Payment'}
+                      </button>
+                    ` : `
+                      <button onclick="reopenLoanById('${l.id}')" style="background:var(--bg3);color:var(--text-2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:600;cursor:pointer;">
+                        🔄 Reopen
+                      </button>
+                    `}
+                    <button onclick="openEditLoanModalById('${l.id}')" style="background:var(--bg3);color:var(--text-2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:600;cursor:pointer;">
+                      ✏️ Edit
+                    </button>
+                  </div>
+                  <button onclick="deleteLoanById('${l.id}')" title="Delete Loan" style="background:rgba(239,68,68,0.1);color:var(--rose);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:6px 12px;font-size:11.5px;cursor:pointer;">
+                    🗑️ Delete
+                  </button>
+                </div>
               </div>
             ` : ''}
-
-            <!-- Action Buttons -->
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:10px;border-top:1px solid var(--border);flex-wrap:wrap;">
-              <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                ${!fin.isSettled ? `
-                  <button onclick="openRepayLoanModal('${l.id}')" style="background:${isGiven ? 'var(--emerald)' : '#3b82f6'};color:#000;border:none;border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
-                    💳 ${isGiven ? 'Collect / Repay' : 'Make Payment'}
-                  </button>
-                ` : `
-                  <button onclick="reopenLoanById('${l.id}')" style="background:var(--bg3);color:var(--text-2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;">
-                    🔄 Reopen
-                  </button>
-                `}
-                <button onclick="openEditLoanModalById('${l.id}')" style="background:var(--bg3);color:var(--text-2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;">
-                  ✏️ Edit
-                </button>
-                <button onclick="toggleLoanHistory('${l.id}')" style="background:var(--bg3);color:var(--text-2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;">
-                  📜 History (${fin.repaymentsCount})
-                </button>
-              </div>
-              <button onclick="deleteLoanById('${l.id}')" title="Delete Loan" style="background:rgba(239,68,68,0.1);color:var(--rose);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:6px 10px;font-size:11px;cursor:pointer;">
-                🗑️
-              </button>
-            </div>
-
-            <!-- Expandable History Section -->
-            <div id="loan_history_${l.id}" style="display:none;margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);">
-              <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
-                <span>Repayment Ledger</span>
-                <span>${fin.repaymentsCount} entry(ies)</span>
-              </div>
-              <div class="loan-history-list" style="background:var(--bg3);border-radius:8px;padding:8px 10px;max-height:160px;overflow-y:auto;">
-                ${repaymentsHtml}
-              </div>
-            </div>
           </div>
         `;
       }).join('');
 
-      mainContentHtml = `<div class="loan-cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:14px;">${cardsHtml}</div>`;
+      mainContentHtml = `<div class="compact-loans-list">${cardsHtml}</div>`;
     }
+  }
   } else {
     // --- By Person Summary View ---
     const groups = buildLoanGroups();
@@ -1503,6 +1512,19 @@ function setLoanViewMode(mode) {
   const wealthContainer = document.querySelector('#wealth-tab-content') || document.querySelector('#loansOverview');
   if (wealthContainer) renderWealthLoans(wealthContainer);
 }
+
+function toggleLoanExpand(loanId) {
+  if (!loanId) return;
+  window._expandedLoanIds = window._expandedLoanIds || new Set();
+  if (window._expandedLoanIds.has(loanId)) {
+    window._expandedLoanIds.delete(loanId);
+  } else {
+    window._expandedLoanIds.add(loanId);
+  }
+  const wealthContainer = document.querySelector('#wealth-tab-content') || document.querySelector('#loansOverview');
+  if (wealthContainer) renderWealthLoans(wealthContainer);
+}
+window.toggleLoanExpand = toggleLoanExpand;
 
 function toggleLoanHistory(loanId) {
   const el = document.getElementById(`loan_history_${loanId}`);
@@ -2603,36 +2625,57 @@ function openEditLoanModal(loan, onSaveCallback) {
 
   document.getElementById('editLoanFormPopup').onsubmit = async (e) => {
     e.preventDefault();
-    const type = document.getElementById('edit_loanTypePopup').value;
-    const person = document.getElementById('editLoanPerson').value;
-    const amount = Number(document.getElementById('editLoanAmount').value);
-    const interestRate = Number(document.getElementById('edit_loanInterestRate').value) || 0;
-    const startDate = document.getElementById('edit_loanStartDate').value;
-    const dueDate = document.getElementById('editLoanDueDate').value;
-    const note = document.getElementById('editLoanNote').value.trim();
-    const category = document.getElementById('editLoanCategory').value || 'Loan';
-    const recurrence = document.getElementById('editLoanRecurrence').value || 'None';
-    const collected = document.getElementById('editLoanCollected').checked;
-    const loanAccount = document.getElementById('editLoanAccount').value || 'Cash';
+    const type = document.getElementById('edit_loanTypePopup')?.value || loan.type || 'given';
+    const person = (document.getElementById('editLoanPerson')?.value || loan.person || '').trim();
+    const amount = Number(document.getElementById('editLoanAmount')?.value) || Number(loan.amount || 0);
+    const interestRate = Number(document.getElementById('edit_loanInterestRate')?.value) || 0;
+    const startDate = document.getElementById('edit_loanStartDate')?.value || loan.startDate || '';
+    const dueDate = document.getElementById('editLoanDueDate')?.value || loan.dueDate || '';
+    const note = (document.getElementById('editLoanNote')?.value || '').trim();
+    const category = document.getElementById('editLoanCategory')?.value || 'Loan';
+    const recurrence = document.getElementById('editLoanRecurrence')?.value || 'None';
+    const collected = document.getElementById('editLoanCollected')?.checked || false;
+    const loanAccount = document.getElementById('editLoanAccount')?.value || 'Cash';
 
     const updates = {
-      startDate: document.getElementById('edit_loanStartDate').value,
-      dueDate: document.getElementById('editLoanDueDate').value,
-      note: document.getElementById('editLoanNote').value,
-      category: document.getElementById('editLoanCategory').value || 'Loan',
-      recurrence: document.getElementById('editLoanRecurrence').value || 'None',
-      collected: document.getElementById('editLoanCollected').checked,
-      modifiedAt: nowISO1(),
-      loanAccount: document.getElementById('editLoanAccount').value || 'Cash'
+      type: type,
+      person: person,
+      amount: amount,
+      principal: amount,
+      interestRate: interestRate,
+      startDate: startDate,
+      dueDate: dueDate,
+      note: note,
+      category: category,
+      recurrence: recurrence,
+      collected: collected,
+      loanAccount: loanAccount,
+      modifiedAt: nowISO1()
     };
+
+    if (collected) {
+      updates.collectedAt = loan.collectedAt || nowISO1();
+    } else {
+      updates.collectedAt = null;
+    }
 
     Object.assign(loan, updates);
     if (updates.recurrence && updates.recurrence !== 'None' && !loan.seriesId) loan.seriesId = uid('series');
     if (!updates.recurrence || updates.recurrence === 'None') loan.seriesId = null;
+
+    if (Array.isArray(state.loans)) {
+      const idx = state.loans.findIndex(l => String(l.id) === String(loan.id));
+      if (idx !== -1) {
+        state.loans[idx] = loan;
+      } else {
+        state.loans.push(loan);
+      }
+    }
+
     await put('loans', loan);
 
     if (typeof autoBackup === 'function') autoBackup();
-    if (typeof showToast === 'function') showToast('Loan updated', 'success');
+    if (typeof showToast === 'function') showToast('✅ Loan details updated successfully', 'success');
     closeEditLoanModal();
 
     if (onSaveCallback) onSaveCallback();

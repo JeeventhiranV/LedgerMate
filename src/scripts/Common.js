@@ -6544,10 +6544,17 @@ function checkBillNotifications() {
     // Loan due dates
     (state.loans || []).forEach(loan => {
       if (!loan.dueDate || loan.dueDate > in3 || loan.dueDate < today) return;
+      if (loan.collected) return;
+      let bal = Number(loan.amount || loan.principal || 0);
+      if (typeof window.getLoanFinancialDetails === 'function') {
+        const fin = window.getLoanFinancialDetails(loan);
+        if (fin.isSettled || fin.totalBalance <= 0) return;
+        bal = fin.totalBalance;
+      }
       const key = `lm_notif_loan_${loan.id}_${loan.dueDate}`;
       if (localStorage.getItem(key)) return;
       new Notification('LedgerMate — Loan Due', {
-        body: `"${loan.description || loan.name}" is due on ${loan.dueDate}. Amount: ${fmtINR(loan.amount)}`,
+        body: `"${loan.person || loan.description || loan.name || 'Loan'}" is due on ${loan.dueDate}. Remaining: ${fmtINR(bal)}`,
         icon: '/favicon.ico'
       });
       localStorage.setItem(key, '1');

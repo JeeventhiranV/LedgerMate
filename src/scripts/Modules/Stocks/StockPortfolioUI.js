@@ -17,6 +17,17 @@
   var _sortOrder = 'desc';
   var _txTypeFilter = 'ALL';
   var _txExchangeFilter = 'ALL';
+  var _expandedStockIds = new Set();
+
+  function toggleStockExpand(holdingId) {
+    if (!holdingId) return;
+    if (_expandedStockIds.has(holdingId)) {
+      _expandedStockIds.delete(holdingId);
+    } else {
+      _expandedStockIds.add(holdingId);
+    }
+    render();
+  }
 
   var _allocationChartInstance = null;
   var _plChartInstance = null;
@@ -302,10 +313,11 @@
   }
 
   /**
-   * Render Holdings View with Search, Filtering, and Sorting
+   * Render Holdings View with Modern Groww-Style Expandable Rows
    */
   function renderHoldingsTab(allHoldings) {
     var calc = getCalculations();
+    var service = getService();
     var openHoldings = allHoldings.filter(h => h.metrics.isOpen);
 
     if (openHoldings.length === 0) {
@@ -379,156 +391,170 @@
         </div>
       </div>
 
-      <!-- ── Desktop / Tablet Holdings Table ── -->
-      <div class="stocks-table-container">
-        <table class="stocks-table">
-          <thead>
-            <tr>
-              <th>Stock / Symbol</th>
-              <th>Quantity</th>
-              <th>Avg Price</th>
-              <th>Invested</th>
-              <th>Current Price</th>
-              <th>Current Value</th>
-              <th>Day Change</th>
-              <th>Unrealized P&L</th>
-              <th style="text-align:right;">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${filtered.map(function (h) {
-              var m = h.metrics;
-              var isPlPos = m.unrealizedPL >= 0;
-              var isDayPos = m.dayChange >= 0;
-
-              return `
-                <tr>
-                  <td>
-                    <div class="stock-meta-cell">
-                      <div class="stock-sym-row">
-                        <span style="cursor:pointer;color:var(--text1,#e6eaf3);" onclick="window.LM_StockPortfolioUI.openStockDetailModal('${h.id}')">
-                          ${h.symbol}
-                        </span>
-                        <span class="stock-badge-${(h.exchange || 'NSE').toLowerCase()}">${h.exchange || 'NSE'}</span>
-                      </div>
-                      <div class="stock-company-name" title="${h.company_name}">${h.company_name}</div>
-                    </div>
-                  </td>
-                  <td><strong style="font-family:'JetBrains Mono',monospace;">${calc.formatQty(m.quantity)}</strong></td>
-                  <td><span style="font-family:'JetBrains Mono',monospace;">${calc.formatINR(m.averageBuyPrice)}</span></td>
-                  <td><span style="font-family:'JetBrains Mono',monospace;">${calc.formatINR(m.investedAmount)}</span></td>
-                  <td>
-                    ${m.currentPrice ? `
-                      <div style="display:flex;align-items:center;gap:5px;">
-                        <strong style="font-family:'JetBrains Mono',monospace;">${calc.formatINR(m.currentPrice)}</strong>
-                        <span style="font-size:9px;padding:1px 4px;border-radius:3px;font-weight:700;${m.isLive ? 'background:rgba(16,185,129,0.15);color:#10b981;' : 'background:rgba(245,158,11,0.15);color:#f59e0b;'}" title="${m.isLive ? 'Live NSE/BSE quote' : 'Offline / Market closed. Using last buy price.'}">
-                          ${m.isLive ? 'LIVE' : 'LAST BUY'}
-                        </span>
-                      </div>
-                    ` : `
-                      <span style="font-size:11px;color:var(--text3,#9ca3af);">Unavailable</span>
-                    `}
-                  </td>
-                  <td><strong style="font-family:'JetBrains Mono',monospace;">${calc.formatINR(m.currentValue)}</strong></td>
-                  <td>
-                    ${m.hasLivePrice ? `
-                      <span class="${isDayPos ? 'stock-pill-gain' : 'stock-pill-loss'}">
-                        ${calc.formatINR(m.dayChange, { showSign: true })} (${calc.formatPercent(m.dayChangePct)})
-                      </span>
-                    ` : '—'}
-                  </td>
-                  <td>
-                    ${m.hasLivePrice ? `
-                      <div style="display:flex;flex-direction:column;">
-                        <strong class="${isPlPos ? 'stock-pill-gain' : 'stock-pill-loss'}">
-                          ${calc.formatINR(m.unrealizedPL, { showSign: true })}
-                        </strong>
-                        <small class="${isPlPos ? 'stock-pill-gain' : 'stock-pill-loss'}">
-                          ${calc.formatPercent(m.unrealizedPLPct)}
-                        </small>
-                      </div>
-                    ` : '—'}
-                  </td>
-                  <td>
-                    <div class="stock-row-actions">
-                      <button class="btn-stock-mini" title="View details & transactions" onclick="window.LM_StockPortfolioUI.openStockDetailModal('${h.id}')">
-                        🔍 View
-                      </button>
-                      <button class="btn-stock-mini" title="Add Buy/Sell order for this stock" onclick="window.LM_StockPortfolioUI.openAddTransactionModal({ symbol: '${h.symbol}', exchange: '${h.exchange}', company_name: '${h.company_name.replace(/'/g, "\\'")}', sector: '${h.sector}' })">
-                        + Tx
-                      </button>
-                      <button class="btn-stock-mini danger" title="Delete holding" onclick="window.LM_StockPortfolioUI.confirmDeleteHolding('${h.id}')">
-                        ✕
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-
-      <!-- ── Mobile Card List ── -->
-      <div class="stocks-mobile-cards">
+      <!-- ── Groww-Style Stock Listings ── -->
+      <div class="groww-stocks-list">
         ${filtered.map(function (h) {
           var m = h.metrics;
           var isPlPos = m.unrealizedPL >= 0;
           var isDayPos = m.dayChange >= 0;
+          var isExpanded = _expandedStockIds.has(h.id);
+          var txs = (service && typeof service.getTransactionsForHolding === 'function') 
+            ? service.getTransactionsForHolding(h.id) 
+            : (h.transactions || []);
 
           return `
-            <div class="stock-holding-card">
-              <div class="stock-card-head">
-                <div>
-                  <div class="stock-sym-row">
-                    <span style="font-size:15px;" onclick="window.LM_StockPortfolioUI.openStockDetailModal('${h.id}')">${h.symbol}</span>
+            <div class="groww-stock-card ${isExpanded ? 'expanded' : ''}" id="groww_stock_${h.id}">
+              <!-- Collapsed / Header Row -->
+              <div class="groww-stock-head" onclick="window.LM_StockPortfolioUI.toggleStockExpand('${h.id}')">
+                <div class="groww-stock-left">
+                  <div class="groww-sym-row">
+                    <span class="groww-stock-symbol">${h.symbol}</span>
                     <span class="stock-badge-${(h.exchange || 'NSE').toLowerCase()}">${h.exchange || 'NSE'}</span>
+                    ${h.sector && h.sector !== 'General' ? `<span class="groww-stock-sector-pill">${h.sector}</span>` : ''}
                   </div>
-                  <div class="stock-company-name">${h.company_name}</div>
+                  <div class="groww-stock-sub" title="${h.company_name}">
+                    <span>${calc.formatQty(m.quantity)} shares</span>
+                    <span>·</span>
+                    <span>Avg ${calc.formatINR(m.averageBuyPrice)}</span>
+                    <span>·</span>
+                    <span style="opacity:0.85;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${h.company_name}</span>
+                  </div>
                 </div>
-                <div style="text-align:right;">
-                  <div style="font-family:'JetBrains Mono',monospace;font-weight:800;font-size:15px;">
-                    ${calc.formatINR(m.currentValue)}
+
+                <div class="groww-stock-right">
+                  <div class="groww-price-row">
+                    <span class="groww-stock-ltp">${calc.formatINR(m.currentPrice || m.averageBuyPrice)}</span>
+                    ${m.hasLivePrice ? `
+                      <span class="groww-day-badge ${isDayPos ? 'gain' : 'loss'}">
+                        ${isDayPos ? '▲ +' : '▼ '}${Math.abs(m.dayChangePct || 0).toFixed(2)}%
+                      </span>
+                    ` : `
+                      <span style="font-size:9px;padding:1px 4px;border-radius:3px;font-weight:700;background:rgba(245,158,11,0.15);color:#f59e0b;">LAST BUY</span>
+                    `}
                   </div>
-                  ${m.hasLivePrice ? `
-                    <div class="${isPlPos ? 'stock-pill-gain' : 'stock-pill-loss'}" style="font-size:11px;">
+                  <div class="groww-val-sub">
+                    <span style="color:var(--text2,#cbd5e1);font-weight:600;">Val: ${calc.formatINR(m.currentValue)}</span>
+                    <span>·</span>
+                    <span class="${isPlPos ? 'stock-pill-gain' : 'stock-pill-loss'}" style="font-weight:700;">
                       ${calc.formatINR(m.unrealizedPL, { showSign: true })} (${calc.formatPercent(m.unrealizedPLPct)})
-                    </div>
-                  ` : ''}
-                </div>
-              </div>
-
-              <div class="stock-card-row">
-                <span>Holdings:</span>
-                <span>${calc.formatQty(m.quantity)} shares @ ${calc.formatINR(m.averageBuyPrice)}</span>
-              </div>
-
-              <div class="stock-card-row">
-                <span>Invested:</span>
-                <span>${calc.formatINR(m.investedAmount)}</span>
-              </div>
-
-              <div class="stock-card-row">
-                <span>CMP (Day Chg):</span>
-                <span>
-                  ${m.currentPrice ? `
-                    <b>${calc.formatINR(m.currentPrice)}</b>
-                    <span style="font-size:9px;padding:1px 4px;border-radius:3px;font-weight:700;${m.isLive ? 'background:rgba(16,185,129,0.15);color:#10b981;' : 'background:rgba(245,158,11,0.15);color:#f59e0b;'}">
-                      ${m.isLive ? 'LIVE' : 'LAST BUY'}
                     </span>
-                    ${m.isLive ? `(<span class="${isDayPos ? 'stock-pill-gain' : 'stock-pill-loss'}">${calc.formatPercent(m.dayChangePct)}</span>)` : ''}
-                  ` : 'Unavailable'}
-                </span>
+                  </div>
+                </div>
+
+                <span class="groww-chevron ${isExpanded ? 'expanded' : ''}">❯</span>
               </div>
 
-              <div class="stock-card-actions">
-                <button class="btn-stock-secondary" onclick="window.LM_StockPortfolioUI.openStockDetailModal('${h.id}')">
-                  🔍 View History
-                </button>
-                <button class="btn-stock-primary" onclick="window.LM_StockPortfolioUI.openAddTransactionModal({ symbol: '${h.symbol}', exchange: '${h.exchange}', company_name: '${h.company_name.replace(/'/g, "\\'")}', sector: '${h.sector}' })">
-                  + Add Tx
-                </button>
-              </div>
+              <!-- Inline Expanded Details Drawer -->
+              ${isExpanded ? `
+                <div class="groww-stock-drawer">
+                  <!-- 6-Metric Financials Grid -->
+                  <div class="groww-stats-grid">
+                    <div class="groww-stat-box">
+                      <span class="groww-stat-lbl">Invested Value</span>
+                      <span class="groww-stat-val">${calc.formatINR(m.investedAmount)}</span>
+                    </div>
+                    <div class="groww-stat-box">
+                      <span class="groww-stat-lbl">Current Value</span>
+                      <span class="groww-stat-val">${calc.formatINR(m.currentValue)}</span>
+                    </div>
+                    <div class="groww-stat-box">
+                      <span class="groww-stat-lbl">Total Returns (P&L)</span>
+                      <span class="groww-stat-val ${isPlPos ? 'stock-pill-gain' : 'stock-pill-loss'}">
+                        ${calc.formatINR(m.unrealizedPL, { showSign: true })} (${calc.formatPercent(m.unrealizedPLPct)})
+                      </span>
+                    </div>
+                    <div class="groww-stat-box">
+                      <span class="groww-stat-lbl">1-Day Return</span>
+                      <span class="groww-stat-val ${m.hasLivePrice ? (isDayPos ? 'stock-pill-gain' : 'stock-pill-loss') : ''}">
+                        ${m.hasLivePrice ? `${calc.formatINR(m.dayChange, { showSign: true })} (${calc.formatPercent(m.dayChangePct)})` : '—'}
+                      </span>
+                    </div>
+                    <div class="groww-stat-box">
+                      <span class="groww-stat-lbl">Avg Buy Price</span>
+                      <span class="groww-stat-val">${calc.formatINR(m.averageBuyPrice)}</span>
+                    </div>
+                    <div class="groww-stat-box">
+                      <span class="groww-stat-lbl">CMP / Market Price</span>
+                      <span class="groww-stat-val" style="display:flex;align-items:center;gap:6px;">
+                        ${calc.formatINR(m.currentPrice || m.averageBuyPrice)}
+                        <span style="font-size:9px;padding:1px 4px;border-radius:3px;font-weight:700;${m.isLive ? 'background:rgba(16,185,129,0.15);color:#10b981;' : 'background:rgba(245,158,11,0.15);color:#f59e0b;'}">
+                          ${m.isLive ? 'LIVE' : 'LAST BUY'}
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Transaction Ledger for this holding -->
+                  <div class="groww-tx-section">
+                    <div class="groww-tx-header">
+                      <span>📜 Trade History (${txs.length})</span>
+                      <button class="btn-stock-mini" onclick="window.LM_StockPortfolioUI.openAddTransactionModal({ symbol: '${h.symbol}', exchange: '${h.exchange}', company_name: '${h.company_name.replace(/'/g, "\\'")}', sector: '${h.sector}' })">
+                        + New Order
+                      </button>
+                    </div>
+                    <div class="groww-tx-table-wrap">
+                      <table class="groww-tx-table">
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Qty</th>
+                            <th>Price</th>
+                            <th>Net Amount</th>
+                            <th style="text-align:right;">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${txs.length > 0 ? txs.slice().reverse().map(function (tx) {
+                            var gross = tx.quantity * tx.price;
+                            var charges = (Number(tx.brokerage) || 0) + (Number(tx.taxes) || 0);
+                            var net = tx.transaction_type === 'BUY' ? (gross + charges) : (gross - charges);
+
+                            return `
+                              <tr>
+                                <td>${tx.transaction_date}</td>
+                                <td><span class="tx-badge-${(tx.transaction_type || 'buy').toLowerCase()}">${tx.transaction_type}</span></td>
+                                <td>${calc.formatQty(tx.quantity)}</td>
+                                <td>${calc.formatINR(tx.price)}</td>
+                                <td><strong>${calc.formatINR(net)}</strong></td>
+                                <td style="text-align:right;">
+                                  <div class="stock-row-actions" style="justify-content:flex-end;">
+                                    <button class="btn-stock-mini" title="Edit transaction" onclick="window.LM_StockPortfolioUI.openEditTransactionModal('${tx.id}')">✏️</button>
+                                    <button class="btn-stock-mini danger" title="Delete transaction" onclick="window.LM_StockPortfolioUI.confirmDeleteTransaction('${tx.id}')">✕</button>
+                                  </div>
+                                </td>
+                              </tr>
+                            `;
+                          }).join('') : `
+                            <tr><td colspan="6" style="text-align:center;padding:12px;color:var(--text3,#9ca3af);">No transactions found</td></tr>
+                          `}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- Quick Action Buttons Toolbar -->
+                  <div class="groww-drawer-actions">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                      <button class="btn-stock-primary" style="padding:6px 14px;font-size:12px;" onclick="window.LM_StockPortfolioUI.openAddTransactionModal({ symbol: '${h.symbol}', exchange: '${h.exchange}', company_name: '${h.company_name.replace(/'/g, "\\'")}', sector: '${h.sector}', tx_type: 'BUY' })">
+                        🟢 + Buy More
+                      </button>
+                      <button class="btn-stock-secondary" style="padding:6px 14px;font-size:12px;color:var(--stock-red,#ef4444);border-color:rgba(239,68,68,0.3);" onclick="window.LM_StockPortfolioUI.openAddTransactionModal({ symbol: '${h.symbol}', exchange: '${h.exchange}', company_name: '${h.company_name.replace(/'/g, "\\'")}', sector: '${h.sector}', tx_type: 'SELL' })">
+                        🔴 - Sell
+                      </button>
+                      <button class="btn-stock-secondary" style="padding:6px 14px;font-size:12px;" onclick="window.LM_StockPortfolioUI.openEditHoldingModal('${h.id}')">
+                        ✏️ Edit Stock
+                      </button>
+                      <button class="btn-stock-secondary" style="padding:6px 14px;font-size:12px;" onclick="window.LM_StockPortfolioUI.openStockDetailModal('${h.id}')">
+                        🔍 Analytics
+                      </button>
+                    </div>
+                    <button class="btn-stock-mini danger" style="padding:6px 10px;font-size:12px;" title="Delete entire holding" onclick="window.LM_StockPortfolioUI.confirmDeleteHolding('${h.id}')">
+                      🗑️ Delete Holding
+                    </button>
+                  </div>
+                </div>
+              ` : ''}
             </div>
           `;
         }).join('')}
@@ -832,11 +858,11 @@
             <!-- Transaction Type Switcher -->
             <div style="display:flex;gap:10px;margin-bottom:16px;">
               <label style="flex:1;padding:10px;background:var(--bg2,#11151f);border:1px solid var(--border,#1e2436);border-radius:10px;text-align:center;cursor:pointer;">
-                <input type="radio" name="txType" value="BUY" checked onchange="window.LM_StockPortfolioUI.updateFormPreview()">
+                <input type="radio" name="txType" value="BUY" ${(p.type === 'SELL' || p.tx_type === 'SELL') ? '' : 'checked'} onchange="window.LM_StockPortfolioUI.updateFormPreview()">
                 <strong style="color:var(--stock-green,#10b981);margin-left:6px;">BUY (Purchase)</strong>
               </label>
               <label style="flex:1;padding:10px;background:var(--bg2,#11151f);border:1px solid var(--border,#1e2436);border-radius:10px;text-align:center;cursor:pointer;">
-                <input type="radio" name="txType" value="SELL" ${p.type === 'SELL' ? 'checked' : ''} onchange="window.LM_StockPortfolioUI.updateFormPreview()">
+                <input type="radio" name="txType" value="SELL" ${(p.type === 'SELL' || p.tx_type === 'SELL') ? 'checked' : ''} onchange="window.LM_StockPortfolioUI.updateFormPreview()">
                 <strong style="color:var(--stock-red,#ef4444);margin-left:6px;">SELL (Book Profit)</strong>
               </label>
             </div>
@@ -1656,6 +1682,7 @@
       _txExchangeFilter = ex || 'ALL';
       render();
     },
+    toggleStockExpand: toggleStockExpand,
     openAddTransactionModal: openAddTransactionModal,
     openEditHoldingModal: openEditHoldingModal,
     submitEditHolding: submitEditHolding,

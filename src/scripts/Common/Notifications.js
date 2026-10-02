@@ -599,6 +599,19 @@
       const loanGroups = {};
       (state.loans || []).forEach((loan) => {
         if (loan.collected || !loan.dueDate) return;
+
+        // Calculate remaining balance after partial repayments
+        let remainingBal = Number(loan.amount || loan.principal || 0);
+        if (typeof window.getLoanFinancialDetails === 'function') {
+          const fin = window.getLoanFinancialDetails(loan);
+          if (fin.isSettled || fin.totalBalance <= 0) return;
+          remainingBal = fin.totalBalance;
+        } else if (Array.isArray(loan.repayments) && loan.repayments.length > 0) {
+          const repaid = loan.repayments.reduce((s, r) => s + Number(r.amount || 0), 0);
+          remainingBal = Math.max(0, remainingBal - repaid);
+          if (remainingBal <= 0) return;
+        }
+
         const due      = new Date(loan.dueDate + 'T00:00:00');
         const diffDays = Math.floor((due - now) / (1000 * 60 * 60 * 24));
         if (diffDays > 3) return; // more than 3 days away — skip
@@ -614,7 +627,7 @@
             diffDays
           };
         }
-        loanGroups[key].total += Number(loan.amount || 0);
+        loanGroups[key].total += remainingBal;
       });
 
       Object.values(loanGroups).forEach((g) => {

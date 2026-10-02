@@ -1077,3 +1077,347 @@
 [data-theme="light"] .stock-pill-loss {
   text-shadow: none;
 }
+
+/* ── Groww-Style Stock Listings & Drawers ─────────────────────── */
+.groww-stocks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.groww-stock-card {
+  background: var(--bg2, #11151f);
+  border: 1px solid var(--border, #1e2436);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.groww-stock-card:hover {
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.groww-stock-card.expanded {
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+}
+
+.groww-stock-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+  gap: 12px;
+  transition: background 0.15s ease;
+}
+
+.groww-stock-head:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.groww-stock-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.groww-sym-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.groww-stock-symbol {
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--text1, #e6eaf3);
+  letter-spacing: 0.2px;
+}
+
+.groww-stock-sector-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(139, 92, 246, 0.12);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+.groww-stock-sub {
+  font-size: 12px;
+  color: var(--text3, #9ca3af);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.groww-stock-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.groww-price-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.groww-stock-ltp {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--text1, #e6eaf3);
+}
+
+.groww-day-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.groww-day-badge.gain {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.groww-day-badge.loss {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.groww-val-sub {
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.groww-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--text3, #9ca3af);
+  font-size: 13px;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s ease;
+  margin-left: 4px;
+}
+
+.groww-chevron.expanded {
+  transform: rotate(90deg);
+  color: var(--stock-green, #10b981);
+}
+
+/* ── Expandable Drawer ── */
+.groww-stock-drawer {
+  border-top: 1px solid var(--border, #1e2436);
+  background: rgba(0, 0, 0, 0.12);
+  padding: 14px 16px;
+  animation: growwDrawerSlideDown 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes growwDrawerSlideDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.groww-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  background: var(--bg3, #151a26);
+  border: 1px solid var(--border, #1e2436);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.groww-stat-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.groww-stat-lbl {
+  font-size: 10.5px;
+  color: var(--text3, #9ca3af);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-weight: 600;
+}
+
+.groww-stat-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text1, #e6eaf3);
+}
+
+.groww-tx-section {
+  margin-bottom: 12px;
+}
+
+.groww-tx-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text2, #cbd5e1);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.groww-tx-table-wrap {
+  border: 1px solid var(--border, #1e2436);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg3, #151a26);
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.groww-tx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+
+.groww-tx-table th {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px 10px;
+  text-align: left;
+  font-size: 10px;
+  color: var(--text3, #9ca3af);
+  font-weight: 700;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border, #1e2436);
+}
+
+.groww-tx-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  color: var(--text2, #cbd5e1);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.groww-drawer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px solid var(--border, #1e2436);
+}
+
+/* ── Light Theme Overrides for Groww Cards ── */
+[data-theme="light"] .groww-stock-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+[data-theme="light"] .groww-stock-card:hover {
+  border-color: #10b981;
+}
+[data-theme="light"] .groww-stock-card.expanded {
+  border-color: #10b981;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+[data-theme="light"] .groww-stock-head:hover {
+  background: #f8fafc;
+}
+[data-theme="light"] .groww-stock-symbol {
+  color: #0f172a;
+}
+[data-theme="light"] .groww-stock-sub {
+  color: #64748b;
+}
+[data-theme="light"] .groww-stock-ltp {
+  color: #0f172a;
+}
+[data-theme="light"] .groww-stock-drawer {
+  background: #f8fafc;
+  border-top-color: #e2e8f0;
+}
+[data-theme="light"] .groww-stats-grid {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .groww-stat-val {
+  color: #0f172a;
+}
+[data-theme="light"] .groww-tx-table-wrap {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .groww-tx-table th {
+  background: #f1f5f9;
+  border-bottom-color: #e2e8f0;
+  color: #475569;
+}
+[data-theme="light"] .groww-tx-table td {
+  border-bottom-color: #f1f5f9;
+  color: #1e293b;
+}
+[data-theme="light"] .groww-drawer-actions {
+  border-top-color: #e2e8f0;
+}
+
+@media (max-width: 600px) {
+  .groww-stock-head {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .groww-stock-symbol {
+    font-size: 14px;
+  }
+  .groww-stock-sub {
+    font-size: 11px;
+    max-width: 160px;
+  }
+  .groww-stock-ltp {
+    font-size: 14px;
+  }
+  .groww-val-sub {
+    font-size: 11px;
+  }
+  .groww-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 10px;
+  }
+  .groww-drawer-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .groww-drawer-actions > div {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .groww-drawer-actions button {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+  }
+}
+

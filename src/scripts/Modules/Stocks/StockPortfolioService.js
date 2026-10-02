@@ -671,6 +671,15 @@
     },
 
     /**
+     * Get transactions for a specific holding
+     */
+    getTransactionsForHolding: function (holdingId) {
+      if (!holdingId) return [];
+      var all = this.getAllTransactions();
+      return all.filter(t => t.holding_id === holdingId);
+    },
+
+    /**
      * Get portfolio summary metrics
      */
     getPortfolioSummary: function () {
