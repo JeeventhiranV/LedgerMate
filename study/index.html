@@ -26,6 +26,7 @@
 <script src="js/CodeRunner.js"></script>
 <script src="js/AIInterviewHelper.js"></script>
 <script src="js/StudyQuizEngine.js"></script>
+<script src="js/LiveStudyRoom.js"></script>
 <script src="js/pwa-push.js"></script>
 <script src="../src/scripts/pwa-install.js"></script>
 <script>
@@ -64,6 +65,9 @@ if ('serviceWorker' in navigator) {
       </button>
       <button class="topbar-tool-btn btn-srs" onclick="window.StudySRS?.showModal()" title="Spaced Repetition Flashcards">
         <span class="tool-ico">🧠</span><span class="tool-lbl">Flashcards</span>
+      </button>
+      <button class="topbar-tool-btn btn-room" onclick="window.LiveStudyRoom?.openLiveStudyRoomModal()" title="Join Live Peer Study Room & Focus Sprint">
+        <span class="tool-ico">🏛️</span><span class="tool-lbl">Live Room</span>
       </button>
       <button class="topbar-tool-btn btn-code" onclick="window.StudyCodeRunner?.showModal()" title="DSA Code Execution Playground">
         <span class="tool-ico">💻</span><span class="tool-lbl">Code Runner</span>

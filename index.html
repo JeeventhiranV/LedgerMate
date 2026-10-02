@@ -516,19 +516,34 @@
             <span class="dash-action-icon income">💰</span>
             <span class="dash-action-label">Income</span>
           </button>
+          <button class="dash-action-btn" onclick="window.LM_ReceiptOCR?.openReceiptScannerModal()" title="Scan bill or receipt with AI OCR">
+            <span class="dash-action-icon" style="background:rgba(16,185,129,0.15);color:#10b981;">📸</span>
+            <span class="dash-action-label">Scan AI</span>
+          </button>
+          <button class="dash-action-btn" onclick="window.LM_BillSplitter?.openBillSplitterModal()" title="Split shared expenses with friends & UPI">
+            <span class="dash-action-icon" style="background:rgba(79,142,247,0.15);color:#4f8ef7;">👥</span>
+            <span class="dash-action-label">Split Bill</span>
+          </button>
+          <button class="dash-action-btn" onclick="window.LM_MonteCarloFIRE?.openFIREModal()" title="Simulate Financial Independence (FIRE)">
+            <span class="dash-action-icon" style="background:rgba(139,92,246,0.15);color:#8b5cf6;">🎲</span>
+            <span class="dash-action-label">FIRE Sim</span>
+          </button>
           <button class="dash-action-btn" onclick="openAddTransactionModal({type:'transfer'})" title="Transfer between accounts">
             <span class="dash-action-icon transfer">🔄</span>
             <span class="dash-action-label">Transfer</span>
           </button>
           <button class="dash-action-btn" onclick="showPage('stocks');setTimeout(()=>window.LM_StockPortfolioUI?.openAddTransactionModal(),100)" title="Log stock buy/sell order">
             <span class="dash-action-icon stocks">📈</span>
-            <span class="dash-action-label">Log Stock</span>
+            <span class="dash-action-label">Stocks</span>
           </button>
           <button class="dash-action-btn" onclick="showPage('credit-cards')" title="Manage credit cards & bill dues">
             <span class="dash-action-icon cards">💳</span>
             <span class="dash-action-label">Cards</span>
           </button>
         </div>
+
+        <!-- 💡 SMART CREDIT CARD ARBITRAGE & CASHBACK RECOMMENDATIONS -->
+        <div id="cardOptimizerWidgetWrap" class="fade-up fade-up-2" style="margin-bottom:14px;"></div>
 
         <!-- 🚨 URGENT CREDIT CARD DUES ALERT BANNER -->
         <div id="dashCcUrgentBanner" class="fade-up fade-up-2" style="display:none; margin-bottom:14px;"></div>
@@ -1594,11 +1609,41 @@ function setGreeting() {
   <!-- Credit Cards Management Module -->
   <script src="./src/scripts/Modules/CreditCards/CreditCardsService.js"></script>
   <script src="./src/scripts/Modules/CreditCards/CreditCardsUI.js"></script>
+  <script src="./src/scripts/Modules/CreditCards/CardOptimizer.js"></script>
+  <!-- Next-Gen Bank Grade Enhancements: E2EE Master Crypto, WebP Vault, AI OCR, Bill Split, FIRE Simulator -->
+  <script src="./src/scripts/Auth/MasterCrypto.js"></script>
+  <script src="./src/scripts/Modules/ReceiptVault.js"></script>
+  <script src="./src/scripts/Modules/ReceiptOCR.js"></script>
+  <script src="./src/scripts/Modules/BillSplitter.js"></script>
+  <script src="./src/scripts/Modules/MonteCarloFIRE.js"></script>
   <!-- PWA install prompt — works on any page -->
   <script src="./src/scripts/pwa-install.js"></script>
   <!-- Real-time push notifications -->
   <script src="./src/scripts/pwa-push.js"></script>
   <script>
+  /* Android App Shortcut Action Deep Link Router */
+  (function () {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      var action = params.get('action');
+      if (action) {
+        window.addEventListener('DOMContentLoaded', function () {
+          setTimeout(function () {
+            if (action === 'quick-add') {
+              if (typeof openAddTransactionModal === 'function') openAddTransactionModal({ type: 'out' });
+            } else if (action === 'scan-receipt' && window.LM_ReceiptOCR) {
+              window.LM_ReceiptOCR.openReceiptScannerModal();
+            } else if (action === 'bill-split' && window.LM_BillSplitter) {
+              window.LM_BillSplitter.openBillSplitterModal();
+            } else if (action === 'credit-cards' && typeof showPage === 'function') {
+              showPage('credit-cards');
+            }
+          }, 600);
+        });
+      }
+    } catch(e) {}
+  })();
+
   /* Manage push notifications opt-in in user dropdown menu */
   (function () {
     function _syncPushBtn() {

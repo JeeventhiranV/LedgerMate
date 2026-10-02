@@ -38,16 +38,39 @@
   ],
   "shortcuts": [
     {
-      "name": "LedgerMate Dashboard",
-      "short_name": "Dashboard",
-      "url": "./index.html",
-      "icons": [
-        {
-          "src": "./assets/icons/icon-192.png",
-          "sizes": "192x192",
-          "type": "image/png"
-        }
-      ]
+      "name": "Add Quick Expense",
+      "short_name": "➕ Add Expense",
+      "description": "Quickly record a new transaction or expense",
+      "url": "./index.html?action=quick-add",
+      "icons": [{ "src": "./assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Scan Receipt / Bill",
+      "short_name": "📸 Scan Receipt",
+      "description": "Scan paper bill or UPI screenshot with AI OCR",
+      "url": "./index.html?action=scan-receipt",
+      "icons": [{ "src": "./assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Split Group Bill",
+      "short_name": "👥 Split Bill",
+      "description": "Split shared expenses with instant UPI payment links",
+      "url": "./index.html?action=bill-split",
+      "icons": [{ "src": "./assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Credit Card Dues",
+      "short_name": "💳 Cards & Dues",
+      "description": "View credit card grace periods and payment deadlines",
+      "url": "./index.html?action=credit-cards",
+      "icons": [{ "src": "./assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Daily Study Hub",
+      "short_name": "📚 Study Hub",
+      "description": "Continue Daily Learning Streak & Interview Prep",
+      "url": "./study/index.html",
+      "icons": [{ "src": "./assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

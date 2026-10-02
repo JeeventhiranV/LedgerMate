@@ -205,23 +205,139 @@ async function showMonthlySummary(selectedMonth = null, selectedYear = null, com
       cmp.onchange = () => showMonthlySummary(Number(mSel.value), Number(ySel.value), cmp.checked);
     }
 
-    // --- Export to PDF ---
+    // --- Executive Bank-Grade PDF Export ---
     const expBtn = document.getElementById('exportSummaryPDF');
     if (expBtn) {
       expBtn.onclick = () => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.text(`LedgerMate Summary - ${monthNames[month]} ${year}`, 15, 20);
-        doc.text(`Income: ₹${dataA.totalIncome}`, 15, 35);
-        doc.text(`Expense: ₹${dataA.totalExpense}`, 15, 45);
-        doc.text(`Savings: ₹${dataA.savings}`, 15, 55);
-        doc.text(`Avg Daily: ₹${dataA.avgDailyExpense}`, 15, 65);
-        if (compareMode && dataB) {
-          doc.text(`Compared with ${monthNames[dataB.month]} ${dataB.year}`, 15, 80);
-          doc.text(`Savings: ₹${dataB.savings}`, 15, 90);
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+          showToast('PDF generator is initializing, please try in 1 second...', 'info');
+          return;
         }
-        doc.save(`LedgerMate_Summary_${monthNames[month]}_${year}.pdf`);
-        showToast('PDF Exported!', 'success');
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+        // Primary Colors
+        const primaryColor = [16, 185, 129]; // Emerald
+        const darkBg = [15, 23, 42]; // Slate 900
+        const textMuted = [100, 116, 139];
+
+        // 1. Header Banner
+        doc.setFillColor(darkBg[0], darkBg[1], darkBg[2]);
+        doc.rect(0, 0, 210, 38, 'F');
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.text('LedgerMate Executive Financial Statement', 14, 18);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.text(`AUDIT PERIOD: ${monthNames[month].toUpperCase()} ${year}  |  CONFIDENTIAL`, 14, 26);
+
+        doc.setTextColor(200, 200, 200);
+        doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, 140, 26);
+
+        // 2. Executive Key Metrics Cards
+        doc.setDrawColor(220, 226, 235);
+        doc.setFillColor(248, 250, 252);
+        
+        // Income Box
+        doc.roundedRect(14, 46, 56, 26, 2, 2, 'FD');
+        doc.setFontSize(8);
+        doc.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+        doc.text('TOTAL CASH INFLOW', 18, 54);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(16, 185, 129);
+        doc.text(`Rs. ${dataA.totalIncome.toLocaleString('en-IN')}`, 18, 65);
+
+        // Expense Box
+        doc.roundedRect(77, 46, 56, 26, 2, 2, 'FD');
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+        doc.text('TOTAL CASH OUTFLOW', 81, 54);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(239, 68, 68);
+        doc.text(`Rs. ${dataA.totalExpense.toLocaleString('en-IN')}`, 81, 65);
+
+        // Net Savings Box
+        doc.roundedRect(140, 46, 56, 26, 2, 2, 'FD');
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+        doc.text('NET CAPITAL SAVINGS', 144, 54);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(dataA.savings >= 0 ? 59 : 239, dataA.savings >= 0 ? 130 : 68, dataA.savings >= 0 ? 246 : 68);
+        doc.text(`Rs. ${dataA.savings.toLocaleString('en-IN')}`, 144, 65);
+
+        // 3. Financial Performance Summary
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(darkBg[0], darkBg[1], darkBg[2]);
+        doc.text('Monthly Financial Breakdown & KPIs', 14, 86);
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(60, 60, 60);
+
+        const savingsRate = dataA.totalIncome > 0 ? ((dataA.savings / dataA.totalIncome) * 100).toFixed(1) : 0;
+        doc.text(`• Average Daily Expenditure: Rs. ${dataA.avgDailyExpense}`, 14, 94);
+        doc.text(`• Net Savings Rate: ${savingsRate}% of gross income retained`, 14, 102);
+
+        if (compareMode && dataB) {
+          const delta = dataA.savings - dataB.savings;
+          const deltaPct = dataB.savings !== 0 ? ((delta / Math.abs(dataB.savings)) * 100).toFixed(1) : 0;
+          doc.text(`• Month-on-Month Comparison (${monthNames[dataB.month]} ${dataB.year}): ${delta >= 0 ? '+Rs. ' : '-Rs. '}${Math.abs(delta).toLocaleString('en-IN')} (${delta >= 0 ? '+' : ''}${deltaPct}%)`, 14, 110);
+        }
+
+        // 4. Top 5 Category Spending Audit
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(darkBg[0], darkBg[1], darkBg[2]);
+        doc.text('Top Expenditure Categories', 14, 126);
+
+        const monthTxs = (state.transactions || []).filter(t => {
+          const d = new Date(t.date);
+          return d.getMonth() === month && d.getFullYear() === year && t.type === 'out';
+        });
+
+        const catTotals = {};
+        monthTxs.forEach(t => {
+          const cat = t.category || 'Uncategorized';
+          catTotals[cat] = (catTotals[cat] || 0) + Number(t.amount);
+        });
+
+        const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+        let yPos = 136;
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+
+        if (sortedCats.length === 0) {
+          doc.text('No recorded expenses for this statement period.', 14, yPos);
+        } else {
+          sortedCats.forEach(([cat, amt], idx) => {
+            const pct = dataA.totalExpense > 0 ? ((amt / dataA.totalExpense) * 100).toFixed(1) : 0;
+            doc.text(`${idx + 1}. ${cat}`, 16, yPos);
+            doc.text(`Rs. ${amt.toLocaleString('en-IN')} (${pct}%)`, 130, yPos);
+            yPos += 8;
+          });
+        }
+
+        // 5. Footer & Authenticity Seal
+        doc.setDrawColor(220, 226, 235);
+        doc.line(14, 270, 196, 270);
+        doc.setFontSize(8);
+        doc.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+        doc.text('LedgerMate Personal Finance Vault · Zero-Knowledge Client Side Report', 14, 278);
+        doc.text('Page 1 of 1', 178, 278);
+
+        doc.save(`LedgerMate_Executive_Statement_${monthNames[month]}_${year}.pdf`);
+        if (typeof showToast === 'function') showToast('📄 Executive Statement PDF generated successfully!', 'success');
       };
     }
 

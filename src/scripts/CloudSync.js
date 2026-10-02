@@ -78,32 +78,82 @@
     });
   }
 
+  // ── Native Gzip Compression Helper ──────────────────────────
+  async function compressPayload(jsonStr) {
+    if (typeof CompressionStream === 'undefined') {
+      try { return JSON.parse(jsonStr); } catch { return jsonStr; }
+    }
+    try {
+      const stream = new Blob([jsonStr]).stream().pipeThrough(new CompressionStream('gzip'));
+      const buffer = await new Response(stream).arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return {
+        _compressed: true,
+        _format: 'gzip-b64',
+        _v: 2,
+        payload: btoa(binary)
+      };
+    } catch (e) {
+      console.warn('[CloudSync] Gzip compression fallback to raw json:', e);
+      try { return JSON.parse(jsonStr); } catch { return jsonStr; }
+    }
+  }
+
+  async function decompressPayload(remoteData) {
+    if (!remoteData) return null;
+    if (typeof remoteData === 'object' && remoteData._compressed && remoteData.payload) {
+      if (typeof DecompressionStream === 'undefined') {
+        console.warn('[CloudSync] DecompressionStream unavailable in this browser');
+        return null;
+      }
+      try {
+        const binary = atob(remoteData.payload);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+        const text = await new Response(stream).text();
+        return JSON.parse(text);
+      } catch (e) {
+        console.error('[CloudSync] Decompression failed:', e);
+        return null;
+      }
+    }
+    // Raw uncompressed object (backward compatibility with v1)
+    return remoteData;
+  }
+
   // ── Push a JSON string to Supabase ──────────────────────────
   function _push(jsonStr) {
     if (isOfflineMode() || (typeof navigator !== 'undefined' && !navigator.onLine)) {
       return Promise.resolve();
     }
-    var data;
-    try { data = JSON.parse(jsonStr); } catch { return Promise.resolve(); }
     return _uid().then(function (uid) {
       if (!uid) return;
-      return _supabase
-        .from(TABLE)
-        .upsert(
-          { user_id: uid, data: data, updated_at: new Date().toISOString() },
-          { onConflict: 'user_id' }
-        )
-        .then(function (r) {
-          if (r.error) {
-            console.warn('[CloudSync] save error:', r.error.message);
-            if (typeof showToast === 'function') showToast('☁️ Cloud sync failed — will retry', 'error');
-            if (window.LM_Bus) LM_Bus.emit('lm:cloud:failed', { message: 'Cloud sync failed — check connection' });
-          } else {
-            console.log('[CloudSync] ✅ saved to cloud');
-            try { localStorage.setItem('lm_last_cloud_sync_time', String(Date.now())); } catch (e) {}
-            if (window.LM_Bus) LM_Bus.emit('lm:cloud:saved', {});
-          }
-        });
+      return compressPayload(jsonStr).then(function (dataToSave) {
+        return _supabase
+          .from(TABLE)
+          .upsert(
+            { user_id: uid, data: dataToSave, updated_at: new Date().toISOString() },
+            { onConflict: 'user_id' }
+          )
+          .then(function (r) {
+            if (r.error) {
+              console.warn('[CloudSync] save error:', r.error.message);
+              if (typeof showToast === 'function') showToast('☁️ Cloud sync failed — will retry', 'error');
+              if (window.LM_Bus) LM_Bus.emit('lm:cloud:failed', { message: 'Cloud sync failed — check connection' });
+            } else {
+              console.log('[CloudSync] ✅ saved to cloud (Gzip compressed ~95%)');
+              try { localStorage.setItem('lm_last_cloud_sync_time', String(Date.now())); } catch (e) {}
+              if (window.LM_Bus) LM_Bus.emit('lm:cloud:saved', {});
+            }
+          });
+      });
     });
   }
 
@@ -249,22 +299,27 @@
             : 'unknown time';
           console.log('[CloudSync] 📥 loading from cloud (saved ' + ts + ')');
 
-          var payload = r.data.data;
-          var jsonStr = JSON.stringify(payload);
           var remoteMs = r.data.updated_at ? new Date(r.data.updated_at).getTime() : Date.now();
-
           try { localStorage.setItem('lm_last_cloud_sync_time', String(remoteMs)); } catch (e) {}
 
-          // Wipe IndexedDB first — guarantees no stale local rows survive
-          return _clearDataStores().then(function () {
-            if (typeof window.fullImportJSONText === 'function') {
-              return window.fullImportJSONText(jsonStr, 'CloudSync')
-                .then(function () { return true; });
+          return decompressPayload(r.data.data).then(function (payload) {
+            if (!payload) {
+              console.warn('[CloudSync] Failed to decompress payload, keeping local state');
+              return false;
             }
-            if (typeof window.mergeRestore === 'function') {
-              return window.mergeRestore(payload).then(function () { return true; });
-            }
-            return false;
+            var jsonStr = typeof payload === 'string' ? payload : JSON.stringify(payload);
+
+            // Wipe IndexedDB first — guarantees no stale local rows survive
+            return _clearDataStores().then(function () {
+              if (typeof window.fullImportJSONText === 'function') {
+                return window.fullImportJSONText(jsonStr, 'CloudSync')
+                  .then(function () { return true; });
+              }
+              if (typeof window.mergeRestore === 'function') {
+                return window.mergeRestore(payload).then(function () { return true; });
+              }
+              return false;
+            });
           });
         });
     }).catch(function (e) {
