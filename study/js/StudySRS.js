@@ -226,19 +226,27 @@
             <button id="study-srs-close" style="background:none;border:none;color:#8896b8;font-size:22px;cursor:pointer;line-height:1;">&times;</button>
           </div>
 
-          <div id="study-srs-card" style="padding:26px 22px;min-height:210px;flex:1;overflow-y:auto;display:flex;flex-direction:column;justify-content:center;cursor:pointer;background:${isFlipped ? 'rgba(16,185,129,0.04)' : 'rgba(255,255,255,0.02)'};transition:all .2s;-webkit-overflow-scrolling:touch;">
-            <div style="font-size:10px;text-transform:uppercase;color:#8896b8;letter-spacing:1px;font-weight:700;margin-bottom:10px;">
-              ${isFlipped ? '💡 ANSWER' : '❓ QUESTION (Tap card or Spacebar to flip)'}
+          <!-- 3D Perspective Flip Scene -->
+          <div class="srs-card-3d-scene" style="perspective:1000px;padding:16px 18px;min-height:260px;flex:1;display:flex;align-items:center;justify-content:center;-webkit-overflow-scrolling:touch;">
+            <div id="study-srs-card-3d" class="srs-card-3d-inner" style="position:relative;width:100%;min-height:220px;transition:transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);transform-style:preserve-3d;-webkit-transform-style:preserve-3d;cursor:pointer;${isFlipped ? 'transform:rotateY(180deg);-webkit-transform:rotateY(180deg);' : ''}">
+              <!-- Front Face (Question) -->
+              <div class="srs-card-front" style="position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:rgba(255,255,255,0.025);border:1px solid #2d3650;border-radius:14px;padding:22px;display:flex;flex-direction:column;justify-content:center;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+                <div style="font-size:10px;text-transform:uppercase;color:#8896b8;letter-spacing:1px;font-weight:700;margin-bottom:12px;">❓ QUESTION (Tap card or Spacebar to flip)</div>
+                <div style="font-size:15px;line-height:1.6;font-weight:600;color:#f1f5f9;">${card.question}</div>
+                <div style="margin-top:16px;font-size:11px;color:#4f8ef7;font-weight:500;">Tap anywhere or press Spacebar to reveal answer ➔</div>
+              </div>
+
+              <!-- Back Face (Answer) -->
+              <div class="srs-card-back" style="position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.35);border-radius:14px;padding:22px;display:flex;flex-direction:column;justify-content:center;text-align:center;transform:rotateY(180deg);-webkit-transform:rotateY(180deg);box-shadow:0 8px 24px rgba(16,185,129,0.15);">
+                <div style="font-size:10px;text-transform:uppercase;color:#10b981;letter-spacing:1px;font-weight:700;margin-bottom:12px;">💡 ANSWER & EXPLANATION</div>
+                <div style="font-size:14.5px;line-height:1.6;color:#f1f5f9;">${card.answer}</div>
+              </div>
             </div>
-            <div style="font-size:15px;line-height:1.6;font-weight:${isFlipped ? '400' : '600'};color:#f1f5f9;">
-              ${isFlipped ? card.answer : card.question}
-            </div>
-            ${!isFlipped ? '<div style="margin-top:16px;font-size:11px;color:#4f8ef7;font-weight:500;">Tap anywhere or press Spacebar to reveal answer ➔</div>' : ''}
           </div>
 
           <div style="padding:12px 18px;border-top:1px solid #262f45;background:#111420;display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">
             ${!isFlipped ? `
-              <button id="study-srs-flip-btn" style="width:100%;padding:10px;background:linear-gradient(135deg,#4f8ef7,#8b5cf6);border:none;border-radius:9px;color:#fff;font-weight:700;font-size:13px;cursor:pointer;">Reveal Answer (Space)</button>
+              <button id="study-srs-flip-btn" style="width:100%;padding:10px;background:linear-gradient(135deg,#4f8ef7,#8b5cf6);border:none;border-radius:9px;color:#fff;font-weight:700;font-size:13px;cursor:pointer;">🔄 3D Flip Card (Space)</button>
             ` : `
               <button class="study-srs-rate" data-grade="1" style="flex:1;min-width:65px;padding:9px 4px;background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.4);border-radius:8px;color:#f43f5e;font-weight:700;font-size:11px;cursor:pointer;">1: Again</button>
               <button class="study-srs-rate" data-grade="2" style="flex:1;min-width:65px;padding:9px 4px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:8px;color:#f59e0b;font-weight:700;font-size:11px;cursor:pointer;">2: Hard</button>
@@ -251,7 +259,7 @@
 
       document.getElementById('study-srs-close').onclick = closeModal;
 
-      var cardEl = document.getElementById('study-srs-card');
+      var cardEl = document.getElementById('study-srs-card-3d');
       if (cardEl) {
         cardEl.onclick = () => {
           if (!isFlipped) {
