@@ -153,19 +153,19 @@
   border-color: var(--border2, #2d3748);
   transform: translateY(-2px);
 }
-.stock-kpi-card:has(.stock-pill-gain) {
+.stock-kpi-card.stock-kpi-card-gain {
   border-color: rgba(16, 185, 129, 0.3);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2), 0 0 14px rgba(16, 185, 129, 0.12);
 }
-.stock-kpi-card:has(.stock-pill-gain):hover {
+.stock-kpi-card.stock-kpi-card-gain:hover {
   border-color: rgba(16, 185, 129, 0.55);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(16, 185, 129, 0.25);
 }
-.stock-kpi-card:has(.stock-pill-loss) {
+.stock-kpi-card.stock-kpi-card-loss {
   border-color: rgba(244, 63, 94, 0.3);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2), 0 0 14px rgba(244, 63, 94, 0.12);
 }
-.stock-kpi-card:has(.stock-pill-loss):hover {
+.stock-kpi-card.stock-kpi-card-loss:hover {
   border-color: rgba(244, 63, 94, 0.55);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(244, 63, 94, 0.25);
 }
@@ -871,4 +871,209 @@
     font-size: 12px !important;
     border-radius: 8px !important;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT THEME SUPPORT FOR STOCKS MODULE
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="light"] .stocks-header {
+  border-bottom-color: #e2e8f0;
+}
+[data-theme="light"] .stocks-header-title-group h1 {
+  color: #0f172a;
+}
+[data-theme="light"] .stocks-header-sub {
+  color: #64748b;
+}
+[data-theme="light"] .market-badge.closed {
+  background: #f1f5f9;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .btn-stock-secondary {
+  background: #f8fafc;
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+[data-theme="light"] .btn-stock-secondary:hover {
+  background: #f1f5f9;
+  border-color: #3b82f6;
+  color: #2563eb;
+}
+[data-theme="light"] .stock-kpi-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+[data-theme="light"] .stock-kpi-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+[data-theme="light"] .stock-kpi-card.stock-kpi-card-gain {
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.08);
+}
+[data-theme="light"] .stock-kpi-card.stock-kpi-card-loss {
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.08);
+}
+[data-theme="light"] .stock-kpi-lbl {
+  color: #64748b;
+}
+[data-theme="light"] .stock-kpi-val {
+  color: #0f172a;
+}
+[data-theme="light"] .performers-grid .performer-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+[data-theme="light"] .performer-card-lbl {
+  color: #64748b;
+}
+[data-theme="light"] .performer-card-sym {
+  color: #0f172a;
+}
+[data-theme="light"] .stocks-tabs {
+  border-bottom-color: #e2e8f0;
+}
+[data-theme="light"] .stock-tab-btn {
+  color: #64748b;
+}
+[data-theme="light"] .stock-tab-btn:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+[data-theme="light"] .stock-tab-btn.active {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #059669;
+}
+[data-theme="light"] .stocks-search-wrap {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+[data-theme="light"] .stocks-search-wrap input {
+  color: #0f172a;
+}
+[data-theme="light"] .stocks-search-wrap input::placeholder {
+  color: #94a3b8;
+}
+[data-theme="light"] .stock-select {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+[data-theme="light"] .stocks-table-container {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+[data-theme="light"] .stocks-table th {
+  background: #f8fafc;
+  color: #64748b;
+  border-bottom-color: #e2e8f0;
+}
+[data-theme="light"] .stocks-table td {
+  color: #0f172a;
+  border-bottom-color: #f1f5f9;
+}
+[data-theme="light"] .stocks-table tr:hover td {
+  background: #f8fafc;
+}
+[data-theme="light"] .stock-company-name {
+  color: #64748b;
+}
+[data-theme="light"] .stock-holding-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+[data-theme="light"] .stock-card-row {
+  color: #64748b;
+  border-bottom-color: #f1f5f9;
+}
+[data-theme="light"] .stock-card-row span:last-child {
+  color: #0f172a;
+}
+[data-theme="light"] .stocks-chart-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .stocks-chart-title {
+  color: #0f172a;
+}
+[data-theme="light"] .stocks-empty-state {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .stocks-empty-title {
+  color: #0f172a;
+}
+[data-theme="light"] .stock-modal {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.18) !important;
+}
+[data-theme="light"] .stock-modal-head {
+  border-bottom-color: #e2e8f0;
+}
+[data-theme="light"] .stock-modal-title {
+  color: #0f172a;
+}
+[data-theme="light"] .stock-modal-close {
+  color: #64748b;
+}
+[data-theme="light"] .stock-form-field label {
+  color: #475569;
+}
+[data-theme="light"] .stock-form-field input,
+[data-theme="light"] .stock-form-field select,
+[data-theme="light"] .stock-form-field textarea {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+[data-theme="light"] .stock-form-field input:focus,
+[data-theme="light"] .stock-form-field select:focus,
+[data-theme="light"] .stock-form-field textarea:focus {
+  border-color: #10b981 !important;
+  background: #ffffff !important;
+}
+[data-theme="light"] .stock-calc-preview {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+[data-theme="light"] .stock-calc-row {
+  color: #64748b;
+}
+[data-theme="light"] .stock-calc-row span:last-child {
+  color: #0f172a;
+}
+[data-theme="light"] .stock-suggestions-list {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+}
+[data-theme="light"] .stock-suggestion-item {
+  border-bottom-color: #f1f5f9;
+}
+[data-theme="light"] .stock-sug-sym {
+  color: #0f172a;
+}
+[data-theme="light"] .market-marquee-container {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .ticker-symbol {
+  color: #0f172a;
+}
+[data-theme="light"] .ticker-price {
+  color: #475569;
+}
+[data-theme="light"] .stock-pill-gain {
+  text-shadow: none;
+}
+[data-theme="light"] .stock-pill-loss {
+  text-shadow: none;
 }

@@ -171,7 +171,7 @@
           </div>
 
           <!-- Card 2: Total Profit & Loss -->
-          <div class="stock-kpi-card">
+          <div class="stock-kpi-card ${isTotalPlPositive ? 'stock-kpi-card-gain' : 'stock-kpi-card-loss'}">
             <div class="stock-kpi-lbl">
               <span>Total Profit / Loss</span>
               <span>${isTotalPlPositive ? '🚀' : '📉'}</span>
@@ -191,7 +191,7 @@
           </div>
 
           <!-- Card 3: Today's Day Change -->
-          <div class="stock-kpi-card">
+          <div class="stock-kpi-card ${isDayChangePositive ? 'stock-kpi-card-gain' : 'stock-kpi-card-loss'}">
             <div class="stock-kpi-lbl">
               <span>Today's Change</span>
               <span>⚡</span>
@@ -224,17 +224,25 @@
         </div>
 
         <!-- ── Top Performers Mini-Grid ── -->
-        ${summary.totalHoldingsCount > 0 && summary.bestPerformer ? `
+        ${summary.totalHoldingsCount > 0 && summary.bestPerformer ? (() => {
+          var bestM = summary.bestPerformer.metrics || {};
+          var isBestPos = (bestM.unrealizedPL || 0) >= 0;
+          var largestM = summary.largestGain ? (summary.largestGain.metrics || {}) : null;
+          var isLargestGainPos = largestM && (largestM.unrealizedPL || 0) >= 0;
+          var worstM = summary.worstPerformer ? (summary.worstPerformer.metrics || {}) : null;
+          var isWorstLoss = worstM && (worstM.unrealizedPL || 0) < 0;
+
+          return `
           <div class="performers-grid">
             <div class="performer-card">
-              <div class="performer-card-lbl">Top Gainer (%)</div>
+              <div class="performer-card-lbl">${isBestPos ? 'Top Gainer (%)' : 'Best Performer (%)'}</div>
               <div class="performer-card-sym">${summary.bestPerformer.symbol}</div>
-              <div class="performer-card-val stock-pill-gain">${calc.formatPercent(summary.bestPerformer.metrics.unrealizedPLPct)}</div>
+              <div class="performer-card-val ${isBestPos ? 'stock-pill-gain' : 'stock-pill-loss'}">${calc.formatPercent(bestM.unrealizedPLPct)}</div>
             </div>
             <div class="performer-card">
-              <div class="performer-card-lbl">Top Gainer (₹)</div>
+              <div class="performer-card-lbl">${isLargestGainPos ? 'Top Gainer (₹)' : 'Best Performer (₹)'}</div>
               <div class="performer-card-sym">${summary.largestGain ? summary.largestGain.symbol : '—'}</div>
-              <div class="performer-card-val stock-pill-gain">${summary.largestGain ? calc.formatINR(summary.largestGain.metrics.unrealizedPL, { showSign: true }) : '₹0'}</div>
+              <div class="performer-card-val ${isLargestGainPos ? 'stock-pill-gain' : 'stock-pill-loss'}">${largestM ? calc.formatINR(largestM.unrealizedPL, { showSign: true }) : '₹0'}</div>
             </div>
             <div class="performer-card">
               <div class="performer-card-lbl">Highest Allocation</div>
@@ -242,14 +250,15 @@
               <div class="performer-card-val" style="color:var(--stock-blue,#3b82f6);">${summary.highestAllocation ? calc.formatINR(summary.highestAllocation.metrics.currentValue) : '₹0'}</div>
             </div>
             <div class="performer-card">
-              <div class="performer-card-lbl">Top Drag / Loss</div>
+              <div class="performer-card-lbl">${isWorstLoss ? 'Top Drag / Loss' : 'Lowest Gainer (%)'}</div>
               <div class="performer-card-sym">${summary.worstPerformer ? summary.worstPerformer.symbol : '—'}</div>
-              <div class="performer-card-val ${summary.worstPerformer && summary.worstPerformer.metrics.unrealizedPL < 0 ? 'stock-pill-loss' : 'stock-pill-gain'}">
-                ${summary.worstPerformer ? calc.formatPercent(summary.worstPerformer.metrics.unrealizedPLPct) : '0%'}
+              <div class="performer-card-val ${isWorstLoss ? 'stock-pill-loss' : 'stock-pill-gain'}">
+                ${worstM ? calc.formatPercent(worstM.unrealizedPLPct) : '0%'}
               </div>
             </div>
           </div>
-        ` : ''}
+          `;
+        })() : ''}
 
         <!-- ── Navigation Tabs ── -->
         <div class="stocks-tabs">
@@ -1665,6 +1674,26 @@
     handleRefreshPrices: handleRefreshPrices,
     closeModal: closeModal
   };
+
+  // Keyboard Escape and Outside Click helpers
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      var modalContainer = document.getElementById('stockModalContainer');
+      if (modalContainer && modalContainer.children.length > 0) {
+        closeModal();
+      }
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    var listEl = document.getElementById('stkSuggestions');
+    var symInput = document.getElementById('stkSymInput');
+    if (listEl && listEl.classList.contains('open')) {
+      if (!listEl.contains(e.target) && e.target !== symInput) {
+        listEl.classList.remove('open');
+      }
+    }
+  });
 
   window.LM_StockPortfolioUI = LM_StockPortfolioUI;
 })();
