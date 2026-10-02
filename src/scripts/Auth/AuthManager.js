@@ -393,6 +393,11 @@
     const uid = userId || getCurrentUserId();
     localStorage.setItem(getAppLockKey(uid), enabled ? 'true' : 'false');
     _syncNativeScreenSecurity();
+    try {
+      if (window.LM_ProfileModal && typeof window.LM_ProfileModal.refresh === 'function') {
+        window.LM_ProfileModal.refresh();
+      }
+    } catch (e) {}
   }
 
   function isBiometricEnabled(userId) {
@@ -626,7 +631,7 @@
   _setupAppLockResumeWatcher();
 
   /* ── Modern App Security (PIN & Biometrics) Settings Modal ── */
-  async function openAppLockSettingsModal() {
+  async function openAppLockSettingsModal(initialView) {
     const uid = getCurrentUserId();
     let lockEnabled = isAppLockEnabled(uid);
     let bioEnabled = isBiometricEnabled(uid);
@@ -1073,7 +1078,41 @@
       setupDOM();
     }
 
-    renderModal();
+    if (initialView === 'verifyToDisable') {
+      renderModal('verifyToDisable', {
+        onComplete: () => {
+          setAppLockEnabled(false, uid);
+          modal.remove();
+          if (typeof showToast === 'function') showToast('Vault Lock disabled.', 'info');
+        },
+        onCancel: () => {
+          modal.remove();
+        }
+      });
+    } else if (initialView === 'setPin') {
+      renderModal('setPin', {
+        onComplete: () => {
+          setAppLockEnabled(true, uid);
+          modal.remove();
+          if (typeof showToast === 'function') showToast('🛡️ Vault Lock configured and enabled!', 'success');
+        },
+        onCancel: () => {
+          modal.remove();
+        }
+      });
+    } else if (initialView === 'changePin') {
+      renderModal('changePin', {
+        onComplete: () => {
+          modal.remove();
+          if (typeof showToast === 'function') showToast('✅ PIN updated successfully!', 'success');
+        },
+        onCancel: () => {
+          modal.remove();
+        }
+      });
+    } else {
+      renderModal();
+    }
     document.body.appendChild(modal);
   }
 
