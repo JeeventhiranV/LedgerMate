@@ -7635,7 +7635,11 @@ function renderWealthGoalsPage() {
 
   // Gold tracker
   const gKey = `lm_u_${window.LM_Auth?.getCurrentUserId?.()||'default'}_gold`;
-  const goldData = JSON.parse(localStorage.getItem(gKey) || '{"grams":0,"price":7200}');
+  const liveGoldRate = parseFloat(localStorage.getItem('lm_live_gold_rate') || '13141');
+  const goldData = JSON.parse(localStorage.getItem(gKey) || JSON.stringify({ grams: 0, price: liveGoldRate }));
+  if (!goldData.price || goldData.price < 5000) {
+    goldData.price = liveGoldRate;
+  }
 
   el.innerHTML = `
     <!-- Net Worth Milestones -->
@@ -7663,11 +7667,11 @@ function renderWealthGoalsPage() {
     <!-- Gold Tracker -->
     <div class="wg-section">
       <div class="wg-section-title">🪙 Gold Tracker</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;display:grid;">
         <div><label class="form-label">Gold Held (grams)</label>
           <input id="goldGrams" class="form-input" type="number" step="0.1" value="${goldData.grams}" placeholder="0" onchange="updateGold()"></div>
         <div><label class="form-label">Price per gram (₹)</label>
-          <input id="goldPrice" class="form-input" type="number" value="${goldData.price}" placeholder="7200" onchange="updateGold()"></div>
+          <input id="goldPrice" class="form-input" type="number" value="${goldData.price}" placeholder="${liveGoldRate}" onchange="updateGold()"></div>
       </div>
       <div id="goldResult" style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:12px;text-align:center;">
         <div style="font-size:22px;font-weight:800;font-family:var(--font-m);color:var(--gold);">${fmtINR(Math.round(goldData.grams * goldData.price))}</div>
@@ -7721,7 +7725,8 @@ function renderWealthGoalsPage() {
 
 function updateGold() {
   const grams = parseFloat(document.getElementById('goldGrams')?.value || 0);
-  const price  = parseFloat(document.getElementById('goldPrice')?.value || 7200);
+  const liveGoldRate = parseFloat(localStorage.getItem('lm_live_gold_rate') || '13141');
+  const price  = parseFloat(document.getElementById('goldPrice')?.value || liveGoldRate);
   const gKey   = `lm_u_${window.LM_Auth?.getCurrentUserId?.()||'default'}_gold`;
   localStorage.setItem(gKey, JSON.stringify({ grams, price }));
   const res = document.getElementById('goldResult');
