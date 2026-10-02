@@ -156,13 +156,16 @@
               </div>
             </div>
 
-            <div class="bpm-matrix-card" onclick="window.LM_ProfileModal.openSecurity()" style="cursor:pointer;">
-              <div class="bpm-matrix-icon">🔒</div>
+            <div class="bpm-matrix-card" onclick="window.LM_ProfileModal.toggleVaultLock()" style="cursor:pointer;" title="Tap to toggle Vault Lock PIN protection">
+              <div class="bpm-matrix-icon" id="bpmLockIcon">🔒</div>
               <div class="bpm-matrix-info">
                 <div class="bpm-matrix-label">Vault Lock</div>
-                <div class="bpm-matrix-val" id="bpmLockStatus">PIN Protected</div>
+                <div class="bpm-matrix-val" id="bpmLockStatus">Protected</div>
               </div>
-              <span class="bpm-matrix-arrow">›</span>
+              <div class="bpm-switch-pill" id="bpmLockSwitch">
+                <span class="bpm-switch-knob"></span>
+                <span id="bpmLockSwitchText">ON</span>
+              </div>
             </div>
           </div>
 
@@ -346,6 +349,18 @@
     const lockStatus = document.getElementById('bpmLockStatus');
     if (lockStatus) lockStatus.textContent = isLock ? 'Protected' : 'Off';
 
+    const lockIcon = document.getElementById('bpmLockIcon');
+    if (lockIcon) lockIcon.textContent = isLock ? '🔒' : '🔓';
+
+    const lockSwitch = document.getElementById('bpmLockSwitch');
+    const lockSwitchText = document.getElementById('bpmLockSwitchText');
+    if (lockSwitch) {
+      lockSwitch.classList.toggle('active', isLock);
+    }
+    if (lockSwitchText) {
+      lockSwitchText.textContent = isLock ? 'ON' : 'OFF';
+    }
+
     // Theme Switch
     const themeSwitch = document.getElementById('bpmThemeSwitch');
     const themeSwitchText = document.getElementById('bpmThemeSwitchText');
@@ -504,6 +519,44 @@
       }
       renderProfileDetails();
       if (window.LM_Haptic) window.LM_Haptic.impactLight();
+    },
+
+    toggleVaultLock: function () {
+      const uid = (window.LM_Auth && typeof window.LM_Auth.getCurrentUserId === 'function')
+        ? window.LM_Auth.getCurrentUserId()
+        : 'default';
+      const isLock = isAppLockEnabled();
+      const hasPin = (window.LM_Auth && typeof window.LM_Auth.isPinSet === 'function')
+        ? window.LM_Auth.isPinSet(uid)
+        : !!localStorage.getItem('lm_u_' + uid + '_app_lock_pin');
+
+      if (isLock) {
+        if (typeof window.openAppLockSettingsModal === 'function') {
+          window.openAppLockSettingsModal('verifyToDisable');
+        }
+      } else {
+        if (hasPin) {
+          if (window.LM_Auth && typeof window.LM_Auth.setAppLockEnabled === 'function') {
+            window.LM_Auth.setAppLockEnabled(true, uid);
+          } else {
+            localStorage.setItem('lm_u_' + uid + '_app_lock_enabled', 'true');
+          }
+          renderProfileDetails();
+          if (typeof window.showToast === 'function') {
+            window.showToast('🛡️ Vault Lock enabled!', 'success');
+          }
+          if (window.LM_Haptic) window.LM_Haptic.notificationSuccess();
+        } else {
+          if (typeof window.openAppLockSettingsModal === 'function') {
+            window.openAppLockSettingsModal('setPin');
+          }
+        }
+      }
+      if (window.LM_Haptic) window.LM_Haptic.impactLight();
+    },
+
+    refresh: function () {
+      renderProfileDetails();
     },
 
     openSecurity: function () {
