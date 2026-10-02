@@ -99,6 +99,47 @@
     return initial;
   }
 
+  // Update Topbar Flashcards button counter
+  function updateTopbarBadge() {
+    var srsBtns = document.querySelectorAll('.btn-srs');
+    if (!srsBtns.length) return;
+    var due = getDueCards();
+    var count = due.length;
+    srsBtns.forEach(function (btn) {
+      var lbl = btn.querySelector('.tool-lbl');
+      if (lbl) {
+        lbl.textContent = count > 0 ? `Flashcards (${count})` : 'Flashcards';
+      }
+      if (count > 0) {
+        btn.style.boxShadow = '0 0 10px rgba(139,92,246,0.35)';
+      } else {
+        btn.style.boxShadow = 'none';
+      }
+    });
+  }
+
+  // Add a new flashcard to deck
+  function addCard(modKey, question, answer) {
+    if (!question || !answer) return false;
+    var allCards = getCards();
+    var newCard = {
+      id: 'srs_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      module: modKey || 'general',
+      question: question.trim(),
+      answer: answer.trim(),
+      ef: 2.5,
+      repetition: 0,
+      interval: 0,
+      dueDate: new Date().toISOString().slice(0, 10),
+      createdAt: new Date().toISOString()
+    };
+    allCards.push(newCard);
+    saveCards(allCards);
+    updateTopbarBadge();
+    if (window.LMToast) window.LMToast.show('Added to Spaced Repetition deck! 🧠', 'success');
+    return newCard;
+  }
+
   // Flashcard Review Interactive Modal
   function showSRSModal() {
     var existing = document.getElementById('study-srs-modal');
@@ -112,59 +153,103 @@
     var modal = document.createElement('div');
     modal.id = 'study-srs-modal';
     modal.className = 'modal-overlay show';
-    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:99999;display:flex;align-items:center;justify-content:center;padding:12px;backdrop-filter:blur(6px);font-family:Inter,sans-serif;color:#e8eaf6;';
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.82);z-index:99999;display:flex;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(8px);font-family:Inter,sans-serif;color:#e8eaf6;';
+
+    function closeModal() {
+      window.removeEventListener('keydown', handleKeyDown);
+      modal.remove();
+      updateTopbarBadge();
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') {
+        closeModal();
+      } else if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        if (!isFlipped) {
+          isFlipped = true;
+          renderCardView();
+        }
+      } else if (isFlipped && ['1', '2', '3', '4'].includes(e.key)) {
+        var grade = parseInt(e.key, 10);
+        rateCard(grade);
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    function rateCard(grade) {
+      if (!dueCards[currentIdx]) return;
+      var card = dueCards[currentIdx];
+      var updated = calculateNextReview(card, grade);
+
+      var allCards = getCards();
+      var targetIdx = allCards.findIndex(c => c.id === card.id);
+      if (targetIdx >= 0) {
+        allCards[targetIdx] = updated;
+      } else {
+        allCards.push(updated);
+      }
+      saveCards(allCards);
+
+      currentIdx++;
+      isFlipped = false;
+      renderCardView();
+    }
 
     function renderCardView() {
       if (!dueCards.length || currentIdx >= dueCards.length) {
         modal.innerHTML = `
-          <div style="background:#151922;border:1px solid #262f45;border-radius:18px;max-width:520px;width:100%;padding:32px 20px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.7);">
-            <div style="font-size:44px;margin-bottom:12px;">🎉</div>
+          <div style="background:#151922;border:1px solid #262f45;border-radius:18px;max-width:520px;width:100%;padding:34px 22px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.75);">
+            <div style="font-size:46px;margin-bottom:12px;">🎉</div>
             <h3 style="font-size:18px;font-weight:700;color:#10b981;">All Caught Up!</h3>
-            <p style="font-size:12px;color:#8896b8;margin:8px 0 20px;line-height:1.5;">You have completed all scheduled flashcards for today. Great job boosting long-term memory!</p>
-            <button id="study-srs-done-btn" style="padding:9px 22px;background:linear-gradient(135deg,#10b981,#3b82f6);border:none;border-radius:10px;color:#fff;font-weight:600;font-size:13px;cursor:pointer;">Close</button>
+            <p style="font-size:12.5px;color:#8896b8;margin:8px 0 22px;line-height:1.55;">You have completed all scheduled flashcards for today. Great job boosting long-term memory retention!</p>
+            <button id="study-srs-done-btn" style="padding:10px 24px;background:linear-gradient(135deg,#10b981,#3b82f6);border:none;border-radius:10px;color:#fff;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 14px rgba(16,185,129,0.3);">Close</button>
           </div>
         `;
-        document.getElementById('study-srs-done-btn').onclick = () => modal.remove();
+        document.getElementById('study-srs-done-btn').onclick = closeModal;
+        updateTopbarBadge();
         return;
       }
 
       var card = dueCards[currentIdx];
 
       modal.innerHTML = `
-        <div style="background:#151922;border:1px solid #262f45;border-radius:18px;max-width:620px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.7);overflow:hidden;">
+        <div style="background:#151922;border:1px solid #262f45;border-radius:18px;max-width:620px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.75);overflow:hidden;">
           <div style="padding:14px 18px;border-bottom:1px solid #262f45;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
             <div style="display:flex;align-items:center;gap:8px;">
               <span style="font-size:16px;">🧠</span>
-              <span style="font-size:13px;font-weight:700;">Spaced Flashcards</span>
-              <span style="font-size:10px;background:rgba(79,142,247,0.15);color:#4f8ef7;padding:2px 6px;border-radius:6px;font-weight:600;">${currentIdx + 1} / ${dueCards.length}</span>
+              <span style="font-size:13px;font-weight:700;letter-spacing:-0.2px;">Spaced Flashcards</span>
+              <span style="font-size:10px;background:rgba(139,92,246,0.15);color:#a78bfa;border:1px solid rgba(139,92,246,0.3);padding:2px 7px;border-radius:6px;font-weight:700;">${currentIdx + 1} / ${dueCards.length}</span>
+              <span style="font-size:9.5px;color:#8896b8;text-transform:uppercase;font-weight:600;letter-spacing:0.5px;">[${card.module || 'General'}]</span>
             </div>
-            <button id="study-srs-close" style="background:none;border:none;color:#8896b8;font-size:22px;cursor:pointer;">&times;</button>
+            <button id="study-srs-close" style="background:none;border:none;color:#8896b8;font-size:22px;cursor:pointer;line-height:1;">&times;</button>
           </div>
 
-          <div id="study-srs-card" style="padding:24px 20px;min-height:200px;flex:1;overflow-y:auto;display:flex;flex-direction:column;justify-content:center;cursor:pointer;background:${isFlipped ? 'rgba(16,185,129,0.04)' : 'rgba(255,255,255,0.02)'};transition:all .2s;-webkit-overflow-scrolling:touch;">
+          <div id="study-srs-card" style="padding:26px 22px;min-height:210px;flex:1;overflow-y:auto;display:flex;flex-direction:column;justify-content:center;cursor:pointer;background:${isFlipped ? 'rgba(16,185,129,0.04)' : 'rgba(255,255,255,0.02)'};transition:all .2s;-webkit-overflow-scrolling:touch;">
             <div style="font-size:10px;text-transform:uppercase;color:#8896b8;letter-spacing:1px;font-weight:700;margin-bottom:10px;">
-              ${isFlipped ? '💡 ANSWER' : '❓ QUESTION (Tap card to flip)'}
+              ${isFlipped ? '💡 ANSWER' : '❓ QUESTION (Tap card or Spacebar to flip)'}
             </div>
             <div style="font-size:15px;line-height:1.6;font-weight:${isFlipped ? '400' : '600'};color:#f1f5f9;">
               ${isFlipped ? card.answer : card.question}
             </div>
-            ${!isFlipped ? '<div style="margin-top:16px;font-size:11px;color:#4f8ef7;">Tap anywhere to reveal answer ➔</div>' : ''}
+            ${!isFlipped ? '<div style="margin-top:16px;font-size:11px;color:#4f8ef7;font-weight:500;">Tap anywhere or press Spacebar to reveal answer ➔</div>' : ''}
           </div>
 
           <div style="padding:12px 18px;border-top:1px solid #262f45;background:#111420;display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">
             ${!isFlipped ? `
-              <button id="study-srs-flip-btn" style="width:100%;padding:9px;background:linear-gradient(135deg,#4f8ef7,#8b5cf6);border:none;border-radius:8px;color:#fff;font-weight:600;font-size:13px;cursor:pointer;">Reveal Answer</button>
+              <button id="study-srs-flip-btn" style="width:100%;padding:10px;background:linear-gradient(135deg,#4f8ef7,#8b5cf6);border:none;border-radius:9px;color:#fff;font-weight:700;font-size:13px;cursor:pointer;">Reveal Answer (Space)</button>
             ` : `
-              <button class="study-srs-rate" data-grade="1" style="flex:1;min-width:65px;padding:8px 4px;background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.4);border-radius:8px;color:#f43f5e;font-weight:600;font-size:11px;cursor:pointer;">Again (1d)</button>
-              <button class="study-srs-rate" data-grade="2" style="flex:1;min-width:65px;padding:8px 4px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:8px;color:#f59e0b;font-weight:600;font-size:11px;cursor:pointer;">Hard</button>
-              <button class="study-srs-rate" data-grade="3" style="flex:1;min-width:65px;padding:8px 4px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.4);border-radius:8px;color:#3b82f6;font-weight:600;font-size:11px;cursor:pointer;">Good</button>
-              <button class="study-srs-rate" data-grade="4" style="flex:1;min-width:65px;padding:8px 4px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);border-radius:8px;color:#10b981;font-weight:600;font-size:11px;cursor:pointer;">Easy</button>
+              <button class="study-srs-rate" data-grade="1" style="flex:1;min-width:65px;padding:9px 4px;background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.4);border-radius:8px;color:#f43f5e;font-weight:700;font-size:11px;cursor:pointer;">1: Again</button>
+              <button class="study-srs-rate" data-grade="2" style="flex:1;min-width:65px;padding:9px 4px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:8px;color:#f59e0b;font-weight:700;font-size:11px;cursor:pointer;">2: Hard</button>
+              <button class="study-srs-rate" data-grade="3" style="flex:1;min-width:65px;padding:9px 4px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.4);border-radius:8px;color:#3b82f6;font-weight:700;font-size:11px;cursor:pointer;">3: Good</button>
+              <button class="study-srs-rate" data-grade="4" style="flex:1;min-width:65px;padding:9px 4px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);border-radius:8px;color:#10b981;font-weight:700;font-size:11px;cursor:pointer;">4: Easy</button>
             `}
           </div>
         </div>
       `;
 
-      document.getElementById('study-srs-close').onclick = () => modal.remove();
+      document.getElementById('study-srs-close').onclick = closeModal;
 
       var cardEl = document.getElementById('study-srs-card');
       if (cardEl) {
@@ -187,21 +272,7 @@
       modal.querySelectorAll('.study-srs-rate').forEach(btn => {
         btn.onclick = function () {
           var grade = parseInt(this.dataset.grade, 10);
-          var updated = calculateNextReview(card, grade);
-
-          // Update card in store
-          var allCards = getCards();
-          var targetIdx = allCards.findIndex(c => c.id === card.id);
-          if (targetIdx >= 0) {
-            allCards[targetIdx] = updated;
-          } else {
-            allCards.push(updated);
-          }
-          saveCards(allCards);
-
-          currentIdx++;
-          isFlipped = false;
-          renderCardView();
+          rateCard(grade);
         };
       });
     }
@@ -210,10 +281,19 @@
     renderCardView();
   }
 
+  // Initial badge update on load
+  document.addEventListener('DOMContentLoaded', function () {
+    seedDefaultFlashcards();
+    updateTopbarBadge();
+  });
+
   window.StudySRS = {
     getDueCards: getDueCards,
+    getCards: getCards,
+    addCard: addCard,
     showModal: showSRSModal,
-    seedDefaults: seedDefaultFlashcards
+    seedDefaults: seedDefaultFlashcards,
+    updateTopbarBadge: updateTopbarBadge
   };
 
   console.log('[StudyHub] StudySRS Spaced Repetition module initialized.');

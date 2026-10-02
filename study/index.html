@@ -15,6 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../auth/supabase-config.js"></script>
 <script src="../auth/auth-guard.js"></script>
+<script src="../src/scripts/Common/BankProfileModal.js"></script>
 <script src="../src/scripts/Common/AppUpdateService.js"></script>
 <script src="js/lm-toast.js"></script>
 <script src="js/StudySync.js"></script>
@@ -69,13 +70,21 @@ if ('serviceWorker' in navigator) {
           🔔<span class="push-dot"></span>
         </button>
         <div class="push-panel" id="pushPanel">
-          <div class="push-panel-title">📬 Study Reminders</div>
+          <div class="push-panel-title">📬 Study Reminders &amp; Alerts</div>
           <div class="push-row"><label for="pushTime">Daily reminder at</label><input class="push-time" type="time" id="pushTime" value="09:00"/></div>
-          <button class="push-save" id="pushSaveBtn">Enable Reminders</button>
+          <div class="push-row" style="margin-top:6px;"><label style="display:flex;align-items:center;cursor:pointer;"><input type="checkbox" id="pushStreakChk" checked style="accent-color:var(--gold,#f59e0b);margin-right:6px;cursor:pointer;"/> Streak protection alerts</label></div>
+          <div class="push-row" style="margin-top:4px;"><label style="display:flex;align-items:center;cursor:pointer;"><input type="checkbox" id="pushSrsChk" checked style="accent-color:var(--purple,#8b5cf6);margin-right:6px;cursor:pointer;"/> SRS Flashcard reviews</label></div>
+          <div style="display:flex;gap:6px;margin-top:10px;">
+            <button class="push-save" id="pushSaveBtn" style="flex:1;">Enable Reminders</button>
+            <button class="push-test" id="pushTestBtn" type="button" title="Send test alert" style="background:var(--bg3,#141820);border:1px solid var(--border,#1e2436);border-radius:8px;padding:7px 10px;color:var(--text2,#8a95b8);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;">Test 🔔</button>
+          </div>
           <div class="push-status" id="pushStatus"></div>
         </div>
       </div>
       <button class="btn-theme" id="themeBtn" title="Toggle theme" aria-label="Toggle dark/light theme">🌙</button>
+      <div class="topbar-user-chip" id="studyUserChip" onclick="window.LM_ProfileModal && window.LM_ProfileModal.open()" title="Profile &amp; Vault Settings" aria-label="Account profile">
+        <div class="topbar-user-avatar" id="studyUserAvatar">U</div>
+      </div>
     </div>
   </div>
 </header>
@@ -1938,25 +1947,44 @@ function _doNotesSearch(q) {
 }());
 </script>
 
-<!-- Push notification bell wiring -->
+<!-- Push notification bell wiring & Avatar Init -->
 <script>
 (function () {
   'use strict';
 
+  /* ── Sync Avatar initial ─────────────────────────────── */
+  function _syncUserAvatar() {
+    var av = document.getElementById('studyUserAvatar');
+    if (!av) return;
+    try {
+      var sess = JSON.parse(localStorage.getItem('lm_session') || '{}');
+      var name = sess.displayName || sess.name || (sess.username ? sess.username.split('@')[0] : '') || (sess.user && sess.user.email ? sess.user.email.split('@')[0] : 'U');
+      av.textContent = (name || 'U').charAt(0).toUpperCase();
+    } catch (e) {
+      av.textContent = 'U';
+    }
+  }
+
   /* ── Push bell / settings panel ──────────────────────── */
-  var _bell    = document.getElementById('pushBellBtn');
-  var _panel   = document.getElementById('pushPanel');
-  var _timeEl  = document.getElementById('pushTime');
-  var _saveBtn = document.getElementById('pushSaveBtn');
-  var _statusEl= document.getElementById('pushStatus');
+  var _bell      = document.getElementById('pushBellBtn');
+  var _panel     = document.getElementById('pushPanel');
+  var _timeEl    = document.getElementById('pushTime');
+  var _saveBtn   = document.getElementById('pushSaveBtn');
+  var _testBtn   = document.getElementById('pushTestBtn');
+  var _streakChk = document.getElementById('pushStreakChk');
+  var _srsChk    = document.getElementById('pushSrsChk');
+  var _statusEl  = document.getElementById('pushStatus');
 
   function _updateBellState() {
     if (!window.LMPush || !_bell) return;
     var st = LMPush.getState();
-    if (st.enabled && st.permission === 'granted') {
+    if (_streakChk) _streakChk.checked = st.streakAlert !== false;
+    if (_srsChk) _srsChk.checked = st.srsAlert !== false;
+
+    if (st.enabled && (st.permission === 'granted' || st.isNative)) {
       _bell.classList.add('active');
       if (_saveBtn) _saveBtn.textContent = 'Disable Reminders';
-      if (_statusEl) _statusEl.textContent = 'Reminders on at ' + _fmtTime(st.hour, st.minute);
+      if (_statusEl) _statusEl.textContent = 'Reminders active at ' + _fmtTime(st.hour, st.minute);
     } else {
       _bell.classList.remove('active');
       if (_saveBtn) _saveBtn.textContent = 'Enable Reminders';
@@ -1983,30 +2011,45 @@ function _doNotesSearch(q) {
     });
   }
 
+  if (_testBtn) {
+    _testBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (!window.LMPush) return;
+      LMPush.testNotification();
+    });
+  }
+
   if (_saveBtn) {
     _saveBtn.addEventListener('click', function () {
       if (!window.LMPush) return;
       var st = LMPush.getState();
-      if (st.enabled && st.permission === 'granted') {
+      if (st.enabled && (st.permission === 'granted' || st.isNative)) {
         LMPush.cancel();
         _updateBellState();
         if (window.LMToast) LMToast.ok('Study reminders disabled.');
         return;
       }
       LMPush.request().then(function (perm) {
-        if (perm !== 'granted') {
+        if (perm !== 'granted' && !st.isNative) {
           if (_statusEl) _statusEl.textContent = 'Permission denied — enable notifications in browser settings.';
           return;
         }
         var parts = (_timeEl && _timeEl.value) ? _timeEl.value.split(':') : ['9', '0'];
-        LMPush.schedule(parseInt(parts[0], 10), parseInt(parts[1], 10));
+        var opts = {
+          streakAlert: _streakChk ? _streakChk.checked : true,
+          srsAlert: _srsChk ? _srsChk.checked : true
+        };
+        LMPush.schedule(parseInt(parts[0], 10), parseInt(parts[1], 10), opts);
         _updateBellState();
         if (window.LMToast) LMToast.ok('Reminders set for ' + _fmtTime(parseInt(parts[0], 10), parseInt(parts[1], 10)));
       });
     });
   }
 
-  document.addEventListener('DOMContentLoaded', _updateBellState);
+  document.addEventListener('DOMContentLoaded', function () {
+    _syncUserAvatar();
+    _updateBellState();
+  });
 }());
 </script>
 </body>

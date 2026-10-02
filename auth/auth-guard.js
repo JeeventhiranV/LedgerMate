@@ -174,16 +174,19 @@
 
     '.agf-profile{display:flex;align-items:center;gap:9px;padding:9px 10px;',
       'background:rgba(255,255,255,.03);border:1px solid var(--border,#1e2436);',
-      'border-radius:10px;margin-bottom:9px}',
+      'border-radius:10px;margin-bottom:9px;cursor:pointer;transition:all .2s}',
+    '.agf-profile:hover{background:rgba(79,142,247,.1);border-color:rgba(79,142,247,.35);transform:translateY(-1px)}',
     '.agf-avatar{width:34px;height:34px;border-radius:9px;flex-shrink:0;',
       'background:linear-gradient(135deg,#4f8ef7,#8b5cf6);',
       'display:flex;align-items:center;justify-content:center;',
-      'font-size:14px;font-weight:700;color:#fff;letter-spacing:0}',
+      'font-size:14px;font-weight:700;color:#fff;letter-spacing:0;box-shadow:0 2px 8px rgba(79,142,247,.3)}',
     '.agf-info{min-width:0;flex:1}',
     '.agf-name{font-size:12px;font-weight:600;color:var(--text,#e4eaf8);',
       'overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
     '.agf-email{font-size:10px;color:var(--text3,#535d7e);',
       'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}',
+    '.agf-profile-arrow{font-size:12px;color:var(--text3,#535d7e);transition:transform .2s}',
+    '.agf-profile:hover .agf-profile-arrow{transform:translateX(2px);color:var(--blue,#4f8ef7)}',
 
     '.agf-admin-btn{width:100%;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.25);',
       'border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;',
@@ -283,12 +286,13 @@
         '<button class="agf-theme-btn" id="agfThemeBtn">🌙</button>' +
       '</div>' +
       '<div class="agf-divider"></div>' +
-      '<div class="agf-profile">' +
+      '<div class="agf-profile" id="agfProfileCard" title="Account & Security Vault Profile">' +
         '<div class="agf-avatar">' + initial + '</div>' +
         '<div class="agf-info">' +
           '<div class="agf-name">' + name + '</div>' +
           '<div class="agf-email">' + email + '</div>' +
         '</div>' +
+        '<span class="agf-profile-arrow">›</span>' +
       '</div>' +
       '<button class="agf-admin-btn" id="agfAdminBtn">⚙ Admin Panel</button>' +
       '<button class="agf-signout" id="authLogoutBtn">↩ Sign out</button>';
@@ -302,6 +306,49 @@
     } else {
       // Pages without sidebar (HR / IPK) — build a new one
       _buildAuthNav(footer);
+    }
+
+    // ── Wire Bank Profile Modal trigger ─────────────────────────────────────
+    function _openProfileModal() {
+      if (window.LM_ProfileModal && typeof window.LM_ProfileModal.open === 'function') {
+        window.LM_ProfileModal.open();
+        return;
+      }
+      var base = _getMainAppUrl().replace('/index.html', '');
+      var s = document.createElement('script');
+      s.src = (base || '') + '/src/scripts/Common/BankProfileModal.js';
+      s.onload = function () {
+        if (window.LM_ProfileModal && typeof window.LM_ProfileModal.open === 'function') {
+          window.LM_ProfileModal.open();
+        }
+      };
+      document.head.appendChild(s);
+    }
+
+    var agfProf = footer.querySelector('#agfProfileCard');
+    if (agfProf) {
+      agfProf.addEventListener('click', function () {
+        var nav = document.getElementById('authNav');
+        var navOv = document.getElementById('authNavOverlay');
+        if (nav) nav.classList.remove('open');
+        if (navOv) navOv.classList.remove('show');
+        _openProfileModal();
+      });
+    }
+
+    // ── Inject Topbar User Chip across Study Module ─────────────────────────
+    var topbarUtils = document.querySelector('.topbar-utils, .topbar-actions, .topbar-right');
+    if (topbarUtils && !document.getElementById('studyUserChip')) {
+      var chip = document.createElement('div');
+      chip.className = 'topbar-user-chip';
+      chip.id = 'studyUserChip';
+      chip.title = 'Account Vault & Profile Settings';
+      chip.setAttribute('aria-label', 'Open profile modal');
+      chip.innerHTML = '<div class="topbar-user-avatar">' + initial + '</div>';
+      chip.addEventListener('click', function () {
+        _openProfileModal();
+      });
+      topbarUtils.appendChild(chip);
     }
 
     // ── Wire LedgerMate nav ──────────────────────────────────────────────────
