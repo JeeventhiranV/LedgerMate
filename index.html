@@ -72,9 +72,6 @@
   <!-- Auth layer – MUST load before Common.js -->
   <script src="./src/scripts/Auth/AuthManager.js"></script>
   <script src="./src/scripts/Auth/UserStore.js"></script>
-  <!-- chart.umd.min.js already loaded above -->
-  <script src="./assets/vendor/jspdf.umd.min.js"></script>
-  <script src="./assets/vendor/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -132,7 +129,7 @@
       } else {
         clearInterval(timer);
       }
-    }, 400);
+    }, 150);
   } catch(e) {}
 })();
 </script>
@@ -2257,5 +2254,8 @@ function setGreeting() {
 })();
 </script>
 
+  <!-- Deferred heavy export libraries (loaded asynchronously so they never block initial paint/hydration) -->
+  <script defer src="./assets/vendor/jspdf.umd.min.js"></script>
+  <script defer src="./assets/vendor/html2canvas.min.js"></script>
 </body>
 </html>

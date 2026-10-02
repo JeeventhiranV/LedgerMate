@@ -764,6 +764,18 @@
   }
 
   if (hasSupabase) {
+    // ── Optimistic instant reveal if local session already exists ──
+    var _cachedSess = null;
+    try { _cachedSess = JSON.parse(localStorage.getItem('lm_session')); } catch(e) {}
+    if (_cachedSess && _cachedSess.userId) {
+      _revealWhenReady({
+        user: {
+          id: _cachedSess.userId,
+          email: _cachedSess.username || _cachedSess.email || 'user'
+        }
+      });
+    }
+
     _supabase.auth.getSession().then(function (res) {
       var session = res && res.data && res.data.session;
 
@@ -822,16 +834,20 @@
           _revealWhenReady(session);
         })
         .catch(function () {
-          // Network error — fail-closed: sign out and redirect rather than grant access
-          _supabase.auth.signOut().then(function () {
-            _redirect(_getLoginUrl());
-          }).catch(function () {
-            _redirect(_getLoginUrl());
-          });
+          // Network error — if we already had a cached session, do not immediately kick out if network is briefly flaky
+          if (!_cachedSess || !_cachedSess.userId) {
+            _supabase.auth.signOut().then(function () {
+              _redirect(_getLoginUrl());
+            }).catch(function () {
+              _redirect(_getLoginUrl());
+            });
+          }
         });
 
     }).catch(function () {
-      _redirect(_getLoginUrl());
+      if (!_cachedSess || !_cachedSess.userId) {
+        _redirect(_getLoginUrl());
+      }
     });
 
     // ── 8. Cross-tab sign-out sync ────────────────────────────────────────────

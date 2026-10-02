@@ -179,6 +179,52 @@
     });
   }
 
+  // ── SWR (Stale-While-Revalidate) Background Check ────────────
+  // Checks only the ~50-byte updated_at column instead of downloading
+  // multi-megabyte payloads. If remote is newer, updates local DB non-blockingly.
+  function checkAndSyncBackground() {
+    if (isOfflineMode() || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+      return Promise.resolve({ synced: false, reason: 'offline' });
+    }
+    return _uid().then(function (uid) {
+      if (!uid) return { synced: false, reason: 'no-uid' };
+      return _supabase
+        .from(TABLE)
+        .select('updated_at')
+        .eq('user_id', uid)
+        .single()
+        .then(function (r) {
+          if (r.error || !r.data || !r.data.updated_at) {
+            return { synced: false, reason: 'no-remote-data' };
+          }
+          var remoteUpdatedAt = new Date(r.data.updated_at).getTime();
+          var localLastSync = parseInt(localStorage.getItem('lm_last_cloud_sync_time') || '0', 10);
+
+          // If remote data was updated after our last sync (by > 2s to allow for clock drift)
+          if (remoteUpdatedAt > localLastSync + 2000) {
+            console.log('[CloudSync] ☁️ Newer remote cloud state detected. Performing background sync...');
+            return load().then(function (loaded) {
+              if (loaded) {
+                if (typeof window.loadAllFromDB === 'function') {
+                  window.loadAllFromDB().then(function() {
+                    if (typeof window.renderAll === 'function') window.renderAll();
+                    if (window.LM_Bus) LM_Bus.emit('lm:cloud:synced', { remoteUpdatedAt: remoteUpdatedAt });
+                  });
+                }
+              }
+              return { synced: loaded, reason: 'remote-newer' };
+            });
+          } else {
+            console.log('[CloudSync] ⚡ Local vault is up-to-date with cloud (0 bytes downloaded).');
+            return { synced: false, reason: 'already-up-to-date' };
+          }
+        });
+    }).catch(function (e) {
+      console.warn('[CloudSync] Background sync check error (using local state):', e && e.message || e);
+      return { synced: false, reason: 'error', error: e };
+    });
+  }
+
   // ── Public: fetch cloud data and import into IndexedDB ──────
   // Clears stale local data FIRST so cloud is always the source of truth.
   function load() {
@@ -205,8 +251,9 @@
 
           var payload = r.data.data;
           var jsonStr = JSON.stringify(payload);
+          var remoteMs = r.data.updated_at ? new Date(r.data.updated_at).getTime() : Date.now();
 
-          try { localStorage.setItem('lm_last_cloud_sync_time', String(Date.now())); } catch (e) {}
+          try { localStorage.setItem('lm_last_cloud_sync_time', String(remoteMs)); } catch (e) {}
 
           // Wipe IndexedDB first — guarantees no stale local rows survive
           return _clearDataStores().then(function () {
@@ -313,14 +360,15 @@
 
   // ── Expose ───────────────────────────────────────────────────
   window.LM_CloudSync = {
-    save          : save,
-    load          : load,
-    queueSave     : queueSave,
-    saveOnLogout  : saveOnLogout,
-    startAutoSave : startAutoSave,
-    getSyncMode   : getSyncMode,
-    setSyncMode   : setSyncMode,
-    isOfflineMode : isOfflineMode
+    save                   : save,
+    load                   : load,
+    checkAndSyncBackground : checkAndSyncBackground,
+    queueSave              : queueSave,
+    saveOnLogout           : saveOnLogout,
+    startAutoSave          : startAutoSave,
+    getSyncMode            : getSyncMode,
+    setSyncMode            : setSyncMode,
+    isOfflineMode          : isOfflineMode
   };
 
 }());

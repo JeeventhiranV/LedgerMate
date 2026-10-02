@@ -4034,101 +4034,114 @@ async function FinalJson(){
 window.LM_StartApp = async function LM_StartApp() {
   // Re-apply store patches after DB is open
   if (typeof window.LM_applyStorePatch === 'function') window.LM_applyStorePatch();
+  
   try {
+    // 1. Instant local IndexedDB open & hydration (< 50ms)
     await openDB();
     await seedDefaults();
+    await loadAllFromDB();
   } catch (err) {
-    console.error("❌ Failed to open IndexedDB:", err);
+    console.error("❌ Failed to open / load IndexedDB:", err);
     return;
   }
 
-  /* ── Supabase cloud load (if sync mode is 'cloud' and online) ── */
-  const syncMode = (typeof window.LM_CloudSync?.getSyncMode === 'function')
-    ? window.LM_CloudSync.getSyncMode()
-    : (localStorage.getItem('lm_sync_mode') || 'cloud');
-
-  if (syncMode === 'cloud' && window.LM_CloudSync && (typeof navigator === 'undefined' || navigator.onLine)) {
-    try {
-      const loaded = await window.LM_CloudSync.load();
-      if (loaded) console.log("☁️ Data loaded from Supabase cloud");
-    } catch (e) {
-      console.warn("⚠️ Cloud load failed, using local IndexedDB:", e);
-    }
-  } else {
-    console.log(`💾 Starting in ${syncMode === 'offline' ? 'Offline Mode' : 'Local IndexedDB Cache'}`);
-  }
-
   try {
-    await loadAllFromDB();
+    // 2. Immediate Single-Pass UI Render & Target Page Display
+    const userId = window.LM_Auth?.getCurrentUserId() || 'default';
+    const uKey = `lm_u_${userId}_lastPage`;
+    const targetPage = localStorage.getItem(uKey) || localStorage.getItem('ledgerMate_lastPage') || 'dashboard';
 
-    /* ── Initialize Stock Portfolio Service ──────────── */
-    if (window.LM_StockPortfolioService) {
-      try {
-        const uid = window.LM_Auth?.getCurrentUserId?.() || 'guest';
-        await window.LM_StockPortfolioService.init(uid);
-      } catch (e) {
-        console.warn('[LM] StockPortfolioService auto-init error:', e);
-      }
-    }
-
-    /* ── Initialize Credit Cards Service ──────────────── */
-    if (window.LM_CreditCardsService) {
-      try {
-        await window.LM_CreditCardsService.init();
-      } catch (e) {
-        console.warn('[LM] CreditCardsService auto-init error:', e);
-      }
-    }
-
-    startBackupSchedule();
     bindUI();
-    if (typeof renderAll === "function") {
-      renderAll();
-    } 
-   // tryAutoLoadFolder();
-   // checkAllNotifications();
-   // setInterval(checkAllNotifications, 60 * 60 * 1000);
-    processRecurringTransactions();
-    setInterval(processRecurringTransactions, 60 * 60 * 1000);
     setGreeting();
-    autoNetWorthSnapshot();
-    checkLowBalanceAlert();
-    checkSpendingAnomalyAlerts();
-    checkBudgetRollover();
-    schedulePushNotifications();
 
-    /* ── Signal that the app is fully booted ─────────── */
+    if (typeof showPage === 'function') {
+      showPage(targetPage);
+    } else if (typeof renderAll === "function") {
+      renderAll();
+    }
+
+    // 3. Dismiss startup loader immediately
+    const loader = document.getElementById('lmPageLoader');
+    if (loader && !loader.classList.contains('lm-loader-hidden')) {
+      loader.classList.add('lm-loader-hidden');
+      setTimeout(() => {
+        if (loader && loader.parentNode) loader.parentNode.removeChild(loader);
+      }, 400);
+    }
+
+    // 4. Mark DB as fully ready
     window.LM_DB_READY = true;
     if (window.LM_Bus) {
       LM_Bus.emit('lm:app:ready', { user: window.LM_Auth?.getCurrentUser() });
       LM_Bus.emit('lm:auth:login', { user: window.LM_Auth?.getCurrentUser() });
     }
 
-    /* ── Start Supabase cloud auto-save ──────────────── */
-    if (window.LM_CloudSync) {
-      window.LM_CloudSync.startAutoSave(60000);
-    }
-
-    /* ── Start Local Device Automated Backup Service ─── */
-    if (window.LM_LocalBackup) {
-      try {
-        window.LM_LocalBackup.startAutoBackup(10 * 60 * 1000);
-      } catch (e) {
-        console.warn('[LM] LocalBackup auto-start error:', e);
-      }
-    }
-
-    /* Kick off initial notification check after DB is ready (periodic checking managed in Notifications.js) */
-    if (typeof window.checkAllNotifications === 'function') {
-      window.checkAllNotifications();
-    }
-
     if (typeof window.LM_updateTopbarSyncButton === 'function') {
       window.LM_updateTopbarSyncButton();
     }
-    
+
+    // 5. Non-blocking Background Services (SWR CloudSync, Stocks, Credit Cards, Schedulers)
+    setTimeout(async () => {
+      const syncMode = (typeof window.LM_CloudSync?.getSyncMode === 'function')
+        ? window.LM_CloudSync.getSyncMode()
+        : (localStorage.getItem('lm_sync_mode') || 'cloud');
+
+      // Stale-While-Revalidate Cloud Sync Check (50-byte header check)
+      if (syncMode === 'cloud' && window.LM_CloudSync && (typeof navigator === 'undefined' || navigator.onLine)) {
+        try {
+          if (typeof window.LM_CloudSync.checkAndSyncBackground === 'function') {
+            await window.LM_CloudSync.checkAndSyncBackground();
+          }
+          window.LM_CloudSync.startAutoSave(60000);
+        } catch (e) {
+          console.warn('[LM] Background cloud sync check error:', e);
+        }
+      }
+
+      /* ── Initialize Stock Portfolio Service in background ── */
+      if (window.LM_StockPortfolioService) {
+        try {
+          const uid = window.LM_Auth?.getCurrentUserId?.() || 'guest';
+          await window.LM_StockPortfolioService.init(uid);
+        } catch (e) {
+          console.warn('[LM] StockPortfolioService auto-init error:', e);
+        }
+      }
+
+      /* ── Initialize Credit Cards Service in background ──── */
+      if (window.LM_CreditCardsService) {
+        try {
+          await window.LM_CreditCardsService.init();
+        } catch (e) {
+          console.warn('[LM] CreditCardsService auto-init error:', e);
+        }
+      }
+
+      // Background schedulers & alert checks
+      try {
+        startBackupSchedule();
+        processRecurringTransactions();
+        setInterval(processRecurringTransactions, 60 * 60 * 1000);
+        autoNetWorthSnapshot();
+        checkLowBalanceAlert();
+        checkSpendingAnomalyAlerts();
+        checkBudgetRollover();
+        schedulePushNotifications();
+
+        if (window.LM_LocalBackup) {
+          window.LM_LocalBackup.startAutoBackup(10 * 60 * 1000);
+        }
+
+        if (typeof window.checkAllNotifications === 'function') {
+          window.checkAllNotifications();
+        }
+      } catch (schErr) {
+        console.warn('[LM] Background scheduler error:', schErr);
+      }
+    }, 150);
+
   } catch (err) {
-    console.error('Startup error', err);
+    console.error('Startup render error:', err);
   }
 }; /* end LM_StartApp */
 

@@ -20,8 +20,34 @@
     INR: 1.0
   };
 
+  var CACHE_KEY = 'lm_forex_rates_cache';
+  var CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
+
+  // Load cached rates from localStorage immediately (0ms)
+  try {
+    var rawCache = localStorage.getItem(CACHE_KEY);
+    if (rawCache) {
+      var parsed = JSON.parse(rawCache);
+      if (parsed && parsed.rates) {
+        Object.assign(_forexRates, parsed.rates);
+      }
+    }
+  } catch (e) {}
+
   // ── Forex Rates Fetcher ───────────────────────────────────────
-  async function fetchForexRates() {
+  async function fetchForexRates(forceRefresh = false) {
+    if (!forceRefresh) {
+      try {
+        var raw = localStorage.getItem(CACHE_KEY);
+        if (raw) {
+          var c = JSON.parse(raw);
+          if (c && c.timestamp && (Date.now() - c.timestamp < CACHE_TTL)) {
+            return _forexRates;
+          }
+        }
+      } catch (e) {}
+    }
+
     try {
       // Primary: Open Exchange Rates API (public, CORS enabled, no API key required)
       var res = await fetch('https://open.er-api.com/v6/latest/USD');
@@ -38,7 +64,10 @@
           _forexRates.AED = usdInr / (data.rates.AED || 1);
           _forexRates.JPY = usdInr / (data.rates.JPY || 1);
           _forexRates.INR = 1.0;
-          console.log('[LiveMarket] 💱 Live Forex rates updated:', _forexRates);
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp: Date.now(), rates: _forexRates }));
+          } catch (e) {}
+          console.log('[LiveMarket] 💱 Live Forex rates updated & cached:', _forexRates);
           return _forexRates;
         }
       }
@@ -63,7 +92,10 @@
           _forexRates.AED = uInr / (usdRates.aed || 1);
           _forexRates.JPY = uInr / (usdRates.jpy || 1);
           _forexRates.INR = 1.0;
-          console.log('[LiveMarket] 💱 Forex rates updated via fallback:', _forexRates);
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp: Date.now(), rates: _forexRates }));
+          } catch (e) {}
+          console.log('[LiveMarket] 💱 Forex rates updated via fallback & cached:', _forexRates);
         }
       }
     } catch (err) {
@@ -83,8 +115,10 @@
     return amountInInr / toRateInr;
   }
 
-  // Auto-init forex rates in background
-  fetchForexRates();
+  // Auto-init forex rates in background non-blockingly
+  setTimeout(function() {
+    fetchForexRates();
+  }, 1000);
 
   window.LM_LiveMarket = {
     fetchForexRates: fetchForexRates,

@@ -1157,26 +1157,9 @@
 
   /* ══════════════════════════════════════════════════════
      BOOTSTRAP
+  /* ══════════════════════════════════════════════════════
+     BOOTSTRAP (Optimistic Instant Auth & Background Validation)
   ══════════════════════════════════════════════════════ */
-  async function checkForUpdate() {
-    try {
-      const res = await fetch('version.json?_t=' + Date.now(), { cache: 'no-store' });
-      if (!res.ok) return;
-      const data = await res.json();
-      const newDeploy = data.version || ('lm-' + data.commit);
-      const activeDeploy = localStorage.getItem('lm_active_deploy_commit');
-      if (newDeploy && activeDeploy !== newDeploy) {
-        console.log('[Auth] App update detected (' + activeDeploy + ' -> ' + newDeploy + '). Preserving active user session.');
-        localStorage.setItem('lm_active_deploy_commit', newDeploy);
-      }
-    } catch (e) {}
-  }
-
-  document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') checkForUpdate();
-  });
-  setInterval(checkForUpdate, 5 * 60 * 1000);
-
   async function init() {
     /* ── Check Commit Deployment ID (Preserve user session) ── */
     const currentDeploy = window.LM_DEPLOY_ID || null;
@@ -1184,87 +1167,127 @@
       localStorage.setItem('lm_active_deploy_commit', currentDeploy);
     }
 
-    /* ── Check Supabase session ──────────────────────────── */
-    let sbSession = null;
-    if (typeof _supabase !== 'undefined' && _supabase?.auth) {
-      try {
-        const { data } = await _supabase.auth.getSession();
-        sbSession = data && data.session ? data.session : null;
-      } catch (e) {
-        console.warn('[Auth] Supabase session check failed:', e.message);
-      }
-    }
+    const cachedSession = getSession();
 
-    if (sbSession) {
-      const sbUser = sbSession.user;
+    // ── Optimistic Path: Local session exists → Unhide & Hydrate Instantly (< 5ms) ──
+    if (cachedSession && cachedSession.userId) {
+      hideLoginScreen();
+      updateUIForUser(cachedSession);
+      startInactivityWatcher();
+      _syncNativeScreenSecurity();
 
-      /* Fetch actual role + active status */
-      let profile = null;
-      try {
-        const { data } = await _supabase
-          .from('user_profiles')
-          .select('role, active, display_name, allowed_modules')
-          .eq('id', sbUser.id)
-          .single();
-        profile = data;
-      } catch {}
-
-      if (!profile || !profile.active) {
-        /* Profile missing or inactive — sign out and redirect with reason */
-        if (typeof _supabase !== 'undefined' && _supabase?.auth) {
-          try { await _supabase.auth.signOut(); } catch (e) {}
-        }
-        clearSession();
-        var _msgCode   = profile ? 'pending' : 'noprofile';
-        var _loginBase = window.location.href.split('/').slice(0, -1).join('/');
-        window.location.replace(_loginBase + '/login.html?action=logout&msg=' + _msgCode);
-        _bindLoginForm();
-      } else {
-        const user = {
-          id             : sbUser.id,
-          username       : sbUser.email,
-          displayName    : profile.display_name || sbUser.email.split('@')[0],
-          role           : profile.role || 'user',
-          email          : sbUser.email,
-          active         : profile.active,
-          allowedModules : profile.allowed_modules || []
-        };
-        const session = setSession(user);
-        hideLoginScreen();
-        updateUIForUser(session);
-        startInactivityWatcher();
-        _syncNativeScreenSecurity();
-
-        if (isAppLockEnabled(user.id)) {
-          showAppLockScreen(async () => {
-            if (typeof window.LM_StartApp === 'function') {
-              await window.LM_StartApp();
-            }
-          });
-        } else {
+      if (isAppLockEnabled(cachedSession.userId)) {
+        showAppLockScreen(async () => {
           if (typeof window.LM_StartApp === 'function') {
             await window.LM_StartApp();
           }
+        });
+      } else {
+        if (typeof window.LM_StartApp === 'function') {
+          await window.LM_StartApp();
         }
       }
-    } else {
-      /* Check if we have a valid local session (offline / demo mode) */
-      const existingLocalSession = getSession();
-      if (existingLocalSession && existingLocalSession.userId) {
-        hideLoginScreen();
-        updateUIForUser(existingLocalSession);
-        startInactivityWatcher();
-        _syncNativeScreenSecurity();
 
-        if (isAppLockEnabled(existingLocalSession.userId)) {
-          showAppLockScreen(async () => {
+      // Background Validation: Verify Supabase session & user profile non-blockingly
+      if (typeof _supabase !== 'undefined' && _supabase?.auth) {
+        setTimeout(async () => {
+          try {
+            const { data } = await _supabase.auth.getSession();
+            const sbSession = data && data.session ? data.session : null;
+
+            if (sbSession) {
+              const { data: profile } = await _supabase
+                .from('user_profiles')
+                .select('role, active, display_name, allowed_modules')
+                .eq('id', sbSession.user.id)
+                .single();
+
+              if (!profile || !profile.active) {
+                try { await _supabase.auth.signOut(); } catch (e) {}
+                clearSession();
+                var _msgCode   = profile ? 'pending' : 'noprofile';
+                var _loginBase = window.location.href.split('/').slice(0, -1).join('/');
+                window.location.replace(_loginBase + '/login.html?action=logout&msg=' + _msgCode);
+                return;
+              }
+
+              // Update session metadata seamlessly in background
+              const refreshedUser = {
+                id             : sbSession.user.id,
+                username       : sbSession.user.email,
+                displayName    : profile.display_name || sbSession.user.email.split('@')[0],
+                role           : profile.role || 'user',
+                email          : sbSession.user.email,
+                active         : profile.active,
+                allowedModules : profile.allowed_modules || []
+              };
+              const newSess = setSession(refreshedUser);
+              updateUIForUser(newSess);
+            }
+          } catch (err) {
+            console.warn('[Auth] Background session revalidation skipped (offline / transient error):', err.message);
+          }
+        }, 600);
+      }
+    } else {
+      // ── Cold Path: No local session → Check Supabase before showing login ──
+      let sbSession = null;
+      if (typeof _supabase !== 'undefined' && _supabase?.auth) {
+        try {
+          const { data } = await _supabase.auth.getSession();
+          sbSession = data && data.session ? data.session : null;
+        } catch (e) {
+          console.warn('[Auth] Supabase session check failed:', e.message);
+        }
+      }
+
+      if (sbSession) {
+        const sbUser = sbSession.user;
+        let profile = null;
+        try {
+          const { data } = await _supabase
+            .from('user_profiles')
+            .select('role, active, display_name, allowed_modules')
+            .eq('id', sbUser.id)
+            .single();
+          profile = data;
+        } catch {}
+
+        if (!profile || !profile.active) {
+          if (typeof _supabase !== 'undefined' && _supabase?.auth) {
+            try { await _supabase.auth.signOut(); } catch (e) {}
+          }
+          clearSession();
+          var _msgCode   = profile ? 'pending' : 'noprofile';
+          var _loginBase = window.location.href.split('/').slice(0, -1).join('/');
+          window.location.replace(_loginBase + '/login.html?action=logout&msg=' + _msgCode);
+          _bindLoginForm();
+        } else {
+          const user = {
+            id             : sbUser.id,
+            username       : sbUser.email,
+            displayName    : profile.display_name || sbUser.email.split('@')[0],
+            role           : profile.role || 'user',
+            email          : sbUser.email,
+            active         : profile.active,
+            allowedModules : profile.allowed_modules || []
+          };
+          const session = setSession(user);
+          hideLoginScreen();
+          updateUIForUser(session);
+          startInactivityWatcher();
+          _syncNativeScreenSecurity();
+
+          if (isAppLockEnabled(user.id)) {
+            showAppLockScreen(async () => {
+              if (typeof window.LM_StartApp === 'function') {
+                await window.LM_StartApp();
+              }
+            });
+          } else {
             if (typeof window.LM_StartApp === 'function') {
               await window.LM_StartApp();
             }
-          });
-        } else {
-          if (typeof window.LM_StartApp === 'function') {
-            await window.LM_StartApp();
           }
         }
       } else {
