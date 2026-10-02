@@ -52,10 +52,13 @@
   function getUserData() {
     // 1. In-memory study user
     if (window._studyUser && (window._studyUser.email || window._studyUser.displayName)) {
+      const em = window._studyUser.email || window._studyUser.username || '';
+      const rawName = window._studyUser.displayName || (em ? em.split('@')[0] : 'User');
+      const disp = rawName ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : 'User';
       return {
-        displayName: window._studyUser.displayName || 'User',
-        username: window._studyUser.username || window._studyUser.email || 'user@ledgermate.local',
-        email: window._studyUser.email || window._studyUser.username || 'user@ledgermate.local',
+        displayName: disp,
+        username: em || disp,
+        email: em || 'user@ledgermate.local',
         role: window._studyUser.role || (window._studyProfile ? window._studyProfile.role : 'user'),
         userId: window._studyUser.userId || window._studyUser.id || 'default'
       };
@@ -66,11 +69,14 @@
       const studyMeta = localStorage.getItem('study_user_meta');
       if (studyMeta) {
         const parsedMeta = JSON.parse(studyMeta);
-        if (parsedMeta && (parsedMeta.email || parsedMeta.displayName)) {
+        if (parsedMeta && (parsedMeta.email || parsedMeta.displayName || parsedMeta.name)) {
+          const em = parsedMeta.email || parsedMeta.username || '';
+          const rawName = parsedMeta.displayName || parsedMeta.name || (em ? em.split('@')[0] : 'User');
+          const disp = rawName ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : 'User';
           return {
-            displayName: parsedMeta.displayName || (parsedMeta.email ? parsedMeta.email.split('@')[0] : 'User'),
-            username: parsedMeta.username || parsedMeta.email || 'user@ledgermate.local',
-            email: parsedMeta.email || parsedMeta.username || 'user@ledgermate.local',
+            displayName: disp,
+            username: em || disp,
+            email: em || 'user@ledgermate.local',
             role: parsedMeta.role || (window._studyProfile ? window._studyProfile.role : 'user'),
             userId: parsedMeta.userId || parsedMeta.id || 'default'
           };
@@ -81,7 +87,18 @@
     // 3. Finance LM_Auth
     if (window.LM_Auth && typeof window.LM_Auth.getCurrentUser === 'function') {
       const u = window.LM_Auth.getCurrentUser();
-      if (u) return u;
+      if (u && (u.email || u.username || u.displayName)) {
+        const em = u.email || u.username || '';
+        const rawName = u.displayName || (em ? em.split('@')[0] : 'User');
+        const disp = rawName ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : 'User';
+        return {
+          displayName: disp,
+          username: em || disp,
+          email: em || 'user@ledgermate.local',
+          role: u.role || 'user',
+          userId: u.userId || u.id || 'default'
+        };
+      }
     }
 
     // 4. Finance lm_session
@@ -91,43 +108,75 @@
         const parsed = JSON.parse(sess);
         const userObj = parsed.user || parsed;
         const meta = userObj.user_metadata || {};
-        const rawName = meta.full_name || meta.name || userObj.displayName || (userObj.email ? userObj.email.split('@')[0] : '') || (userObj.username ? userObj.username.split('@')[0] : 'User');
-        const formattedName = rawName ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : 'User';
-        const email = userObj.email || userObj.username || 'user@ledgermate.local';
-        return {
-          displayName: formattedName,
-          username: email,
-          email: email,
-          role: parsed.role || (window._studyProfile ? window._studyProfile.role : 'user'),
-          userId: userObj.id || parsed.userId || 'default'
-        };
+        const em = userObj.email || userObj.username || '';
+        const rawName = meta.full_name || meta.name || userObj.displayName || (em ? em.split('@')[0] : '');
+        if (em || rawName) {
+          const formattedName = rawName ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : (em ? em.split('@')[0] : 'User');
+          return {
+            displayName: formattedName,
+            username: em || formattedName,
+            email: em || 'user@ledgermate.local',
+            role: parsed.role || (window._studyProfile ? window._studyProfile.role : 'user'),
+            userId: userObj.id || parsed.userId || 'default'
+          };
+        }
       }
     } catch (e) {}
 
-    // 5. Scan Supabase tokens in localStorage (sb-*-auth-token or supabase.auth.token)
+    // 5. Scan all Supabase tokens in localStorage (sb-*-auth-token or supabase.auth.token or any key containing auth-token)
     try {
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
-        if (k && ((k.indexOf('sb-') === 0 && k.indexOf('-auth-token') !== -1) || k === 'supabase.auth.token')) {
+        if (k && ((k.indexOf('sb-') === 0 && k.indexOf('-auth-token') !== -1) || k.indexOf('auth-token') !== -1 || k === 'supabase.auth.token')) {
           const item = localStorage.getItem(k);
           if (item) {
             const parsed = JSON.parse(item);
-            const userObj = parsed.user || (parsed.currentSession && parsed.currentSession.user);
+            const userObj = parsed.user || (parsed.currentSession && parsed.currentSession.user) || (parsed.session && parsed.session.user);
             if (userObj && (userObj.email || userObj.id)) {
               const meta = userObj.user_metadata || {};
-              const rawName = meta.full_name || meta.name || (userObj.email ? userObj.email.split('@')[0] : 'User');
+              const em = userObj.email || '';
+              const rawName = meta.full_name || meta.name || userObj.name || (em ? em.split('@')[0] : 'User');
               const formattedName = rawName ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : 'User';
-              const email = userObj.email || 'user@ledgermate.local';
               return {
                 displayName: formattedName,
-                username: email,
-                email: email,
+                username: em || formattedName,
+                email: em || 'user@ledgermate.local',
                 role: (window._studyProfile && window._studyProfile.role) || 'user',
                 userId: userObj.id || 'default'
               };
             }
           }
         }
+      }
+    } catch (e) {}
+
+    // 6. DOM Extraction Fallback (e.g. from hero greeting or sidebar profile)
+    try {
+      const heroEl = document.getElementById('heroTitle');
+      if (heroEl && heroEl.textContent && heroEl.textContent.indexOf(',') !== -1) {
+        const part = heroEl.textContent.split(',')[1].replace(/[!.]/g, '').trim();
+        if (part && part.toLowerCase() !== 'user' && part.toLowerCase() !== 'study resources hub') {
+          return {
+            displayName: part,
+            username: part,
+            email: part.toLowerCase() + '@gmail.com',
+            role: (window._studyProfile && window._studyProfile.role) || 'user',
+            userId: 'default'
+          };
+        }
+      }
+      const agfName = document.querySelector('.agf-name');
+      const agfEmail = document.querySelector('.agf-email');
+      if (agfName && agfName.textContent && agfName.textContent.trim() !== 'User') {
+        const n = agfName.textContent.trim();
+        const em = agfEmail ? agfEmail.textContent.trim() : '';
+        return {
+          displayName: n,
+          username: em || n,
+          email: em || 'user@ledgermate.local',
+          role: (window._studyProfile && window._studyProfile.role) || 'user',
+          userId: 'default'
+        };
       }
     } catch (e) {}
 
@@ -891,17 +940,23 @@
       }
       if (window.LM_AppUpdateService && typeof window.LM_AppUpdateService.checkForUpdates === 'function') {
         window.LM_AppUpdateService.checkForUpdates(true);
-      } else if (window.AppUpdateService && typeof window.AppUpdateService.checkForUpdates === 'function') {
-        window.AppUpdateService.checkForUpdates(true);
-      } else {
-        const ver = getInstalledVersion();
-        var msg = `App is up-to-date! Version ${ver.versionName || 'v1.0.0'} (${ver.versionCode || 1})`;
-        if (typeof window.showToast === 'function') {
-          window.showToast(msg, 'success');
-        } else if (window.LMToast) {
-          window.LMToast.show(msg, 'success');
-        }
+        return;
       }
+      if (window.AppUpdateService && typeof window.AppUpdateService.checkForUpdates === 'function') {
+        window.AppUpdateService.checkForUpdates(true);
+        return;
+      }
+      var isPrep = window.location.pathname.indexOf('/prep/') !== -1;
+      var isStudy = window.location.pathname.indexOf('/study') !== -1;
+      var prefix = isPrep ? '../../' : (isStudy ? '../' : './');
+      var s = document.createElement('script');
+      s.src = prefix + 'src/scripts/Common/AppUpdateService.js';
+      s.onload = function() {
+        if (window.LM_AppUpdateService && typeof window.LM_AppUpdateService.checkForUpdates === 'function') {
+          window.LM_AppUpdateService.checkForUpdates(true);
+        }
+      };
+      document.head.appendChild(s);
     },
 
     exportBackup: function () {

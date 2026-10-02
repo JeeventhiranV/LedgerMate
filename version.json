@@ -1,6 +1,10 @@
 {
-  "version": "lm-v20260919.f032c7d",
-  "commit": "f032c7d",
-  "build_date": "20260919",
-  "timestamp": 1789212000000
+  "version": "lm-v20261002.103e2ad",
+  "commit": "103e2ad",
+  "build_date": "20261002",
+  "timestamp": 1790956800000,
+  "apkVersionCode": 1,
+  "apkVersionName": "1.0.0",
+  "apkDownloadUrl": "https://github.com/JeeventhiranV/LedgerMate/releases/download/latest/app-release.apk",
+  "releaseNotes": "Latest performance upgrades, centralized APK update service, and real-time cloud profile sync."
 }

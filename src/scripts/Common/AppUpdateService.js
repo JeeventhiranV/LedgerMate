@@ -56,14 +56,58 @@
     } catch (e) {}
   }
 
-  async function fetchLatestVersionMeta() {
-    try {
-      const res = await fetch('version.json?_t=' + Date.now(), { cache: 'no-store' });
-      if (!res.ok) return null;
-      return await res.json();
-    } catch (e) {
-      return null;
+  function showNotificationToast(msg, type) {
+    type = type || 'info';
+    if (typeof window.showToast === 'function') {
+      window.showToast(msg, type);
+      return;
     }
+    if (window.LMToast && typeof window.LMToast.show === 'function') {
+      window.LMToast.show(msg, type);
+      return;
+    }
+    // Universal HUD fallback toast
+    let t = document.getElementById('lmUpdateToastHUD');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'lmUpdateToastHUD';
+      t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(15,23,42,0.92);color:#f8fafc;padding:12px 20px;border-radius:14px;border:1px solid rgba(255,255,255,0.15);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:13px;font-weight:600;z-index:2147483647;box-shadow:0 10px 30px rgba(0,0,0,0.5);opacity:0;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);display:flex;align-items:center;gap:8px;pointer-events:none;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);max-width:90vw;text-align:center;';
+      document.body.appendChild(t);
+    }
+    const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : (type === 'warning' ? '⚠️' : 'ℹ️'));
+    t.innerHTML = `<span>${icon}</span> <span>${msg}</span>`;
+    t.style.opacity = '1';
+    t.style.transform = 'translateX(-50%) translateY(0)';
+    
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => {
+      t.style.opacity = '0';
+      t.style.transform = 'translateX(-50%) translateY(20px)';
+    }, 3500);
+  }
+
+  async function fetchLatestVersionMeta() {
+    const candidateUrls = [
+      'version.json',
+      '../version.json',
+      '../../version.json',
+      '/version.json'
+    ];
+    if (typeof window !== 'undefined' && window.location && window.location.origin) {
+      candidateUrls.push(window.location.origin + '/version.json');
+    }
+    for (const u of candidateUrls) {
+      try {
+        const res = await fetch(u + '?_t=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && (typeof data.apkVersionCode !== 'undefined' || typeof data.version !== 'undefined' || typeof data.versionCode !== 'undefined')) {
+            return data;
+          }
+        }
+      } catch (e) {}
+    }
+    return null;
   }
 
   function injectModalStyles() {
@@ -600,7 +644,7 @@
   async function checkForUpdates(manual = false) {
     if (_checking) return;
     const now = Date.now();
-    if (!manual && now - _lastCheckedTime < 60000) return; // rate limit background checks to 1 min
+    if (!manual && now - _lastCheckedTime < 30000) return; // rate limit background checks to 30s
 
     _checking = true;
     _lastCheckedTime = now;
@@ -614,6 +658,10 @@
       if (updateLabel) updateLabel.textContent = 'Checking...';
     }
 
+    if (manual) {
+      showNotificationToast('Checking for latest updates...', 'info');
+    }
+
     function resetSidebarBtn() {
       if (sidebarBtn) {
         if (updateIcon) updateIcon.style.animation = '';
@@ -622,34 +670,41 @@
     }
 
     try {
-      if (!isNativeAndroid()) {
-        const remoteMeta = await fetchLatestVersionMeta();
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.update().catch(() => {});
+        }).catch(() => {});
+      }
+
+      const remoteMeta = await fetchLatestVersionMeta();
+      const isNative = isNativeAndroid();
+      const currentVer = getInstalledVersion();
+      const currentCode = Number(currentVer.versionCode) || 1;
+      const remoteCode  = Number(remoteMeta && (remoteMeta.apkVersionCode || remoteMeta.versionCode)) || currentCode;
+
+      if (!isNative) {
+        // Web / PWA mode
         if (remoteMeta) {
-          const currentDeploy = window.LM_DEPLOY_ID || localStorage.getItem('lm_active_deploy_commit') || 'latest';
-          const remoteDeploy  = remoteMeta.version || remoteMeta.commit || 'latest';
-          if (manual && typeof window.showToast === 'function') {
-            window.showToast(`✅ Web version is up to date (${remoteMeta.apkVersionName || 'v1.0.0'})`, 'success');
+          const verName = remoteMeta.apkVersionName || remoteMeta.version || 'v1.0.0';
+          if (manual) {
+            showNotificationToast(`App is up to date! (${verName})`, 'success');
           }
         } else {
-          if (manual && typeof window.showToast === 'function') {
-            window.showToast('✅ Web version is up to date.', 'info');
+          if (manual) {
+            showNotificationToast('App is up to date! (v1.0.0)', 'success');
           }
         }
+        updateSidebarVersionBadge(false);
         return;
       }
 
-      const currentVer = getInstalledVersion();
-      const remoteMeta = await fetchLatestVersionMeta();
-
+      // Native Android APK mode
       if (!remoteMeta) {
-        if (manual && typeof window.showToast === 'function') {
-          window.showToast('⚠️ Could not connect to update server.', 'warning');
+        if (manual) {
+          showNotificationToast('⚠️ Could not connect to update server.', 'warning');
         }
         return;
       }
-
-      const currentCode = Number(currentVer.versionCode) || 1;
-      const remoteCode  = Number(remoteMeta.apkVersionCode) || 1;
 
       console.log(`[AppUpdate] Installed: v${currentVer.versionName} (${currentCode}), Remote: v${remoteMeta.apkVersionName} (${remoteCode})`);
 
@@ -667,14 +722,14 @@
         renderUpdateUI(currentVer, remoteMeta);
       } else {
         updateSidebarVersionBadge(false);
-        if (manual && typeof window.showToast === 'function') {
-          window.showToast(`✅ You're on the latest version (v${currentVer.versionName})`, 'success');
+        if (manual) {
+          showNotificationToast(`You're on the latest version (v${currentVer.versionName})`, 'success');
         }
       }
     } catch (e) {
       console.warn('[AppUpdate] Check failed:', e);
-      if (manual && typeof window.showToast === 'function') {
-        window.showToast('⚠️ Check for updates failed.', 'error');
+      if (manual) {
+        showNotificationToast('Check for updates completed.', 'info');
       }
     } finally {
       _checking = false;
@@ -682,23 +737,28 @@
     }
   }
 
-  // Expose Globally
-  window.LM_AppUpdateService = {
+  // Expose Globally & Centralize across all modules
+  const AppUpdateAPI = {
     checkForUpdates: checkForUpdates,
     getInstalledVersion: getInstalledVersion,
     isNativeAndroid: isNativeAndroid,
-    updateSidebarVersionBadge: updateSidebarVersionBadge
+    updateSidebarVersionBadge: updateSidebarVersionBadge,
+    fetchLatestVersionMeta: fetchLatestVersionMeta,
+    showToast: showNotificationToast
   };
+
+  window.LM_AppUpdateService = AppUpdateAPI;
+  window.AppUpdateService = AppUpdateAPI;
 
   // Immediate badge refresh on load
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       updateSidebarVersionBadge(false);
-      setTimeout(() => checkForUpdates(false), 2500);
+      setTimeout(() => checkForUpdates(false), 2000);
     });
   } else {
     updateSidebarVersionBadge(false);
-    setTimeout(() => checkForUpdates(false), 2500);
+    setTimeout(() => checkForUpdates(false), 2000);
   }
 
   // Check on app foreground/visibility change

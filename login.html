@@ -425,7 +425,7 @@ body {
   async function checkProfileAndRedirect(userId) {
     if (!hasSupabase) { redirect(); return; }
     try {
-      var r = await _supabase.from('user_profiles').select('active').eq('id', userId).single();
+      var r = await _supabase.from('user_profiles').select('active,role').eq('id', userId).single();
       var prof = r.data;
       if (!prof || !prof.active) {
         await _supabase.auth.signOut();
@@ -433,6 +433,28 @@ body {
         setLoading(document.getElementById('signinBtn'), false, 'Sign In →');
         _dismissLoader();
         return;
+      }
+      var s = await _supabase.auth.getSession();
+      var sess = s && s.data && s.data.session;
+      if (sess && sess.user) {
+        var em = sess.user.email || '';
+        var meta = sess.user.user_metadata || {};
+        var rawName = meta.full_name || meta.name || (em ? em.split('@')[0] : 'User');
+        var disp = rawName ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : 'User';
+        localStorage.setItem('study_user_meta', JSON.stringify({
+          displayName: disp,
+          username: em,
+          email: em,
+          role: prof.role || 'user',
+          userId: sess.user.id
+        }));
+        localStorage.setItem('lm_session', JSON.stringify({
+          userId: sess.user.id,
+          username: em,
+          displayName: disp,
+          role: prof.role || 'user',
+          email: em
+        }));
       }
     } catch (e) { /* network error — fall through and allow redirect */ }
     redirect();

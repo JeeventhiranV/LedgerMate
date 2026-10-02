@@ -645,6 +645,14 @@
     localStorage.setItem('lm_active_deploy_commit', currentDeploy);
   }
 
+  function _loadAppUpdateService() {
+    if (window.LM_AppUpdateService) return;
+    var base = _getMainAppUrl().replace('/index.html', '');
+    var s = document.createElement('script');
+    s.src = (base || '') + '/src/scripts/Common/AppUpdateService.js';
+    document.head.appendChild(s);
+  }
+
   function _doReveal(session) {
     // Dispatch before showing so hub page can lock cards without a flash
     document.dispatchEvent(new CustomEvent('studyAccessReady', {
@@ -654,6 +662,7 @@
     document.body.style.visibility = 'visible';
     _injectChip(session);
     _loadTimer();
+    _loadAppUpdateService();
     _dismissLoader();
   }
 
@@ -703,6 +712,23 @@
             role:          profile.role,
             study_modules: profile.study_modules
           };
+
+          if (window._studyUser) {
+            window._studyUser.role = profile.role;
+          }
+          try {
+            if (window._studyUser) {
+              localStorage.setItem('study_user_meta', JSON.stringify(window._studyUser));
+            }
+            var dispName = (window._studyUser && window._studyUser.displayName) || (session.user.email ? session.user.email.split('@')[0] : 'User');
+            localStorage.setItem('lm_session', JSON.stringify({
+              userId: session.user.id,
+              username: session.user.email,
+              displayName: dispName,
+              role: profile.role,
+              email: session.user.email
+            }));
+          } catch(e) {}
 
           _revealWhenReady(session);
         })
