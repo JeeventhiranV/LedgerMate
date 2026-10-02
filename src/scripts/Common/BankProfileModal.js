@@ -129,20 +129,20 @@
         <div class="bank-profile-body">
           <!-- ── Micro Status Matrix ── -->
           <div class="bank-profile-matrix">
-            <div class="bpm-matrix-card" onclick="window.LM_ProfileModal.handleSyncCardClick(event)">
+            <div class="bpm-matrix-card" onclick="window.LM_ProfileModal.toggleSyncMode()" style="cursor:pointer;" title="Tap to toggle Cloud Sync / Offline Mode">
               <div class="bpm-matrix-icon" id="bpmSyncIcon">☁️</div>
               <div class="bpm-matrix-info">
                 <div class="bpm-matrix-label" id="bpmSyncLabel">Cloud Sync</div>
                 <div class="bpm-matrix-val" id="bpmSyncStatus">Synced</div>
               </div>
-              <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
-                <span class="bpm-sync-mode-tag" id="bpmSyncModeTag" onclick="event.stopPropagation(); window.LM_ProfileModal.toggleSyncMode();" title="Tap to switch sync mode">CLOUD</span>
-                <span class="bpm-matrix-action" id="bpmSyncAction" style="margin-top:0;">Sync</span>
+              <div class="bpm-switch-pill" id="bpmSyncSwitch">
+                <span class="bpm-switch-knob"></span>
+                <span id="bpmSyncSwitchText">ON</span>
               </div>
             </div>
 
-            <div class="bpm-matrix-card" onclick="window.LM_ProfileModal.togglePrivacy()">
-              <div class="bpm-matrix-icon">👁️</div>
+            <div class="bpm-matrix-card" onclick="window.LM_ProfileModal.togglePrivacy()" style="cursor:pointer;" title="Tap to toggle stealth balance privacy">
+              <div class="bpm-matrix-icon" id="bpmPrivacyIcon">👁️</div>
               <div class="bpm-matrix-info">
                 <div class="bpm-matrix-label">Privacy Shield</div>
                 <div class="bpm-matrix-val" id="bpmPrivacyStatus">Hidden</div>
@@ -153,7 +153,7 @@
               </div>
             </div>
 
-            <div class="bpm-matrix-card" onclick="window.LM_ProfileModal.openSecurity()">
+            <div class="bpm-matrix-card" onclick="window.LM_ProfileModal.openSecurity()" style="cursor:pointer;">
               <div class="bpm-matrix-icon">🔒</div>
               <div class="bpm-matrix-info">
                 <div class="bpm-matrix-label">Vault Lock</div>
@@ -187,28 +187,19 @@
           </div>
 
           <div class="bpm-section-group">
-            <div class="bpm-group-title">EXPERIENCE &amp; ALERTS</div>
+            <div class="bpm-group-title">EXPERIENCE &amp; INTERFACE</div>
 
-            <!-- Segmented Theme Interface -->
-            <div class="bpm-action-row" style="cursor:default;">
-              <span class="bpm-row-icon" id="bpmThemeIcon">🌓</span>
+            <!-- ON/OFF Theme Interface Row -->
+            <button class="bpm-action-row" onclick="window.LM_ProfileModal.toggleTheme()">
+              <span class="bpm-row-icon" id="bpmThemeIcon">🌙</span>
               <div class="bpm-row-text">
                 <div class="bpm-row-title">Theme Interface</div>
-                <div class="bpm-row-desc">Switch dark &amp; light palette</div>
+                <div class="bpm-row-desc" id="bpmThemeDesc">Dark Palette · High Contrast</div>
               </div>
-              <div class="bpm-theme-segmented">
-                <button type="button" class="bpm-theme-btn" id="bpmThemeDarkBtn" onclick="window.LM_ProfileModal.setTheme('dark')">🌙 Dark</button>
-                <button type="button" class="bpm-theme-btn" id="bpmThemeLightBtn" onclick="window.LM_ProfileModal.setTheme('light')">☀️ Light</button>
+              <div class="bpm-switch-pill" id="bpmThemeSwitch">
+                <span class="bpm-switch-knob"></span>
+                <span id="bpmThemeSwitchText">ON</span>
               </div>
-            </div>
-
-            <button class="bpm-action-row" onclick="window.LM_ProfileModal.openPreferences()">
-              <span class="bpm-row-icon">🔔</span>
-              <div class="bpm-row-text">
-                <div class="bpm-row-title">Preferences &amp; Sync Settings</div>
-                <div class="bpm-row-desc">Data sync mode, local backup &amp; alerts</div>
-              </div>
-              <span class="bpm-row-arrow">›</span>
             </button>
 
             <button class="bpm-action-row" id="bpmAdminBtn" style="display:none;" onclick="window.LM_ProfileModal.openAdmin()">
@@ -222,13 +213,13 @@
           </div>
 
           <div class="bpm-section-group">
-            <div class="bpm-group-title">DATA BACKUP &amp; UPDATES</div>
+            <div class="bpm-group-title">DATA BACKUP &amp; STORAGE</div>
 
             <button class="bpm-action-row" onclick="window.LM_ProfileModal.manageLocalBackup()">
               <span class="bpm-row-icon">💾</span>
               <div class="bpm-row-text">
-                <div class="bpm-row-title">Local Device Auto-Backup</div>
-                <div class="bpm-row-desc" id="bpmLocalBackupDesc">30-day retention · Max 100 snapshots</div>
+                <div class="bpm-row-title">Local Device Auto-Backup &amp; Storage</div>
+                <div class="bpm-row-desc" id="bpmLocalBackupDesc">Automated snapshots · 30-day retention &amp; 100 max cap</div>
               </div>
               <span class="bpm-badge" id="bpmLocalBackupBadge">Configure</span>
             </button>
@@ -325,19 +316,20 @@
     const syncStatus = document.getElementById('bpmSyncStatus');
     if (syncStatus) syncStatus.textContent = isOffline ? 'Local Vault' : getCloudSyncText();
 
-    const modeTag = document.getElementById('bpmSyncModeTag');
-    if (modeTag) {
-      modeTag.textContent = isOffline ? 'OFFLINE' : 'CLOUD';
-      modeTag.className = 'bpm-sync-mode-tag ' + (isOffline ? 'offline' : 'cloud');
+    const syncSwitch = document.getElementById('bpmSyncSwitch');
+    const syncSwitchText = document.getElementById('bpmSyncSwitchText');
+    if (syncSwitch) {
+      syncSwitch.classList.toggle('active', !isOffline);
     }
-
-    const syncAction = document.getElementById('bpmSyncAction');
-    if (syncAction) {
-      syncAction.textContent = isOffline ? 'Backup' : 'Sync';
+    if (syncSwitchText) {
+      syncSwitchText.textContent = !isOffline ? 'ON' : 'OFF';
     }
 
     const privStatus = document.getElementById('bpmPrivacyStatus');
     if (privStatus) privStatus.textContent = isPrivacy ? 'Masked' : 'Visible';
+
+    const privIcon = document.getElementById('bpmPrivacyIcon');
+    if (privIcon) privIcon.textContent = isPrivacy ? '🙈' : '👁️';
 
     const privSwitch = document.getElementById('bpmPrivacySwitch');
     const privSwitchText = document.getElementById('bpmPrivacySwitchText');
@@ -351,14 +343,23 @@
     const lockStatus = document.getElementById('bpmLockStatus');
     if (lockStatus) lockStatus.textContent = isLock ? 'Protected' : 'Off';
 
-    // Theme Segmented Buttons
-    const darkBtn = document.getElementById('bpmThemeDarkBtn');
-    const lightBtn = document.getElementById('bpmThemeLightBtn');
-    if (darkBtn) darkBtn.classList.toggle('active', isDark);
-    if (lightBtn) lightBtn.classList.toggle('active', !isDark);
+    // Theme Switch
+    const themeSwitch = document.getElementById('bpmThemeSwitch');
+    const themeSwitchText = document.getElementById('bpmThemeSwitchText');
+    if (themeSwitch) {
+      themeSwitch.classList.toggle('active', isDark);
+    }
+    if (themeSwitchText) {
+      themeSwitchText.textContent = isDark ? 'ON' : 'OFF';
+    }
 
     const themeIcon = document.getElementById('bpmThemeIcon');
     if (themeIcon) themeIcon.textContent = isDark ? '🌙' : '☀️';
+
+    const themeDesc = document.getElementById('bpmThemeDesc');
+    if (themeDesc) {
+      themeDesc.textContent = isDark ? 'Dark Palette · High Contrast' : 'Light Palette · Clean View';
+    }
 
     // Local Backup badge & desc
     const isLocalAuto = (window.LM_LocalBackup && typeof window.LM_LocalBackup.isLocalBackupEnabled === 'function')
@@ -585,6 +586,9 @@
       if (_modalEl && _modalEl.classList.contains('open')) renderProfileDetails();
     });
     window.LM_Bus.on('lm:local-backup:saved', function () {
+      if (_modalEl && _modalEl.classList.contains('open')) renderProfileDetails();
+    });
+    window.LM_Bus.on('lm:privacy:changed', function () {
       if (_modalEl && _modalEl.classList.contains('open')) renderProfileDetails();
     });
   }

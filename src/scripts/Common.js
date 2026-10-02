@@ -3435,16 +3435,21 @@ function onKpiRangeChange(e) {
 /* ═══════════════════════════════════════════════
    STEALTH PRIVACY MODE (BALANCE MASKING)
 ═══════════════════════════════════════════════ */
-window.LM_togglePrivacyMode = function() {
-  const isPrivacy = document.body.classList.toggle('privacy-mode');
-  try { window.LM_Haptic?.light(); } catch (e) {}
+function updatePrivacyButtonsUI(isPrivacy) {
   const btns = document.querySelectorAll('.privacy-toggle-btn, #btnPrivacyToggle');
   const icon = isPrivacy ? '🙈' : '👁️';
   btns.forEach(btn => {
     if (btn) {
       const label = btn.querySelector('.overview-tool-label');
-      if (label) {
-        btn.innerHTML = `${icon} <span class="overview-tool-label">Privacy</span>`;
+      if (label || btn.classList.contains('overview-tool-btn')) {
+        btn.innerHTML = `
+          <span class="privacy-btn-icon">${icon}</span>
+          <span class="overview-tool-label">Privacy</span>
+          <div class="bpm-switch-pill ${isPrivacy ? 'active' : ''}">
+            <span class="bpm-switch-knob"></span>
+            <span class="bpm-switch-label">${isPrivacy ? 'ON' : 'OFF'}</span>
+          </div>
+        `;
       } else {
         btn.textContent = icon;
       }
@@ -3452,6 +3457,16 @@ window.LM_togglePrivacyMode = function() {
       btn.setAttribute('aria-pressed', isPrivacy ? 'true' : 'false');
     }
   });
+
+  if (typeof window.LM_Bus !== 'undefined' && window.LM_Bus.emit) {
+    window.LM_Bus.emit('lm:privacy:changed', { isPrivacy });
+  }
+}
+
+window.LM_togglePrivacyMode = function() {
+  const isPrivacy = document.body.classList.toggle('privacy-mode');
+  try { window.LM_Haptic?.light(); } catch (e) {}
+  updatePrivacyButtonsUI(isPrivacy);
   localStorage.setItem('lm_privacy_mode', isPrivacy ? '1' : '0');
 
   // Sync with native Android screenshot protection
@@ -3469,28 +3484,17 @@ window.LM_togglePrivacyMode = function() {
 
 // Initialize Stealth Privacy State on Startup
 (function initPrivacyState() {
-  if (localStorage.getItem('lm_privacy_mode') === '1') {
+  const isPrivacy = localStorage.getItem('lm_privacy_mode') === '1';
+  if (isPrivacy) {
     document.body.classList.add('privacy-mode');
-    const updateIcon = () => {
-      const btns = document.querySelectorAll('.privacy-toggle-btn, #btnPrivacyToggle');
-      btns.forEach(btn => {
-        if (btn) {
-          const label = btn.querySelector('.overview-tool-label');
-          if (label) {
-            btn.innerHTML = `🙈 <span class="overview-tool-label">Privacy</span>`;
-          } else {
-            btn.textContent = '🙈';
-          }
-          btn.title = 'Stealth Mode Active (Balances Masked)';
-          btn.setAttribute('aria-pressed', 'true');
-        }
-      });
-    };
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', updateIcon);
-    } else {
-      updateIcon();
-    }
+  }
+  const updateIcon = () => {
+    updatePrivacyButtonsUI(isPrivacy);
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', updateIcon);
+  } else {
+    updateIcon();
   }
 })();
 

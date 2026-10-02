@@ -487,7 +487,12 @@
             <!-- 🛠️ Quick Tools: Cashflow Visualizer, Privacy Mode, Theme Toggle (Right Side) -->
             <div class="overview-quick-tools" id="overviewQuickTools">
               <button id="btnPrivacyToggle" class="overview-tool-btn privacy-toggle-btn" title="Toggle Balance Privacy (Stealth Mode)" onclick="window.LM_togglePrivacyMode()" aria-label="Privacy Mode">
-                👁️ <span class="overview-tool-label">Privacy</span>
+                <span class="privacy-btn-icon">👁️</span>
+                <span class="overview-tool-label">Privacy</span>
+                <div class="bpm-switch-pill" id="dashPrivacySwitch">
+                  <span class="bpm-switch-knob"></span>
+                  <span id="dashPrivacySwitchText">OFF</span>
+                </div>
               </button>
               <button id="themeIcon" class="overview-tool-btn" onclick="toggleTheme()" title="Toggle Dark / Light Theme" aria-label="Toggle Theme">
                 <span class="theme-emoji">🌙</span> <span class="overview-tool-label">Theme</span>
