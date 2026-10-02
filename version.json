@@ -1,10 +1,10 @@
 {
-  "version": "lm-v20261002.1.0.288",
-  "commit": "6d71f57",
+  "version": "lm-v20261002.087275e",
+  "commit": "087275e",
   "build_date": "20261002",
-  "timestamp": 1790956800000,
-  "apkVersionCode": 288,
-  "apkVersionName": "1.0.288",
-  "apkDownloadUrl": "https://github.com/JeeventhiranV/LedgerMate/releases/download/latest/app-release.apk",
-  "releaseNotes": "Module switcher between Finance & Study Hub, streamlined updates & persistent version resolution."
+  "timestamp": 1790958000000,
+  "apkVersionCode": 291,
+  "apkVersionName": "1.0.291",
+  "apkDownloadUrl": "https://github.com/JeeventhiranV/LedgerMate/releases/download/latest/LedgerMate-v1.0.291.apk",
+  "releaseNotes": "Performance optimizations, Supercharged Supabase, 3D Flashcards, AI DSA Assistant, Live Study Rooms, and Automated CI/CD updates."
 }

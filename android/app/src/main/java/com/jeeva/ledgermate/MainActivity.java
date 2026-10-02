@@ -1123,6 +1123,14 @@ public class MainActivity extends AppCompatActivity {
                         updateDir.mkdirs();
                     }
 
+                    // Clean up any stale APK files before starting new download
+                    File[] existingFiles = updateDir.listFiles();
+                    if (existingFiles != null) {
+                        for (File f : existingFiles) {
+                            try { f.delete(); } catch (Exception ignored) {}
+                        }
+                    }
+
                     tempApkFile = new File(updateDir, "LedgerMate-update.apk.tmp");
                     if (tempApkFile.exists()) {
                         tempApkFile.delete();
@@ -1178,6 +1186,14 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
 
+                    long archiveVersion = getArchiveVersionCode(archiveInfo);
+                    long installedVersion = getInstalledVersionCode();
+                    if (archiveVersion <= installedVersion) {
+                        if (tempApkFile.exists()) tempApkFile.delete();
+                        sendError(callbackId, "Downloaded package version (" + archiveVersion + ") is not newer than installed version (" + installedVersion + ").");
+                        return;
+                    }
+
                     File targetApkFile = new File(updateDir, "LedgerMate-update.apk");
                     if (targetApkFile.exists()) {
                         targetApkFile.delete();
@@ -1226,31 +1242,62 @@ public class MainActivity extends AppCompatActivity {
 
         @JavascriptInterface
         public boolean hasDownloadedUpdate() {
-            File updateDir = new File(getCacheDir(), "updates");
-            File apkFile = new File(updateDir, "LedgerMate-update.apk");
-            if (!apkFile.exists() || apkFile.length() < 100000) return false;
-            PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
-            if (archiveInfo == null) {
-                try { apkFile.delete(); } catch (Exception ignored) {}
+            return hasDownloadedUpdateForVersion(0);
+        }
+
+        @JavascriptInterface
+        public boolean hasDownloadedUpdateForVersion(long targetVersionCode) {
+            try {
+                File updateDir = new File(getCacheDir(), "updates");
+                File apkFile = new File(updateDir, "LedgerMate-update.apk");
+                if (!apkFile.exists() || apkFile.length() < 100000) return false;
+                PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
+                if (archiveInfo == null) {
+                    try { apkFile.delete(); } catch (Exception ignored) {}
+                    return false;
+                }
+                long archiveCode = getArchiveVersionCode(archiveInfo);
+                long installedCode = getInstalledVersionCode();
+                
+                // If the cached APK is older than or equal to what is currently running, purge it
+                if (archiveCode <= installedCode) {
+                    try { apkFile.delete(); } catch (Exception ignored) {}
+                    return false;
+                }
+                
+                // If a specific target version was requested, verify it meets or exceeds target
+                if (targetVersionCode > 0 && archiveCode < targetVersionCode) {
+                    try { apkFile.delete(); } catch (Exception ignored) {}
+                    return false;
+                }
+                return true;
+            } catch (Exception e) {
                 return false;
             }
-            return true;
         }
 
         @JavascriptInterface
         public void installPendingUpdate(String callbackId) {
-            File updateDir = new File(getCacheDir(), "updates");
-            File apkFile = new File(updateDir, "LedgerMate-update.apk");
-            if (apkFile.exists() && apkFile.length() > 100000) {
-                PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
-                if (archiveInfo != null) {
-                    runOnUiThread(() -> installApkFile(apkFile, callbackId));
-                    return;
-                } else {
-                    try { apkFile.delete(); } catch (Exception ignored) {}
+            try {
+                File updateDir = new File(getCacheDir(), "updates");
+                File apkFile = new File(updateDir, "LedgerMate-update.apk");
+                if (apkFile.exists() && apkFile.length() > 100000) {
+                    PackageInfo archiveInfo = getPackageManager().getPackageArchiveInfo(apkFile.getAbsolutePath(), 0);
+                    if (archiveInfo != null) {
+                        long archiveCode = getArchiveVersionCode(archiveInfo);
+                        long installedCode = getInstalledVersionCode();
+                        if (archiveCode > installedCode) {
+                            runOnUiThread(() -> installApkFile(apkFile, callbackId));
+                            return;
+                        } else {
+                            try { apkFile.delete(); } catch (Exception ignored) {}
+                        }
+                    } else {
+                        try { apkFile.delete(); } catch (Exception ignored) {}
+                    }
                 }
-            }
-            sendError(callbackId, "No valid downloaded update file found on disk. Please re-download.");
+            } catch (Exception ignored) {}
+            sendError(callbackId, "No newer update package found on disk. Please download the latest update.");
         }
 
         @JavascriptInterface

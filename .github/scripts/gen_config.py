@@ -85,7 +85,7 @@ except Exception:
     build_number = int(os.environ.get("BUILD_NUMBER", os.environ.get("GITHUB_RUN_NUMBER", "250")))
 
 github_repo = os.environ.get("GITHUB_REPOSITORY", "JeeventhiranV/LedgerMate")
-apk_download_url = f"https://github.com/{github_repo}/releases/download/latest/app-release.apk"
+apk_download_url = f"https://github.com/{github_repo}/releases/download/latest/LedgerMate-v1.0.{build_number}.apk"
 
 version_info = {
     "version": cache_version,
@@ -95,7 +95,7 @@ version_info = {
     "apkVersionCode": build_number,
     "apkVersionName": f"1.0.{build_number}",
     "apkDownloadUrl": apk_download_url,
-    "releaseNotes": "Performance improvements, live market data feeds, in-app Google login, and security hardening."
+    "releaseNotes": "Performance optimizations, Supercharged Supabase, 3D Flashcards, AI DSA Assistant, Live Study Rooms, and Automated CI/CD updates."
 }
 with open("version.json", "w") as f:
     json.dump(version_info, f, indent=2)

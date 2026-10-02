@@ -527,7 +527,12 @@
       // If permission is already needed or we have a downloaded package ready
       if (window.AndroidBridge && typeof window.AndroidBridge.canInstallApk === 'function') {
         const hasPermission = window.AndroidBridge.canInstallApk();
-        const hasDownloaded = typeof window.AndroidBridge.hasDownloadedUpdate === 'function' && window.AndroidBridge.hasDownloadedUpdate();
+        let hasDownloaded = false;
+        if (typeof window.AndroidBridge.hasDownloadedUpdateForVersion === 'function') {
+          hasDownloaded = window.AndroidBridge.hasDownloadedUpdateForVersion(remoteCode);
+        } else if (typeof window.AndroidBridge.hasDownloadedUpdate === 'function') {
+          hasDownloaded = window.AndroidBridge.hasDownloadedUpdate();
+        }
 
         if (!hasPermission) {
           statusText.textContent = '⚠️ Enable "Allow from this source" in Android Settings, then return to LedgerMate.';
@@ -621,8 +626,14 @@
       window.LM_NativeBridgeCallbacks = window.LM_NativeBridgeCallbacks || {};
       window.LM_NativeBridgeCallbacks[callbackId] = handleNativeCallback;
 
+      let finalApkUrl = apkUrl;
+      if (finalApkUrl) {
+        const sep = finalApkUrl.includes('?') ? '&' : '?';
+        finalApkUrl = `${finalApkUrl}${sep}_cb=${Date.now()}`;
+      }
+
       try {
-        window.AndroidBridge.downloadAndInstallApk(apkUrl, callbackId);
+        window.AndroidBridge.downloadAndInstallApk(finalApkUrl, callbackId);
       } catch (err) {
         isDownloading = false;
         statusText.textContent = '❌ Native error: ' + err.message;
@@ -653,7 +664,14 @@
 
       if (!overlay || !overlay.parentNode) return;
       if (window.AndroidBridge && typeof window.AndroidBridge.canInstallApk === 'function') {
-        if (window.AndroidBridge.canInstallApk() && window.AndroidBridge.hasDownloadedUpdate()) {
+        let hasDownloaded = false;
+        if (typeof window.AndroidBridge.hasDownloadedUpdateForVersion === 'function') {
+          hasDownloaded = window.AndroidBridge.hasDownloadedUpdateForVersion(remoteCode);
+        } else if (typeof window.AndroidBridge.hasDownloadedUpdate === 'function') {
+          hasDownloaded = window.AndroidBridge.hasDownloadedUpdate();
+        }
+
+        if (window.AndroidBridge.canInstallApk() && hasDownloaded) {
           statusText.textContent = '🚀 Ready to install! Tap below to launch installer.';
           updateBtn.disabled = false;
           updateBtn.innerHTML = '<span>🚀 Launch Installer</span>';
