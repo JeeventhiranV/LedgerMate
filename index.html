@@ -871,24 +871,23 @@
     </div>
   </div>
 
-  <!-- SEARCH + FILTER UI (FROM YOUR PAGE 1 DESIGN) -->
+  <!-- SEARCH + FILTER UI -->
   <div class="tx-search-wrap mb-3">
     <input 
       id="searchTx"
       type="text" 
       class="tx-search-input"
       placeholder="🔍 Search transactions..."
+      autocomplete="off"
     />
 
     <!-- OPTIONAL: you can connect later -->
     <!-- keep hidden if not used -->
     <select class="tx-filter-select hidden" id="txTypeFilter"></select>
     <select class="tx-filter-select hidden" id="txCatFilter"></select>
-  </div>
 
-  <!-- Suggestions -->
-  <div id="searchSuggestions"
-       class="absolute left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-lg z-50 hidden max-h-48 overflow-y-auto">
+    <!-- Suggestions Dropdown -->
+    <div id="searchSuggestions" class="search-suggestions-dropdown hidden"></div>
   </div>
 
   <!-- 🏷️ 1-TAP QUICK FILTER CHIPS -->
@@ -1002,7 +1001,7 @@
 <button id="fabAddTx"  title="Add Transaction">＋</button>
 
 <!-- ─── BOTTOM NAV ───────────────────────────────────── -->
- <nav id="bottomNav">
+  <nav id="bottomNav">
   <button class="bnav-item active" id="bnav-dashboard">
     <span class="bnav-icon">📊</span>
     <span class="bnav-label">Dashboard</span>
@@ -1011,21 +1010,17 @@
     <span class="bnav-icon">↕️</span>
     <span class="bnav-label">Transactions</span>
   </button>
-  <!-- <button class="bnav-item" id="bnav-analytics">
-    <span class="bnav-icon">📈</span>
-    <span class="bnav-label">Analytics</span>
-  </button> -->
   <button class="bnav-item" id="bnav-loans">
     <span class="bnav-icon">💰</span>
     <span class="bnav-label">Loans</span>
   </button>
-   <button class="bnav-item" id="bnav-wealth">
-     <span class="bnav-icon">📊</span>
-    <span class="bnav-label">Wealth</span>
+  <button class="bnav-item" id="bnav-stocks">
+    <span class="bnav-icon">📈</span>
+    <span class="bnav-label">Stocks</span>
   </button> 
-  <button class="bnav-item" id="bnav-essentials">
-    <span class="bnav-icon">🛡️</span>
-    <span class="bnav-label">Essentials</span>
+  <button class="bnav-item" id="bnav-gold">
+    <span class="bnav-icon">🪙</span>
+    <span class="bnav-label">Gold</span>
   </button> 
   <button class="bnav-item" id="bnav-more">
     <span class="bnav-icon">⋯</span>
@@ -1324,8 +1319,8 @@ function showPage(page) {
   const sideBtn = document.querySelector(`.sidebar-nav-item[onclick="showPage('${page}')"]`);
   if (sideBtn) sideBtn.classList.add('active');
 
-  // 3. Bottom nav active – ONLY the three main tabs
-  const mainPages = ['dashboard', 'transactions', 'analytics', 'loans', 'wealth', 'essentials'];
+  // 3. Bottom nav active
+  const mainPages = ['dashboard', 'transactions', 'loans', 'stocks', 'gold'];
   if (mainPages.includes(page)) {
     document.querySelectorAll('.bnav-item').forEach(i => i.classList.remove('active'));
     const bnav = document.getElementById('bnav-' + page);

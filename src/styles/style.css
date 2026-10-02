@@ -535,6 +535,113 @@ body.sidebar-open #voiceTxBtn {
 /* List wrapper */
 .tx-list { max-height: 540px; overflow-y: auto; }
 
+/* ── Transaction Search Suggestions Dropdown ────────────────── */
+#searchSuggestions,
+.search-suggestions-dropdown {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: 100%;
+  margin-top: 4px;
+  background: var(--bg2, #0c1026) !important;
+  border: 1px solid var(--border-h, #2a3860) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+  z-index: 1000 !important;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px;
+  backdrop-filter: none !important;
+}
+
+[data-theme="light"] #searchSuggestions,
+[data-theme="light"] .search-suggestions-dropdown {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.04) !important;
+}
+
+#searchSuggestions.hidden,
+.search-suggestions-dropdown.hidden {
+  display: none !important;
+}
+
+.suggestion {
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  background: transparent;
+  color: var(--text, #e8ecf8);
+  font-size: 13px;
+  border-bottom: 1px solid var(--border, #1a2040);
+  display: block;
+}
+
+.suggestion:last-child {
+  border-bottom: none;
+}
+
+.suggestion:hover,
+.suggestion.active {
+  background: var(--surface, #182042) !important;
+}
+
+[data-theme="light"] .suggestion {
+  color: #1a202c !important;
+  border-bottom-color: #f1f5f9;
+}
+
+[data-theme="light"] .suggestion:hover,
+[data-theme="light"] .suggestion.active {
+  background: #f1f5f9 !important;
+}
+
+.suggestion-keyword {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: var(--teal, #00d4b4);
+}
+
+[data-theme="light"] .suggestion-keyword {
+  color: #0284c7;
+}
+
+.suggestion-tx-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+
+.suggestion-tx-meta {
+  font-size: 11px;
+  color: var(--text2, #7888a8);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+[data-theme="light"] .suggestion-tx-meta {
+  color: #64748b;
+}
+
+.suggestion-tx-amount-in {
+  color: #10b981 !important;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.suggestion-tx-amount-out {
+  color: #f43f5e !important;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+
 /* ═══════════════════════════════════════════════
    ✅ TRANSACTION ITEM — MODERN FINTECH ACTIVITY ROW
 ═══════════════════════════════════════════════ */

@@ -3627,20 +3627,27 @@ function updateSuggestions() {
 
   suggestionsBox.innerHTML = `
     ${suggestions.map((s, i) => `
-      <div class="suggestion p-2 text-sm cursor-pointer glass" data-index="${i}" data-text="${s.text}">
-        🔍 ${s.text}
+      <div class="suggestion" data-index="${i}" data-text="${s.text}">
+        <div class="suggestion-keyword">
+          <span>🔍</span>
+          <span>${s.text}</span>
+        </div>
       </div>
     `).join('')}
     ${txMatches.map((t, i) => `
-      <div class="suggestion p-2 cursor-pointer glass" data-index="${suggestions.length + i}" data-text="${t.note || ''}">
-        <div class="flex justify-between text-sm ">
+      <div class="suggestion" data-index="${suggestions.length + i}" data-text="${t.note || t.category || ''}">
+        <div class="suggestion-tx-title">
           <span>${t.note || '(No Note)'}</span>
-          <span class="${t.type === 'in' ? 'text-emerald-400' : 'text-rose-400'} font-semibold">
+          <span class="${t.type === 'in' ? 'suggestion-tx-amount-in' : 'suggestion-tx-amount-out'}">
             ${t.type === 'in' ? '+' : '-'}${fmtINR(t.amount)}
           </span>
         </div>
-        <div class="text-xs text-muted">
-          ${t.category || 'Uncategorized'} • ${t.account} • ${t.date}
+        <div class="suggestion-tx-meta">
+          <span>${t.category || 'Uncategorized'}</span>
+          <span>•</span>
+          <span>${t.account || 'Account'}</span>
+          <span>•</span>
+          <span>${t.date || ''}</span>
         </div>
       </div>
     `).join('')}
@@ -3663,7 +3670,7 @@ function selectSuggestion(text) {
 function highlightSuggestion(index) {
   const items = suggestionsBox.querySelectorAll('.suggestion');
   items.forEach((el, i) => {
-    el.classList.toggle('bg-slate-600', i === index);
+    el.classList.toggle('active', i === index);
   });
 }
 
@@ -3713,7 +3720,10 @@ function levenshteinDistance(a, b) {
 }
 
 searchInput.addEventListener('input', updateSuggestions);
-searchInput.addEventListener('blur', () => setTimeout(() => suggestionsBox.classList.add('hidden'), 200));
+searchInput.addEventListener('focus', () => {
+  if (searchInput.value.trim().length > 0) updateSuggestions();
+});
+searchInput.addEventListener('blur', () => setTimeout(() => suggestionsBox.classList.add('hidden'), 250));
 
 function getAccountSummaries() {
   const summaries = {};

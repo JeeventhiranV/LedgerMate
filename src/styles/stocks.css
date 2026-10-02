@@ -233,14 +233,17 @@
 
 /* ── Navigation Tabs ─────────────────────────────────────────── */
 .stocks-tabs {
-  display: flex;
+  display: flex !important;
+  flex-wrap: nowrap !important;
   align-items: center;
   gap: 8px;
   margin-bottom: 20px;
   border-bottom: 1px solid var(--border, #1e2436);
-  padding-bottom: 10px;
-  overflow-x: auto;
+  padding: 4px 2px 10px;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  max-width: 100%;
 }
 .stocks-tabs::-webkit-scrollbar { display: none; }
 
@@ -253,7 +256,9 @@
   padding: 8px 16px;
   border-radius: 10px;
   cursor: pointer;
-  white-space: nowrap;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  min-width: max-content;
   transition: all 0.2s;
   font-family: inherit;
   display: inline-flex;
@@ -852,5 +857,18 @@
   }
   .stock-form-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .stocks-tabs {
+    gap: 6px !important;
+    padding-bottom: 8px !important;
+    margin-bottom: 16px !important;
+  }
+  .stock-tab-btn {
+    padding: 7px 12px !important;
+    font-size: 12px !important;
+    border-radius: 8px !important;
   }
 }
