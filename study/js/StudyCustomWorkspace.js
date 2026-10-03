@@ -899,6 +899,10 @@
     openStudio('sections');
   }
 
+  function saveNewDomain() {
+    saveInpageNewDomain();
+  }
+
   function openEditDomainModal(domainId) {
     var dom = _state.domains.find(function (d) { return d.id === domainId; });
     if (!dom) return;
