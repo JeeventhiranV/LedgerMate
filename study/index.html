@@ -857,26 +857,34 @@ function toggleAnalyticsPanel() {
 window.toggleAnalyticsPanel = toggleAnalyticsPanel;
 
 function toggleLangSection(headerEl) {
+  if (!headerEl) return;
   var sec = headerEl.closest('.lang-section');
   if (!sec) return;
-  var grid = sec.querySelector('.resource-grid');
-  var arrow = headerEl.querySelector('.lang-section-arrow');
-  if (!grid) return;
-  var isCollapsed = (grid.style.display === 'none' || grid.classList.contains('collapsed'));
+  var grids = sec.querySelectorAll('.resource-grid, .section-modules-wrapper');
+  var filterBar = sec.querySelector('.section-filter-bar');
+  var arrow = sec.querySelector('.lang-section-arrow');
+  if (!grids.length) return;
+  var isCollapsed = (grids[0].style.display === 'none' || grids[0].classList.contains('collapsed'));
+  var id = sec.dataset.langId || sec.id.replace('lang-section-', '');
+
   if (isCollapsed) {
-    grid.style.display = 'grid';
-    grid.classList.remove('collapsed');
+    grids.forEach(function(g) {
+      g.style.display = g.classList.contains('resource-grid') ? 'grid' : 'block';
+      g.classList.remove('collapsed');
+    });
+    if (filterBar) filterBar.style.display = 'flex';
     if (arrow) arrow.style.transform = 'rotate(0deg)';
     try {
-      var id = sec.dataset.langId || sec.id;
-      localStorage.removeItem('lm_lang_sec_collapsed_' + id);
+      localStorage.setItem('lm_lang_sec_collapsed_' + id, 'false');
     } catch(e){}
   } else {
-    grid.style.display = 'none';
-    grid.classList.add('collapsed');
+    grids.forEach(function(g) {
+      g.style.display = 'none';
+      g.classList.add('collapsed');
+    });
+    if (filterBar) filterBar.style.display = 'none';
     if (arrow) arrow.style.transform = 'rotate(-90deg)';
     try {
-      var id = sec.dataset.langId || sec.id;
       localStorage.setItem('lm_lang_sec_collapsed_' + id, 'true');
     } catch(e){}
   }
@@ -920,9 +928,13 @@ function renderResourceGrid() {
       ? sorted.length + ' Module' + (sorted.length > 1 ? 's' : '') + ' · ' + domainTotalQ + '+ Qs'
       : sorted.length + ' Tool' + (sorted.length > 1 ? 's' : '');
 
-    var isSecCollapsed = false;
+    // Default to COLLAPSED unless user explicitly opened it
+    var isSecCollapsed = true;
     try {
-      isSecCollapsed = localStorage.getItem('lm_lang_sec_collapsed_' + domain.id) === 'true';
+      var stored = localStorage.getItem('lm_lang_sec_collapsed_' + domain.id);
+      if (stored === 'false') {
+        isSecCollapsed = false;
+      }
     } catch(e){}
 
     html += `
@@ -1616,10 +1628,11 @@ function applyFilters() {
   var cards = document.querySelectorAll('.res-card');
   var visible = 0;
   var q = activeSearch.toLowerCase().trim();
+  var isFilterActive = (activeFilter !== 'all') || (q.length > 0);
 
   cards.forEach(function(card) {
     var cat = card.dataset.cat || '';
-    var tags = card.dataset.tags || '';
+    var tags = (card.dataset.tags || '').toLowerCase();
     var title = (card.querySelector('.res-title') || {}).textContent.toLowerCase() || '';
     var desc  = (card.querySelector('.res-desc')  || {}).textContent.toLowerCase() || '';
     var hasProg   = card.dataset.hasProgress   === 'true';
@@ -1629,20 +1642,20 @@ function applyFilters() {
 
     var show = true;
     if (activeFilter === 'fav')        show = isFav;
-    else if (activeFilter === 'done')  show = hasProg;
-    else if (activeFilter === 'inprogress') show = hasInprog;
+    else if (activeFilter === 'done')  show = hasProg || (mstatus === 'completed');
+    else if (activeFilter === 'inprogress') show = hasInprog || (mstatus === 'wip' || mstatus === 'inprogress');
     else if (activeFilter === 'st-pending')   show = (mstatus === 'pending');
-    else if (activeFilter === 'st-wip')       show = (mstatus === 'wip');
+    else if (activeFilter === 'st-wip')       show = (mstatus === 'wip' || mstatus === 'inprogress');
     else if (activeFilter === 'st-completed') show = (mstatus === 'completed');
     else if (activeFilter !== 'all' && cat !== activeFilter) show = false;
 
-    if (q && !(title.includes(q) || desc.includes(q) || tags.includes(q) || cat.includes(q))) show = false;
+    if (q && !(title.includes(q) || desc.includes(q) || tags.includes(q) || cat.toLowerCase().includes(q))) show = false;
 
     card.classList.toggle('hidden', !show);
     if (show) visible++;
   });
 
-  // Toggle visibility of each language/domain section based on visible child cards
+  // Toggle visibility and collapse/expansion of each language/domain section based on visible child cards
   var sections = document.querySelectorAll('.lang-section');
   sections.forEach(function(sec) {
     var secCards = sec.querySelectorAll('.res-card');
@@ -1650,7 +1663,41 @@ function applyFilters() {
     secCards.forEach(function(c) {
       if (!c.classList.contains('hidden')) secVisible++;
     });
-    sec.style.display = secVisible === 0 ? 'none' : '';
+
+    if (secCards.length > 0) {
+      sec.style.display = secVisible === 0 ? 'none' : '';
+    }
+
+    var grids = sec.querySelectorAll('.resource-grid, .section-modules-wrapper');
+    var filterBar = sec.querySelector('.section-filter-bar');
+    var arrow = sec.querySelector('.lang-section-arrow');
+
+    if (grids.length > 0) {
+      if (isFilterActive) {
+        if (secVisible > 0) {
+          grids.forEach(function(g) {
+            g.style.display = g.classList.contains('resource-grid') ? 'grid' : 'block';
+            g.classList.remove('collapsed');
+          });
+          if (filterBar) filterBar.style.display = 'flex';
+          if (arrow) arrow.style.transform = 'rotate(0deg)';
+        }
+      } else {
+        var id = sec.dataset.langId || sec.id.replace('lang-section-', '');
+        var isCollapsed = true;
+        try {
+          if (localStorage.getItem('lm_lang_sec_collapsed_' + id) === 'false') {
+            isCollapsed = false;
+          }
+        } catch(e){}
+        grids.forEach(function(g) {
+          g.style.display = isCollapsed ? 'none' : (g.classList.contains('resource-grid') ? 'grid' : 'block');
+          g.classList.toggle('collapsed', isCollapsed);
+        });
+        if (filterBar) filterBar.style.display = isCollapsed ? 'none' : 'flex';
+        if (arrow) arrow.style.transform = isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+      }
+    }
   });
 
   var countEl = document.getElementById('availCount');

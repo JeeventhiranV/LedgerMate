@@ -2148,12 +2148,18 @@
   function handleSectionSearch(domainId, query) {
     if (!_secFilters[domainId]) _secFilters[domainId] = { query: '', tab: 'all' };
     _secFilters[domainId].query = (query || '').toLowerCase().trim();
+    if (_secFilters[domainId].query.length > 0) {
+      try { localStorage.setItem('lm_lang_sec_collapsed_' + domainId, 'false'); } catch(e){}
+    }
     renderCustomDomainSections();
   }
 
   function handleSectionFilterTab(domainId, tabKey) {
     if (!_secFilters[domainId]) _secFilters[domainId] = { query: '', tab: 'all' };
     _secFilters[domainId].tab = tabKey;
+    if (tabKey !== 'all') {
+      try { localStorage.setItem('lm_lang_sec_collapsed_' + domainId, 'false'); } catch(e){}
+    }
     renderCustomDomainSections();
   }
 
@@ -2542,7 +2548,7 @@
           ` : '';
 
           return `
-            <div class="res-card" style="--c-accent:${dom.color};--c-bg:${dom.color}18;cursor:pointer;" onclick="window.StudyWorkspace.openTopicExplorer('${t.id}')">
+            <div class="res-card" data-cat="${dom.id}" data-tags="${_esc((t.title || '') + ' ' + (t.notes || '') + ' ' + (cat.title || ''))}" data-status="${t.status || 'pending'}" style="--c-accent:${dom.color};--c-bg:${dom.color}18;cursor:pointer;" onclick="window.StudyWorkspace.openTopicExplorer('${t.id}')">
               <div class="res-card-top">
                 <div class="res-icon" style="background:${dom.color}18;">${dom.icon}</div>
                 <div class="res-info">
@@ -2595,9 +2601,12 @@
         `;
       }).join('');
 
-      var isSecCollapsed = false;
+      var isSecCollapsed = true;
       try {
-        isSecCollapsed = localStorage.getItem('lm_lang_sec_collapsed_' + dom.id) === 'true';
+        var stored = localStorage.getItem('lm_lang_sec_collapsed_' + dom.id);
+        if (stored === 'false') {
+          isSecCollapsed = false;
+        }
       } catch (e) {}
 
       return `
@@ -2605,13 +2614,14 @@
           
           <div class="custom-section-hero" style="--sec-accent:${dom.color};">
             <div class="custom-section-hero-top">
-              <div class="custom-section-hero-left" onclick="window.toggleLangSection ? window.toggleLangSection(this.closest('.lang-section').querySelector('.lang-section-header')) : null" style="cursor:pointer;">
+              <div class="custom-section-hero-left" onclick="window.toggleLangSection ? window.toggleLangSection(this) : null" role="button" tabindex="0" title="Click to collapse/expand section" style="cursor:pointer;">
                 <div class="custom-section-hero-icon" style="background:${dom.color}20;color:${dom.color};">${dom.icon}</div>
                 <div class="custom-section-hero-info">
                   <div class="custom-section-hero-title">
                     <span>${_esc(dom.title)}</span>
                     <span class="lang-badge" style="background:${dom.color}18;color:${dom.color};">${_esc(dom.badge || 'Custom Track')}</span>
                     ${dateBadgeHtml}
+                    <span class="lang-section-arrow" style="${isSecCollapsed ? 'transform:rotate(-90deg)' : ''};margin-left:8px;font-size:11px;display:inline-block;transition:transform 0.2s ease;">▼</span>
                   </div>
                   <div class="custom-section-hero-tagline">${_esc(dom.tagline || 'Personal Customizable Learning Domain & Materials')}</div>
                 </div>
@@ -2667,10 +2677,6 @@
                 <div style="font-size:11px;color:var(--teal);margin-top:2px;">🔥 Continuous Learning</div>
               </div>
             </div>
-          </div>
-
-          <div class="lang-section-header" style="display:none;" onclick="window.toggleLangSection ? window.toggleLangSection(this) : null">
-            <span class="lang-section-arrow">▼</span>
           </div>
 
           <div class="section-filter-bar" style="${isSecCollapsed ? 'display:none;' : ''}">
