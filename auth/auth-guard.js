@@ -499,22 +499,6 @@
     footer.className = 'agf';
     footer.innerHTML =
       homeLinkHtml +
-      '<button class="agf-mainapp" id="agfMainAppBtn">' +
-        '<span class="agf-home-icon">💰</span>LedgerMate' +
-      '</button>' +
-      '<div class="agf-theme-row" id="agfThemeRow">' +
-        '<span class="agf-theme-label">Theme</span>' +
-        '<button class="agf-theme-btn" id="agfThemeBtn">🌙</button>' +
-      '</div>' +
-      '<div class="agf-divider"></div>' +
-      '<div class="agf-profile" id="agfProfileCard" title="Account & Security Vault Profile">' +
-        '<div class="agf-avatar">' + initial + '</div>' +
-        '<div class="agf-info">' +
-          '<div class="agf-name">' + name + '</div>' +
-          '<div class="agf-email">' + email + '</div>' +
-        '</div>' +
-        '<span class="agf-profile-arrow">›</span>' +
-      '</div>' +
       '<button class="agf-signout" id="authLogoutBtn">↩ Sign out</button>';
 
     // ── Decide where to put it ───────────────────────────────────────────────
@@ -525,7 +509,7 @@
       // Pages with existing sidebar (Java / DSA / React / Topic) — append footer
       existingSidebar.appendChild(footer);
     } else if (isHubPage) {
-      // Study Hub page: already has #hubDrawer and #hubMenuBtn — append single footer inside hub-drawer-body
+      // Study Hub page: already has #hubDrawer and #hubMenuBtn — append single signout footer inside hub-drawer-body
       var hubDrawerBody = document.querySelector('#hubDrawer .hub-drawer-body');
       if (hubDrawerBody) {
         hubDrawerBody.appendChild(footer);
@@ -552,33 +536,13 @@
       document.head.appendChild(s);
     }
 
-    var agfProf = footer.querySelector('#agfProfileCard');
-    if (agfProf) {
-      agfProf.addEventListener('click', function () {
-        var nav = document.getElementById('authNav');
-        var navOv = document.getElementById('authNavOverlay');
-        if (nav) nav.classList.remove('open');
-        if (navOv) navOv.classList.remove('show');
-        _openProfileModal();
-      });
-    }
-
-    // ── Wire existing Topbar User Chip across Study Hub ──────────────────────
-    var existingChip = document.getElementById('studyUserChip');
-    if (existingChip) {
-      existingChip.onclick = function () {
+    // ── Wire existing Topbar User Chips across Study Hub & Modules ───────────
+    var topbarChips = document.querySelectorAll('#studyUserChip, .topbar-user-chip, .user-chip');
+    topbarChips.forEach(function(chip) {
+      chip.onclick = function () {
         _openProfileModal();
       };
-    }
-
-    // ── Wire LedgerMate nav ──────────────────────────────────────────────────
-    var mainAppBtn = footer.querySelector('#agfMainAppBtn');
-    if (mainAppBtn) {
-      mainAppBtn.addEventListener('click', function () {
-        try { localStorage.setItem('lm_last_page', 'main'); } catch (e) {}
-        window.location.href = mainUrl;
-      });
-    }
+    });
 
     // ── Wire sign out ────────────────────────────────────────────────────────
     var logoutBtn = footer.querySelector('#authLogoutBtn');

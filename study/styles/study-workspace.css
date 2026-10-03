@@ -1546,6 +1546,59 @@ input:checked + .ws-slider:before { transform: translateX(18px); }
   }
 }
 
+@media (max-width: 768px) {
+  .custom-section-metrics-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .section-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .section-filter-tabs {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .ws-module-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .ws-module-title-left {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .ws-module-actions {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-start;
+    padding-top: 6px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.05);
+  }
+  .ws-module-grid {
+    grid-template-columns: 1fr;
+    padding: 10px;
+    gap: 10px;
+  }
+  .pomodoro-widget-card {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px;
+    gap: 14px;
+  }
+  .pomo-left {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .goals-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 640px) {
   .ws-studio-section {
     padding: 0 12px;

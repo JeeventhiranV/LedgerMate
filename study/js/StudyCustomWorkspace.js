@@ -128,10 +128,13 @@
   // ── 1. INITIALIZATION & PERMISSION RESOLUTION ──────────────────────────────
   function init() {
     _loadLocal();
+    renderAllWidgets(); // Immediate render from local storage for instant APK & Web display
     _resolveUserPermissions().then(function () {
-      _syncFromSupabase().then(function () {
-        renderAllWidgets();
-      });
+      return _syncFromSupabase();
+    }).catch(function (err) {
+      console.warn('[StudyWorkspace] Permission or Supabase sync init fallback:', err);
+    }).finally(function () {
+      renderAllWidgets();
     });
   }
 
