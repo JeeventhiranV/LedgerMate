@@ -3,9 +3,11 @@
    ─────────────────────────────────────────────────────────────────────────
    Features:
    - Custom Domains, Categories, Topics, Subtopics & Materials CRUD
+   - Manual File Uploads directly to Supabase Storage Buckets ('study-materials')
+   - Complete Cascaded Deletion for Sections, Modules, Topics, and Materials
    - Interactive Modals: Add Language/Domain, Add Module, Add Topic, Add Materials
    - 4-State Status Engine (Pending / In Progress / Completed / On Hold)
-   - Multi-Format Material Viewers (PDF Embed, Markdown Notes, Code Runner, Links)
+   - Multi-Format Material Viewers (PDF Embed, Image, Markdown Notes, Code, Links)
    - Smart "Resume Learning" Engine & Breadcrumbs
    - Pomodoro Focus Timer & Study Time Session Logging
    - Learning Goals & Target Date Milestones Planner
@@ -20,6 +22,7 @@
 
   var STORAGE_KEY = 'lm_study_custom_workspace_v2';
   var PREFS_KEY   = 'lm_study_user_prefs_v2';
+  var STORAGE_BUCKET = 'study-materials';
 
   var _state = {
     domains: [],
@@ -143,12 +146,12 @@
         _supabase.from('study_time_logs').select('*').eq('user_id', uid).order('logged_at', { ascending: false }).limit(50),
         _supabase.from('study_user_preferences').select('*').eq('user_id', uid).single()
       ]).then(function (results) {
-        if (results[0].data) _state.domains = results[0].data;
-        if (results[1].data) _state.categories = results[1].data;
-        if (results[2].data) _state.topics = results[2].data;
-        if (results[3].data) _state.materials = results[3].data;
-        if (results[4].data) _state.goals = results[4].data;
-        if (results[5].data) _state.timeLogs = results[5].data;
+        if (results[0].data && results[0].data.length > 0) _state.domains = results[0].data;
+        if (results[1].data && results[1].data.length > 0) _state.categories = results[1].data;
+        if (results[2].data && results[2].data.length > 0) _state.topics = results[2].data;
+        if (results[3].data && results[3].data.length > 0) _state.materials = results[3].data;
+        if (results[4].data && results[4].data.length > 0) _state.goals = results[4].data;
+        if (results[5].data && results[5].data.length > 0) _state.timeLogs = results[5].data;
         if (results[6].data) {
           _state.prefs = Object.assign(_state.prefs, results[6].data);
         }
@@ -173,7 +176,7 @@
 
     _saveLocal();
     _getUid().then(function (uid) {
-      if (uid) {
+      if (uid && typeof _supabase !== 'undefined' && _supabase) {
         _supabase.from('study_user_preferences').upsert({
           user_id: uid,
           last_active_topic: _state.prefs.last_active_topic,
@@ -189,7 +192,7 @@
     _state.prefs.last_active_topic = null;
     _saveLocal();
     _getUid().then(function (uid) {
-      if (uid) {
+      if (uid && typeof _supabase !== 'undefined' && _supabase) {
         _supabase.from('study_user_preferences').upsert({
           user_id: uid,
           last_active_topic: null,
@@ -201,45 +204,45 @@
   }
 
   function renderResumeHero() {
-    var container = document.getElementById('resumeHeroContainer');
+    var container = document.getElementById('studyResumeHeroWrap');
     if (!container) return;
 
-    var last = _state.prefs.last_active_topic;
-    if (!last || !_isWidgetVisible('resume')) {
-      container.style.display = 'none';
+    var lastTopic = _state.prefs.last_active_topic;
+    if (!lastTopic || !_isWidgetVisible('resume')) {
       container.innerHTML = '';
+      container.style.display = 'none';
       return;
     }
 
-    container.style.display = 'block';
-    var timeAgo = window.StudySync ? window.StudySync.ago(last.timestamp) : 'recently';
-    var statusClass = 'st-' + (last.status || 'inprogress');
-    var statusLabel = last.status === 'completed' ? '✅ Completed' : last.status === 'onhold' ? '⏸️ On Hold' : '⏳ In Progress';
+    var stClass = 'st-' + (lastTopic.status || 'inprogress');
 
+    container.style.display = 'block';
     container.innerHTML = `
       <div class="resume-hero-banner">
         <div class="resume-card">
           <div class="resume-left">
             <div class="resume-pulse-icon">
-              🚀
-              <div class="resume-pulse-dot"></div>
+              <span>🎯</span>
+              <span class="resume-pulse-dot"></span>
             </div>
             <div class="resume-info">
               <div class="resume-eyebrow">
-                <span>Resume Learning</span> · <span style="color:var(--text3);font-weight:600;">${_esc(last.domainTitle)}</span>
+                <span>Resume Active Session</span>
+                <span class="st-badge ${stClass}">${lastTopic.status || 'in progress'}</span>
               </div>
-              <div class="resume-title">${_esc(last.title)}</div>
+              <div class="resume-title">${_esc(lastTopic.title)}</div>
               <div class="resume-meta">
-                <span class="st-badge ${statusClass}">${statusLabel}</span>
-                <span>Last reviewed ${timeAgo}</span>
+                <span>📚 ${_esc(lastTopic.domainTitle || 'Custom Track')}</span>
+                <span>⏱️ Ready to focus</span>
               </div>
             </div>
           </div>
           <div class="resume-actions">
-            <button class="btn-resume-jump" onclick="window.StudyWorkspace.openTopicExplorer('${last.topicId}')">
-              ▶ Resume Now
+            <button class="btn-resume-jump" onclick="window.StudyWorkspace.openTopicExplorer('${lastTopic.topicId}')">
+              <span>Continue Learning</span>
+              <span>➔</span>
             </button>
-            <button class="btn-resume-dismiss" onclick="window.StudyWorkspace.clearLastActiveTopic()" title="Dismiss">
+            <button class="btn-resume-dismiss" onclick="window.StudyWorkspace.clearLastActiveTopic()" title="Dismiss marker">
               ✕
             </button>
           </div>
@@ -248,99 +251,95 @@
     `;
   }
 
-  // ── 4. 4-STATE STATUS CONTROLLER ───────────────────────────────────────────
+  // ── 4. 4-STATE STATUS FLOW ENGINE ──────────────────────────────────────────
   var STATUS_FLOW = ['pending', 'inprogress', 'completed', 'onhold'];
 
   function cycleTopicStatus(topicId) {
     var t = _state.topics.find(function (x) { return x.id === topicId; });
     if (!t) return;
-
     var curIdx = STATUS_FLOW.indexOf(t.status || 'pending');
-    var nextStatus = STATUS_FLOW[(curIdx + 1) % STATUS_FLOW.length];
-    setTopicStatus(topicId, nextStatus);
+    var nextIdx = (curIdx + 1) % STATUS_FLOW.length;
+    setTopicStatus(topicId, STATUS_FLOW[nextIdx]);
   }
 
   function setTopicStatus(topicId, status) {
     var t = _state.topics.find(function (x) { return x.id === topicId; });
     if (!t) return;
-
     t.status = status;
     t.status_changed_at = new Date().toISOString();
-    t.updated_at = new Date().toISOString();
-
     _saveLocal();
+
     _getUid().then(function (uid) {
-      if (uid) {
+      if (uid && typeof _supabase !== 'undefined' && _supabase) {
         _supabase.from('study_custom_topics').update({
           status: status,
           status_changed_at: t.status_changed_at,
-          updated_at: t.updated_at
+          updated_at: new Date().toISOString()
         }).eq('id', topicId).then(function () {});
       }
     });
 
     if (window.LMToast) {
-      var label = status === 'completed' ? '✅ Marked Completed' : status === 'inprogress' ? '⏳ Set to In Progress' : status === 'onhold' ? '⏸️ Set On Hold' : '⚪ Reset to Pending';
-      window.LMToast.show(label);
+      window.LMToast.show('Status updated to ' + status.toUpperCase());
     }
 
     renderAllWidgets();
   }
 
-  // ── 5. FOCUS POMODORO & TIME TRACKER ───────────────────────────────────────
+  // ── 5. POMODORO FOCUS TIMER ENGINE ────────────────────────────────────────
   function initPomodoroWidget() {
-    var container = document.getElementById('pomodoroWidgetContainer');
-    if (!container) return;
+    var wrap = document.getElementById('pomodoroWidgetWrap');
+    if (!wrap) return;
 
     if (!_isWidgetVisible('timer')) {
-      container.style.display = 'none';
+      wrap.innerHTML = '';
+      wrap.style.display = 'none';
       return;
     }
 
-    container.style.display = 'block';
+    wrap.style.display = 'block';
     _updatePomodoroUI();
   }
 
   function _updatePomodoroUI() {
-    var container = document.getElementById('pomodoroWidgetContainer');
-    if (!container) return;
+    var wrap = document.getElementById('pomodoroWidgetWrap');
+    if (!wrap) return;
 
     var mins = Math.floor(_pomoTimer.timeLeft / 60);
     var secs = _pomoTimer.timeLeft % 60;
-    var timeStr = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+    var timeStr = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
 
-    var topicsOptions = '<option value="">-- General Focus Sprint --</option>';
+    var topicOptions = `<option value="">-- Free / General Focus Session --</option>`;
     _state.topics.forEach(function (t) {
-      var sel = (_pomoTimer.activeTopicId === t.id) ? 'selected' : '';
-      topicsOptions += `<option value="${t.id}" ${sel}>${_esc(t.title)} (${t.status})</option>`;
+      var sel = _pomoTimer.activeTopicId === t.id ? 'selected' : '';
+      topicOptions += `<option value="${t.id}" ${sel}>${_esc(t.title)}</option>`;
     });
 
-    container.innerHTML = `
+    wrap.innerHTML = `
       <div class="pomodoro-widget-card">
         <div class="pomo-left">
           <div class="pomo-clock-circle">
-            <div class="pomo-time-display">${timeStr}</div>
+            <div class="pomo-time-display" id="pomoTimeDisplay">${timeStr}</div>
             <div class="pomo-mode-label">${_pomoTimer.mode}</div>
           </div>
           <div class="pomo-controls">
             <div class="pomo-modes">
-              <button class="pomo-mode-btn ${_pomoTimer.mode==='pomodoro'?'active':''}" onclick="window.StudyWorkspace.setPomoMode('pomodoro')">25m Focus</button>
-              <button class="pomo-mode-btn ${_pomoTimer.mode==='short'?'active':''}" onclick="window.StudyWorkspace.setPomoMode('short')">5m Rest</button>
-              <button class="pomo-mode-btn ${_pomoTimer.mode==='long'?'active':''}" onclick="window.StudyWorkspace.setPomoMode('long')">15m Break</button>
-              <button class="pomo-mode-btn ${_pomoTimer.mode==='stopwatch'?'active':''}" onclick="window.StudyWorkspace.setPomoMode('stopwatch')">⏱️ Stopwatch</button>
+              <button class="pomo-mode-btn ${_pomoTimer.mode === 'pomodoro' ? 'active' : ''}" onclick="window.StudyWorkspace.setPomoMode('pomodoro')">25m Focus</button>
+              <button class="pomo-mode-btn ${_pomoTimer.mode === 'short' ? 'active' : ''}" onclick="window.StudyWorkspace.setPomoMode('short')">5m Break</button>
+              <button class="pomo-mode-btn ${_pomoTimer.mode === 'long' ? 'active' : ''}" onclick="window.StudyWorkspace.setPomoMode('long')">15m Long</button>
             </div>
             <div class="pomo-buttons">
               <button class="btn-pomo-action" onclick="window.StudyWorkspace.togglePomoTimer()">
-                ${_pomoTimer.running ? '⏸️ Pause' : '▶ Start Focus'}
+                ${_pomoTimer.running ? '⏸️ Pause' : '▶️ Start Timer'}
               </button>
-              <button class="btn-pomo-reset" onclick="window.StudyWorkspace.resetPomoTimer()">↺ Reset</button>
+              <button class="btn-pomo-reset" onclick="window.StudyWorkspace.resetPomoTimer()">🔄 Reset</button>
             </div>
           </div>
         </div>
         <div class="pomo-topic-selector">
-          <div class="pomo-select-label">🎯 Focus Topic to Log Duration</div>
+          <div class="pomo-select-label">🎯 Tag Study Topic:</div>
           <select class="pomo-topic-dropdown" onchange="window.StudyWorkspace.setPomoTopic(this.value)">
-            ${topicsOptions}
+            ${topicOptions}
           </select>
         </div>
       </div>
@@ -348,10 +347,9 @@
   }
 
   function setPomoMode(mode) {
+    if (_pomoTimer.running) togglePomoTimer();
     _pomoTimer.mode = mode;
-    _pomoTimer.running = false;
-    clearInterval(_pomoTimer.interval);
-    _pomoTimer.timeLeft = _pomoTimer.durations[mode] || 0;
+    _pomoTimer.timeLeft = _pomoTimer.durations[mode];
     _updatePomodoroUI();
   }
 
@@ -361,37 +359,37 @@
 
   function togglePomoTimer() {
     if (_pomoTimer.running) {
-      _pomoTimer.running = false;
       clearInterval(_pomoTimer.interval);
+      _pomoTimer.running = false;
       _updatePomodoroUI();
     } else {
       _pomoTimer.running = true;
       _pomoTimer.sessionStart = Date.now();
       _pomoTimer.interval = setInterval(function () {
-        if (_pomoTimer.mode === 'stopwatch') {
-          _pomoTimer.timeLeft++;
-        } else {
+        if (_pomoTimer.timeLeft > 0) {
           _pomoTimer.timeLeft--;
-          if (_pomoTimer.timeLeft <= 0) {
-            clearInterval(_pomoTimer.interval);
-            _pomoTimer.running = false;
-            _logStudySession(_pomoTimer.durations[_pomoTimer.mode]);
-            if (window.LMToast) window.LMToast.show('🎉 Focus session completed! Great work.');
-            if (window.Haptic) window.Haptic.success();
-            setPomoMode('short');
-            return;
+          var el = document.getElementById('pomoTimeDisplay');
+          if (el) {
+            var mins = Math.floor(_pomoTimer.timeLeft / 60);
+            var secs = _pomoTimer.timeLeft % 60;
+            el.textContent = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
           }
+        } else {
+          clearInterval(_pomoTimer.interval);
+          _pomoTimer.running = false;
+          _logStudySession(_pomoTimer.durations[_pomoTimer.mode]);
+          if (window.LMToast) window.LMToast.show('🎉 Pomodoro Session Completed! Great job!');
+          _updatePomodoroUI();
         }
-        _updatePomodoroUI();
       }, 1000);
       _updatePomodoroUI();
     }
   }
 
   function resetPomoTimer() {
+    if (_pomoTimer.running) clearInterval(_pomoTimer.interval);
     _pomoTimer.running = false;
-    clearInterval(_pomoTimer.interval);
-    _pomoTimer.timeLeft = _pomoTimer.durations[_pomoTimer.mode] || 0;
+    _pomoTimer.timeLeft = _pomoTimer.durations[_pomoTimer.mode];
     _updatePomodoroUI();
   }
 
@@ -400,59 +398,60 @@
     var logItem = {
       id: 'log_' + Date.now(),
       topic_id: topic ? topic.id : null,
-      topic_title: topic ? topic.title : 'General Focus Sprint',
-      duration_seconds: durationSecs || 1500,
+      topic_title: topic ? topic.title : 'General Focus Session',
+      duration_seconds: durationSecs,
       session_type: _pomoTimer.mode,
-      notes: '',
       logged_at: new Date().toISOString()
     };
-
     _state.timeLogs.unshift(logItem);
     _saveLocal();
 
     _getUid().then(function (uid) {
-      if (uid) {
+      if (uid && typeof _supabase !== 'undefined' && _supabase) {
         _supabase.from('study_time_logs').insert(Object.assign({ user_id: uid }, logItem)).then(function () {});
       }
     });
   }
 
-  // ── 6. LEARNING GOALS & MILESTONES ─────────────────────────────────────────
+  // ── 6. LEARNING GOALS & MILESTONES WIDGET ─────────────────────────────────
   function renderGoalsWidget() {
-    var container = document.getElementById('goalsWidgetContainer');
-    if (!container) return;
+    var wrap = document.getElementById('studyGoalsWidgetWrap');
+    if (!wrap) return;
 
-    if (!_isWidgetVisible('milestones') || !_state.goals || _state.goals.length === 0) {
-      container.style.display = 'none';
+    if (!_isWidgetVisible('milestones') || _state.goals.length === 0) {
+      wrap.innerHTML = '';
+      wrap.style.display = 'none';
       return;
     }
 
-    container.style.display = 'block';
+    wrap.style.display = 'block';
+
     var goalsHtml = _state.goals.map(function (g) {
-      var totalM = (g.milestones || []).length;
+      var targetCount = g.target_topics || 10;
       var doneM = (g.milestones || []).filter(function (m) { return m.completed; }).length;
-      var pct = totalM > 0 ? Math.round((doneM / totalM) * 100) : 0;
-      var daysLeft = g.target_date ? Math.ceil((new Date(g.target_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
-      var countdown = daysLeft !== null ? (daysLeft > 0 ? '⏳ ' + daysLeft + 'd left' : '⚠️ Due') : '🎯 Active';
+      var totalM = (g.milestones || []).length || 1;
+      var pct = Math.round((doneM / totalM) * 100);
+
+      var targetDateStr = g.target_date ? `📅 Target: ${g.target_date}` : 'Ongoing Goal';
 
       return `
         <div class="goal-item-card">
           <div class="goal-top-row">
-            <div class="goal-name">${_esc(g.title)}</div>
-            <span class="goal-target-countdown">${countdown}</span>
+            <div class="goal-name">🎯 ${_esc(g.title)}</div>
+            <div class="goal-target-countdown">${targetDateStr}</div>
           </div>
           <div class="goal-progress-bar">
-            <div class="goal-progress-fill" style="width:${pct}%"></div>
+            <div class="goal-progress-fill" style="width:${pct}%;"></div>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);">
-            <span>${doneM}/${totalM} milestones completed</span>
-            <strong style="color:var(--teal);">${pct}%</strong>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:6px;">
+            <span>Milestones: ${doneM}/${totalM}</span>
+            <span>${pct}% Complete</span>
           </div>
           <div class="goal-milestones-list">
             ${(g.milestones || []).slice(0, 3).map(function (m, idx) {
               return `
-                <div class="milestone-row ${m.completed ? 'completed' : ''}" onclick="window.StudyWorkspace.toggleMilestone('${g.id}', ${idx})" style="cursor:pointer;">
-                  <span>${m.completed ? '☑' : '☐'}</span>
+                <div class="milestone-row ${m.completed ? 'completed' : ''}">
+                  <input type="checkbox" ${m.completed ? 'checked' : ''} onchange="window.StudyWorkspace.toggleMilestone('${g.id}', ${idx})" style="cursor:pointer;">
                   <span>${_esc(m.title)}</span>
                 </div>
               `;
@@ -462,10 +461,12 @@
       `;
     }).join('');
 
-    container.innerHTML = `
+    wrap.innerHTML = `
       <div class="goals-widget-card">
         <div class="goals-header">
-          <div class="goals-title">🎯 Learning Goals &amp; Target Milestones</div>
+          <div class="goals-title">
+            <span>🎯</span> Active Goals &amp; Target Milestones
+          </div>
           ${_state.canCustomize ? `<button class="ws-btn-secondary" onclick="window.StudyWorkspace.openGoalModal()" style="font-size:11px;padding:4px 10px;">+ New Goal</button>` : ''}
         </div>
         <div class="goals-grid">
@@ -478,12 +479,11 @@
   function toggleMilestone(goalId, index) {
     var g = _state.goals.find(function (x) { return x.id === goalId; });
     if (!g || !g.milestones || !g.milestones[index]) return;
-
     g.milestones[index].completed = !g.milestones[index].completed;
     _saveLocal();
 
     _getUid().then(function (uid) {
-      if (uid) {
+      if (uid && typeof _supabase !== 'undefined' && _supabase) {
         _supabase.from('study_learning_goals').update({
           milestones: g.milestones,
           updated_at: new Date().toISOString()
@@ -613,7 +613,7 @@
     _saveLocal();
 
     _getUid().then(function (uid) {
-      if (uid) {
+      if (uid && typeof _supabase !== 'undefined' && _supabase) {
         _supabase.from('study_custom_domains').insert(Object.assign({ user_id: uid }, newDomain)).then(function () {});
       }
     });
@@ -723,7 +723,7 @@
     _saveLocal();
 
     _getUid().then(function (uid) {
-      if (uid) {
+      if (uid && typeof _supabase !== 'undefined' && _supabase) {
         _supabase.from('study_custom_topics').insert(Object.assign({ user_id: uid }, newTop)).then(function () {});
       }
     });
@@ -733,8 +733,155 @@
     renderAllWidgets();
   }
 
-  // ── 9. ADD MATERIAL MODAL ──────────────────────────────────────────────────
+  // ── 9. MANUAL FILE UPLOAD & SUPABASE STORAGE BUCKET INTEGRATION ───────────
+  var _selectedUploadFile = null;
+
+  function handleFileSelected(inputEl) {
+    var file = inputEl.files && inputEl.files[0];
+    if (!file) return;
+    _selectedUploadFile = file;
+
+    var previewEl = document.getElementById('matFilePreview');
+    var nameEl = document.getElementById('matFileName');
+    var sizeEl = document.getElementById('matFileSize');
+    var titleInput = document.getElementById('matTitleInput');
+    var typeSelect = document.getElementById('matTypeInput');
+    var dropzone = document.getElementById('matDropzone');
+
+    if (previewEl) previewEl.style.display = 'flex';
+    if (nameEl) nameEl.innerHTML = `📄 ${_esc(file.name)}`;
+    if (sizeEl) sizeEl.textContent = Math.round(file.size / 1024) + ' KB';
+    if (dropzone) dropzone.classList.add('has-file');
+
+    // Auto-populate title if empty
+    if (titleInput && !titleInput.value.trim()) {
+      var cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+      titleInput.value = cleanName;
+    }
+
+    // Auto-detect material type
+    if (typeSelect) {
+      var ext = file.name.split('.').pop().toLowerCase();
+      if (ext === 'pdf') {
+        typeSelect.value = 'pdf';
+      } else if (['png', 'jpg', 'jpeg', 'webp', 'svg', 'gif'].indexOf(ext) !== -1) {
+        typeSelect.value = 'image';
+      } else if (['js', 'ts', 'py', 'java', 'cpp', 'c', 'cs', 'go', 'rs', 'sql', 'html', 'css', 'json'].indexOf(ext) !== -1) {
+        typeSelect.value = 'code';
+      } else if (['doc', 'docx', 'txt', 'md'].indexOf(ext) !== -1) {
+        typeSelect.value = 'document';
+      }
+    }
+  }
+
+  function handleDropzoneDrop(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    var dropzone = document.getElementById('matDropzone');
+    if (dropzone) dropzone.classList.remove('dropzone-active');
+
+    if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+      var input = document.getElementById('matFileInput');
+      if (input) {
+        input.files = event.dataTransfer.files;
+        handleFileSelected(input);
+      }
+    }
+  }
+
+  function handleDropzoneDragOver(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    var dropzone = document.getElementById('matDropzone');
+    if (dropzone) dropzone.classList.add('dropzone-active');
+  }
+
+  function handleDropzoneDragLeave(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    var dropzone = document.getElementById('matDropzone');
+    if (dropzone) dropzone.classList.remove('dropzone-active');
+  }
+
+  /**
+   * Uploads file to Supabase Storage Bucket ('study-materials')
+   * with fallback to Base64 / Local Blob URL if offline.
+   */
+  function uploadFileToStorage(file, topicId) {
+    return _getUid().then(function (uid) {
+      var uidPrefix = uid || 'guest';
+      var sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      var storagePath = `${uidPrefix}/${topicId || 'general'}/${Date.now()}_${sanitizedName}`;
+
+      var progressBar = document.getElementById('matUploadProgress');
+      var progressFill = document.getElementById('matUploadProgressFill');
+      if (progressBar) progressBar.style.display = 'block';
+      if (progressFill) progressFill.style.width = '30%';
+
+      // 1. Try Supabase Storage Bucket upload if online
+      if (typeof _supabase !== 'undefined' && _supabase?.storage && navigator.onLine) {
+        return _supabase.storage
+          .from(STORAGE_BUCKET)
+          .upload(storagePath, file, {
+            contentType: file.type || 'application/octet-stream',
+            upsert: true
+          })
+          .then(function (res) {
+            if (progressFill) progressFill.style.width = '80%';
+            if (res.error) throw res.error;
+
+            var urlRes = _supabase.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath);
+            var publicUrl = urlRes?.data?.publicUrl || '';
+            if (progressFill) progressFill.style.width = '100%';
+
+            return {
+              fileUrl: publicUrl,
+              storagePath: storagePath,
+              fileSize: file.size,
+              mimeType: file.type || 'application/octet-stream',
+              fileName: file.name
+            };
+          })
+          .catch(function (err) {
+            console.warn('[StudyWorkspace] Supabase storage upload failed, caching locally as DataURL:', err);
+            return _readFileAsDataUrl(file, storagePath);
+          });
+      } else {
+        // Fallback offline
+        return _readFileAsDataUrl(file, storagePath);
+      }
+    });
+  }
+
+  function _readFileAsDataUrl(file, storagePath) {
+    return new Promise(function (resolve) {
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var progressFill = document.getElementById('matUploadProgressFill');
+        if (progressFill) progressFill.style.width = '100%';
+        resolve({
+          fileUrl: e.target.result,
+          storagePath: storagePath,
+          fileSize: file.size,
+          mimeType: file.type || 'application/octet-stream',
+          fileName: file.name
+        });
+      };
+      reader.onerror = function () {
+        resolve({
+          fileUrl: '',
+          storagePath: storagePath,
+          fileSize: file.size,
+          mimeType: file.type || 'application/octet-stream',
+          fileName: file.name
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   function openAddMaterialModal(topicId) {
+    _selectedUploadFile = null;
     var existing = document.getElementById('addMaterialModal');
     if (existing) existing.remove();
 
@@ -746,40 +893,69 @@
       <div class="ws-modal-dialog">
         <div class="ws-modal-header">
           <div class="ws-modal-title">
-            <span>📎</span> Attach Study Material
+            <span>📎</span> Attach Study Material / Manual File Upload
           </div>
           <button class="ws-modal-close" onclick="document.getElementById('addMaterialModal')?.remove()">✕</button>
         </div>
         <div class="ws-modal-body">
+          
+          <!-- Manual Upload Dropzone -->
+          <div class="ws-form-group">
+            <label class="ws-form-label">📤 Manual File Upload (PDF, Docs, Code, Images, Notes)</label>
+            <div class="ws-file-dropzone" id="matDropzone"
+                 onclick="document.getElementById('matFileInput').click()"
+                 ondragover="window.StudyWorkspace.handleDropzoneDragOver(event)"
+                 ondragleave="window.StudyWorkspace.handleDropzoneDragLeave(event)"
+                 ondrop="window.StudyWorkspace.handleDropzoneDrop(event)">
+              <span class="dropzone-icon">📁</span>
+              <div class="dropzone-text">Click or drag &amp; drop files here to upload</div>
+              <div class="dropzone-subtext">Supports PDF, Markdown (.md), Code (.js,.py,.java,.sql), Documents (.docx,.txt), Images (PNG, JPG, WebP) up to 50MB</div>
+              <input type="file" id="matFileInput" style="display:none;" onchange="window.StudyWorkspace.handleFileSelected(this)" accept=".pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.svg,.js,.ts,.py,.java,.cpp,.sql,.html,.css,.json"/>
+            </div>
+
+            <!-- Upload progress bar -->
+            <div class="ws-upload-progress" id="matUploadProgress">
+              <div class="ws-upload-progress-fill" id="matUploadProgressFill"></div>
+            </div>
+
+            <!-- File preview chip -->
+            <div class="file-preview-chip" id="matFilePreview" style="display:none;">
+              <span class="file-preview-name" id="matFileName">📄 sample.pdf</span>
+              <span class="file-preview-size" id="matFileSize">120 KB</span>
+            </div>
+          </div>
+
           <div class="ws-form-group">
             <label class="ws-form-label">Material Title</label>
             <input type="text" id="matTitleInput" class="ws-form-input" placeholder="e.g. Official Documentation Cheat Sheet, Architecture PDF, Solution Snippet..." required/>
           </div>
 
-          <div class="ws-form-group">
-            <label class="ws-form-label">Material Type</label>
-            <select id="matTypeInput" class="ws-form-select">
-              <option value="note">📝 Rich Markdown Note / Summary</option>
-              <option value="code">💻 Code Snippet / Playground</option>
-              <option value="link">🔗 Documentation / Web URL</option>
-              <option value="video">🎥 YouTube / Video Walkthrough</option>
-              <option value="pdf">📄 PDF / Document Link</option>
-            </select>
+          <div class="ws-form-row">
+            <div class="ws-form-group">
+              <label class="ws-form-label">Material Type</label>
+              <select id="matTypeInput" class="ws-form-select">
+                <option value="pdf">📄 PDF / Document</option>
+                <option value="note">📝 Rich Markdown Note / Summary</option>
+                <option value="code">💻 Code Snippet / Playground</option>
+                <option value="image">🖼️ Diagram / Architecture Image</option>
+                <option value="link">🔗 Documentation / Web URL</option>
+                <option value="video">🎥 YouTube / Video Walkthrough</option>
+              </select>
+            </div>
+            <div class="ws-form-group">
+              <label class="ws-form-label">External URL / Web Link (Optional)</label>
+              <input type="url" id="matUrlInput" class="ws-form-input" placeholder="https://..."/>
+            </div>
           </div>
 
           <div class="ws-form-group">
-            <label class="ws-form-label">External URL / Document Link (Optional)</label>
-            <input type="url" id="matUrlInput" class="ws-form-input" placeholder="https://..."/>
-          </div>
-
-          <div class="ws-form-group">
-            <label class="ws-form-label">Note Content / Code Body</label>
-            <textarea id="matContentInput" class="ws-form-textarea" rows="5" placeholder="Write markdown content or paste code snippets here..."></textarea>
+            <label class="ws-form-label">Note Content / Code Body (Optional)</label>
+            <textarea id="matContentInput" class="ws-form-textarea" rows="4" placeholder="Write markdown notes or paste code snippets here..."></textarea>
           </div>
         </div>
         <div class="ws-modal-footer">
-          <button class="ws-btn-primary" onclick="window.StudyWorkspace.saveNewMaterial('${topicId}')">
-            💾 Attach Material
+          <button class="ws-btn-primary" id="btnSaveMaterial" onclick="window.StudyWorkspace.saveNewMaterial('${topicId}')">
+            💾 Upload &amp; Attach Material
           </button>
           <button class="ws-btn-secondary" onclick="document.getElementById('addMaterialModal')?.remove()">Cancel</button>
         </div>
@@ -797,33 +973,146 @@
     }
 
     var type = document.getElementById('matTypeInput')?.value || 'note';
-    var url = document.getElementById('matUrlInput')?.value.trim() || '';
+    var extUrl = document.getElementById('matUrlInput')?.value.trim() || '';
     var content = document.getElementById('matContentInput')?.value || '';
+    var btn = document.getElementById('btnSaveMaterial');
 
-    var newMat = {
-      id: 'mat_' + Date.now(),
-      topic_id: topicId,
-      title: title,
-      material_type: type,
-      external_url: url,
-      content: content,
-      created_at: new Date().toISOString()
-    };
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Uploading to Cloud...';
+    }
 
-    _state.materials.unshift(newMat);
-    _saveLocal();
+    var uploadPromise = _selectedUploadFile ?
+      uploadFileToStorage(_selectedUploadFile, topicId) :
+      Promise.resolve({ fileUrl: extUrl, storagePath: null, fileSize: 0, mimeType: '', fileName: '' });
 
-    _getUid().then(function (uid) {
-      if (uid) {
-        _supabase.from('study_materials').insert(Object.assign({ user_id: uid }, newMat)).then(function () {});
+    uploadPromise.then(function (uploadRes) {
+      var newMat = {
+        id: 'mat_' + Date.now(),
+        topic_id: topicId,
+        title: title,
+        material_type: type,
+        external_url: extUrl || (uploadRes.fileUrl && (type === 'link' || type === 'video') ? uploadRes.fileUrl : ''),
+        file_url: uploadRes.fileUrl || '',
+        storage_path: uploadRes.storagePath || null,
+        file_size_bytes: uploadRes.fileSize || 0,
+        content: content,
+        created_at: new Date().toISOString()
+      };
+
+      _state.materials.unshift(newMat);
+      _saveLocal();
+
+      _getUid().then(function (uid) {
+        if (uid && typeof _supabase !== 'undefined' && _supabase) {
+          _supabase.from('study_materials').insert(Object.assign({ user_id: uid }, newMat)).then(function () {});
+        }
+      });
+
+      document.getElementById('addMaterialModal')?.remove();
+      if (window.LMToast) window.LMToast.show('✅ Material successfully attached & synced!');
+      openTopicExplorer(topicId);
+    }).catch(function (e) {
+      console.error('[StudyWorkspace] Material save error:', e);
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '💾 Upload & Attach Material';
       }
+      if (window.LMToast) window.LMToast.show('⚠️ Material saved locally');
     });
-
-    document.getElementById('addMaterialModal')?.remove();
-    if (window.LMToast) window.LMToast.show('✅ Material attached!');
-    openTopicExplorer(topicId);
   }
 
+  /**
+   * Quick Upload Modal directly from customizer or toolbar
+   */
+  function openQuickUploadModal(targetDomainId) {
+    var existing = document.getElementById('quickUploadModal');
+    if (existing) existing.remove();
+
+    if (_state.topics.length === 0) {
+      if (window.LMToast) window.LMToast.show('ℹ️ Please create a section & topic first before uploading materials');
+      openAddDomainModal();
+      return;
+    }
+
+    var topicOptions = _state.topics.map(function (t) {
+      var cat = _state.categories.find(function (c) { return c.id === t.category_id; });
+      var dom = cat ? _state.domains.find(function (d) { return d.id === cat.domain_id; }) : null;
+      var label = (dom ? dom.title + ' ➔ ' : '') + t.title;
+      return `<option value="${t.id}">${_esc(label)}</option>`;
+    }).join('');
+
+    var modal = document.createElement('div');
+    modal.id = 'quickUploadModal';
+    modal.className = 'ws-modal-overlay';
+
+    modal.innerHTML = `
+      <div class="ws-modal-dialog">
+        <div class="ws-modal-header">
+          <div class="ws-modal-title">
+            <span>📤</span> Quick File Upload to Supabase Storage
+          </div>
+          <button class="ws-modal-close" onclick="document.getElementById('quickUploadModal')?.remove()">✕</button>
+        </div>
+        <div class="ws-modal-body">
+          <div class="ws-form-group">
+            <label class="ws-form-label">Target Track / Study Topic</label>
+            <select id="quickTopicSelect" class="ws-form-select">
+              ${topicOptions}
+            </select>
+          </div>
+
+          <div class="ws-form-group">
+            <label class="ws-form-label">Select File to Upload</label>
+            <div class="ws-file-dropzone" id="matDropzone"
+                 onclick="document.getElementById('matFileInput').click()"
+                 ondragover="window.StudyWorkspace.handleDropzoneDragOver(event)"
+                 ondragleave="window.StudyWorkspace.handleDropzoneDragLeave(event)"
+                 ondrop="window.StudyWorkspace.handleDropzoneDrop(event)">
+              <span class="dropzone-icon">☁️</span>
+              <div class="dropzone-text">Click to choose PDF, Notes, Docs, Images or Code</div>
+              <div class="dropzone-subtext">Will be stored in Supabase Storage Bucket ('study-materials')</div>
+              <input type="file" id="matFileInput" style="display:none;" onchange="window.StudyWorkspace.handleFileSelected(this)" accept=".pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,.svg,.js,.ts,.py,.java,.cpp,.sql,.html,.css,.json"/>
+            </div>
+
+            <div class="ws-upload-progress" id="matUploadProgress">
+              <div class="ws-upload-progress-fill" id="matUploadProgressFill"></div>
+            </div>
+
+            <div class="file-preview-chip" id="matFilePreview" style="display:none;">
+              <span class="file-preview-name" id="matFileName">📄 file.pdf</span>
+              <span class="file-preview-size" id="matFileSize">0 KB</span>
+            </div>
+          </div>
+
+          <div class="ws-form-group">
+            <label class="ws-form-label">Material Title</label>
+            <input type="text" id="matTitleInput" class="ws-form-input" placeholder="e.g. Architecture Blueprint, Code Cheat Sheet..." required/>
+          </div>
+        </div>
+        <div class="ws-modal-footer">
+          <button class="ws-btn-primary" id="btnSaveMaterial" onclick="window.StudyWorkspace.saveQuickUpload()">
+            ☁️ Upload to Supabase Storage
+          </button>
+          <button class="ws-btn-secondary" onclick="document.getElementById('quickUploadModal')?.remove()">Cancel</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  }
+
+  function saveQuickUpload() {
+    var topicId = document.getElementById('quickTopicSelect')?.value;
+    if (!topicId) {
+      if (window.LMToast) window.LMToast.show('⚠️ Please select a target topic');
+      return;
+    }
+    saveNewMaterial(topicId);
+    document.getElementById('quickUploadModal')?.remove();
+  }
+
+  // ── 10. MATERIAL VIEWER MODAL ──────────────────────────────────────────────
   function openMaterialViewer(materialId) {
     var mat = _state.materials.find(function (m) { return m.id === materialId; });
     if (!mat) return;
@@ -835,29 +1124,61 @@
     modal.id = 'materialViewerModal';
     modal.className = 'ws-modal-overlay';
 
+    var displayUrl = mat.file_url || mat.external_url || '';
     var bodyHtml = '';
-    if (mat.material_type === 'pdf' && mat.external_url) {
+
+    if (mat.material_type === 'pdf' && displayUrl) {
       bodyHtml = `
-        <div style="height:480px;background:#000;border-radius:8px;overflow:hidden;">
-          <iframe src="${_esc(mat.external_url)}" style="width:100%;height:100%;border:none;"></iframe>
+        <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <span style="font-size:12px;color:var(--text3);">Embedded PDF Viewer:</span>
+          <a href="${_esc(displayUrl)}" target="_blank" rel="noopener" class="ws-btn-secondary" style="font-size:11px;padding:4px 10px;text-decoration:none;">
+            📄 Open in New Tab ↗
+          </a>
+        </div>
+        <div style="height:520px;background:#000;border-radius:10px;overflow:hidden;border:1px solid var(--border,#262f45);">
+          <iframe src="${_esc(displayUrl)}" style="width:100%;height:100%;border:none;"></iframe>
+        </div>
+      `;
+    } else if (mat.material_type === 'image' && displayUrl) {
+      bodyHtml = `
+        <div style="text-align:center;background:rgba(0,0,0,0.3);border-radius:10px;padding:16px;border:1px solid var(--border,#262f45);">
+          <img src="${_esc(displayUrl)}" alt="${_esc(mat.title)}" style="max-width:100%;max-height:480px;border-radius:8px;object-fit:contain;box-shadow:0 8px 24px rgba(0,0,0,0.5);"/>
+          <div style="margin-top:12px;">
+            <a href="${_esc(displayUrl)}" target="_blank" rel="noopener" class="ws-btn-secondary" style="font-size:11px;padding:4px 10px;text-decoration:none;">
+              🔍 View Full Resolution Image ↗
+            </a>
+          </div>
         </div>
       `;
     } else if (mat.material_type === 'code') {
       bodyHtml = `
-        <pre style="background:#0f172a;padding:16px;border-radius:10px;color:#38bdf8;font-family:'JetBrains Mono',monospace;font-size:13px;overflow-x:auto;max-height:450px;line-height:1.6;"><code>${_esc(mat.content)}</code></pre>
+        <div style="position:relative;">
+          <button class="ws-btn-secondary" style="position:absolute;top:10px;right:10px;font-size:11px;padding:3px 8px;z-index:2;" onclick="navigator.clipboard.writeText(decodeURIComponent('${encodeURIComponent(mat.content)}'));if(window.LMToast)window.LMToast.show('📋 Code copied to clipboard!');">
+            📋 Copy Code
+          </button>
+          <pre style="background:#0f172a;padding:16px;border-radius:10px;color:#38bdf8;font-family:'JetBrains Mono',monospace;font-size:13px;overflow-x:auto;max-height:450px;line-height:1.6;border:1px solid rgba(56,189,248,0.2);"><code>${_esc(mat.content)}</code></pre>
+        </div>
       `;
     } else if (mat.material_type === 'link' || mat.material_type === 'video') {
       bodyHtml = `
-        <div style="padding:16px;background:rgba(255,255,255,0.03);border-radius:10px;">
-          <p style="font-size:13px;color:var(--text);margin-bottom:12px;">${_esc(mat.content || mat.title)}</p>
-          <a href="${_esc(mat.external_url)}" target="_blank" rel="noopener" class="ws-btn-primary" style="text-decoration:none;display:inline-flex;">
-            🔗 Open Link in New Tab ↗
+        <div style="padding:20px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid var(--border,#262f45);text-align:center;">
+          <div style="font-size:32px;margin-bottom:10px;">${mat.material_type === 'video' ? '🎥' : '🔗'}</div>
+          <p style="font-size:13px;color:var(--text);margin-bottom:16px;max-width:500px;margin-left:auto;margin-right:auto;">${_esc(mat.content || mat.title)}</p>
+          <a href="${_esc(displayUrl)}" target="_blank" rel="noopener" class="ws-btn-primary" style="text-decoration:none;display:inline-flex;">
+            🚀 Open ${mat.material_type === 'video' ? 'Video' : 'Documentation Link'} in New Tab ↗
           </a>
         </div>
       `;
     } else {
       bodyHtml = `
-        <div style="font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;background:rgba(255,255,255,0.02);padding:16px;border-radius:10px;">${_esc(mat.content)}</div>
+        <div style="font-size:13.5px;color:var(--text);line-height:1.75;white-space:pre-wrap;background:rgba(255,255,255,0.02);padding:18px;border-radius:10px;border:1px solid var(--border,#262f45);">${_esc(mat.content || mat.title)}</div>
+        ${displayUrl ? `
+          <div style="margin-top:14px;">
+            <a href="${_esc(displayUrl)}" target="_blank" rel="noopener" class="ws-btn-secondary" style="text-decoration:none;font-size:12px;">
+              📥 Download Document Attachment ↗
+            </a>
+          </div>
+        ` : ''}
       `;
     }
 
@@ -873,7 +1194,10 @@
         <div class="ws-modal-body">
           ${bodyHtml}
         </div>
-        <div class="ws-modal-footer">
+        <div class="ws-modal-footer" style="justify-content:space-between;">
+          <button class="ws-btn-danger" onclick="window.StudyWorkspace.deleteMaterial('${mat.id}');document.getElementById('materialViewerModal')?.remove();">
+            🗑️ Delete Material
+          </button>
           <button class="ws-btn-secondary" onclick="document.getElementById('materialViewerModal')?.remove()">Close</button>
         </div>
       </div>
@@ -882,7 +1206,173 @@
     document.body.appendChild(modal);
   }
 
-  // ── 10. WIDGET CUSTOMIZER DRAWER ───────────────────────────────────────────
+  // ── 11. CASCADED DELETION ENGINE (SECTIONS, MODULES, TOPICS, MATERIALS) ─────
+  /**
+   * Deletes a custom language/domain and all its cascaded items:
+   * categories, topics, materials, storage files, time logs, and preferences.
+   */
+  function confirmDeleteDomain(domainId) {
+    var dom = _state.domains.find(function (d) { return d.id === domainId; });
+    if (!dom) return;
+
+    var existing = document.getElementById('deleteConfirmModal');
+    if (existing) existing.remove();
+
+    var domCats = _state.categories.filter(function (c) { return c.domain_id === domainId; });
+    var catIds = new Set(domCats.map(function (c) { return c.id; }));
+    var domTopics = _state.topics.filter(function (t) { return catIds.has(t.category_id); });
+    var topIds = new Set(domTopics.map(function (t) { return t.id; }));
+    var domMats = _state.materials.filter(function (m) { return topIds.has(m.topic_id); });
+
+    var modal = document.createElement('div');
+    modal.id = 'deleteConfirmModal';
+    modal.className = 'ws-modal-overlay';
+
+    modal.innerHTML = `
+      <div class="ws-modal-dialog" style="max-width:500px;">
+        <div class="ws-modal-header">
+          <div class="ws-modal-title" style="color:#fb7185;">
+            <span>⚠️</span> Delete Custom Section
+          </div>
+          <button class="ws-modal-close" onclick="document.getElementById('deleteConfirmModal')?.remove()">✕</button>
+        </div>
+        <div class="ws-modal-body">
+          <div class="danger-warning-box">
+            <div class="danger-warning-title">🚨 Permanent Action Warning</div>
+            Are you sure you want to completely delete the section <strong>"${_esc(dom.title)}"</strong>?
+          </div>
+          <p style="font-size:12.5px;color:var(--text2);margin-bottom:12px;">
+            This will permanently erase all associated data across the workspace and database:
+          </p>
+          <ul style="font-size:12px;color:var(--text3);padding-left:18px;line-height:1.6;margin-bottom:16px;">
+            <li><strong>${domCats.length}</strong> Modules / Categories</li>
+            <li><strong>${domTopics.length}</strong> Study Topics &amp; Practice Questions</li>
+            <li><strong>${domMats.length}</strong> Study Materials, Notes &amp; Attached Files</li>
+            <li>All study focus time logs and session tracking</li>
+          </ul>
+        </div>
+        <div class="ws-modal-footer">
+          <button class="ws-btn-danger-solid" onclick="window.StudyWorkspace.deleteDomain('${domainId}')">
+            🗑️ Yes, Delete Section &amp; All Data
+          </button>
+          <button class="ws-btn-secondary" onclick="document.getElementById('deleteConfirmModal')?.remove()">
+            Cancel
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  }
+
+  function deleteDomain(domainId) {
+    var dom = _state.domains.find(function (d) { return d.id === domainId; });
+    var domTitle = dom ? dom.title : 'Section';
+
+    // 1. Collect child IDs
+    var domCats = _state.categories.filter(function (c) { return c.domain_id === domainId; });
+    var catIds = new Set(domCats.map(function (c) { return c.id; }));
+    var domTopics = _state.topics.filter(function (t) { return catIds.has(t.category_id); });
+    var topIds = new Set(domTopics.map(function (t) { return t.id; }));
+    var domMats = _state.materials.filter(function (m) { return topIds.has(m.topic_id); });
+
+    // 2. Remove files from Supabase Storage bucket if any
+    var storagePaths = domMats.map(function (m) { return m.storage_path; }).filter(Boolean);
+    if (storagePaths.length > 0 && typeof _supabase !== 'undefined' && _supabase?.storage) {
+      _supabase.storage.from(STORAGE_BUCKET).remove(storagePaths).catch(function () {});
+    }
+
+    // 3. Delete from Supabase Database tables
+    _getUid().then(function (uid) {
+      if (uid && typeof _supabase !== 'undefined' && _supabase) {
+        _supabase.from('study_custom_domains').delete().eq('id', domainId).then(function () {});
+        _supabase.from('study_time_logs').delete().eq('domain_id', domainId).then(function () {});
+      }
+    });
+
+    // 4. Clean in-memory state
+    _state.domains = _state.domains.filter(function (d) { return d.id !== domainId; });
+    _state.categories = _state.categories.filter(function (c) { return c.domain_id !== domainId; });
+    _state.topics = _state.topics.filter(function (t) { return !catIds.has(t.category_id); });
+    _state.materials = _state.materials.filter(function (m) { return !topIds.has(m.topic_id); });
+    _state.timeLogs = _state.timeLogs.filter(function (l) { return l.domain_id !== domainId && !topIds.has(l.topic_id); });
+
+    // 5. Clear resume learning if pointed to this domain/topics
+    if (_state.prefs.last_active_topic && (_state.prefs.last_active_topic.domainId === domainId || topIds.has(_state.prefs.last_active_topic.topicId))) {
+      clearLastActiveTopic();
+    }
+
+    // 6. Clean localStorage
+    try {
+      localStorage.removeItem('lm_lang_sec_collapsed_' + domainId);
+    } catch (e) {}
+
+    _saveLocal();
+
+    document.getElementById('deleteConfirmModal')?.remove();
+    document.getElementById('widgetCustomizerDrawer')?.remove();
+
+    if (window.LMToast) {
+      window.LMToast.show('🗑️ Section "' + domTitle + '" and all associated data cleared!');
+    }
+
+    renderAllWidgets();
+  }
+
+  function deleteTopic(topicId) {
+    var t = _state.topics.find(function (x) { return x.id === topicId; });
+    if (!t) return;
+    if (!confirm('Are you sure you want to delete topic "' + t.title + '" and its attached materials?')) return;
+
+    var mats = _state.materials.filter(function (m) { return m.topic_id === topicId; });
+    var storagePaths = mats.map(function (m) { return m.storage_path; }).filter(Boolean);
+    if (storagePaths.length > 0 && typeof _supabase !== 'undefined' && _supabase?.storage) {
+      _supabase.storage.from(STORAGE_BUCKET).remove(storagePaths).catch(function () {});
+    }
+
+    _getUid().then(function (uid) {
+      if (uid && typeof _supabase !== 'undefined' && _supabase) {
+        _supabase.from('study_custom_topics').delete().eq('id', topicId).then(function () {});
+        _supabase.from('study_materials').delete().eq('topic_id', topicId).then(function () {});
+      }
+    });
+
+    _state.topics = _state.topics.filter(function (x) { return x.id !== topicId; });
+    _state.materials = _state.materials.filter(function (m) { return m.topic_id !== topicId; });
+    if (_state.prefs.last_active_topic && _state.prefs.last_active_topic.topicId === topicId) {
+      clearLastActiveTopic();
+    }
+
+    _saveLocal();
+    document.getElementById('topicExplorerModal')?.remove();
+
+    if (window.LMToast) window.LMToast.show('🗑️ Topic deleted');
+    renderAllWidgets();
+  }
+
+  function deleteMaterial(materialId) {
+    var mat = _state.materials.find(function (m) { return m.id === materialId; });
+    if (!mat) return;
+
+    if (mat.storage_path && typeof _supabase !== 'undefined' && _supabase?.storage) {
+      _supabase.storage.from(STORAGE_BUCKET).remove([mat.storage_path]).catch(function () {});
+    }
+
+    _getUid().then(function (uid) {
+      if (uid && typeof _supabase !== 'undefined' && _supabase) {
+        _supabase.from('study_materials').delete().eq('id', materialId).then(function () {});
+      }
+    });
+
+    _state.materials = _state.materials.filter(function (m) { return m.id !== materialId; });
+    _saveLocal();
+
+    if (window.LMToast) window.LMToast.show('🗑️ Material removed');
+    if (mat.topic_id) openTopicExplorer(mat.topic_id);
+    renderAllWidgets();
+  }
+
+  // ── 12. WIDGET CUSTOMIZER DRAWER ───────────────────────────────────────────
   function _isWidgetVisible(widgetKey) {
     return (_state.prefs.active_widgets || []).indexOf(widgetKey) !== -1;
   }
@@ -922,6 +1412,28 @@
       `;
     }).join('');
 
+    // Custom sections list in drawer with delete option
+    var customSecRows = _state.domains.length > 0 ? _state.domains.map(function (d) {
+      var dCats = _state.categories.filter(function (c) { return c.domain_id === d.id; });
+      var cIds = new Set(dCats.map(function (c) { return c.id; }));
+      var dTops = _state.topics.filter(function (t) { return cIds.has(t.category_id); });
+      return `
+        <div class="customizer-section-item">
+          <div class="customizer-section-left">
+            <span class="customizer-section-icon" style="background:${d.color}20;color:${d.color};">${d.icon}</span>
+            <div style="min-width:0;">
+              <div class="customizer-section-title">${_esc(d.title)}</div>
+              <div class="customizer-section-badge">${dTops.length} topic${dTops.length!==1?'s':''}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button class="ws-btn-secondary" style="font-size:11px;padding:3px 7px;" onclick="window.StudyWorkspace.openAddTopicModal('${dCats[0]?dCats[0].id:''}')" title="Add topic">➕</button>
+            <button class="ws-btn-danger" style="font-size:11px;padding:3px 7px;" onclick="window.StudyWorkspace.confirmDeleteDomain('${d.id}')" title="Delete entire section">🗑️</button>
+          </div>
+        </div>
+      `;
+    }).join('') : '<div style="font-size:11.5px;color:var(--text3);padding:10px;background:rgba(255,255,255,0.02);border-radius:8px;">No custom sections added yet.</div>';
+
     drawer.innerHTML = `
       <div class="drawer-header">
         <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);">⚙️ Customize Workspace &amp; Dashboard</div>
@@ -932,12 +1444,20 @@
           <button class="ws-btn-primary" onclick="window.StudyWorkspace.openAddDomainModal();document.getElementById('widgetCustomizerDrawer')?.remove();" style="width:100%;justify-content:center;">
             ➕ Add New Language / Section
           </button>
+          <button class="ws-btn-primary" onclick="window.StudyWorkspace.openQuickUploadModal();document.getElementById('widgetCustomizerDrawer')?.remove();" style="width:100%;justify-content:center;background:linear-gradient(135deg,#4f8ef7,#8b5cf6);">
+            📤 Upload Material to Supabase
+          </button>
           <button class="ws-btn-secondary" onclick="window.StudyWorkspace.openTemplateModal();document.getElementById('widgetCustomizerDrawer')?.remove();" style="width:100%;justify-content:center;">
             📦 Import Curriculum Blueprint
           </button>
           <button class="ws-btn-secondary" onclick="window.StudyWorkspace.openGoalModal();document.getElementById('widgetCustomizerDrawer')?.remove();" style="width:100%;justify-content:center;">
             🎯 Set Learning Goal &amp; Milestones
           </button>
+        </div>
+
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.05em;">Manage Added Sections</div>
+        <div class="customizer-sections-list">
+          ${customSecRows}
         </div>
 
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.05em;">Dashboard Widget Visibility</div>
@@ -960,7 +1480,7 @@
     _saveLocal();
 
     _getUid().then(function (uid) {
-      if (uid) {
+      if (uid && typeof _supabase !== 'undefined' && _supabase) {
         _supabase.from('study_user_preferences').upsert({
           user_id: uid,
           active_widgets: list,
@@ -972,7 +1492,7 @@
     renderAllWidgets();
   }
 
-  // ── 11. PRE-BUILT ROADMAP TEMPLATES ────────────────────────────────────────
+  // ── 13. PRE-BUILT ROADMAP TEMPLATES ────────────────────────────────────────
   var TEMPLATES = [
     {
       id: 'tpl_python',
@@ -1098,7 +1618,7 @@
 
     _saveLocal();
     _getUid().then(function (uid) {
-      if (uid) {
+      if (uid && typeof _supabase !== 'undefined' && _supabase) {
         _supabase.from('study_custom_domains').insert(Object.assign({ user_id: uid }, newDomain)).then(function () {});
       }
     });
@@ -1107,7 +1627,7 @@
     renderAllWidgets();
   }
 
-  // ── 12. GOAL MODAL ─────────────────────────────────────────────────────────
+  // ── 14. GOAL MODAL ─────────────────────────────────────────────────────────
   function openGoalModal() {
     var existing = document.getElementById('addGoalModal');
     if (existing) existing.remove();
@@ -1194,7 +1714,7 @@
     _saveLocal();
 
     _getUid().then(function (uid) {
-      if (uid) {
+      if (uid && typeof _supabase !== 'undefined' && _supabase) {
         _supabase.from('study_learning_goals').insert(Object.assign({ user_id: uid }, newGoal)).then(function () {});
       }
     });
@@ -1204,7 +1724,7 @@
     renderAllWidgets();
   }
 
-  // ── 13. TOPIC EXPLORER & DETAIL MODAL ──────────────────────────────────────
+  // ── 15. TOPIC EXPLORER & DETAIL MODAL ──────────────────────────────────────
   function openTopicExplorer(topicId) {
     var t = _state.topics.find(function (x) { return x.id === topicId; });
     if (!t) return;
@@ -1237,12 +1757,15 @@
         <div class="material-card" onclick="window.StudyWorkspace.openMaterialViewer('${m.id}')">
           <div class="material-top">
             <span class="material-type-tag ${m.material_type}">${m.material_type}</span>
-            <span style="font-size:11px;color:var(--text3);">${m.file_size_bytes ? Math.round(m.file_size_bytes/1024) + ' KB' : 'Document'}</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;color:var(--text3);">${m.file_size_bytes ? Math.round(m.file_size_bytes/1024) + ' KB' : 'Document'}</span>
+              <button class="ws-modal-close" style="font-size:14px;padding:2px;" onclick="event.stopPropagation();window.StudyWorkspace.deleteMaterial('${m.id}')" title="Delete attachment">🗑️</button>
+            </div>
           </div>
           <div class="material-title">${_esc(m.title)}</div>
         </div>
       `;
-    }).join('') : '<div style="color:var(--text3);font-size:12px;padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;">No attached materials yet. Click "+ Add Material" to upload a PDF or note.</div>';
+    }).join('') : '<div style="color:var(--text3);font-size:12px;padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;">No attached materials yet. Click "+ Add Material" or drop a file to upload.</div>';
 
     modal.innerHTML = `
       <div class="ws-modal-dialog wide">
@@ -1250,7 +1773,10 @@
           <div class="ws-modal-title">
             <span>📖</span> ${_esc(t.title)}
           </div>
-          <button class="ws-modal-close" onclick="document.getElementById('topicExplorerModal')?.remove()">✕</button>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="ws-btn-danger" onclick="window.StudyWorkspace.deleteTopic('${t.id}')" title="Delete topic">🗑️ Delete Topic</button>
+            <button class="ws-modal-close" onclick="document.getElementById('topicExplorerModal')?.remove()">✕</button>
+          </div>
         </div>
         <div class="ws-modal-body">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
@@ -1272,8 +1798,8 @@
 
           <div>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <label class="ws-form-label" style="margin:0;">📚 Study Materials &amp; Attachments</label>
-              ${_state.canCustomize ? `<button class="ws-btn-secondary" style="font-size:11px;padding:3px 8px;" onclick="window.StudyWorkspace.openAddMaterialModal('${t.id}')">+ Add Material</button>` : ''}
+              <label class="ws-form-label" style="margin:0;">📚 Study Materials &amp; Uploaded Files</label>
+              ${_state.canCustomize ? `<button class="ws-btn-secondary" style="font-size:11px;padding:3px 8px;" onclick="window.StudyWorkspace.openAddMaterialModal('${t.id}')">📤 + Add / Upload Material</button>` : ''}
             </div>
             <div class="materials-grid">
               ${matsHtml}
@@ -1298,13 +1824,13 @@
     t.notes = notes;
     _saveLocal();
     _getUid().then(function (uid) {
-      if (uid) {
+      if (uid && typeof _supabase !== 'undefined' && _supabase) {
         _supabase.from('study_custom_topics').update({ notes: notes, updated_at: new Date().toISOString() }).eq('id', topicId).then(function () {});
       }
     });
   }
 
-  // ── 14. RENDER ALL WIDGETS & CUSTOM SECTIONS ───────────────────────────────
+  // ── 16. RENDER ALL WIDGETS & CUSTOM SECTIONS ───────────────────────────────
   function renderAllWidgets() {
     renderResumeHero();
     initPomodoroWidget();
@@ -1366,7 +1892,7 @@
       var isSecCollapsed = false;
       try {
         isSecCollapsed = localStorage.getItem('lm_lang_sec_collapsed_' + dom.id) === 'true';
-      } catch(e){}
+      } catch (e) {}
 
       return `
         <section class="lang-section custom-workspace-domain-section" id="lang-section-${dom.id}" data-lang-id="${dom.id}">
@@ -1384,8 +1910,9 @@
               </div>
             </div>
             ${_state.canCustomize ? `
-              <div style="display:flex;gap:6px;" onclick="event.stopPropagation()">
+              <div style="display:flex;gap:6px;align-items:center;" onclick="event.stopPropagation()">
                 <button class="ws-btn-secondary" style="font-size:11px;padding:4px 8px;" onclick="event.stopPropagation();window.StudyWorkspace.openAddTopicModal('${domCats[0]?domCats[0].id:''}')">+ Add Topic</button>
+                <button class="ws-btn-danger" style="font-size:11px;padding:4px 8px;" onclick="event.stopPropagation();window.StudyWorkspace.confirmDeleteDomain('${dom.id}')" title="Delete this section and all associated topics/materials">🗑️ Delete Section</button>
               </div>
             ` : ''}
           </div>
@@ -1399,7 +1926,7 @@
     container.insertAdjacentHTML('beforeend', customHtml);
   }
 
-  // ── Public API ──
+  // ── 17. PUBLIC API EXPORTS ─────────────────────────────────────────────────
   window.StudyWorkspace = {
     init: init,
     renderAllWidgets: renderAllWidgets,
@@ -1422,6 +1949,13 @@
     saveNewTopic: saveNewTopic,
     openAddMaterialModal: openAddMaterialModal,
     saveNewMaterial: saveNewMaterial,
+    openQuickUploadModal: openQuickUploadModal,
+    saveQuickUpload: saveQuickUpload,
+    handleFileSelected: handleFileSelected,
+    handleDropzoneDrop: handleDropzoneDrop,
+    handleDropzoneDragOver: handleDropzoneDragOver,
+    handleDropzoneDragLeave: handleDropzoneDragLeave,
+    uploadFileToStorage: uploadFileToStorage,
     openMaterialViewer: openMaterialViewer,
     openTemplateModal: openTemplateModal,
     importTemplate: importTemplate,
@@ -1429,6 +1963,10 @@
     saveNewGoal: saveNewGoal,
     openTopicExplorer: openTopicExplorer,
     updateTopicNotes: updateTopicNotes,
+    confirmDeleteDomain: confirmDeleteDomain,
+    deleteDomain: deleteDomain,
+    deleteTopic: deleteTopic,
+    deleteMaterial: deleteMaterial,
     getState: function () { return _state; }
   };
 
