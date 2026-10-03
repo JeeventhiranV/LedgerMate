@@ -22,31 +22,33 @@ android {
     signingConfigs {
         release {
             def ksPath = (System.getenv("KEYSTORE_PATH") ?: (project.hasProperty("KEYSTORE_PATH") ? project.property("KEYSTORE_PATH") : "release.keystore")).toString().trim()
-            if (ksPath.isEmpty()) ksPath = "release.keystore"
-            def ksPass = (System.getenv("KEYSTORE_PASSWORD") ?: (project.hasProperty("KEYSTORE_PASSWORD") ? project.property("KEYSTORE_PASSWORD") : "ledgermate123")).toString().trim()
-            if (ksPass.isEmpty()) ksPass = "ledgermate123"
-            def kAlias = (System.getenv("KEY_ALIAS") ?: (project.hasProperty("KEY_ALIAS") ? project.property("KEY_ALIAS") : "ledgermate")).toString().trim()
-            if (kAlias.isEmpty()) kAlias = "ledgermate"
-            def kPass  = (System.getenv("KEY_PASSWORD") ?: (project.hasProperty("KEY_PASSWORD") ? project.property("KEY_PASSWORD") : "ledgermate123")).toString().trim()
-            if (kPass.isEmpty()) kPass = "ledgermate123"
+            def ksPass = (System.getenv("KEYSTORE_PASSWORD") ?: (project.hasProperty("KEYSTORE_PASSWORD") ? project.property("KEYSTORE_PASSWORD") : "")).toString().trim()
+            def kAlias = (System.getenv("KEY_ALIAS") ?: (project.hasProperty("KEY_ALIAS") ? project.property("KEY_ALIAS") : "")).toString().trim()
+            def kPass  = (System.getenv("KEY_PASSWORD") ?: (project.hasProperty("KEY_PASSWORD") ? project.property("KEY_PASSWORD") : "")).toString().trim()
 
-            storeFile file(ksPath)
-            storePassword ksPass
-            keyAlias kAlias
-            keyPassword kPass
-            v1SigningEnabled true
-            v2SigningEnabled true
+            if (file(ksPath).exists() && !ksPass.isEmpty() && !kAlias.isEmpty() && !kPass.isEmpty()) {
+                storeFile file(ksPath)
+                storePassword ksPass
+                keyAlias kAlias
+                keyPassword kPass
+                v1SigningEnabled true
+                v2SigningEnabled true
+            }
         }
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig signingConfigs.release
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
+            }
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
-            signingConfig signingConfigs.release
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     compileOptions {

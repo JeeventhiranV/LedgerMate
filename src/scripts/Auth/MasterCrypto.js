@@ -42,6 +42,27 @@
     );
   }
 
+  var _autoLockTimer = null;
+  var AUTO_LOCK_MS = 15 * 60 * 1000; // 15 minutes of inactivity
+
+  function resetAutoLock() {
+    if (_autoLockTimer) clearTimeout(_autoLockTimer);
+    if (_masterKey) {
+      _autoLockTimer = setTimeout(function () {
+        lockVault();
+        console.log('[MasterCrypto] 🔒 Vault automatically locked due to inactivity.');
+      }, AUTO_LOCK_MS);
+    }
+  }
+
+  function lockVault() {
+    _masterKey = null;
+    if (_autoLockTimer) {
+      clearTimeout(_autoLockTimer);
+      _autoLockTimer = null;
+    }
+  }
+
   /**
    * Initialize master encryption with user password or PIN
    */
@@ -57,6 +78,7 @@
 
     _activeSalt = Array.from(saltBytes).map(b => b.toString(16).padStart(2, '0')).join('');
     _masterKey = await deriveKeyFromSecret(passphraseOrPin, saltBytes);
+    resetAutoLock();
     console.log('[MasterCrypto] 🔐 Zero-Knowledge encryption engine initialized (AES-256-GCM).');
     return true;
   }
@@ -71,6 +93,7 @@
       // If master key not explicitly unlocked, return plain text with warning
       return plaintext;
     }
+    resetAutoLock();
     try {
       var enc = new TextEncoder();
       var iv = crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV for AES-GCM
@@ -109,6 +132,7 @@
       console.warn('[MasterCrypto] Cannot decrypt: Master key is locked');
       return '[Locked Vault Record]';
     }
+    resetAutoLock();
     try {
       var ivBytes = new Uint8Array(atob(encryptedPackage.iv).split('').map(c => c.charCodeAt(0)));
       var dataBytes = new Uint8Array(atob(encryptedPackage.data).split('').map(c => c.charCodeAt(0)));
@@ -131,6 +155,7 @@
     initMasterKey,
     encryptText,
     decryptText,
+    lockVault,
     isUnlocked: () => !!_masterKey,
     getSalt: () => _activeSalt
   };
