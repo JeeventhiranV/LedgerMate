@@ -619,6 +619,7 @@
     const role = u.role || fallbackRole || 'user';
     const allowedMods = u.allowed_modules !== undefined ? u.allowed_modules : fallbackAllowed;
     const studyMods = u.study_modules !== undefined ? u.study_modules : fallbackStudy;
+    const canCustomizeStudy = u.can_customize_study !== undefined ? !!u.can_customize_study : (role === 'admin');
 
     let finAllowed = [];
     if (allowedMods === null || allowedMods === undefined || (Array.isArray(allowedMods) && allowedMods.length === 0)) {
@@ -687,6 +688,15 @@
     <div class="admin-module-grid" style="max-height:130px;overflow-y:auto;background:rgba(0,0,0,0.15);padding:8px;border-radius:8px;">${studyCheckboxes}</div>
   </div>
 
+  <!-- ✨ Personal Learning Workspace Customization Permission -->
+  <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;background:rgba(79,142,247,0.06);border:1px solid rgba(79,142,247,0.22);border-radius:10px;margin-bottom:18px;">
+    <input type="checkbox" id="cfg_study_customizer" ${canCustomizeStudy ? 'checked' : ''} style="width:16px;height:16px;margin-top:2px;accent-color:#4f8ef7;cursor:pointer;">
+    <div>
+      <div style="font-size:12px;font-weight:700;color:var(--text);">✨ Allow Personal Learning Workspace Customization</div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Allows user to add custom languages/topics, upload materials, customize dashboard widgets, and set personal milestones.</div>
+    </div>
+  </label>
+
   <div id="cfgModalErr" style="display:none;color:#fb7185;font-size:12px;margin-bottom:12px;padding:8px 12px;background:rgba(251,113,133,0.1);border-radius:8px;"></div>
 
   <div style="display:flex;gap:10px;">
@@ -711,6 +721,7 @@
     const role = document.getElementById('cfg_role_select')?.value || 'user';
     const finMods = ALL_MODULES.filter(m => document.getElementById('cfg_fin_' + m.key)?.checked).map(m => m.key);
     const stdMods = STUDY_MODULES.filter(m => document.getElementById('cfg_std_' + m.key)?.checked).map(m => m.key);
+    const canCustomize = document.getElementById('cfg_study_customizer')?.checked || (role === 'admin');
 
     const allowedFinance = finMods.length === ALL_MODULES.length ? [] : finMods;
     const allowedStudy   = stdMods.length === STUDY_MODULES.length ? null : stdMods;
@@ -723,6 +734,7 @@
         role: role,
         allowed_modules: allowedFinance,
         study_modules: allowedStudy,
+        can_customize_study: canCustomize,
         updated_at: new Date().toISOString()
       }).eq('id', userId);
       if (error) throw error;
@@ -1097,6 +1109,8 @@
       ? STUDY_MODULES.map(m => m.key)
       : (Array.isArray(currentModules) ? currentModules : []);
 
+    const canCustomize = u.can_customize_study !== undefined ? !!u.can_customize_study : (u.role === 'admin');
+
     const moduleCheckboxes = STUDY_MODULES.map(m => {
       const checked = currentModules === null || allowedKeys.indexOf(m.key) !== -1;
       return `<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:5px 0;">
@@ -1123,11 +1137,19 @@
     Choose which Study Hub modules this user can open. Admins always have full access.
   </p>
 
-  <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:12px 14px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.2);border-radius:10px;margin-bottom:16px;">
+  <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:12px 14px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.2);border-radius:10px;margin-bottom:14px;">
     <input type="checkbox" id="study_access_enabled" ${hasAccess ? 'checked' : ''} style="width:17px;height:17px;cursor:pointer;accent-color:#8b5cf6;flex-shrink:0;">
     <div>
       <div style="font-size:13px;font-weight:600;color:var(--text);">Enable Study Hub access</div>
       <div style="font-size:11px;color:var(--text-3);">Uncheck to block all study modules for this user</div>
+    </div>
+  </label>
+
+  <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px 12px;background:rgba(79,142,247,0.06);border:1px solid rgba(79,142,247,0.2);border-radius:10px;margin-bottom:16px;">
+    <input type="checkbox" id="study_modal_customizer" ${canCustomize ? 'checked' : ''} style="width:16px;height:16px;margin-top:2px;accent-color:#4f8ef7;cursor:pointer;">
+    <div>
+      <div style="font-size:12px;font-weight:700;color:var(--text);">✨ Personal Workspace Customization</div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:1px;">Allows adding custom languages, uploading materials, and custom widgets.</div>
     </div>
   </label>
 
@@ -1152,6 +1174,7 @@
 
   async function _saveStudyAccess(userId) {
     const enabled = document.getElementById('study_access_enabled')?.checked;
+    const canCust = document.getElementById('study_modal_customizer')?.checked;
     let studyModules;
     if (!enabled) {
       studyModules = [];
@@ -1161,7 +1184,7 @@
     }
 
     document.getElementById('lm-study-modal')?.remove();
-    await _updateProfile(userId, { study_modules: studyModules, updated_at: new Date().toISOString() }, 'Study access updated ✓');
+    await _updateProfile(userId, { study_modules: studyModules, can_customize_study: !!canCust, updated_at: new Date().toISOString() }, 'Study access updated ✓');
   }
 
   /* ── Delete User Permanently ───────────────────────── */

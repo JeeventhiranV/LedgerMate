@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="styles/study-hub.css"/>
 <link rel="stylesheet" href="styles/study-responsive.css"/>
+<link rel="stylesheet" href="styles/study-workspace.css"/>
 <link rel="stylesheet" href="../src/styles/responsive-upgrades.css"/>
 <!-- Auth: Supabase SDK → config → guard → toast → StudySync (order matters) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -24,6 +25,7 @@
 <script src="../src/scripts/Common/AppUpdateService.js"></script>
 <script src="js/lm-toast.js"></script>
 <script src="js/StudySync.js"></script>
+<script src="js/StudyCustomWorkspace.js"></script>
 <script src="js/community-hub.js"></script>
 <script src="js/StudyTimer.js"></script>
 <script src="js/StudySRS.js"></script>
@@ -81,6 +83,12 @@ if ('serviceWorker' in navigator) {
       </button>
       <button class="topbar-tool-btn btn-notes" onclick="openNotesSearch()" title="Search your notes (Ctrl+/)">
         <span class="tool-ico">🗒</span><span class="tool-lbl">Search Notes</span>
+      </button>
+      <button class="topbar-tool-btn btn-customizer" onclick="window.StudyWorkspace?.openWidgetCustomizer()" title="Customize Dashboard &amp; Widgets">
+        <span class="tool-ico">⚙️</span><span class="tool-lbl">Customize</span>
+      </button>
+      <button class="topbar-tool-btn btn-roadmap" onclick="window.StudyWorkspace?.importTemplate('tpl_python')" title="Import Ready-Made Roadmap Blueprints">
+        <span class="tool-ico">📦</span><span class="tool-lbl">Roadmaps</span>
       </button>
     </div>
     <div class="topbar-utils">
@@ -289,10 +297,15 @@ if ('serviceWorker' in navigator) {
     </div>
 
     <!-- Interview Countdown -->
-    <div class="countdown-widget" id="cdWidget"></div>
-
   </div>
 </div>
+
+<!-- ═══ RESUME LEARNING HERO BANNER ═══ -->
+<div id="resumeHeroContainer"></div>
+
+<!-- ═══ FOCUS POMODORO & LEARNING GOALS WIDGETS ═══ -->
+<div id="pomodoroWidgetContainer" style="max-width:1200px;margin:0 auto;padding:0 24px;"></div>
+<div id="goalsWidgetContainer" style="max-width:1200px;margin:0 auto;padding:0 24px;"></div>
 
 <!-- ═══ DASHBOARD PANEL ═══ -->
 <div class="dash-panel">
@@ -416,6 +429,24 @@ if ('serviceWorker' in navigator) {
       <div class="wg-day">M</div><div class="wg-day">T</div><div class="wg-day">W</div>
       <div class="wg-day">T</div><div class="wg-day">F</div><div class="wg-day">S</div><div class="wg-day">S</div>
     </div>
+  </div>
+</div>
+
+<!-- WORKSPACE CONTROLS & 4-STATE STATUS BAR -->
+<div class="workspace-controls-bar" id="workspaceControlsBar">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <button class="ws-btn-primary" onclick="window.StudyWorkspace?.importTemplate('tpl_python')" title="Import Roadmaps">
+      <span>📦</span> Import Roadmap Template
+    </button>
+    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openWidgetCustomizer()" title="Customize Dashboard">
+      <span>⚙️</span> Customize Dashboard
+    </button>
+  </div>
+  <div style="font-size:11.5px;color:var(--text3);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+    <span class="st-badge st-pending">⚪ Pending</span>
+    <span class="st-badge st-inprogress">⏳ In Progress</span>
+    <span class="st-badge st-completed">✅ Completed</span>
+    <span class="st-badge st-onhold">⏸️ On Hold</span>
   </div>
 </div>
 

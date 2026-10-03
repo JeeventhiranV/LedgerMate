@@ -210,20 +210,17 @@
             <div style="background:rgba(0,0,0,.3);padding:8px 12px;border-radius:8px;">
               <div style="font-size:10px;color:#8896b8;">Auxiliary Space</div>
               <div style="font-size:16px;font-weight:800;color:#00d4b4;font-family:monospace;">${analysis2.space}</div>
+            <div style="margin-top:10px;font-size:11px;color:#cbd5e1;">
+              <strong>Edge Cases to Check in Interview:</strong>
+              <ul style="margin:4px 0 0 16px;color:#8896b8;">
+                <li>Empty input array or length &lt; 2</li>
+                <li>Duplicate elements / negative numbers / overflow</li>
+                <li>Single element corner cases &amp; boundary limits</li>
+              </ul>
             </div>
-          </div>
-        `;
-      }
-    };
-          <strong>Edge Cases to Check in Interview:</strong>
-          <ul style="margin:4px 0 0 16px;color:#8896b8;">
-            <li>Empty input array or length &lt; 2</li>
-            <li>Duplicate elements / negative numbers / overflow</li>
-            <li>Single element corner cases & boundary limits</li>
-          </ul>
-        </div>
-      `;
-    };
+          `;
+        }
+      };
 
     // Evaluate STAR
     document.getElementById('study-ai-star-btn').onclick = function () {
