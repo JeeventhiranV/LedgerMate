@@ -252,10 +252,23 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 
 /* ── SECTION ── */
 .section{max-width:1200px;margin:0 auto;padding:0 24px 48px}
-.section-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:24px}
 .section-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:var(--text)}
 .section-count{font-size:12px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:2px 10px;font-family:'JetBrains Mono',monospace}
 .section-line{flex:1;height:1px;background:var(--border)}
+
+/* ── LANGUAGE & DOMAIN SECTIONS ── */
+.lang-section{margin-bottom:42px;position:relative;scroll-margin-top:72px}
+.lang-section:last-child{margin-bottom:0}
+.lang-section-header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.lang-section-left{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
+.lang-section-icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:20px;flex-shrink:0;border:1px solid rgba(255,255,255,0.08)}
+.lang-section-info{min-width:0;flex:1}
+.lang-section-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lang-section-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--text);margin:0}
+.lang-badge{font-size:10px;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:20px;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.lang-count-badge{font-size:11px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:2px 9px;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.lang-section-tagline{font-size:12px;color:var(--text2);margin-top:2px;line-height:1.4}
 
 /* ── RESOURCE GRID ── */
 .resource-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}
@@ -1022,3 +1035,14 @@ a.activity-item:hover{background:rgba(255,255,255,.04)}
   border-color: #cbd5e1;
   color: #0f172a;
 }
+
+[data-theme="light"] .lang-section-icon {
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .lang-count-badge {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+

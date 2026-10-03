@@ -421,13 +421,14 @@ if ('serviceWorker' in navigator) {
 
 <!-- FILTER BAR -->
 <div class="filter-bar">
-  <span class="filter-label">Filter:</span>
+  <span class="filter-label">Domain:</span>
   <div class="filter-chips" id="filterChips">
-    <button class="chip active" data-filter="all">All</button>
-    <button class="chip" data-filter="dsa">DSA & Algorithms</button>
-    <button class="chip" data-filter="java">Java</button>
-    <button class="chip" data-filter="frontend">Frontend</button>
-    <button class="chip" data-filter="pdf">PDF Library</button>
+    <button class="chip active" data-filter="all">🌐 All Domains</button>
+    <button class="chip" data-filter="java">☕ Java Ecosystem</button>
+    <button class="chip" data-filter="frontend">⚛️ React &amp; Frontend</button>
+    <button class="chip" data-filter="dsa">🧠 DSA &amp; Algorithms</button>
+    <button class="chip" data-filter="hr">🤝 HR &amp; Management</button>
+    <button class="chip" data-filter="tools">🎯 Trackers &amp; Tools</button>
     <button class="chip" data-filter="done">Has Progress</button>
     <button class="chip" data-filter="inprogress" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.4);color:#f59e0b">⏳ In Progress</button>
     <button class="chip chip-st-wip" data-filter="st-wip">🚧 WIP</button>
@@ -437,17 +438,17 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <!-- MAIN CONTENT -->
-<div class="section">
+<div class="section" id="resources">
   <div class="section-header">
-    <div class="section-title">Available Resources</div>
-    <span class="section-count" id="availCount">5</span>
+    <div class="section-title">Preparation Modules &amp; Resources</div>
+    <span class="section-count" id="availCount">10</span>
     <div class="section-line"></div>
   </div>
   <div id="noResults" class="no-results">
     <div class="no-results-icon">🔍</div>
     <div class="no-results-text">No resources match your search or filter.</div>
   </div>
-  <div class="resource-grid" id="resourceGrid"></div>
+  <div id="languageSectionsWrap"></div>
 
 </div>
 
@@ -500,9 +501,94 @@ if ('serviceWorker' in navigator) {
 
 <script>
 /* ══════════════════════════════════════════════════════
-   RESOURCE DATA
+   LANGUAGE & DOMAIN REGISTRY
+   Extensible Architecture: In the future, simply add any
+   new language (Python, Go, Rust, C++, etc.) here!
 ══════════════════════════════════════════════════════ */
+const LANGUAGE_DOMAINS = [
+  {
+    id: 'java',
+    title: 'Java Ecosystem',
+    icon: '☕',
+    color: '#f59e0b',
+    tagline: 'Core Java, Spring Boot, Microservices, Kafka, Low-Level Design & System Architecture',
+    badge: 'Senior Track',
+    resourceIds: ['java-kit', 'dsa-system-design', 'interview-prep-kit']
+  },
+  {
+    id: 'frontend',
+    title: 'React & Frontend',
+    icon: '⚛️',
+    color: '#4f8ef7',
+    tagline: 'React 19, Next.js, TypeScript, State Management, Web Vitals & UI Engineering',
+    badge: 'Modern UI',
+    resourceIds: ['react-hub']
+  },
+  {
+    id: 'dsa',
+    title: 'DSA & Algorithms',
+    icon: '🧠',
+    color: '#06d6a0',
+    tagline: 'Data Structures, Coding Patterns, LeetCode 171+ Solutions & Algorithm Visualizers',
+    badge: 'Problem Solving',
+    resourceIds: ['dsa-codebase', 'dsa-hub']
+  },
+  {
+    id: 'hr',
+    title: 'HR & Management Prep',
+    icon: '🤝',
+    color: '#8b5cf6',
+    tagline: 'Behavioural Questions, STAR Framework, Leadership Scenarios & Non-Tech Round Prep',
+    badge: 'Behavioural',
+    resourceIds: ['hr-kit']
+  },
+  {
+    id: 'tools',
+    title: 'Career Trackers & Tools',
+    icon: '🎯',
+    color: '#22d3ee',
+    tagline: 'Job Application Pipeline, Daily Focus Streak Analytics & Reference Managers',
+    badge: 'Productivity',
+    resourceIds: ['interview-tracker', 'daily-tracker', 'quick-links']
+  }
+];
+
 const RESOURCES = [
+  {
+    id: 'java-kit', title: 'Java Interview Prep Kit', category: 'Java Ecosystem',
+    categoryKey: 'java', moduleKey: 'java', icon: '☕',
+    desc: 'Senior-level Java prep covering Core Java, OOP, Collections, Streams, Multithreading, JVM internals, Spring Boot, Microservices, Kafka, JPA, Resilience4j, and real SOLID code examples.',
+    tags: ['Core Java','Spring Boot','Kafka','JPA','Microservices','Multithreading','SOLID','Design Patterns'],
+    color: '#f59e0b', file: 'prep/Java-Prep-kit.html', progressKey: 'java_prep_done_v1', notesKey: 'java_notes_v1', totalQ: 120, badge: 'hot'
+  },
+  {
+    id: 'dsa-system-design', title: 'Java Backend, LLD & System Design', category: 'Java Ecosystem',
+    categoryKey: 'java', moduleKey: 'dsa', icon: '🏗',
+    desc: '85 interview-ready modules across 11 categories — LLD (Parking Lot, LRU, Rate Limiter…), Concurrency, Networking, Databases, Reliability, SOLID, Design Patterns, Architecture & Messaging with production Java 21 / Spring Boot 3 code.',
+    tags: ['LLD','HLD','Concurrency','Kafka','Redis','Resilience4j','Design Patterns','SOLID','Spring Boot','Java 21'],
+    color: '#f59e0b', file: 'prep/DSA_SystemDesign.html', progressKey: 'sd_done', notesKey: null, totalQ: 85, badge: 'new'
+  },
+  {
+    id: 'interview-prep-kit', title: 'Level-Wise PDF Library & Cheat Sheets', category: 'Java Ecosystem',
+    categoryKey: 'java', moduleKey: 'ipk', icon: '📚',
+    desc: 'Complete level-wise PDF library — 83 curated PDFs across 6 experience tracks (0–3, 3–5, 5–8, 8+ yrs). Covers Java, Spring, DSA, Microservices, Kafka, SQL, System Design, DevOps and cheat sheets.',
+    tags: ['Java','Spring Boot','DSA','Microservices','Kafka','SQL','System Design','PDF Library','All Levels'],
+    color: '#f59e0b', file: 'prep/Interview-Prep-Kit.html', progressKey: 'ipk_completed_v1', notesKey: 'ipk_notes_v1', totalQ: 83, badge: 'new'
+  },
+  {
+    id: 'react-hub', title: 'Frontend & React Interview Hub', category: 'React & Frontend',
+    categoryKey: 'frontend', moduleKey: 'react', icon: '⚛️',
+    desc: 'End-to-end frontend interview prep: React hooks, context, concurrent mode, state management, component patterns, performance optimizations, SSR/CSR (Next.js), testing, accessibility, and browser internals.',
+    tags: ['React','JavaScript','HTML','CSS','Next.js','Performance','Testing','Accessibility','Web Vitals'],
+    color: '#4f8ef7', file: 'prep/React-Prep.html', progressKey: 'react_prep_done_v1', notesKey: 'react_notes_v1', totalQ: 31, badge: 'hot'
+  },
+  {
+    id: 'dsa-codebase', title: 'DSA Codebase (171+ Solutions)', category: 'DSA & Algorithms',
+    categoryKey: 'dsa', moduleKey: 'dsa', icon: '📖',
+    desc: '171 interview-ready DSA problems across 17 topics — each with a structured answer: intuition, brute/better/optimal Java 17 code, complexity tables, dry runs, edge cases, and follow-ups. Mark each problem Pending / WIP / Completed.',
+    tags: ['Arrays','Strings','Trees','Graphs','DP','Backtracking','Heaps','Tries','Binary Search','Java 17','FAANG'],
+    color: '#06d6a0', file: 'prep/DSA_CodeBase.html', progressKey: 'dsa_codebase_status_v1', notesKey: 'dsa_notes_v1', totalQ: 171, badge: 'new'
+  },
   {
     id: 'dsa-hub', title: 'DSA Algorithm Animator', category: 'DSA & Algorithms',
     categoryKey: 'dsa', moduleKey: 'dsa', icon: '🧠',
@@ -511,59 +597,43 @@ const RESOURCES = [
     color: '#06d6a0', file: 'prep/DSA-Prep-Hub.html', progressKey: 'dsa_prep_done_v1', notesKey: 'dsa_notes_v1', totalQ: 0, launcher: true, footerHint: '🎬 Visual learning · animator', badge: 'new'
   },
   {
-    id: 'dsa-codebase', title: 'DSA Codebase', category: 'DSA & Algorithms',
-    categoryKey: 'dsa', moduleKey: 'dsa', icon: '📖',
-    desc: '171 interview-ready DSA problems across 17 topics — each with a structured answer: intuition, brute/better/optimal Java 17 code, complexity tables, dry runs, edge cases, and follow-ups. Mark each problem Pending / WIP / Completed.',
-    tags: ['Arrays','Strings','Trees','Graphs','DP','Backtracking','Heaps','Tries','Binary Search','Java 17','FAANG'],
-    color: '#4ecdc4', file: 'prep/DSA_CodeBase.html', progressKey: 'dsa_codebase_status_v1', notesKey: 'dsa_notes_v1', totalQ: 171, badge: 'new'
-  },
-  {
-    id: 'dsa-system-design', title: 'LLD & System Design', category: 'DSA & Algorithms',
-    categoryKey: 'dsa', moduleKey: 'dsa', icon: '🏗',
-    desc: '85 interview-ready modules across 11 categories — LLD (Parking Lot, LRU, Rate Limiter…), Concurrency, Networking, Databases, Reliability, SOLID, Design Patterns, Architecture & Messaging. Each with theory, Mermaid diagrams, production Java 21 / Spring Boot 3 code, comparison tables and interview Q&A.',
-    tags: ['LLD','HLD','Concurrency','Kafka','Redis','Resilience4j','Design Patterns','SOLID','Spring Boot','Java 21'],
-    color: '#a78bfa', file: 'prep/DSA_SystemDesign.html', progressKey: 'sd_done', notesKey: null, totalQ: 85, badge: 'new'
-  },
-  {
-    id: 'java-kit', title: 'Java Interview Prep Kit', category: 'Java & Spring',
-    categoryKey: 'java', moduleKey: 'java', icon: '☕',
-    desc: 'Senior-level Java prep covering Core Java, OOP, Collections, Streams, Multithreading, JVM internals, Spring Boot, Microservices, Kafka, JPA, Resilience4j, and real SOLID code examples.',
-    tags: ['Core Java','Spring Boot','Kafka','JPA','Microservices','Multithreading','SOLID','Design Patterns'],
-    color: '#f59e0b', file: 'prep/Java-Prep-kit.html', progressKey: 'java_prep_done_v1', notesKey: 'java_notes_v1', totalQ: 120, badge: 'hot'
-  },
-  {
-    id: 'react-hub', title: 'Frontend & React Interview Hub', category: 'Frontend',
-    categoryKey: 'frontend', moduleKey: 'react', icon: '⚛️',
-    desc: 'End-to-end frontend interview prep: React hooks, context, concurrent mode, state management, component patterns, performance optimizations, SSR/CSR (Next.js), testing, accessibility, and browser internals.',
-    tags: ['React','JavaScript','HTML','CSS','Next.js','Performance','Testing','Accessibility','Web Vitals'],
-    color: '#4f8ef7', file: 'prep/React-Prep.html', progressKey: 'react_prep_done_v1', notesKey: 'react_notes_v1', totalQ: 31, badge: 'hot'
-  },
-  {
-    id: 'hr-kit', title: 'HR Questions & Answers', category: 'Behavioural & HR',
+    id: 'hr-kit', title: 'HR Questions & Behavioural Answers', category: 'HR & Management Prep',
     categoryKey: 'hr', moduleKey: 'hr', icon: '🤝',
-    desc: 'Common HR and behavioural interview questions with concise, model answers you can adapt for interviews.',
-    tags: ['HR','Behavioural','Interview','Soft Skills','Answers'],
+    desc: 'Common HR and behavioural interview questions with concise, model answers formatted with the STAR method for software engineers and engineering leads.',
+    tags: ['HR','Behavioural','Interview','Soft Skills','STAR Method','Leadership'],
     color: '#8b5cf6', file: 'prep/HR-Questions.html', progressKey: 'hr_questions_done_v1', notesKey: 'hr_notes_v1', totalQ: 48, badge: 'new'
   },
   {
-    id: 'interview-prep-kit', title: 'Interview Preparation Kit', category: 'PDF Library',
-    categoryKey: 'pdf', moduleKey: 'ipk', icon: '📚',
-    desc: 'Complete level-wise PDF library — 83 curated PDFs across 6 experience tracks (0–3, 3–5, 5–8, 8+ yrs). Covers Java, Spring, DSA, Microservices, Kafka, SQL, System Design, DevOps and more.',
-    tags: ['Java','Spring Boot','DSA','Microservices','Kafka','SQL','System Design','PDF Library','All Levels'],
-    color: '#22d3ee', file: 'prep/Interview-Prep-Kit.html', progressKey: 'ipk_completed_v1', notesKey: 'ipk_notes_v1', totalQ: 83, badge: 'new'
+    id: 'interview-tracker', title: 'Interview Application Tracker', category: 'Career Trackers & Tools',
+    categoryKey: 'tools', moduleKey: 'tools', icon: '🎯',
+    desc: 'Visual Kanban pipeline to track job applications, multi-round technical interviews, salary CTC negotiations, interviewer notes, and export to CSV.',
+    tags: ['Kanban','Job Applications','CTC Tracker','Interview Rounds','Analytics'],
+    color: '#22d3ee', file: 'prep/Interview-Tracker.html', progressKey: null, notesKey: null, totalQ: 0, launcher: true, footerHint: '🎯 Kanban pipeline & offers', badge: 'hot'
   },
+  {
+    id: 'daily-tracker', title: 'Daily Learning & Focus Tracker', category: 'Career Trackers & Tools',
+    categoryKey: 'tools', moduleKey: 'tools', icon: '📊',
+    desc: 'Log daily study sessions, solve streak tracking, coding hours, dynamic progress charts, and revision planner with auto-calculated velocity metrics.',
+    tags: ['Habit Tracker','Analytics','Revisions','Daily Streak','Charts'],
+    color: '#22d3ee', file: 'prep/Daily-Learning-Tracker.html', progressKey: null, notesKey: null, totalQ: 0, launcher: true, footerHint: '📊 Streak & analytics', badge: 'new'
+  },
+  {
+    id: 'quick-links', title: 'Quick Links & Documentation Manager', category: 'Career Trackers & Tools',
+    categoryKey: 'tools', moduleKey: 'tools', icon: '🔗',
+    desc: 'Central repository of high-yield technical documentation, YouTube playlists, GitHub repos, cheat sheets, and architectural whitepapers.',
+    tags: ['Bookmarks','Documentation','Cheat Sheets','GitHub','YouTube'],
+    color: '#22d3ee', file: 'prep/Quick-Links-Manager.html', progressKey: null, notesKey: null, totalQ: 0, launcher: true, footerHint: '🔗 Bookmarks & references', badge: 'new'
+  }
 ];
-
-
 
 /* ── Module config for dashboard rings ── */
 const MOD_CONFIG = [
-  { id:'java',    label:'Java',    icon:'☕', color:'#f59e0b', total:120, file:'prep/Java-Prep-kit.html',     progKey:'java_prep_done_v1' },
-  { id:'dsacode', label:'DSA Code',icon:'📖', color:'#4ecdc4', total:171, file:'prep/DSA_CodeBase.html',      progKey:'dsa_codebase_status_v1' },
-  { id:'lld',     label:'LLD/SD',  icon:'🏗', color:'#a78bfa', total:85,  file:'prep/DSA_SystemDesign.html',  progKey:'sd_done' },
-  { id:'react',   label:'React',   icon:'⚛️', color:'#4f8ef7', total:31,  file:'prep/React-Prep.html',        progKey:'react_prep_done_v1' },
-  { id:'hr',      label:'HR',      icon:'🤝', color:'#8b5cf6', total:48,  file:'prep/HR-Questions.html',      progKey:'hr_questions_done_v1' },
-  { id:'ipk',     label:'PDFs',    icon:'📚', color:'#22d3ee', total:83,  file:'prep/Interview-Prep-Kit.html',progKey:'ipk_completed_v1' },
+  { id:'java',    label:'Java Kit', icon:'☕', color:'#f59e0b', total:120, file:'prep/Java-Prep-kit.html',     progKey:'java_prep_done_v1' },
+  { id:'lld',     label:'LLD/SD',   icon:'🏗', color:'#f59e0b', total:85,  file:'prep/DSA_SystemDesign.html',  progKey:'sd_done' },
+  { id:'dsacode', label:'DSA Code', icon:'📖', color:'#06d6a0', total:171, file:'prep/DSA_CodeBase.html',      progKey:'dsa_codebase_status_v1' },
+  { id:'react',   label:'React',    icon:'⚛️', color:'#4f8ef7', total:31,  file:'prep/React-Prep.html',        progKey:'react_prep_done_v1' },
+  { id:'hr',      label:'HR Kit',   icon:'🤝', color:'#8b5cf6', total:48,  file:'prep/HR-Questions.html',      progKey:'hr_questions_done_v1' },
+  { id:'ipk',     label:'PDFs',     icon:'📚', color:'#22d3ee', total:83,  file:'prep/Interview-Prep-Kit.html',progKey:'ipk_completed_v1' },
 ];
 
 const TOTAL_Q = MOD_CONFIG.reduce(function(s,m){return s+m.total;},0); // 538
@@ -631,6 +701,7 @@ function setModuleStatus(id, status) {
    PROGRESS READER (localStorage)
 ══════════════════════════════════════════════════════ */
 function getProgress(key, total) {
+  if (!key) return { done: 0, inProgress: 0, total: 0, pct: 0 };
   try {
     const raw = JSON.parse(localStorage.getItem(key) || 'null');
     let done = 0, inProgress = 0;
@@ -647,6 +718,7 @@ function getProgress(key, total) {
 }
 
 function getNotesCount(notesKey) {
+  if (!notesKey) return 0;
   try {
     const n = JSON.parse(localStorage.getItem(notesKey) || '{}');
     return Object.values(n).filter(function(v){return v && v.trim();}).length;
@@ -715,15 +787,70 @@ function buildCard(r, idx) {
 
 
 function renderResourceGrid() {
-  const grid = document.getElementById('resourceGrid');
+  const container = document.getElementById('languageSectionsWrap');
+  if (!container) return;
   const favs = getFavs();
-  const sorted = [...RESOURCES].sort(function(a,b){return (favs.has(a.id)?0:1)-(favs.has(b.id)?0:1);});
-  grid.innerHTML = sorted.map(function(r,i){return buildCard(r,i);}).join('');
 
-  grid.querySelectorAll('.res-card').forEach(function(card){
+  // Map resources by id for quick lookup
+  const resMap = {};
+  RESOURCES.forEach(function(r) { resMap[r.id] = r; });
+
+  let html = '';
+  LANGUAGE_DOMAINS.forEach(function(domain, dIdx) {
+    const domainResources = (domain.resourceIds || [])
+      .map(function(id) { return resMap[id]; })
+      .filter(Boolean);
+
+    if (domainResources.length === 0) return;
+
+    // Sort domain resources so favorites appear first
+    const sorted = [...domainResources].sort(function(a,b){
+      return (favs.has(a.id)?0:1)-(favs.has(b.id)?0:1);
+    });
+
+    // Calculate domain stats
+    let domainTotalQ = 0;
+    let domainDoneQ = 0;
+    sorted.forEach(function(r) {
+      if (r.totalQ > 0) {
+        domainTotalQ += r.totalQ;
+        const p = getProgress(r.progressKey, r.totalQ);
+        domainDoneQ += p.done;
+      }
+    });
+
+    const domainCountLabel = domainTotalQ > 0
+      ? sorted.length + ' Module' + (sorted.length > 1 ? 's' : '') + ' · ' + domainTotalQ + '+ Qs'
+      : sorted.length + ' Tool' + (sorted.length > 1 ? 's' : '');
+
+    html += `
+      <section class="lang-section" id="lang-section-${domain.id}" data-lang-id="${domain.id}">
+        <div class="lang-section-header">
+          <div class="lang-section-left">
+            <div class="lang-section-icon" style="background:${domain.color}18;color:${domain.color}">${domain.icon}</div>
+            <div class="lang-section-info">
+              <div class="lang-section-title-row">
+                <h2 class="lang-section-title">${domain.title}</h2>
+                ${domain.badge ? `<span class="lang-badge" style="background:${domain.color}18;color:${domain.color}">${domain.badge}</span>` : ''}
+                <span class="lang-count-badge" id="badge-count-${domain.id}">${domainCountLabel}</span>
+              </div>
+              <p class="lang-section-tagline">${domain.tagline}</p>
+            </div>
+          </div>
+        </div>
+        <div class="resource-grid">
+          ${sorted.map(function(r, i){ return buildCard(r, i); }).join('')}
+        </div>
+      </section>
+    `;
+  });
+
+  container.innerHTML = html;
+
+  container.querySelectorAll('.res-card').forEach(function(card){
     card.addEventListener('click', function(){ window.location.href = this.dataset.file; });
   });
-  grid.querySelectorAll('.res-fav').forEach(function(btn){
+  container.querySelectorAll('.res-fav').forEach(function(btn){
     btn.addEventListener('click', function(e){
       e.stopPropagation();
       toggleFav(this.dataset.favId);
@@ -731,17 +858,17 @@ function renderResourceGrid() {
       applyFilters();
     });
   });
-  grid.querySelectorAll('.res-status-btn').forEach(function(btn){
+  container.querySelectorAll('.res-status-btn').forEach(function(btn){
     btn.addEventListener('click', function(e){
-      e.stopPropagation();                                  // don't open the module
+      e.stopPropagation();
       var id = this.dataset.statusId, st = this.dataset.st;
       setModuleStatus(id, st);
       var card = this.closest('.res-card');
-      card.setAttribute('data-status', st);                 // update left-edge accent
+      card.setAttribute('data-status', st);
       card.querySelectorAll('.res-status-btn').forEach(function(b){
-        b.classList.toggle('active', b.dataset.st === st);  // highlight the chosen one
+        b.classList.toggle('active', b.dataset.st === st);
       });
-      applyFilters();                                       // respect an active status filter
+      applyFilters();
     });
   });
 }
@@ -1280,22 +1407,35 @@ function applyFilters() {
     var mstatus   = card.dataset.status || 'pending';
 
     var show = true;
-    if (activeFilter === 'fav'        && !isFav)      show = false;
-    else if (activeFilter === 'done'  && !hasProg)    show = false;
-    else if (activeFilter === 'inprogress' && !hasInprog) show = false;
-    else if (activeFilter === 'st-pending'   && mstatus !== 'pending')   show = false;
-    else if (activeFilter === 'st-wip'       && mstatus !== 'wip')       show = false;
-    else if (activeFilter === 'st-completed' && mstatus !== 'completed') show = false;
-    else if (activeFilter !== 'all' && ['done','inprogress','fav','st-pending','st-wip','st-completed'].indexOf(activeFilter) === -1 && cat !== activeFilter) show = false;
+    if (activeFilter === 'fav')        show = isFav;
+    else if (activeFilter === 'done')  show = hasProg;
+    else if (activeFilter === 'inprogress') show = hasInprog;
+    else if (activeFilter === 'st-pending')   show = (mstatus === 'pending');
+    else if (activeFilter === 'st-wip')       show = (mstatus === 'wip');
+    else if (activeFilter === 'st-completed') show = (mstatus === 'completed');
+    else if (activeFilter !== 'all' && cat !== activeFilter) show = false;
 
-    if (q && !(title.includes(q) || desc.includes(q) || tags.includes(q))) show = false;
+    if (q && !(title.includes(q) || desc.includes(q) || tags.includes(q) || cat.includes(q))) show = false;
 
     card.classList.toggle('hidden', !show);
     if (show) visible++;
   });
 
-  document.getElementById('availCount').textContent = visible;
-  document.getElementById('noResults').style.display = visible === 0 ? 'block' : 'none';
+  // Toggle visibility of each language/domain section based on visible child cards
+  var sections = document.querySelectorAll('.lang-section');
+  sections.forEach(function(sec) {
+    var secCards = sec.querySelectorAll('.res-card');
+    var secVisible = 0;
+    secCards.forEach(function(c) {
+      if (!c.classList.contains('hidden')) secVisible++;
+    });
+    sec.style.display = secVisible === 0 ? 'none' : '';
+  });
+
+  var countEl = document.getElementById('availCount');
+  if (countEl) countEl.textContent = visible;
+  var noResEl = document.getElementById('noResults');
+  if (noResEl) noResEl.style.display = visible === 0 ? 'block' : 'none';
 }
 
 /* ══════════════════════════════════════════════════════

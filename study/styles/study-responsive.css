@@ -290,3 +290,27 @@ button,
     font-size: 0.72rem !important;
   }
 }
+
+/* ─── 10. LANGUAGE DOMAIN SECTIONS RESPONSIVENESS ───────────────── */
+@media (max-width: 640px) {
+  .lang-section {
+    margin-bottom: 30px !important;
+  }
+  .lang-section-header {
+    gap: 10px !important;
+    margin-bottom: 14px !important;
+    padding-bottom: 10px !important;
+  }
+  .lang-section-icon {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 18px !important;
+  }
+  .lang-section-title {
+    font-size: 15px !important;
+  }
+  .lang-section-tagline {
+    font-size: 11.5px !important;
+  }
+}
+
