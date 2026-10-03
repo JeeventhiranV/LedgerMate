@@ -759,6 +759,16 @@ html, body {
     z-index: 100000 !important;
   }
 
+  /* Admin Command Center Sub-Modals & Notifications (must always appear on top of #adminPanelOverlay) */
+  #lm-approval-modal,
+  #lm-configure-user-modal,
+  #lm-finance-modal,
+  #lm-study-modal,
+  #lm-del-modal,
+  #lm-admin-rt-toast {
+    z-index: 2147483647 !important;
+  }
+
   /* Safe bottomNav hidden class (only if explicitly triggered) */
   #bottomNav.hidden-nav {
     display: none !important;

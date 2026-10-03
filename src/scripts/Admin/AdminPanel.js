@@ -52,6 +52,8 @@
   let _userTotal       = 0;
   const PAGE_SIZE      = 10;
 
+  let _requestsCache   = {};
+  let _profilesCache   = {};
   let _realtimeChannel = null;
   let _pendingApprovalsCount = 0;
 
@@ -250,6 +252,8 @@
         }
         const { data, error } = await query;
         if (error) throw error;
+        _requestsCache = {};
+        (data || []).forEach(r => { if (r && r.id) _requestsCache[r.id] = r; });
         _renderAccessRequestsList(area, data || []);
       } catch (err) {
         area.innerHTML = `<div style="padding:32px;text-align:center;color:#fb7185;">Failed to load access requests: ${_esc(err.message)}</div>`;
@@ -265,6 +269,8 @@
         }
         const { data, error } = await query;
         if (error) throw error;
+        _profilesCache = {};
+        (data || []).forEach(p => { if (p && p.id) _profilesCache[p.id] = p; });
         _renderPendingUserProfilesList(area, data || []);
       } catch (err) {
         area.innerHTML = `<div style="padding:32px;text-align:center;color:#fb7185;">Failed to load pending accounts: ${_esc(err.message)}</div>`;
@@ -307,7 +313,7 @@
       </div>
       <div>
         <div style="font-weight:700;color:var(--text);font-size:14px;display:flex;align-items:center;gap:8px;">
-          ${_esc(req.name || req.email.split('@')[0])}
+          ${_esc(req.name || (req.email ? req.email.split('@')[0] : 'Applicant'))}
           <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:rgba(255,255,255,0.06);color:var(--text-2);">${appBadge}</span>
         </div>
         <div style="font-size:12px;color:var(--text-3);margin-top:2px;">✉️ ${_esc(req.email)} · 🕒 ${timeStr}</div>
@@ -324,20 +330,20 @@
     </div>
     <div style="display:flex;gap:8px;">
       ${isPending ? `
-        <button class="admin-btn admin-btn-success admin-btn-sm" onclick="window.LM_Admin.openApproveRequestModal('${req.id}','${_esc(req.name||'')}','${_esc(req.email)}','${_esc(req.app||'all')}')">
+        <button class="admin-btn admin-btn-success admin-btn-sm" onclick="window.LM_Admin.openApproveRequestModal('${req.id}')">
           ✨ Approve &amp; Configure
         </button>
-        <button class="admin-btn admin-btn-danger admin-btn-sm" onclick="window.LM_Admin.rejectAccessRequest('${req.id}','${_esc(req.email)}')">
+        <button class="admin-btn admin-btn-danger admin-btn-sm" onclick="window.LM_Admin.rejectAccessRequest('${req.id}')">
           ❌ Reject
         </button>
       ` : ''}
       ${isApproved ? `
-        <button class="admin-btn admin-btn-sm" onclick="window.LM_Admin.openApproveRequestModal('${req.id}','${_esc(req.name||'')}','${_esc(req.email)}','${_esc(req.app||'all')}')">
+        <button class="admin-btn admin-btn-sm" onclick="window.LM_Admin.openApproveRequestModal('${req.id}')">
           ⚙️ Reconfigure Access
         </button>
       ` : ''}
       ${isRejected ? `
-        <button class="admin-btn admin-btn-success admin-btn-sm" onclick="window.LM_Admin.openApproveRequestModal('${req.id}','${_esc(req.name||'')}','${_esc(req.email)}','${_esc(req.app||'all')}')">
+        <button class="admin-btn admin-btn-success admin-btn-sm" onclick="window.LM_Admin.openApproveRequestModal('${req.id}')">
           🔄 Re-Approve
         </button>
       ` : ''}
@@ -376,8 +382,8 @@
       </div>
       <div>
         <div style="font-weight:700;color:var(--text);font-size:14px;display:flex;align-items:center;gap:8px;">
-          ${_esc(u.display_name || u.email.split('@')[0])}
-          <span class="admin-badge ${u.role==='admin'?'badge-admin':'badge-user'}">${u.role}</span>
+          ${_esc(u.display_name || (u.email ? u.email.split('@')[0] : 'User'))}
+          <span class="admin-badge ${u.role==='admin'?'badge-admin':'badge-user'}">${u.role || 'user'}</span>
         </div>
         <div style="font-size:12px;color:var(--text-3);margin-top:2px;">✉️ ${_esc(u.email)} · Joined: ${new Date(u.created_at).toLocaleDateString()}</div>
       </div>
@@ -394,7 +400,7 @@
     <div style="display:flex;gap:8px;">
       ${!u.active ? `
         <button class="admin-btn admin-btn-success admin-btn-sm" onclick="window.LM_Admin.approveUser('${u.id}')">✅ Quick Activate</button>
-        <button class="admin-btn admin-btn-sm" style="border-color:rgba(139,92,246,0.4);color:#8b5cf6;" onclick="window.LM_Admin.openConfigureUserModal('${u.id}','${_esc(u.display_name||u.email)}','${_esc(u.role||'user')}',${JSON.stringify(u.allowed_modules||null)},${JSON.stringify(u.study_modules||null)})">
+        <button class="admin-btn admin-btn-sm" style="border-color:rgba(139,92,246,0.4);color:#8b5cf6;" onclick="window.LM_Admin.openConfigureUserModal('${u.id}')">
           ⚙️ Configure Access
         </button>
       ` : `
@@ -409,8 +415,13 @@
   }
 
   /* ── Approve Access Request Modal ──────────────────── */
-  function _openApproveRequestModal(requestId, name, email, appType) {
+  function _openApproveRequestModal(requestId, fallbackName, fallbackEmail, fallbackApp) {
     document.getElementById('lm-approval-modal')?.remove();
+
+    const req = _requestsCache[requestId] || {};
+    const name = req.name || fallbackName || 'Applicant';
+    const email = req.email || fallbackEmail || '';
+    const appType = req.app || fallbackApp || 'all';
 
     const isStudyPrechecked = appType === 'study' || appType === 'all';
     const isLedgerPrechecked = appType === 'ledger' || appType === 'finance' || appType === 'all';
@@ -427,17 +438,21 @@
 
     const modal = document.createElement('div');
     modal.id = 'lm-approval-modal';
-    modal.style.cssText = 'position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);padding:20px;';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);padding:20px;';
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+
     modal.innerHTML = `
 <div style="background:var(--card,#151922);border:1px solid rgba(99,102,241,.3);border-radius:18px;padding:26px;max-width:540px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.9);max-height:90vh;overflow-y:auto;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <div style="font-size:16px;font-weight:800;color:var(--text);">✨ Approve &amp; Configure User Access</div>
-    <button onclick="document.getElementById('lm-approval-modal').remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px;">✕</button>
+    <button onclick="document.getElementById('lm-approval-modal')?.remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px;">✕</button>
   </div>
 
   <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:16px;">
-    <div style="font-size:13px;font-weight:700;color:var(--text);">${_esc(name || 'Applicant')}</div>
-    <div style="font-size:12px;color:var(--text-3);">${_esc(email)}</div>
+    <div style="font-size:13px;font-weight:700;color:var(--text);">${_esc(name)}</div>
+    ${email ? `<div style="font-size:12px;color:var(--text-3);">${_esc(email)}</div>` : ''}
   </div>
 
   <div style="margin-bottom:14px;">
@@ -467,17 +482,17 @@
   <div id="approveModalErr" style="display:none;color:#fb7185;font-size:12px;margin-bottom:12px;padding:8px 12px;background:rgba(251,113,133,0.1);border-radius:8px;"></div>
 
   <div style="display:flex;gap:10px;">
-    <button class="btn-submit" id="submitApproveReqBtn" onclick="window.LM_Admin.commitApproveRequest('${requestId}','${_esc(name)}','${_esc(email)}')">
+    <button class="btn-submit" id="submitApproveReqBtn" onclick="window.LM_Admin.commitApproveRequest('${requestId}')">
       ✅ Approve &amp; Activate
     </button>
-    <button class="admin-btn" onclick="document.getElementById('lm-approval-modal').remove()">Cancel</button>
+    <button class="admin-btn" onclick="document.getElementById('lm-approval-modal')?.remove()">Cancel</button>
   </div>
 </div>`;
 
     document.body.appendChild(modal);
   }
 
-  async function _commitApproveRequest(requestId, name, email) {
+  async function _commitApproveRequest(requestId, fallbackName, fallbackEmail) {
     const btn = document.getElementById('submitApproveReqBtn');
     const errEl = document.getElementById('approveModalErr');
     const showErr = (m) => { if (errEl) { errEl.textContent = m; errEl.style.display = 'block'; } };
@@ -485,6 +500,8 @@
     const sb = _getSb();
     if (!sb) { showErr('Supabase client unavailable'); return; }
 
+    const req = _requestsCache[requestId] || {};
+    const email = req.email || fallbackEmail || '';
     const role = document.getElementById('req_role_select')?.value || 'user';
     const finMods = ALL_MODULES.filter(m => document.getElementById('req_fin_' + m.key)?.checked).map(m => m.key);
     const stdMods = STUDY_MODULES.filter(m => document.getElementById('req_std_' + m.key)?.checked).map(m => m.key);
@@ -503,20 +520,22 @@
       if (reqErr) throw reqErr;
 
       /* 2. Check if user profile exists for this email and activate it */
-      const { data: profs } = await sb.from('user_profiles').select('id').ilike('email', email);
-      if (profs && profs.length > 0) {
-        for (const p of profs) {
-          await sb.from('user_profiles').update({
-            active: true,
-            role: role,
-            allowed_modules: allowedFinance,
-            study_modules: allowedStudy,
-            updated_at: new Date().toISOString()
-          }).eq('id', p.id);
+      if (email) {
+        const { data: profs } = await sb.from('user_profiles').select('id').ilike('email', email);
+        if (profs && profs.length > 0) {
+          for (const p of profs) {
+            await sb.from('user_profiles').update({
+              active: true,
+              role: role,
+              allowed_modules: allowedFinance,
+              study_modules: allowedStudy,
+              updated_at: new Date().toISOString()
+            }).eq('id', p.id);
+          }
         }
       }
 
-      if (typeof showToast === 'function') showToast(`✅ Access approved for ${email}!`, 'success');
+      if (typeof showToast === 'function') showToast(`✅ Access approved for ${email || 'user'}!`, 'success');
       document.getElementById('lm-approval-modal')?.remove();
       _loadApprovalsData();
       _syncPendingCounts();
@@ -527,7 +546,9 @@
     }
   }
 
-  async function _rejectAccessRequest(requestId, email) {
+  async function _rejectAccessRequest(requestId, fallbackEmail) {
+    const req = _requestsCache[requestId] || {};
+    const email = req.email || fallbackEmail || 'this user';
     if (!confirm(`Reject access request for "${email}"?`)) return;
     const sb = _getSb();
     if (!sb) return;
@@ -585,6 +606,136 @@
       _syncPendingCounts();
     } catch (e) {
       if (typeof showToast === 'function') showToast(`Batch approval error: ${e.message}`, 'error');
+    }
+  }
+
+  /* ── Configure User Account Modal (user_profiles) ─── */
+  function _openConfigureUserModal(userId, fallbackName, fallbackRole, fallbackAllowed, fallbackStudy) {
+    document.getElementById('lm-configure-user-modal')?.remove();
+
+    const u = _profilesCache[userId] || {};
+    const name = u.display_name || (u.email ? u.email.split('@')[0] : '') || fallbackName || 'User';
+    const email = u.email || '';
+    const role = u.role || fallbackRole || 'user';
+    const allowedMods = u.allowed_modules !== undefined ? u.allowed_modules : fallbackAllowed;
+    const studyMods = u.study_modules !== undefined ? u.study_modules : fallbackStudy;
+
+    let finAllowed = [];
+    if (allowedMods === null || allowedMods === undefined || (Array.isArray(allowedMods) && allowedMods.length === 0)) {
+      finAllowed = ALL_MODULES.map(m => m.key);
+    } else if (Array.isArray(allowedMods)) {
+      finAllowed = allowedMods;
+    }
+
+    let stdAllowed = [];
+    if (studyMods === null || studyMods === undefined) {
+      stdAllowed = STUDY_MODULES.map(m => m.key);
+    } else if (Array.isArray(studyMods)) {
+      stdAllowed = studyMods;
+    }
+
+    const financeCheckboxes = ALL_MODULES.map(m => `
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0;">
+  <input type="checkbox" id="cfg_fin_${m.key}" value="${m.key}" ${finAllowed.includes(m.key) ? 'checked' : ''} style="accent-color:var(--teal);"> ${m.label}
+</label>`).join('');
+
+    const studyCheckboxes = STUDY_MODULES.map(m => `
+<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0;">
+  <input type="checkbox" id="cfg_std_${m.key}" value="${m.key}" ${stdAllowed.includes(m.key) ? 'checked' : ''} style="accent-color:#8b5cf6;"> ${m.label}
+</label>`).join('');
+
+    const modal = document.createElement('div');
+    modal.id = 'lm-configure-user-modal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);padding:20px;';
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+
+    modal.innerHTML = `
+<div style="background:var(--card,#151922);border:1px solid rgba(139,92,246,.3);border-radius:18px;padding:26px;max-width:540px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.9);max-height:90vh;overflow-y:auto;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <div style="font-size:16px;font-weight:800;color:var(--text);">⚙️ Configure User Account &amp; Access</div>
+    <button onclick="document.getElementById('lm-configure-user-modal')?.remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px;">✕</button>
+  </div>
+
+  <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:16px;">
+    <div style="font-size:13px;font-weight:700;color:var(--text);">${_esc(name)}</div>
+    ${email ? `<div style="font-size:12px;color:var(--text-3);">${_esc(email)}</div>` : ''}
+  </div>
+
+  <div style="margin-bottom:14px;">
+    <label class="admin-label">Assign Role</label>
+    <select id="cfg_role_select" class="form-input">
+      <option value="user" ${role === 'user' ? 'selected' : ''}>👤 Normal User (Restricted to granted modules)</option>
+      <option value="admin" ${role === 'admin' ? 'selected' : ''}>⭐ Full Administrator (Full System Access)</option>
+    </select>
+  </div>
+
+  <div style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <label class="admin-label" style="margin:0;">💰 LedgerMate Finance Modules</label>
+      <button class="admin-btn admin-btn-sm" style="font-size:10px;padding:2px 6px;" onclick="document.querySelectorAll('[id^=cfg_fin_]').forEach(c=>c.checked=true)">Select All</button>
+    </div>
+    <div class="admin-module-grid" style="max-height:130px;overflow-y:auto;background:rgba(0,0,0,0.15);padding:8px;border-radius:8px;">${financeCheckboxes}</div>
+  </div>
+
+  <div style="margin-bottom:18px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <label class="admin-label" style="margin:0;">📚 Study Hub Prep Modules</label>
+      <button class="admin-btn admin-btn-sm" style="font-size:10px;padding:2px 6px;" onclick="document.querySelectorAll('[id^=cfg_std_]').forEach(c=>c.checked=true)">Select All</button>
+    </div>
+    <div class="admin-module-grid" style="max-height:130px;overflow-y:auto;background:rgba(0,0,0,0.15);padding:8px;border-radius:8px;">${studyCheckboxes}</div>
+  </div>
+
+  <div id="cfgModalErr" style="display:none;color:#fb7185;font-size:12px;margin-bottom:12px;padding:8px 12px;background:rgba(251,113,133,0.1);border-radius:8px;"></div>
+
+  <div style="display:flex;gap:10px;">
+    <button class="btn-submit" id="submitCfgUserBtn" onclick="window.LM_Admin.saveConfigureUser('${userId}')">
+      💾 Save &amp; Activate
+    </button>
+    <button class="admin-btn" onclick="document.getElementById('lm-configure-user-modal')?.remove()">Cancel</button>
+  </div>
+</div>`;
+
+    document.body.appendChild(modal);
+  }
+
+  async function _saveConfigureUser(userId) {
+    const btn = document.getElementById('submitCfgUserBtn');
+    const errEl = document.getElementById('cfgModalErr');
+    const showErr = (m) => { if (errEl) { errEl.textContent = m; errEl.style.display = 'block'; } };
+
+    const sb = _getSb();
+    if (!sb) { showErr('Supabase client unavailable'); return; }
+
+    const role = document.getElementById('cfg_role_select')?.value || 'user';
+    const finMods = ALL_MODULES.filter(m => document.getElementById('cfg_fin_' + m.key)?.checked).map(m => m.key);
+    const stdMods = STUDY_MODULES.filter(m => document.getElementById('cfg_std_' + m.key)?.checked).map(m => m.key);
+
+    const allowedFinance = finMods.length === ALL_MODULES.length ? [] : finMods;
+    const allowedStudy   = stdMods.length === STUDY_MODULES.length ? null : stdMods;
+
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving…'; }
+
+    try {
+      const { error } = await sb.from('user_profiles').update({
+        active: true,
+        role: role,
+        allowed_modules: allowedFinance,
+        study_modules: allowedStudy,
+        updated_at: new Date().toISOString()
+      }).eq('id', userId);
+      if (error) throw error;
+
+      if (typeof showToast === 'function') showToast('✅ User access settings saved!', 'success');
+      document.getElementById('lm-configure-user-modal')?.remove();
+      _loadApprovalsData();
+      _refreshUserList();
+      _syncPendingCounts();
+    } catch (e) {
+      showErr(e.message || String(e));
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Save & Activate'; }
     }
   }
 
@@ -650,6 +801,8 @@
       if (error) throw error;
       profiles   = data  || [];
       _userTotal = count || 0;
+      _profilesCache = _profilesCache || {};
+      (profiles || []).forEach(p => { if (p && p.id) _profilesCache[p.id] = p; });
     } catch (e) {
       loadErr = e.message || String(e);
     }
@@ -675,24 +828,24 @@
         ${initial}
       </div>
       <div>
-        <div style="font-weight:600;color:var(--text);">${_esc(u.display_name || u.email.split('@')[0])}</div>
+        <div style="font-weight:600;color:var(--text);">${_esc(u.display_name || (u.email ? u.email.split('@')[0] : 'User'))}</div>
         <div style="font-size:11px;color:var(--text-3);">${_esc(u.email)}</div>
       </div>
     </div>
   </td>
-  <td><span class="admin-badge ${u.role === 'admin' ? 'badge-admin' : 'badge-user'}">${u.role}</span></td>
+  <td><span class="admin-badge ${u.role === 'admin' ? 'badge-admin' : 'badge-user'}">${u.role || 'user'}</span></td>
   <td><span class="admin-badge ${u.active ? 'badge-active' : 'badge-inactive'}">${u.active ? 'Active' : 'Pending'}</span></td>
   <td style="font-size:11px;color:var(--text-3);">${new Date(u.created_at).toLocaleDateString()}</td>
   <td>
     <div style="display:flex;gap:6px;flex-wrap:wrap;">
       ${!u.active ? `<button class="admin-btn admin-btn-success admin-btn-sm" onclick="window.LM_Admin.approveUser('${u.id}')">✅ Approve</button>` : ''}
       ${u.active  ? `<button class="admin-btn admin-btn-warn admin-btn-sm"    onclick="window.LM_Admin.deactivateUser('${u.id}')">⏸ Pause</button>` : ''}
-      <button class="admin-btn admin-btn-sm" onclick="window.LM_Admin.toggleRole('${u.id}','${u.role === 'admin' ? 'user' : 'admin'}','${_esc(u.display_name || u.email)}')">
+      <button class="admin-btn admin-btn-sm" onclick="window.LM_Admin.toggleRole('${u.id}','${u.role === 'admin' ? 'user' : 'admin'}')">
         ${u.role === 'admin' ? '👤 Make User' : '⭐ Make Admin'}
       </button>
-      <button class="admin-btn admin-btn-sm" style="border-color:rgba(45,212,191,.4);color:var(--teal);" onclick="window.LM_Admin.showFinanceAccess('${u.id}','${_esc(u.display_name || u.email)}',${JSON.stringify(u.allowed_modules||null)})">💰 Finance</button>
-      <button class="admin-btn admin-btn-sm" style="border-color:rgba(139,92,246,.4);color:#8b5cf6;" onclick="window.LM_Admin.showStudyAccess('${u.id}','${_esc(u.display_name || u.email)}',${JSON.stringify(u.study_modules !== undefined ? u.study_modules : null)})">📚 Study</button>
-      ${u.id !== currentUid ? `<button class="admin-btn admin-btn-danger admin-btn-sm" onclick="window.LM_Admin.deleteUser('${u.id}','${_esc(u.display_name || u.email)}')">🗑 Delete</button>` : ''}
+      <button class="admin-btn admin-btn-sm" style="border-color:rgba(45,212,191,.4);color:var(--teal);" onclick="window.LM_Admin.showFinanceAccess('${u.id}')">💰 Finance</button>
+      <button class="admin-btn admin-btn-sm" style="border-color:rgba(139,92,246,.4);color:#8b5cf6;" onclick="window.LM_Admin.showStudyAccess('${u.id}')">📚 Study</button>
+      ${u.id !== currentUid ? `<button class="admin-btn admin-btn-danger admin-btn-sm" onclick="window.LM_Admin.deleteUser('${u.id}')">🗑 Delete</button>` : ''}
     </div>
   </td>
 </tr>`;
@@ -863,14 +1016,20 @@
     _syncPendingCounts();
   }
 
-  async function _toggleRole(id, newRole, name) {
+  async function _toggleRole(id, newRole, fallbackName) {
+    const u = _profilesCache[id] || {};
+    const name = u.display_name || u.email || fallbackName || 'User';
     if (!confirm(`Change ${name}'s role to "${newRole}"?`)) return;
     await _updateProfile(id, { role: newRole, updated_at: new Date().toISOString() }, `Role set to ${newRole}`);
   }
 
   /* ── Finance Module Access Modal ───────────────────── */
-  function _showFinanceAccess(userId, userName, modulesJson) {
+  function _showFinanceAccess(userId, fallbackName, fallbackModules) {
     document.getElementById('lm-finance-modal')?.remove();
+
+    const u = _profilesCache[userId] || {};
+    const userName = u.display_name || u.email || fallbackName || 'User';
+    const modulesJson = u.allowed_modules !== undefined ? u.allowed_modules : fallbackModules;
 
     let allowed = [];
     if (modulesJson === null || modulesJson === undefined || (Array.isArray(modulesJson) && modulesJson.length === 0)) {
@@ -889,12 +1048,16 @@
 
     const modal = document.createElement('div');
     modal.id = 'lm-finance-modal';
-    modal.style.cssText = 'position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);padding:20px;';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);padding:20px;';
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+
     modal.innerHTML = `
-<div style="background:var(--card,#151922);border:1px solid rgba(45,212,191,.3);border-radius:16px;padding:26px;max-width:460px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.9);">
+<div style="background:var(--card,#151922);border:1px solid rgba(45,212,191,.3);border-radius:16px;padding:26px;max-width:460px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.9);max-height:90vh;overflow-y:auto;">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
     <div style="font-size:16px;font-weight:700;color:var(--text);">💰 Finance Module Permissions</div>
-    <button onclick="document.getElementById('lm-finance-modal').remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px;">✕</button>
+    <button onclick="document.getElementById('lm-finance-modal')?.remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px;">✕</button>
   </div>
   <div style="font-size:12px;color:var(--text-3);margin-bottom:14px;">${_esc(userName)}</div>
   <p style="font-size:13px;color:var(--text-2);line-height:1.55;margin-bottom:14px;">
@@ -903,7 +1066,7 @@
   <div class="admin-module-grid" style="max-height:220px;overflow-y:auto;background:rgba(0,0,0,0.15);padding:10px;border-radius:8px;">${checkboxes}</div>
   <div style="display:flex;gap:10px;margin-top:20px;">
     <button class="btn-submit" onclick="window.LM_Admin.saveFinanceAccess('${userId}')">💾 Save Permissions</button>
-    <button class="admin-btn" onclick="document.getElementById('lm-finance-modal').remove()">Cancel</button>
+    <button class="admin-btn" onclick="document.getElementById('lm-finance-modal')?.remove()">Cancel</button>
   </div>
 </div>`;
     document.body.appendChild(modal);
@@ -917,8 +1080,12 @@
   }
 
   /* ── Study Module Access Modal ─────────────────────── */
-  function _showStudyAccess(userId, userName, modulesJson) {
+  function _showStudyAccess(userId, fallbackName, fallbackModules) {
     document.getElementById('lm-study-modal')?.remove();
+
+    const u = _profilesCache[userId] || {};
+    const userName = u.display_name || u.email || fallbackName || 'User';
+    const modulesJson = u.study_modules !== undefined ? u.study_modules : fallbackModules;
 
     let currentModules;
     try {
@@ -940,12 +1107,16 @@
 
     const modal = document.createElement('div');
     modal.id = 'lm-study-modal';
-    modal.style.cssText = 'position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);padding:20px;';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);padding:20px;';
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+
     modal.innerHTML = `
-<div style="background:var(--card,#151922);border:1px solid rgba(139,92,246,.3);border-radius:16px;padding:26px;max-width:460px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.9);">
+<div style="background:var(--card,#151922);border:1px solid rgba(139,92,246,.3);border-radius:16px;padding:26px;max-width:460px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.9);max-height:90vh;overflow-y:auto;">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
     <div style="font-size:16px;font-weight:700;color:var(--text);">📚 Study Module Access</div>
-    <button onclick="document.getElementById('lm-study-modal').remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px;">✕</button>
+    <button onclick="document.getElementById('lm-study-modal')?.remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px;">✕</button>
   </div>
   <div style="font-size:12px;color:var(--text-3);margin-bottom:14px;">${_esc(userName)}</div>
   <p style="font-size:13px;color:var(--text-2);line-height:1.55;margin-bottom:14px;">
@@ -967,13 +1138,13 @@
 
   <div style="display:flex;gap:10px;margin-top:20px;">
     <button class="btn-submit" onclick="window.LM_Admin.saveStudyAccess('${userId}')">💾 Save Access</button>
-    <button class="admin-btn" onclick="document.getElementById('lm-study-modal').remove()">Cancel</button>
+    <button class="admin-btn" onclick="document.getElementById('lm-study-modal')?.remove()">Cancel</button>
   </div>
 </div>`;
 
     document.body.appendChild(modal);
 
-    document.getElementById('study_access_enabled').addEventListener('change', function() {
+    document.getElementById('study_access_enabled')?.addEventListener('change', function() {
       const sec = document.getElementById('study_module_section');
       if (sec) { sec.style.opacity = this.checked ? '1' : '.35'; sec.style.pointerEvents = this.checked ? '' : 'none'; }
     });
@@ -994,15 +1165,23 @@
   }
 
   /* ── Delete User Permanently ───────────────────────── */
-  function _deleteUser(id, name) {
-    _showDeleteModal(id, name);
+  function _deleteUser(id, fallbackName) {
+    _showDeleteModal(id, fallbackName);
   }
 
-  function _showDeleteModal(id, name) {
+  function _showDeleteModal(id, fallbackName) {
     document.getElementById('lm-del-modal')?.remove();
+
+    const u = _profilesCache[id] || {};
+    const name = u.display_name || u.email || fallbackName || 'User';
+
     const modal = document.createElement('div');
     modal.id = 'lm-del-modal';
-    modal.style.cssText = 'position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);padding:20px;';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);padding:20px;';
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+
     modal.innerHTML = `
 <div style="background:var(--card,#151922);border:1px solid rgba(244,63,94,.3);border-radius:16px;padding:26px;max-width:440px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.9);">
   <div style="font-size:32px;text-align:center;margin-bottom:8px;">⚠️</div>
@@ -1019,17 +1198,20 @@
   </div>
   <div id="lm-del-progress" style="display:none;font-size:12px;color:var(--text-2);margin-bottom:14px;line-height:1.9;padding:10px 12px;background:rgba(0,0,0,0.3);border-radius:8px;border:1px solid var(--border);"></div>
   <div style="display:flex;gap:10px;">
-    <button id="lm-del-cancel" onclick="document.getElementById('lm-del-modal').remove()" class="admin-btn" style="flex:1;">Cancel</button>
-    <button id="lm-del-confirm-btn" onclick="window.LM_Admin.executeDelete('${id}','${_esc(name)}')" class="admin-btn admin-btn-danger" style="flex:1;">🗑 Delete Permanently</button>
+    <button id="lm-del-cancel" onclick="document.getElementById('lm-del-modal')?.remove()" class="admin-btn" style="flex:1;">Cancel</button>
+    <button id="lm-del-confirm-btn" onclick="window.LM_Admin.executeDelete('${id}')" class="admin-btn admin-btn-danger" style="flex:1;">🗑 Delete Permanently</button>
   </div>
 </div>`;
     document.body.appendChild(modal);
   }
 
-  async function _executeDelete(id, name) {
+  async function _executeDelete(id, fallbackName) {
     const btn = document.getElementById('lm-del-confirm-btn');
     const cancelBtn = document.getElementById('lm-del-cancel');
     const progress = document.getElementById('lm-del-progress');
+
+    const u = _profilesCache[id] || {};
+    const name = u.display_name || u.email || fallbackName || 'User';
 
     if (btn) { btn.disabled = true; btn.textContent = '⏳ Deleting…'; }
     if (cancelBtn) cancelBtn.disabled = true;
@@ -1467,7 +1649,7 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
       position: fixed;
       top: 24px;
       right: 24px;
-      z-index: 10005;
+      z-index: 2147483647;
       background: #111420;
       border: 1px solid rgba(251,191,36,0.5);
       box-shadow: 0 16px 40px rgba(0,0,0,0.8), 0 0 20px rgba(251,191,36,0.2);
@@ -1488,14 +1670,14 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
           <span style="font-size:20px;">🔔</span>
           <span style="font-weight:700;color:#fbbf24;font-size:13px;">${_esc(title)}</span>
         </div>
-        <button onclick="document.getElementById('lm-admin-rt-toast').remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;">✕</button>
+        <button onclick="document.getElementById('lm-admin-rt-toast')?.remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;">✕</button>
       </div>
       <div style="font-size:12px;color:var(--text);line-height:1.45;">${_esc(message)}</div>
       <div style="display:flex;gap:8px;margin-top:2px;">
-        <button onclick="window.LM_Admin.show('approvals'); document.getElementById('lm-admin-rt-toast').remove();" style="flex:1;padding:7px 12px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">
+        <button onclick="window.LM_Admin.show('approvals'); document.getElementById('lm-admin-rt-toast')?.remove();" style="flex:1;padding:7px 12px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">
           Review &amp; Approve
         </button>
-        <button onclick="document.getElementById('lm-admin-rt-toast').remove()" style="padding:7px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--text-2);font-size:12px;cursor:pointer;">
+        <button onclick="document.getElementById('lm-admin-rt-toast')?.remove()" style="padding:7px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--text-2);font-size:12px;cursor:pointer;">
           Dismiss
         </button>
       </div>
@@ -1542,6 +1724,23 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
     return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  /* ── Keyboard & Escape Modal Dismissal ─────────────── */
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const subModals = ['#lm-approval-modal', '#lm-configure-user-modal', '#lm-finance-modal', '#lm-study-modal', '#lm-del-modal'];
+    for (const sel of subModals) {
+      const el = document.querySelector(sel);
+      if (el) {
+        el.remove();
+        e.stopImmediatePropagation();
+        return;
+      }
+    }
+    if (document.getElementById('adminPanelOverlay')) {
+      closeAdminPanel();
+    }
+  });
+
   /* ══════════════════════════════════════════════════════
      PUBLIC API
   ══════════════════════════════════════════════════════ */
@@ -1567,7 +1766,8 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
     saveFinanceAccess       : _saveFinanceAccess,
     showStudyAccess         : _showStudyAccess,
     saveStudyAccess         : _saveStudyAccess,
-    openConfigureUserModal  : _showStudyAccess,
+    openConfigureUserModal  : _openConfigureUserModal,
+    saveConfigureUser       : _saveConfigureUser,
     saveWeeklyGoal          : _saveWeeklyGoal,
     deleteUser              : _deleteUser,
     executeDelete           : _executeDelete,
