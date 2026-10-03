@@ -93,16 +93,28 @@
   }
 
   async function fetchLatestVersionMeta() {
+    var primaryUrl = 'version.json';
+    try {
+      var p = (typeof window !== 'undefined' && window.location && window.location.pathname) ? window.location.pathname.toLowerCase() : '';
+      if (p.indexOf('/prep/') !== -1) {
+        primaryUrl = '../../version.json';
+      } else if (p.indexOf('/study') !== -1 || p.indexOf('/src/') !== -1) {
+        primaryUrl = '../version.json';
+      }
+    } catch(e){}
+
     const candidateUrls = [
-      'version.json',
+      primaryUrl,
+      '/version.json',
       '../version.json',
-      '../../version.json',
-      '/version.json'
+      'version.json',
+      '../../version.json'
     ];
     if (typeof window !== 'undefined' && window.location && window.location.origin) {
       candidateUrls.push(window.location.origin + '/version.json');
     }
-    for (const u of candidateUrls) {
+    const uniqueUrls = Array.from(new Set(candidateUrls));
+    for (const u of uniqueUrls) {
       try {
         const res = await fetch(u + '?_t=' + Date.now(), { cache: 'no-store' });
         if (res.ok) {

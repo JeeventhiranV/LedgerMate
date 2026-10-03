@@ -1,0 +1,10 @@
+{
+  "version": "lm-v20261002.087275e",
+  "commit": "087275e",
+  "build_date": "20261002",
+  "timestamp": 1790958000000,
+  "apkVersionCode": 291,
+  "apkVersionName": "1.0.291",
+  "apkDownloadUrl": "https://github.com/JeeventhiranV/LedgerMate/releases/download/latest/LedgerMate-v1.0.291.apk",
+  "releaseNotes": "Performance optimizations, Supercharged Supabase, 3D Flashcards, AI DSA Assistant, Live Study Rooms, and Automated CI/CD updates."
+}

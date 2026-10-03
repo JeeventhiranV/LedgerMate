@@ -931,19 +931,32 @@ function updateHeroStats() {
     totalDone += p.done;
     totalIP += p.inProgress;
   });
-  document.getElementById('statDone').textContent = totalDone;
-  document.getElementById('statTotal').textContent = RESOURCES.length;
-  document.getElementById('statQ').textContent = TOTAL_Q;
-  if (totalIP > 0) {
-    document.getElementById('statInProgress').textContent = totalIP;
-    document.getElementById('statInProgressPill').style.display = '';
+  var sDone = document.getElementById('statDone');
+  var sTot  = document.getElementById('statTotal');
+  var sQ    = document.getElementById('statQ');
+  var sIp   = document.getElementById('statInProgress');
+  var sIpP  = document.getElementById('statInProgressPill');
+  if (sDone) sDone.textContent = totalDone;
+  if (sTot)  sTot.textContent = RESOURCES.length;
+  if (sQ)    sQ.textContent = TOTAL_Q;
+  if (sIp && sIpP) {
+    if (totalIP > 0) {
+      sIp.textContent = totalIP;
+      sIpP.style.display = '';
+    } else {
+      sIpP.style.display = 'none';
+    }
   }
   var donePct = TOTAL_Q > 0 ? Math.round(totalDone / TOTAL_Q * 100) : 0;
   var ipPct   = TOTAL_Q > 0 ? Math.round(Math.min(totalIP, TOTAL_Q - totalDone) / TOTAL_Q * 100) : 0;
-  document.getElementById('overallBarDone').style.width = donePct + '%';
-  document.getElementById('overallBarIp').style.width   = ipPct + '%';
-  document.getElementById('overallPctLabel').textContent = donePct + '% complete';
-  document.getElementById('overallBarWrap').style.opacity = '1';
+  var obDone = document.getElementById('overallBarDone');
+  var obIp   = document.getElementById('overallBarIp');
+  var obLbl  = document.getElementById('overallPctLabel');
+  var obWrap = document.getElementById('overallBarWrap');
+  if (obDone) obDone.style.width = donePct + '%';
+  if (obIp)   obIp.style.width   = ipPct + '%';
+  if (obLbl)  obLbl.textContent = donePct + '% complete';
+  if (obWrap) obWrap.style.opacity = '1';
   if (typeof renderDailyTargetAndDifficulty === 'function') {
     renderDailyTargetAndDifficulty(window._lastRawProgress || []);
   }
@@ -979,20 +992,24 @@ function buildModRingCard(m, done, inprog, agoText) {
 }
 
 function renderModRingsLocal() {
+  var el = document.getElementById('modGrid');
+  if (!el) return;
   var html = MOD_CONFIG.map(function(m) {
     var p = getProgress(m.progKey, m.total);
     return buildModRingCard(m, p.done, p.inProgress, null);
   }).join('');
-  document.getElementById('modGrid').innerHTML = html;
+  el.innerHTML = html;
 }
 
 function renderModRingsDB(byModule) {
+  var el = document.getElementById('modGrid');
+  if (!el) return;
   var html = MOD_CONFIG.map(function(m) {
     var d = modTotals(m, byModule);                     // DB when available, else localStorage
     var agoText = d.last ? StudySync.ago(d.last) : null;
     return buildModRingCard(m, d.done, d.inprog, agoText);
   }).join('');
-  document.getElementById('modGrid').innerHTML = html;
+  el.innerHTML = html;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1008,7 +1025,6 @@ function renderDueForReview(rawProgress) {
   (rawProgress || []).forEach(function(row) {
     if (row.status !== 'done' || !row.status_changed_at) return;
     var daysSince = Math.floor((now - new Date(row.status_changed_at).getTime()) / 86400000);
-    // Due if daysSince exactly equals a review interval, or has exceeded the final interval
     var isDue = daysSince >= SR_INTERVALS[SR_INTERVALS.length - 1] ||
                 SR_INTERVALS.some(function(d) { return daysSince === d; });
     if (!isDue) return;
@@ -1033,9 +1049,10 @@ function renderDueForReview(rawProgress) {
   }).join('');
 
   section.style.display = '';
-  document.getElementById('dueSub').textContent =
-    total + ' item' + (total !== 1 ? 's' : '') + ' ready to review — strengthen your recall';
-  document.getElementById('dueList').innerHTML = chips;
+  var sub = document.getElementById('dueSub');
+  var list = document.getElementById('dueList');
+  if (sub) sub.textContent = total + ' item' + (total !== 1 ? 's' : '') + ' ready to review — strengthen your recall';
+  if (list) list.innerHTML = chips;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1051,9 +1068,11 @@ var MOD_FILES = {
 
 function renderActivityFeed(recent) {
   var list = document.getElementById('activityList');
+  var countEl = document.getElementById('activityCount');
+  if (!list) return;
   if (!recent || recent.length === 0) {
     list.innerHTML = '<div class="activity-empty"><div class="activity-empty-icon">📚</div>No activity yet.<br>Open any module below to get started.<a class="activity-empty-cta" href="#resources">→ Browse Resources</a></div>';
-    document.getElementById('activityCount').textContent = '0';
+    if (countEl) countEl.textContent = '0';
     return;
   }
   var html = recent.map(function(row) {
@@ -1076,13 +1095,16 @@ function renderActivityFeed(recent) {
     '</a>';
   }).join('');
   list.innerHTML = html;
-  document.getElementById('activityCount').textContent = recent.length;
+  if (countEl) countEl.textContent = recent.length;
 }
 
 /* ══════════════════════════════════════════════════════
    ACHIEVEMENTS
 ══════════════════════════════════════════════════════ */
 function renderAchievements(stats) {
+  var grid = document.getElementById('achievementGrid');
+  var countEl = document.getElementById('achieveCount');
+  if (!grid) return;
   var earned = 0;
   var html = ACHIEVEMENTS.map(function(a) {
     var isEarned = a.check(stats);
