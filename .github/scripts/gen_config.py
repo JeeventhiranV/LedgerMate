@@ -79,28 +79,32 @@ print("    Deploy ID: " + cache_version)
 
 # ── Write version.json ────────────────────────────────────────────────────────
 github_repo = os.environ.get("GITHUB_REPOSITORY", "JeeventhiranV/LedgerMate")
-apk_version_code = 317
-apk_version_name = "1.0.317"
-apk_download_url = f"https://github.com/{github_repo}/releases/download/latest/app-release.apk"
-release_notes = "Feature updates, performance enhancements, UI improvements, and bug fixes."
+apk_version_code = 330
 
-if os.path.exists("version.json"):
+try:
+    git_count = subprocess.check_output(["git", "rev-list", "--count", "HEAD"]).decode().strip()
+    if git_count and git_count.isdigit():
+        apk_version_code = int(git_count)
+except Exception as e:
+    print(f"Notice getting git rev-list count: {e}")
+
+if apk_version_code <= 1 and os.path.exists("version.json"):
     try:
         with open("version.json", "r") as f:
             old_ver = json.load(f)
             apk_version_code = int(old_ver.get("apkVersionCode", apk_version_code))
-            apk_version_name = str(old_ver.get("apkVersionName", f"1.0.{apk_version_code}"))
-            apk_download_url = str(old_ver.get("apkDownloadUrl", apk_download_url))
-            release_notes = str(old_ver.get("releaseNotes", release_notes))
     except Exception as e:
         print(f"Warning reading version.json: {e}")
 
 if os.environ.get("APK_BUILD_NUMBER"):
     try:
         apk_version_code = int(os.environ["APK_BUILD_NUMBER"])
-        apk_version_name = f"1.0.{apk_version_code}"
     except Exception:
         pass
+
+apk_version_name = f"1.0.{apk_version_code}"
+apk_download_url = f"https://github.com/{github_repo}/releases/download/latest/app-release.apk"
+release_notes = "Feature updates, security enhancements, UI improvements, and bug fixes."
 
 version_info = {
     "version": cache_version,

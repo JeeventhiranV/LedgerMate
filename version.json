@@ -3,8 +3,8 @@
   "commit": "d077e54",
   "build_date": "20261003",
   "timestamp": 1791048000000,
-  "apkVersionCode": 317,
-  "apkVersionName": "1.0.317",
+  "apkVersionCode": 330,
+  "apkVersionName": "1.0.330",
   "apkDownloadUrl": "https://github.com/JeeventhiranV/LedgerMate/releases/download/latest/app-release.apk",
-  "releaseNotes": "Feature updates, performance enhancements, UI improvements, and bug fixes."
+  "releaseNotes": "Feature updates, security enhancements, UI improvements, and bug fixes."
 }

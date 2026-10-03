@@ -112,7 +112,9 @@
     ];
     if (typeof window !== 'undefined' && window.location && window.location.origin) {
       candidateUrls.push(window.location.origin + '/version.json');
+      candidateUrls.push(window.location.origin + '/LedgerMate/version.json');
     }
+    candidateUrls.push('https://raw.githubusercontent.com/JeeventhiranV/LedgerMate/main/version.json');
     const uniqueUrls = Array.from(new Set(candidateUrls));
     for (const u of uniqueUrls) {
       try {
