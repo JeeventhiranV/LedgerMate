@@ -414,18 +414,26 @@ a.activity-item:hover{background:rgba(255,255,255,.04)}
   .hero h1{font-size:22px}
   .hero-stats{gap:8px}
   .stat-pill{padding:8px 12px}
+  .hero-tracker-matrix{grid-template-columns:1fr;gap:10px}
   .search-kbd{display:none}
   .section{padding:0 14px 32px}
   .filter-bar{padding:12px 14px}
   .resource-grid{grid-template-columns:1fr}
-  .topbar{padding:0 10px;height:48px;gap:6px}
+  .topbar{padding:0 10px;height:52px;gap:6px}
   .topbar-brand-text{display:none}
   .topbar-tool-btn .tool-lbl{display:none}
-  .topbar-tool-btn{width:32px;height:32px;padding:0;justify-content:center;border-radius:8px}
-  .topbar-tool-btn .tool-ico{font-size:14px;margin:0}
-  .btn-push-bell,.btn-theme{width:32px;height:32px;font-size:14px;border-radius:8px}
-  .agf-menu-btn,.menu-btn{width:32px;height:32px;font-size:15px;border-radius:8px}
+  .topbar-tool-btn{width:36px;height:36px;padding:0;justify-content:center;border-radius:9px}
+  .topbar-tool-btn .tool-ico{font-size:15px;margin:0}
+  .btn-push-bell,.btn-theme{width:36px;height:36px;font-size:15px;border-radius:9px}
+  .agf-menu-btn,.menu-btn{width:36px;height:36px;font-size:16px;border-radius:9px}
   .dash-panel{padding:14px 14px 0}
+}
+@media(max-width:480px){
+  .hero-quick-links{flex-direction:column}
+  .hero-ql-btn{min-width:0;width:100%}
+  .mod-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .achievement-grid{grid-template-columns:1fr}
+  .st-timer-card{right:12px;left:12px;width:auto;bottom:78px}
 }
 
 /* ── ANIMATIONS ── */
