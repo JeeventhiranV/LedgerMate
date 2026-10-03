@@ -18,6 +18,19 @@
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  function _generateUUID() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      try {
+        return crypto.randomUUID();
+      } catch (e) {}
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = (Math.random() * 16) | 0;
+      var v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+
   function init() {
     // 1. Sync user avatar
     _syncUserAvatar();
@@ -657,7 +670,7 @@
     }
 
     var newMat = {
-      id: 'mat_' + Date.now(),
+      id: _generateUUID(),
       topic_id: topicId,
       title: title,
       material_type: 'link',
@@ -668,7 +681,8 @@
       status: 'pending',
       progress_pct: 0,
       content: 'Documentation link: ' + url,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
 
     if (window.StudyWorkspace) {
@@ -686,7 +700,8 @@
       if (window.StudyWorkspace.uploadFileToStorage) {
         var uid = state.uid;
         if (uid && typeof _supabase !== 'undefined' && _supabase) {
-          _supabase.from('study_materials').insert(Object.assign({ user_id: uid }, newMat)).then(function () {});
+          _supabase.from('study_materials').insert(Object.assign({ user_id: uid }, newMat))
+            .catch(function (err) { console.error('[TopicPage] saveQuickLink error:', err); });
         }
       }
     }
@@ -748,7 +763,7 @@
         if (fill) fill.style.width = '100%';
 
         var newMat = {
-          id: 'mat_' + Date.now(),
+          id: _generateUUID(),
           topic_id: _currentTopicId,
           title: file.name.replace(/\.[^/.]+$/, ''),
           material_type: matType,
@@ -759,7 +774,8 @@
           status: 'pending',
           progress_pct: 0,
           content: '',
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         };
 
         var state = window.StudyWorkspace.getState();
@@ -775,7 +791,8 @@
 
         var uid = state.uid;
         if (uid && typeof _supabase !== 'undefined' && _supabase) {
-          _supabase.from('study_materials').insert(Object.assign({ user_id: uid }, newMat)).then(function () {});
+          _supabase.from('study_materials').insert(Object.assign({ user_id: uid }, newMat))
+            .catch(function (err) { console.error('[TopicPage] _uploadFile material error:', err); });
         }
 
         setTimeout(function () {
