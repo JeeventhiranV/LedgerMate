@@ -461,12 +461,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   try{var k=['ledgerMate_theme','prep_theme','sr_theme','dsa_theme','ql_theme','react_prep_theme','theme'];for(var i=0;i<k.length;i++){var t=localStorage.getItem(k[i]);if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);break;}}}catch(e){}
 })();
 
-/* ── 2. Force SW update + auto-reload when new SW takes over ── */
+/* ── 2. Background SW update check ── */
 (function(){
   if (!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.addEventListener('controllerchange', function(){
-    window.location.reload();
-  });
   navigator.serviceWorker.ready.then(function(reg){ reg.update(); }).catch(function(){});
 })();
 </script>

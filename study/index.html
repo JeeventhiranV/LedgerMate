@@ -43,14 +43,6 @@ if ('serviceWorker' in navigator) {
       r.update().catch(function(){});
     })
     .catch(function(e){ console.warn('[SW] study registration failed:', e); });
-
-  var refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', function() {
-    if (!refreshing) {
-      refreshing = true;
-      window.location.reload();
-    }
-  });
 }
 </script>
 </head>

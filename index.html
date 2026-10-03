@@ -1848,7 +1848,7 @@ function setGreeting() {
     }, 120);
   };
 
-  /* ── Register service worker & force immediate update check ────── */
+  /* ── Register service worker & background update check ────── */
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./service-worker.js', { scope: './' })
@@ -1857,14 +1857,6 @@ function setGreeting() {
           r.update().catch(() => {});
         })
         .catch(e => console.warn('[SW] Registration failed:', e));
-
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          refreshing = true;
-          window.location.reload();
-        }
-      });
     });
   }
 
