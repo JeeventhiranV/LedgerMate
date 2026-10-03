@@ -172,6 +172,17 @@ if ('serviceWorker' in navigator) {
         </div>
       </button>
     </div>
+
+    <div class="hub-drawer-section-lbl" id="hubDrawerAdminSection" style="margin-top:20px;display:none;">System Administration</div>
+    <div class="hub-drawer-grid" id="hubDrawerAdminGrid" style="display:none;">
+      <button class="hub-drawer-card" onclick="toggleHubDrawer(false);window.LM_Admin?window.LM_Admin.show('approvals'):(window.StudyAdmin?window.StudyAdmin.open():window.LM_ProfileModal?.openAdmin())">
+        <div class="hdc-ico" style="background:rgba(239,68,68,0.15);color:#f87171;">👑</div>
+        <div class="hdc-info">
+          <div class="hdc-title">Admin Command Center</div>
+          <div class="hdc-desc">User approvals, permissions &amp; governance</div>
+        </div>
+      </button>
+    </div>
   </div>
 </aside>
 
@@ -1887,6 +1898,23 @@ function _applyModuleAccess(profile) {
       if (arrow) arrow.textContent = '🔒';
     }
   });
+
+  // Show Admin Command Center card in Hub Drawer if user is admin
+  var isAdmin = (profile && profile.role === 'admin') ||
+                (window._studyUser && window._studyUser.role === 'admin') ||
+                (window._studyProfile && window._studyProfile.role === 'admin');
+  try {
+    var sess = JSON.parse(localStorage.getItem('lm_session') || '{}');
+    var studyMeta = JSON.parse(localStorage.getItem('study_user_meta') || '{}');
+    if (sess.role === 'admin' || studyMeta.role === 'admin' ||
+        (sess.email || studyMeta.email || '').toLowerCase() === 'vjeeventhiran01@gmail.com') {
+      isAdmin = true;
+    }
+  } catch(e) {}
+  var adminSec = document.getElementById('hubDrawerAdminSection');
+  var adminGrid = document.getElementById('hubDrawerAdminGrid');
+  if (adminSec) adminSec.style.display = isAdmin ? 'block' : 'none';
+  if (adminGrid) adminGrid.style.display = isAdmin ? 'grid' : 'none';
 }
 
 // Receive profile from auth-guard and apply access restrictions before page is shown
