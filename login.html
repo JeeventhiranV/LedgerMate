@@ -645,6 +645,9 @@ body {
           var m = res.error.message || 'Sign in failed.';
           if (m.toLowerCase().includes('invalid')) m = 'Incorrect email or password.';
           if (m.toLowerCase().includes('confirm')) m = 'Please verify your email first.';
+          if (m.toLowerCase().includes('pwned') || m.toLowerCase().includes('leaked') || m.toLowerCase().includes('breach') || m.toLowerCase().includes('compromised') || m.toLowerCase().includes('weak')) {
+            m = '⚠️ This password was found in a public data breach. Please choose a secure, unique password.';
+          }
           showMsg('signinMsg', m, 'error');
           setLoading(this, false, 'Sign In →');
           return;
