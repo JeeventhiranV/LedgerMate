@@ -82,7 +82,7 @@ github_repo = os.environ.get("GITHUB_REPOSITORY", "JeeventhiranV/LedgerMate")
 apk_version_code = 317
 apk_version_name = "1.0.317"
 apk_download_url = f"https://github.com/{github_repo}/releases/download/latest/app-release.apk"
-release_notes = "Performance optimizations, Supercharged Supabase, 3D Flashcards, AI DSA Assistant, Live Study Rooms, and Automated CI/CD updates."
+release_notes = "Feature updates, performance enhancements, UI improvements, and bug fixes."
 
 if os.path.exists("version.json"):
     try:

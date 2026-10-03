@@ -66,7 +66,7 @@ jobs:
             "apkVersionCode": ${{ steps.build_ver.outputs.build_number }},
             "apkVersionName": "${{ steps.build_ver.outputs.version_name }}",
             "apkDownloadUrl": "https://github.com/${{ github.repository }}/releases/download/latest/app-release.apk",
-            "releaseNotes": "Performance optimizations, Supercharged Supabase, 3D Flashcards, AI DSA Assistant, Live Study Rooms, and Automated CI/CD updates."
+            "releaseNotes": "Feature updates, performance enhancements, UI improvements, and bug fixes."
           }
           EOF
 

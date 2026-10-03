@@ -446,7 +446,7 @@
     const remoteCode  = Number(remoteMeta.apkVersionCode) || 1;
     const currentName = currentVer.versionName || '1.0.0';
     const remoteName  = remoteMeta.apkVersionName || `1.0.${remoteCode}`;
-    const notes       = remoteMeta.releaseNotes || 'Latest performance enhancements, live market feeds, and security upgrades.';
+    const notes       = remoteMeta.releaseNotes || 'Feature updates, performance enhancements, UI improvements, and bug fixes.';
     const apkUrl      = remoteMeta.apkDownloadUrl || 'https://github.com/JeeventhiranV/LedgerMate/releases/download/latest/app-release.apk';
 
     const overlay = document.createElement('div');
