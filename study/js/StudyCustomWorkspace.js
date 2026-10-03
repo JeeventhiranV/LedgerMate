@@ -70,6 +70,61 @@
     }).catch(function () { return null; });
   }
 
+  function _getUsernameFolder() {
+    // 1. Try window.LM_Auth if available
+    try {
+      if (typeof window !== 'undefined' && window.LM_Auth && typeof window.LM_Auth.getCurrentUser === 'function') {
+        var u = window.LM_Auth.getCurrentUser();
+        if (u) {
+          var name = u.username || u.displayName || (u.email ? u.email.split('@')[0] : '');
+          if (name) {
+            var clean = String(name).trim().toLowerCase().replace(/[^a-zA-Z0-9_-]/g, '_');
+            if (clean) return Promise.resolve(clean);
+          }
+        }
+      }
+    } catch (e) {}
+
+    // 2. Try localStorage 'lm_session'
+    try {
+      var sessRaw = localStorage.getItem('lm_session');
+      if (sessRaw) {
+        var sess = JSON.parse(sessRaw);
+        var sName = sess.username || sess.displayName || sess.name || (sess.user && sess.user.email ? sess.user.email.split('@')[0] : (sess.email ? sess.email.split('@')[0] : ''));
+        if (sName) {
+          var cleanS = String(sName).trim().toLowerCase().replace(/[^a-zA-Z0-9_-]/g, '_');
+          if (cleanS) return Promise.resolve(cleanS);
+        }
+      }
+    } catch (e) {}
+
+    // 3. Try Supabase session directly
+    if (typeof _supabase !== 'undefined' && _supabase?.auth) {
+      return _supabase.auth.getSession().then(function (r) {
+        var user = r.data && r.data.session ? r.data.session.user : null;
+        if (user) {
+          var metaName = (user.user_metadata && (user.user_metadata.username || user.user_metadata.user_name || user.user_metadata.full_name || user.user_metadata.name)) ||
+                         (user.email ? user.email.split('@')[0] : '') ||
+                         user.id;
+          if (metaName) {
+            var cleanMeta = String(metaName).trim().toLowerCase().replace(/[^a-zA-Z0-9_-]/g, '_');
+            if (cleanMeta) return cleanMeta;
+          }
+        }
+        return _getUid().then(function (uid) {
+          return uid ? String(uid).replace(/[^a-zA-Z0-9_-]/g, '_') : 'guest_user';
+        });
+      }).catch(function () {
+        return 'guest_user';
+      });
+    }
+
+    // 4. Fallback to UID or guest_user
+    return _getUid().then(function (uid) {
+      return uid ? String(uid).replace(/[^a-zA-Z0-9_-]/g, '_') : 'guest_user';
+    });
+  }
+
   // ── 1. INITIALIZATION & PERMISSION RESOLUTION ──────────────────────────────
   function init() {
     _loadLocal();
@@ -581,6 +636,7 @@
             <span>📚 ${_esc(dom ? dom.title : 'Study Track')}</span>
             <span>🎯 ${_esc(top ? top.title : 'General Topic')}</span>
             <span>⚖️ ${m.file_size_bytes ? Math.round(m.file_size_bytes/1024) + ' KB' : 'Doc'}</span>
+            ${m.storage_path ? `<span title="Supabase Cloud Path: ${m.storage_path}" style="color:var(--cyan,#38bdf8);font-family:monospace;font-size:10px;">📁 ${_esc(m.storage_path)}</span>` : ''}
             <span class="st-badge st-${mStatus}">${mStatus} (${mPct}%)</span>
           </div>
 
@@ -1193,10 +1249,10 @@
   }
 
   function uploadFileToStorage(file, topicId) {
-    return _getUid().then(function (uid) {
-      var uidPrefix = uid || 'guest';
+    return _getUsernameFolder().then(function (userFolder) {
+      var folderPrefix = userFolder || 'guest_user';
       var sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      var storagePath = `${uidPrefix}/${topicId || 'general'}/${Date.now()}_${sanitizedName}`;
+      var storagePath = `${folderPrefix}/${topicId || 'general'}/${Date.now()}_${sanitizedName}`;
 
       var progressBar = document.getElementById('matUploadProgress');
       var progressFill = document.getElementById('matUploadProgressFill');
@@ -1602,6 +1658,13 @@
           </div>
 
           ${bodyHtml}
+
+          ${mat.storage_path ? `
+            <div style="margin-top:14px;font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.02);padding:6px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.05);">
+              <span>☁️ Cloud Storage:</span>
+              <code style="color:var(--cyan,#38bdf8);font-family:monospace;font-size:11px;">study-materials/${_esc(mat.storage_path)}</code>
+            </div>
+          ` : ''}
 
           <div style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;">
             <label class="ws-form-label">📝 Study Notes &amp; Observations on this File</label>
@@ -2170,6 +2233,275 @@
     if (!_secFilters[domainId]) _secFilters[domainId] = { query: '', tab: 'all' };
     _secFilters[domainId].tab = tabKey;
     renderCustomDomainSections();
+  }
+
+  // ── 16B. POMODORO FOCUS TIMER & GOALS WIDGET ENGINE ────────────────────────
+  function _getDomainIdForTopic(topicId) {
+    if (!topicId) return null;
+    var top = _state.topics.find(function (t) { return t.id === topicId; });
+    if (!top) return null;
+    var cat = _state.categories.find(function (c) { return c.id === top.category_id; });
+    return cat ? cat.domain_id : null;
+  }
+
+  function _formatPomoTime(secs) {
+    var m = Math.floor(secs / 60);
+    var s = secs % 60;
+    return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+  }
+
+  function _updatePomoDisplay() {
+    var displayEl = document.getElementById('pomoTimeDisplay');
+    if (displayEl) {
+      displayEl.textContent = _formatPomoTime(_pomoTimer.timeLeft);
+    }
+    var modeLabel = document.getElementById('pomoModeLabel');
+    if (modeLabel) {
+      modeLabel.textContent = _pomoTimer.mode === 'pomodoro' ? '🎯 Focus' :
+                              _pomoTimer.mode === 'short' ? '☕ Short Break' :
+                              _pomoTimer.mode === 'long' ? '🌴 Long Break' : '⏱️ Stopwatch';
+    }
+    var toggleBtn = document.getElementById('btnPomoToggle');
+    if (toggleBtn) {
+      toggleBtn.textContent = _pomoTimer.running ? '⏸️ Pause' : '▶️ Start Focus';
+      toggleBtn.style.background = _pomoTimer.running ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, var(--teal, #06d6a0), #10b981)';
+    }
+    var modeBtns = document.querySelectorAll('.pomo-mode-btn');
+    modeBtns.forEach(function (btn) {
+      if (btn.getAttribute('data-mode') === _pomoTimer.mode) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+  }
+
+  function initPomodoroWidget() {
+    var container = document.getElementById('pomodoroWidgetContainer');
+    if (!container) return;
+
+    if (_state.prefs && _state.prefs.widgets && _state.prefs.widgets.timer === false) {
+      container.innerHTML = '';
+      return;
+    }
+
+    var topicOptions = _state.topics.map(function (t) {
+      var cat = _state.categories.find(function (c) { return c.id === t.category_id; });
+      var dom = cat ? _state.domains.find(function (d) { return d.id === cat.domain_id; }) : null;
+      var trackName = dom ? dom.title : 'Topic';
+      var isSelected = _pomoTimer.activeTopicId === t.id ? 'selected' : '';
+      return `<option value="${t.id}" ${isSelected}>${_esc(trackName)} ➔ ${_esc(t.title)}</option>`;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="pomodoro-widget-card">
+        <div class="pomo-left">
+          <div class="pomo-clock-circle">
+            <div class="pomo-time-display" id="pomoTimeDisplay">${_formatPomoTime(_pomoTimer.timeLeft)}</div>
+            <div class="pomo-mode-label" id="pomoModeLabel">🎯 Focus</div>
+          </div>
+          <div class="pomo-controls">
+            <div class="pomo-modes">
+              <button class="pomo-mode-btn ${_pomoTimer.mode==='pomodoro'?'active':''}" data-mode="pomodoro" onclick="window.StudyWorkspace.setPomoMode('pomodoro')">25m Focus</button>
+              <button class="pomo-mode-btn ${_pomoTimer.mode==='short'?'active':''}" data-mode="short" onclick="window.StudyWorkspace.setPomoMode('short')">5m Break</button>
+              <button class="pomo-mode-btn ${_pomoTimer.mode==='long'?'active':''}" data-mode="long" onclick="window.StudyWorkspace.setPomoMode('long')">15m Break</button>
+              <button class="pomo-mode-btn ${_pomoTimer.mode==='stopwatch'?'active':''}" data-mode="stopwatch" onclick="window.StudyWorkspace.setPomoMode('stopwatch')">⏱️ Count</button>
+            </div>
+            <div class="pomo-buttons">
+              <button class="btn-pomo-action" id="btnPomoToggle" onclick="window.StudyWorkspace.togglePomoTimer()">
+                ${_pomoTimer.running ? '⏸️ Pause' : '▶️ Start Focus'}
+              </button>
+              <button class="btn-pomo-reset" onclick="window.StudyWorkspace.resetPomoTimer()">
+                🔄 Reset
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="pomo-topic-selector">
+          <div class="pomo-select-label">🎯 Active Focus Target / Study Topic:</div>
+          <select class="pomo-topic-dropdown" id="pomoTopicSelect" onchange="window.StudyWorkspace.setPomoTopic(this.value)">
+            <option value="">-- General Learning / No Topic --</option>
+            ${topicOptions}
+          </select>
+        </div>
+      </div>
+    `;
+
+    _updatePomoDisplay();
+  }
+
+  function setPomoMode(mode) {
+    if (_pomoTimer.interval) clearInterval(_pomoTimer.interval);
+    _pomoTimer.running = false;
+    _pomoTimer.sessionStart = null;
+    _pomoTimer.mode = mode;
+    _pomoTimer.timeLeft = _pomoTimer.durations[mode] !== undefined ? _pomoTimer.durations[mode] : 25 * 60;
+    _updatePomoDisplay();
+  }
+
+  function setPomoTopic(topicId) {
+    _pomoTimer.activeTopicId = topicId || null;
+    var sel = document.getElementById('pomoTopicSelect');
+    if (sel && topicId) sel.value = topicId;
+  }
+
+  function _logPomoSession(seconds) {
+    if (!seconds || seconds <= 0) return;
+    var domId = _getDomainIdForTopic(_pomoTimer.activeTopicId);
+    var log = {
+      id: 'log_' + Date.now(),
+      topic_id: _pomoTimer.activeTopicId || null,
+      domain_id: domId || null,
+      duration_seconds: seconds,
+      mode: _pomoTimer.mode,
+      created_at: new Date().toISOString()
+    };
+    _state.timeLogs.push(log);
+    _saveLocal();
+
+    _getUid().then(function (uid) {
+      if (uid && typeof _supabase !== 'undefined' && _supabase) {
+        _supabase.from('study_time_logs').insert(Object.assign({ user_id: uid }, log)).then(function () {});
+      }
+    });
+  }
+
+  function togglePomoTimer() {
+    if (_pomoTimer.running) {
+      // Pause
+      clearInterval(_pomoTimer.interval);
+      _pomoTimer.running = false;
+      if (_pomoTimer.sessionStart) {
+        var elapsed = Math.round((Date.now() - _pomoTimer.sessionStart) / 1000);
+        if (elapsed >= 10) {
+          _logPomoSession(elapsed);
+        }
+        _pomoTimer.sessionStart = null;
+      }
+      _updatePomoDisplay();
+    } else {
+      // Start
+      _pomoTimer.running = true;
+      _pomoTimer.sessionStart = Date.now();
+      _updatePomoDisplay();
+
+      _pomoTimer.interval = setInterval(function () {
+        if (_pomoTimer.mode === 'stopwatch') {
+          _pomoTimer.timeLeft++;
+          _updatePomoDisplay();
+        } else {
+          if (_pomoTimer.timeLeft > 0) {
+            _pomoTimer.timeLeft--;
+            _updatePomoDisplay();
+          } else {
+            clearInterval(_pomoTimer.interval);
+            _pomoTimer.running = false;
+            var loggedSecs = _pomoTimer.durations[_pomoTimer.mode] || (25 * 60);
+            _logPomoSession(loggedSecs);
+            if (window.LMToast) window.LMToast.show('🎉 Focus session completed! Outstanding focus!');
+            resetPomoTimer();
+            renderCustomDomainSections();
+          }
+        }
+      }, 1000);
+    }
+  }
+
+  function resetPomoTimer() {
+    if (_pomoTimer.interval) clearInterval(_pomoTimer.interval);
+    _pomoTimer.running = false;
+    _pomoTimer.sessionStart = null;
+    _pomoTimer.timeLeft = _pomoTimer.durations[_pomoTimer.mode] !== undefined ? _pomoTimer.durations[_pomoTimer.mode] : 25 * 60;
+    _updatePomoDisplay();
+  }
+
+  function renderGoalsWidget() {
+    var container = document.getElementById('goalsWidgetContainer');
+    if (!container) return;
+
+    if (_state.prefs && _state.prefs.widgets && _state.prefs.widgets.goals === false) {
+      container.innerHTML = '';
+      return;
+    }
+
+    if (!_state.goals || _state.goals.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+
+    var goalsHtml = _state.goals.map(function (g) {
+      var daysLeft = g.target_date ? Math.ceil((new Date(g.target_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+      var daysBadge = daysLeft !== null ? (daysLeft > 0 ? `⏳ ${daysLeft} days remaining` : (daysLeft === 0 ? '⚠️ Due Today' : '⚠️ Overdue')) : '';
+      var mCount = g.milestones ? g.milestones.length : 0;
+      var mDone = g.milestones ? g.milestones.filter(function (m) { return m.completed; }).length : 0;
+      var pct = mCount > 0 ? Math.round((mDone / mCount) * 100) : (g.progress_pct || 0);
+
+      var milestonesList = (g.milestones || []).map(function (m, idx) {
+        return `
+          <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:${m.completed ? 'var(--text3)' : 'var(--text)'};margin-top:4px;">
+            <input type="checkbox" ${m.completed ? 'checked' : ''} onchange="window.StudyWorkspace.toggleMilestone('${g.id}', ${idx})" style="cursor:pointer;"/>
+            <span style="${m.completed ? 'text-decoration:line-through;' : ''}">${_esc(m.title)}</span>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="goal-item-card">
+          <div class="goal-top-row">
+            <span class="goal-item-title">${_esc(g.title)}</span>
+            ${daysBadge ? `<span class="goal-target-countdown">${daysBadge}</span>` : ''}
+          </div>
+          <div class="metric-progress-track" style="margin:8px 0;">
+            <div class="metric-progress-fill" style="width:${pct}%;background:linear-gradient(90deg,#06d6a0,#4f8ef7);"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:6px;">
+            <span>Milestones (${mDone}/${mCount})</span>
+            <span style="font-weight:700;color:var(--teal);">${pct}%</span>
+          </div>
+          ${milestonesList}
+        </div>
+      `;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="goals-widget-card">
+        <div class="goals-header">
+          <div class="goals-title">
+            <span>🎯</span> Active Learning Goals &amp; Milestones (${_state.goals.length})
+          </div>
+          <button class="ws-btn-primary" style="font-size:11px;padding:4px 10px;" onclick="window.StudyWorkspace.openGoalModal()">
+            + New Goal
+          </button>
+        </div>
+        <div class="goals-grid">
+          ${goalsHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  function toggleMilestone(goalId, milestoneIdx) {
+    var g = _state.goals.find(function (x) { return x.id === goalId; });
+    if (!g || !g.milestones || !g.milestones[milestoneIdx]) return;
+
+    g.milestones[milestoneIdx].completed = !g.milestones[milestoneIdx].completed;
+    var doneCount = g.milestones.filter(function (m) { return m.completed; }).length;
+    g.progress_pct = Math.round((doneCount / g.milestones.length) * 100);
+
+    _saveLocal();
+    _getUid().then(function (uid) {
+      if (uid && typeof _supabase !== 'undefined' && _supabase) {
+        _supabase.from('study_goals').update({
+          milestones: g.milestones,
+          progress_pct: g.progress_pct,
+          updated_at: new Date().toISOString()
+        }).eq('id', goalId).then(function () {});
+      }
+    });
+
+    renderGoalsWidget();
+    renderActiveStudioTab();
   }
 
   // ── 17. RENDER ALL WIDGETS & MODERNIZED CUSTOM DOMAIN SECTIONS ─────────────
