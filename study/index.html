@@ -67,6 +67,12 @@ if ('serviceWorker' in navigator) {
         <span class="switch-text">LedgerMate</span>
       </a>
 
+      <!-- 🔄 Cloud Sync Button -->
+      <button class="topbar-switch-btn" onclick="window.StudyWorkspace?.syncNow()" title="Sync Custom Tracks with Cloud (Web &amp; APK)" aria-label="Sync with Cloud" style="background:rgba(56,189,248,0.1);border-color:rgba(56,189,248,0.3);color:var(--cyan,#38bdf8);">
+        <span class="switch-icon">🔄</span>
+        <span class="switch-text">Sync</span>
+      </button>
+
       <!-- Push notification bell -->
       <div style="position:relative;display:flex;align-items:center;">
         <button class="btn-push-bell" id="pushBellBtn" title="Study reminders" aria-label="Notification settings">
@@ -245,6 +251,13 @@ if ('serviceWorker' in navigator) {
         <div class="hdc-info">
           <div class="hdc-title">Upload Material</div>
           <div class="hdc-desc">Upload PDF, Notes, Docs or Code</div>
+        </div>
+      </button>
+      <button class="hub-drawer-card" onclick="toggleHubDrawer(false);window.StudyWorkspace?.syncNow()">
+        <div class="hdc-ico" style="background:rgba(56,189,248,0.15);color:#38bdf8;">🔄</div>
+        <div class="hdc-info">
+          <div class="hdc-title">Cloud Sync</div>
+          <div class="hdc-desc">Sync tracks across Web &amp; APK</div>
         </div>
       </button>
     </div>

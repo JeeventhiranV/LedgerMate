@@ -84,6 +84,119 @@
     return typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   }
 
+  // ── SCHEMA SANITIZERS (PostgreSQL Strict Schema Compliance) ─────────────────
+  function _sanitizeDomain(d, uid) {
+    if (!d || !d.id || !_isValidUUID(d.id)) return null;
+    return {
+      id: d.id,
+      user_id: uid,
+      title: String(d.title || 'Untitled Track').trim(),
+      icon: String(d.icon || '📘').trim(),
+      color: String(d.color || '#38bdf8').trim(),
+      badge: String(d.badge || 'Custom Track').trim(),
+      tagline: String(d.tagline || '').trim(),
+      target_date: d.target_date && typeof d.target_date === 'string' && d.target_date.trim() ? d.target_date.trim() : null,
+      status: ['pending', 'inprogress', 'completed', 'onhold'].indexOf(d.status) !== -1 ? d.status : 'inprogress',
+      order_index: typeof d.order_index === 'number' ? d.order_index : 0,
+      created_at: d.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+  }
+
+  function _sanitizeCategory(c, uid) {
+    if (!c || !c.id || !_isValidUUID(c.id) || !c.domain_id || !_isValidUUID(c.domain_id)) return null;
+    return {
+      id: c.id,
+      user_id: uid,
+      domain_id: c.domain_id,
+      title: String(c.title || 'Module').trim(),
+      description: String(c.description || '').trim(),
+      order_index: typeof c.order_index === 'number' ? c.order_index : 0,
+      created_at: c.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+  }
+
+  function _sanitizeTopic(t, uid) {
+    if (!t || !t.id || !_isValidUUID(t.id) || !t.category_id || !_isValidUUID(t.category_id)) return null;
+    return {
+      id: t.id,
+      user_id: uid,
+      category_id: t.category_id,
+      title: String(t.title || 'Untitled Topic').trim(),
+      description: String(t.description || '').trim(),
+      difficulty: ['Beginner', 'Intermediate', 'Advanced'].indexOf(t.difficulty) !== -1 ? t.difficulty : 'Intermediate',
+      priority: ['Low', 'Medium', 'High', 'Critical'].indexOf(t.priority) !== -1 ? t.priority : 'Medium',
+      status: ['pending', 'inprogress', 'completed', 'onhold'].indexOf(t.status) !== -1 ? t.status : 'pending',
+      is_fav: !!t.is_fav,
+      notes: String(t.notes || '').trim(),
+      key_takeaways: Array.isArray(t.key_takeaways) ? t.key_takeaways : [],
+      target_date: t.target_date && typeof t.target_date === 'string' && t.target_date.trim() ? t.target_date.trim() : null,
+      status_changed_at: t.status_changed_at || null,
+      order_index: typeof t.order_index === 'number' ? t.order_index : 0,
+      created_at: t.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+  }
+
+  function _sanitizeMaterial(m, uid) {
+    if (!m || !m.id || !_isValidUUID(m.id) || !m.topic_id || !_isValidUUID(m.topic_id)) return null;
+    return {
+      id: m.id,
+      user_id: uid,
+      topic_id: m.topic_id,
+      title: String(m.title || 'Untitled Material').trim(),
+      material_type: String(m.material_type || 'note').toLowerCase(),
+      content: String(m.content || ''),
+      file_url: m.file_url || null,
+      external_url: m.external_url || null,
+      storage_path: m.storage_path || null,
+      tags: Array.isArray(m.tags) ? m.tags : [],
+      is_bookmarked: !!m.is_bookmarked,
+      file_size_bytes: typeof m.file_size_bytes === 'number' ? m.file_size_bytes : 0,
+      duration_mins: typeof m.duration_mins === 'number' ? m.duration_mins : 0,
+      status: ['pending', 'inprogress', 'completed', 'onhold'].indexOf(m.status) !== -1 ? m.status : 'pending',
+      progress_pct: typeof m.progress_pct === 'number' ? Math.min(100, Math.max(0, m.progress_pct)) : 0,
+      last_accessed_at: m.last_accessed_at || null,
+      user_notes: String(m.user_notes || ''),
+      created_at: m.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+  }
+
+  function _sanitizeGoal(g, uid) {
+    if (!g || !g.id || !_isValidUUID(g.id)) return null;
+    return {
+      id: g.id,
+      user_id: uid,
+      title: String(g.title || 'Learning Goal').trim(),
+      domain_id: g.domain_id && _isValidUUID(g.domain_id) ? g.domain_id : null,
+      target_date: g.target_date && typeof g.target_date === 'string' && g.target_date.trim() ? g.target_date.trim() : null,
+      milestones: Array.isArray(g.milestones) ? g.milestones : [],
+      status: ['active', 'completed', 'paused'].indexOf(g.status) !== -1 ? g.status : 'active',
+      target_topics: typeof g.target_topics === 'number' ? g.target_topics : 10,
+      daily_target_minutes: typeof g.daily_target_minutes === 'number' ? g.daily_target_minutes : 60,
+      weekly_target_topics: typeof g.weekly_target_topics === 'number' ? g.weekly_target_topics : 10,
+      created_at: g.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+  }
+
+  function _sanitizeTimeLog(l, uid) {
+    if (!l || !l.id || !_isValidUUID(l.id)) return null;
+    return {
+      id: l.id,
+      user_id: uid,
+      domain_id: l.domain_id && _isValidUUID(l.domain_id) ? l.domain_id : null,
+      topic_id: l.topic_id && _isValidUUID(l.topic_id) ? l.topic_id : null,
+      duration_minutes: typeof l.duration_minutes === 'number' ? l.duration_minutes : 0,
+      session_type: String(l.session_type || 'pomodoro'),
+      notes: String(l.notes || ''),
+      logged_at: l.logged_at || new Date().toISOString(),
+      created_at: l.created_at || new Date().toISOString()
+    };
+  }
+
   function _getFallbackUid() {
     try {
       if (typeof window !== 'undefined' && window.LM_Auth && typeof window.LM_Auth.getCurrentUser === 'function') {
@@ -368,121 +481,260 @@
     });
   }
 
-  // ── 2. SUPABASE BIDIRECTIONAL SYNC ─────────────────────────────────────────
-  function _syncFromSupabase() {
+  // ── 2. SUPABASE BIDIRECTIONAL SYNC & REAL-TIME ENGINE ───────────────────────
+  var _realtimeChannel = null;
+  function _setupRealtimeSync(uid) {
+    if (!uid || typeof _supabase === 'undefined' || !_supabase || typeof _supabase.channel !== 'function') return;
+    if (_realtimeChannel) return;
+
+    try {
+      _realtimeChannel = _supabase.channel('study_custom_workspace_sync_' + uid)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'study_custom_domains', filter: 'user_id=eq.' + uid }, function () {
+          _syncFromSupabase(true).then(function() {
+            renderAllWidgets();
+            if (window.StudyTopicPage && typeof window.StudyTopicPage.renderAll === 'function') {
+              window.StudyTopicPage.renderAll();
+            }
+          });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'study_custom_categories', filter: 'user_id=eq.' + uid }, function () {
+          _syncFromSupabase(true).then(function() {
+            renderAllWidgets();
+            if (window.StudyTopicPage && typeof window.StudyTopicPage.renderAll === 'function') {
+              window.StudyTopicPage.renderAll();
+            }
+          });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'study_custom_topics', filter: 'user_id=eq.' + uid }, function () {
+          _syncFromSupabase(true).then(function() {
+            renderAllWidgets();
+            if (window.StudyTopicPage && typeof window.StudyTopicPage.renderAll === 'function') {
+              window.StudyTopicPage.renderAll();
+            }
+          });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'study_materials', filter: 'user_id=eq.' + uid }, function () {
+          _syncFromSupabase(true).then(function() {
+            renderAllWidgets();
+            if (window.StudyTopicPage && typeof window.StudyTopicPage.renderAll === 'function') {
+              window.StudyTopicPage.renderAll();
+            }
+          });
+        })
+        .subscribe(function (status) {
+          if (status === 'SUBSCRIBED') {
+            console.log('[StudyWorkspace] Realtime cloud sync active');
+          }
+        });
+    } catch (e) {
+      console.warn('[StudyWorkspace] Realtime setup error:', e);
+    }
+  }
+
+  function _syncFromSupabase(skipPush) {
     return _getUid().then(function (uid) {
       if (!uid || typeof _supabase === 'undefined' || !_supabase) return;
 
-      return Promise.all([
-        _supabase.from('study_custom_domains').select('*').eq('user_id', uid).order('order_index', { ascending: true }),
-        _supabase.from('study_custom_categories').select('*').eq('user_id', uid).order('order_index', { ascending: true }),
-        _supabase.from('study_custom_topics').select('*').eq('user_id', uid).order('order_index', { ascending: true }),
-        _supabase.from('study_materials').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
-        _supabase.from('study_learning_goals').select('*').eq('user_id', uid),
-        _supabase.from('study_time_logs').select('*').eq('user_id', uid).order('logged_at', { ascending: false }).limit(50),
-        _supabase.from('study_user_preferences').select('*').eq('user_id', uid).maybeSingle()
-      ]).then(function (results) {
-        var remoteDomains = (results[0] && results[0].data) || [];
-        var remoteCats    = (results[1] && results[1].data) || [];
-        var remoteTopics  = (results[2] && results[2].data) || [];
-        var remoteMats    = (results[3] && results[3].data) || [];
-        var remoteGoals   = (results[4] && results[4].data) || [];
-        var remoteLogs    = (results[5] && results[5].data) || [];
-        var remotePrefs   = results[6] && results[6].data;
+      _setupRealtimeSync(uid);
 
-        // 1. Domains bidirectional merge
+      var pDomains = _supabase.from('study_custom_domains').select('*').eq('user_id', uid).order('order_index', { ascending: true })
+        .then(function (r) { return (r && r.data) || []; }).catch(function (e) { console.warn('Fetch domains err:', e); return []; });
+      var pCats = _supabase.from('study_custom_categories').select('*').eq('user_id', uid).order('order_index', { ascending: true })
+        .then(function (r) { return (r && r.data) || []; }).catch(function (e) { console.warn('Fetch cats err:', e); return []; });
+      var pTopics = _supabase.from('study_custom_topics').select('*').eq('user_id', uid).order('order_index', { ascending: true })
+        .then(function (r) { return (r && r.data) || []; }).catch(function (e) { console.warn('Fetch topics err:', e); return []; });
+      var pMats = _supabase.from('study_materials').select('*').eq('user_id', uid).order('created_at', { ascending: false })
+        .then(function (r) { return (r && r.data) || []; }).catch(function (e) { console.warn('Fetch mats err:', e); return []; });
+      var pGoals = _supabase.from('study_learning_goals').select('*').eq('user_id', uid)
+        .then(function (r) { return (r && r.data) || []; }).catch(function (e) { return []; });
+      var pLogs = _supabase.from('study_time_logs').select('*').eq('user_id', uid).order('logged_at', { ascending: false }).limit(50)
+        .then(function (r) { return (r && r.data) || []; }).catch(function (e) { return []; });
+      var pPrefs = _supabase.from('study_user_preferences').select('*').eq('user_id', uid).maybeSingle()
+        .then(function (r) { return (r && r.data) || null; }).catch(function (e) { return null; });
+
+      return Promise.all([pDomains, pCats, pTopics, pMats, pGoals, pLogs, pPrefs]).then(function (results) {
+        var remoteDomains = results[0];
+        var remoteCats    = results[1];
+        var remoteTopics  = results[2];
+        var remoteMats    = results[3];
+        var remoteGoals   = results[4];
+        var remoteLogs    = results[5];
+        var remotePrefs   = results[6];
+
+        // 1. Domains: Combine remote and any local unsynced domains
         var remoteDomMap = {};
         remoteDomains.forEach(function (d) { remoteDomMap[d.id] = d; });
         var pushDomains = [];
         _state.domains.forEach(function (localD) {
           if (!_isValidUUID(localD.id)) return;
           if (!remoteDomMap[localD.id]) {
-            pushDomains.push(localD);
+            var sanitized = _sanitizeDomain(localD, uid);
+            if (sanitized) pushDomains.push(sanitized);
           }
         });
         _state.domains = remoteDomains.concat(pushDomains);
-        pushDomains.forEach(function (dom) {
-          _supabase.from('study_custom_domains').upsert(Object.assign({ user_id: uid }, dom))
-            .catch(function (err) { console.error('[StudyWorkspace] Push domain error:', err); });
-        });
 
-        // 2. Categories bidirectional merge
+        // 2. Categories
         var remoteCatMap = {};
         remoteCats.forEach(function (c) { remoteCatMap[c.id] = c; });
         var pushCats = [];
         _state.categories.forEach(function (localC) {
           if (!_isValidUUID(localC.id)) return;
           if (!remoteCatMap[localC.id]) {
-            pushCats.push(localC);
+            var sanitized = _sanitizeCategory(localC, uid);
+            if (sanitized) pushCats.push(sanitized);
           }
         });
         _state.categories = remoteCats.concat(pushCats);
-        pushCats.forEach(function (cat) {
-          _supabase.from('study_custom_categories').upsert(Object.assign({ user_id: uid }, cat))
-            .catch(function (err) { console.error('[StudyWorkspace] Push category error:', err); });
-        });
 
-        // 3. Topics bidirectional merge
+        // 3. Topics
         var remoteTopicMap = {};
         remoteTopics.forEach(function (t) { remoteTopicMap[t.id] = t; });
         var pushTopics = [];
         _state.topics.forEach(function (localT) {
           if (!_isValidUUID(localT.id)) return;
           if (!remoteTopicMap[localT.id]) {
-            pushTopics.push(localT);
+            var sanitized = _sanitizeTopic(localT, uid);
+            if (sanitized) pushTopics.push(sanitized);
           }
         });
         _state.topics = remoteTopics.concat(pushTopics);
-        pushTopics.forEach(function (top) {
-          _supabase.from('study_custom_topics').upsert(Object.assign({ user_id: uid }, top))
-            .catch(function (err) { console.error('[StudyWorkspace] Push topic error:', err); });
-        });
 
-        // 4. Materials bidirectional merge
+        // 4. Materials
         var remoteMatMap = {};
         remoteMats.forEach(function (m) { remoteMatMap[m.id] = m; });
         var pushMats = [];
         _state.materials.forEach(function (localM) {
           if (!_isValidUUID(localM.id)) return;
           if (!remoteMatMap[localM.id]) {
-            pushMats.push(localM);
+            var sanitized = _sanitizeMaterial(localM, uid);
+            if (sanitized) pushMats.push(sanitized);
           }
         });
         _state.materials = remoteMats.concat(pushMats);
-        pushMats.forEach(function (mat) {
-          _supabase.from('study_materials').upsert(Object.assign({ user_id: uid }, mat))
-            .catch(function (err) { console.error('[StudyWorkspace] Push material error:', err); });
-        });
 
-        // 5. Goals bidirectional merge
+        // 5. Goals
         var remoteGoalMap = {};
         remoteGoals.forEach(function (g) { remoteGoalMap[g.id] = g; });
         var pushGoals = [];
         _state.goals.forEach(function (localG) {
           if (!_isValidUUID(localG.id)) return;
           if (!remoteGoalMap[localG.id]) {
-            pushGoals.push(localG);
+            var sanitized = _sanitizeGoal(localG, uid);
+            if (sanitized) pushGoals.push(sanitized);
           }
         });
         _state.goals = remoteGoals.concat(pushGoals);
-        pushGoals.forEach(function (g) {
-          _supabase.from('study_learning_goals').upsert(Object.assign({ user_id: uid }, g))
-            .catch(function (err) { console.error('[StudyWorkspace] Push goal error:', err); });
-        });
 
-        // 6. Time logs
-        if (remoteLogs.length > 0) {
-          _state.timeLogs = remoteLogs;
-        }
-
-        // 7. Preferences
-        if (remotePrefs) {
-          _state.prefs = Object.assign(_state.prefs, remotePrefs);
-        }
+        // 6. Time logs & Prefs
+        if (remoteLogs.length > 0) _state.timeLogs = remoteLogs;
+        if (remotePrefs) _state.prefs = Object.assign(_state.prefs, remotePrefs);
 
         _saveLocal();
+
+        if (skipPush) {
+          _dispatchSyncDone();
+          return;
+        }
+
+        // ── SEQUENTIAL PUSH CHAIN (Guarantees Foreign Key Integrity) ──
+        var pushChain = Promise.resolve();
+        if (pushDomains.length > 0) {
+          pushChain = pushChain.then(function () {
+            return _supabase.from('study_custom_domains').upsert(pushDomains);
+          }).then(function (res) {
+            if (res && res.error) console.error('[StudyWorkspace] Push domains error:', res.error);
+          });
+        }
+        if (pushCats.length > 0) {
+          pushChain = pushChain.then(function () {
+            return _supabase.from('study_custom_categories').upsert(pushCats);
+          }).then(function (res) {
+            if (res && res.error) console.error('[StudyWorkspace] Push categories error:', res.error);
+          });
+        }
+        if (pushTopics.length > 0) {
+          pushChain = pushChain.then(function () {
+            return _supabase.from('study_custom_topics').upsert(pushTopics);
+          }).then(function (res) {
+            if (res && res.error) console.error('[StudyWorkspace] Push topics error:', res.error);
+          });
+        }
+        if (pushMats.length > 0) {
+          pushChain = pushChain.then(function () {
+            return _supabase.from('study_materials').upsert(pushMats);
+          }).then(function (res) {
+            if (res && res.error) console.error('[StudyWorkspace] Push materials error:', res.error);
+          });
+        }
+        if (pushGoals.length > 0) {
+          pushChain = pushChain.then(function () {
+            return _supabase.from('study_learning_goals').upsert(pushGoals);
+          }).then(function (res) {
+            if (res && res.error) console.error('[StudyWorkspace] Push goals error:', res.error);
+          });
+        }
+
+        return pushChain.catch(function (err) {
+          console.error('[StudyWorkspace] Push batch error:', err);
+        }).finally(function () {
+          _dispatchSyncDone();
+        });
       }).catch(function (e) {
         console.warn('[StudyWorkspace] Supabase sync fallback to local:', e);
+        _dispatchSyncDone();
+      });
+    });
+  }
+
+  function _dispatchSyncDone() {
+    try {
+      document.dispatchEvent(new CustomEvent('studyWorkspaceSyncDone', {
+        detail: {
+          domainsCount: _state.domains.length,
+          categoriesCount: _state.categories.length,
+          topicsCount: _state.topics.length,
+          materialsCount: _state.materials.length
+        }
+      }));
+    } catch (e) {}
+  }
+
+  function syncNow() {
+    if (window.LMToast) window.LMToast.show('🔄 Syncing with cloud...');
+    return _syncFromSupabase().then(function () {
+      renderAllWidgets();
+      if (window.StudyTopicPage && typeof window.StudyTopicPage.renderAll === 'function') {
+        window.StudyTopicPage.renderAll();
+      }
+      if (window.LMToast) {
+        window.LMToast.show('✅ Cloud sync complete! (' + _state.domains.length + ' tracks, ' + _state.topics.length + ' topics)');
+      }
+    }).catch(function (err) {
+      if (window.LMToast) window.LMToast.show('⚠️ Sync status: Using local workspace');
+    });
+  }
+
+  // ── Auto-Sync on Tab Visibility & Focus ──
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') {
+        _syncFromSupabase().then(function () {
+          renderAllWidgets();
+          if (window.StudyTopicPage && typeof window.StudyTopicPage.renderAll === 'function') {
+            window.StudyTopicPage.renderAll();
+          }
+        });
+      }
+    });
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('focus', function () {
+      _syncFromSupabase().then(function () {
+        renderAllWidgets();
+        if (window.StudyTopicPage && typeof window.StudyTopicPage.renderAll === 'function') {
+          window.StudyTopicPage.renderAll();
+        }
       });
     });
   }
@@ -883,12 +1135,26 @@
     _saveLocal();
     _getUid().then(function (uid) {
       if (uid && typeof _supabase !== 'undefined' && _supabase) {
-        _supabase.from('study_custom_domains').upsert(Object.assign({ user_id: uid }, newDomain))
-          .catch(function (err) { console.error('[StudyWorkspace] saveInpageNewDomain domain error:', err); });
-        _supabase.from('study_custom_categories').upsert(Object.assign({ user_id: uid }, newCat))
-          .catch(function (err) { console.error('[StudyWorkspace] saveInpageNewDomain cat error:', err); });
-        _supabase.from('study_custom_topics').upsert(Object.assign({ user_id: uid }, newTop))
-          .catch(function (err) { console.error('[StudyWorkspace] saveInpageNewDomain top error:', err); });
+        var cleanDom = _sanitizeDomain(newDomain, uid);
+        var cleanCat = _sanitizeCategory(newCat, uid);
+        var cleanTop = _sanitizeTopic(newTop, uid);
+
+        return _supabase.from('study_custom_domains').upsert(cleanDom)
+          .then(function (res) {
+            if (res && res.error) throw res.error;
+            return _supabase.from('study_custom_categories').upsert(cleanCat);
+          })
+          .then(function (res) {
+            if (res && res.error) throw res.error;
+            return _supabase.from('study_custom_topics').upsert(cleanTop);
+          })
+          .then(function (res) {
+            if (res && res.error) throw res.error;
+            _dispatchSyncDone();
+          })
+          .catch(function (err) {
+            console.error('[StudyWorkspace] saveInpageNewDomain relational insert error:', err);
+          });
       }
     });
 
@@ -1292,8 +1558,12 @@
 
     _getUid().then(function (uid) {
       if (uid && typeof _supabase !== 'undefined' && _supabase) {
-        _supabase.from('study_custom_domains').update(dom).eq('id', domainId)
-          .catch(function (err) { console.error('[StudyWorkspace] saveEditDomain error:', err); });
+        var cleanDom = _sanitizeDomain(dom, uid);
+        if (cleanDom) {
+          _supabase.from('study_custom_domains').upsert(cleanDom)
+            .then(function () { _dispatchSyncDone(); })
+            .catch(function (err) { console.error('[StudyWorkspace] saveEditDomain error:', err); });
+        }
       }
     });
 
@@ -1368,8 +1638,12 @@
 
     _getUid().then(function (uid) {
       if (uid && typeof _supabase !== 'undefined' && _supabase) {
-        _supabase.from('study_custom_categories').insert(Object.assign({ user_id: uid }, newCat))
-          .catch(function (err) { console.error('[StudyWorkspace] saveNewCategory error:', err); });
+        var cleanCat = _sanitizeCategory(newCat, uid);
+        if (cleanCat) {
+          _supabase.from('study_custom_categories').upsert(cleanCat)
+            .then(function () { _dispatchSyncDone(); })
+            .catch(function (err) { console.error('[StudyWorkspace] saveNewCategory error:', err); });
+        }
       }
     });
 
@@ -1481,8 +1755,12 @@
 
     _getUid().then(function (uid) {
       if (uid && typeof _supabase !== 'undefined' && _supabase) {
-        _supabase.from('study_custom_topics').insert(Object.assign({ user_id: uid }, newTop))
-          .catch(function (err) { console.error('[StudyWorkspace] saveNewTopic error:', err); });
+        var cleanTop = _sanitizeTopic(newTop, uid);
+        if (cleanTop) {
+          _supabase.from('study_custom_topics').upsert(cleanTop)
+            .then(function () { _dispatchSyncDone(); })
+            .catch(function (err) { console.error('[StudyWorkspace] saveNewTopic error:', err); });
+        }
       }
     });
 
@@ -1751,8 +2029,12 @@
 
       _getUid().then(function (uid) {
         if (uid && typeof _supabase !== 'undefined' && _supabase) {
-          _supabase.from('study_materials').insert(Object.assign({ user_id: uid }, newMat))
-            .catch(function (err) { console.error('[StudyWorkspace] saveNewMaterial error:', err); });
+          var cleanMat = _sanitizeMaterial(newMat, uid);
+          if (cleanMat) {
+            _supabase.from('study_materials').upsert(cleanMat)
+              .then(function () { _dispatchSyncDone(); })
+              .catch(function (err) { console.error('[StudyWorkspace] saveNewMaterial error:', err); });
+          }
         }
       });
 
@@ -2319,16 +2601,30 @@
     _saveLocal();
     _getUid().then(function (uid) {
       if (uid && typeof _supabase !== 'undefined' && _supabase) {
-        _supabase.from('study_custom_domains').upsert(Object.assign({ user_id: uid }, newDomain))
-          .catch(function (err) { console.error('[StudyWorkspace] importTemplate domain error:', err); });
-        createdCats.forEach(function (c) {
-          _supabase.from('study_custom_categories').upsert(Object.assign({ user_id: uid }, c))
-            .catch(function (err) { console.error('[StudyWorkspace] importTemplate cat error:', err); });
-        });
-        createdTopics.forEach(function (t) {
-          _supabase.from('study_custom_topics').upsert(Object.assign({ user_id: uid }, t))
-            .catch(function (err) { console.error('[StudyWorkspace] importTemplate topic error:', err); });
-        });
+        var cleanDom = _sanitizeDomain(newDomain, uid);
+        var cleanCats = createdCats.map(function (c) { return _sanitizeCategory(c, uid); }).filter(Boolean);
+        var cleanTops = createdTopics.map(function (t) { return _sanitizeTopic(t, uid); }).filter(Boolean);
+
+        return _supabase.from('study_custom_domains').upsert(cleanDom)
+          .then(function (res) {
+            if (res && res.error) throw res.error;
+            if (cleanCats.length > 0) {
+              return _supabase.from('study_custom_categories').upsert(cleanCats);
+            }
+          })
+          .then(function (res) {
+            if (res && res.error) throw res.error;
+            if (cleanTops.length > 0) {
+              return _supabase.from('study_custom_topics').upsert(cleanTops);
+            }
+          })
+          .then(function (res) {
+            if (res && res.error) throw res.error;
+            _dispatchSyncDone();
+          })
+          .catch(function (err) {
+            console.error('[StudyWorkspace] importTemplate relational insert error:', err);
+          });
       }
     });
 
@@ -2427,8 +2723,12 @@
 
     _getUid().then(function (uid) {
       if (uid && typeof _supabase !== 'undefined' && _supabase) {
-        _supabase.from('study_learning_goals').insert(Object.assign({ user_id: uid }, newGoal))
-          .catch(function (err) { console.error('[StudyWorkspace] saveNewGoal error:', err); });
+        var cleanGoal = _sanitizeGoal(newGoal, uid);
+        if (cleanGoal) {
+          _supabase.from('study_learning_goals').upsert(cleanGoal)
+            .then(function () { _dispatchSyncDone(); })
+            .catch(function (err) { console.error('[StudyWorkspace] saveNewGoal error:', err); });
+        }
       }
     });
 
@@ -3112,6 +3412,9 @@
     deleteMaterial: deleteMaterial,
     handleSectionSearch: handleSectionSearch,
     handleSectionFilterTab: handleSectionFilterTab,
+    syncNow: syncNow,
+    syncFromSupabase: _syncFromSupabase,
+    getUid: _getUid,
     getState: function () { return _state; }
   };
 

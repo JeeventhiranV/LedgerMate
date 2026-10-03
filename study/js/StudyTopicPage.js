@@ -43,7 +43,7 @@
     if (window.StudyWorkspace) {
       var state = window.StudyWorkspace.getState();
       if (!topicId && state && state.topics && state.topics.length > 0) {
-        var last = state.prefs && state.prefs.last_active_topic ? state.prefs.last_active_topic.id : null;
+        var last = state.prefs && state.prefs.last_active_topic ? (state.prefs.last_active_topic.topicId || state.prefs.last_active_topic.id) : null;
         topicId = last || state.topics[0].id;
       }
     }
@@ -55,6 +55,29 @@
 
     // Setup dropzones
     _initDropzones();
+
+    // Listen for StudyWorkspace sync completion or realtime updates
+    document.addEventListener('studyWorkspaceSyncDone', function () {
+      if (!_currentTopicId && window.StudyWorkspace) {
+        var st = window.StudyWorkspace.getState();
+        if (st && st.topics && st.topics.length > 0) {
+          _currentTopicId = (st.prefs && st.prefs.last_active_topic ? (st.prefs.last_active_topic.topicId || st.prefs.last_active_topic.id) : null) || st.topics[0].id;
+        }
+      }
+      renderAll();
+    });
+
+    if (window.StudyWorkspace && typeof window.StudyWorkspace.syncFromSupabase === 'function') {
+      window.StudyWorkspace.syncFromSupabase().then(function () {
+        if (!_currentTopicId) {
+          var st = window.StudyWorkspace.getState();
+          if (st && st.topics && st.topics.length > 0) {
+            _currentTopicId = (st.prefs && st.prefs.last_active_topic ? (st.prefs.last_active_topic.topicId || st.prefs.last_active_topic.id) : null) || st.topics[0].id;
+          }
+        }
+        renderAll();
+      });
+    }
   }
 
   function _syncUserAvatar() {
@@ -697,13 +720,21 @@
         timeLogs: state.timeLogs
       }));
 
-      if (window.StudyWorkspace.uploadFileToStorage) {
-        var uid = state.uid;
+      var uidPromise = window.StudyWorkspace && typeof window.StudyWorkspace.getUid === 'function' ?
+        window.StudyWorkspace.getUid() : Promise.resolve(null);
+
+      uidPromise.then(function (uid) {
         if (uid && typeof _supabase !== 'undefined' && _supabase) {
-          _supabase.from('study_materials').insert(Object.assign({ user_id: uid }, newMat))
+          var payload = Object.assign({ user_id: uid }, newMat);
+          _supabase.from('study_materials').upsert(payload)
+            .then(function () {
+              if (window.StudyWorkspace && typeof window.StudyWorkspace.syncFromSupabase === 'function') {
+                window.StudyWorkspace.syncFromSupabase(true);
+              }
+            })
             .catch(function (err) { console.error('[TopicPage] saveQuickLink error:', err); });
         }
-      }
+      });
     }
 
     if (window.LMToast) window.LMToast.show('✅ External link attached!');
@@ -789,11 +820,21 @@
           timeLogs: state.timeLogs
         }));
 
-        var uid = state.uid;
-        if (uid && typeof _supabase !== 'undefined' && _supabase) {
-          _supabase.from('study_materials').insert(Object.assign({ user_id: uid }, newMat))
-            .catch(function (err) { console.error('[TopicPage] _uploadFile material error:', err); });
-        }
+        var uidPromise = window.StudyWorkspace && typeof window.StudyWorkspace.getUid === 'function' ?
+          window.StudyWorkspace.getUid() : Promise.resolve(null);
+
+        uidPromise.then(function (uid) {
+          if (uid && typeof _supabase !== 'undefined' && _supabase) {
+            var payload = Object.assign({ user_id: uid }, newMat);
+            _supabase.from('study_materials').upsert(payload)
+              .then(function () {
+                if (window.StudyWorkspace && typeof window.StudyWorkspace.syncFromSupabase === 'function') {
+                  window.StudyWorkspace.syncFromSupabase(true);
+                }
+              })
+              .catch(function (err) { console.error('[TopicPage] _uploadFile material error:', err); });
+          }
+        });
 
         setTimeout(function () {
           if (prog) prog.style.display = 'none';

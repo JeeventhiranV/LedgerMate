@@ -805,6 +805,9 @@ html, body {
         <a href="index.html" class="topbar-custom-btn" title="Return to Study Resources Hub">
           <span>🏠</span><span>Hub</span>
         </a>
+        <button class="topbar-custom-btn" onclick="window.StudyWorkspace?.syncNow()" style="background:rgba(56,189,248,0.1);border-color:rgba(56,189,248,0.3);color:var(--cyan,#38bdf8);" title="Sync Topics &amp; Files with Cloud">
+          <span>🔄</span><span>Sync</span>
+        </button>
         <button class="topbar-custom-btn" onclick="window.StudyWorkspace?.openAddMaterialModal(window.StudyTopicPage.getCurrentTopicId())" style="background:linear-gradient(135deg,rgba(79,142,247,0.15),rgba(139,92,246,0.15));border-color:rgba(79,142,247,0.35);color:var(--blue,#4f8ef7);" title="Quick Upload File / Link to Topic">
           <span>📤</span><span>Upload</span>
         </button>
