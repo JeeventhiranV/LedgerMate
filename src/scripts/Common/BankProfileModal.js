@@ -231,7 +231,8 @@
   function isPrivacyModeActive() {
     try {
       return document.body.classList.contains('privacy-mode') ||
-             localStorage.getItem('lm_privacy_mode') === 'true';
+             localStorage.getItem('lm_privacy_mode') === 'true' ||
+             localStorage.getItem('lm_privacy_mode') === '1';
     } catch (e) {
       return false;
     }
@@ -270,6 +271,7 @@
     }
 
     const isStudy = isStudyContext();
+    const isPrivacy = isPrivacyModeActive();
     const overlay = document.createElement('div');
     overlay.id = 'bankProfileModal';
     overlay.className = 'bank-profile-overlay';
