@@ -236,67 +236,6 @@ if ('serviceWorker' in navigator) {
       <kbd class="search-kbd">Ctrl+K</kbd>
     </div>
 
-    <!-- Quick-access tracker links -->
-    <div class="hero-quick-links">
-      <a href="prep/Interview-Tracker.html" class="hero-ql-btn ql-teal">
-        <div class="ql-icon">🎯</div>
-        <div class="ql-body">
-          <div class="ql-title">Interview Tracker</div>
-          <div class="ql-sub">Kanban · Rounds · CTC · CSV export</div>
-          <div class="ql-stats">
-            <span class="ql-stat-chip" id="tbTotal">—</span>
-            <span style="font-size:10px;color:var(--text3);align-self:center">applied</span>
-            <span class="ql-stat-chip" id="tbActive">—</span>
-            <span style="font-size:10px;color:var(--text3);align-self:center">active</span>
-            <span class="ql-stat-chip" id="tbOffers">—</span>
-            <span style="font-size:10px;color:var(--text3);align-self:center">offers</span>
-          </div>
-        </div>
-        <span class="ql-arrow">↗</span>
-      </a>
-      <a href="prep/Daily-Learning-Tracker.html" class="hero-ql-btn ql-blue">
-        <div class="ql-icon">📊</div>
-        <div class="ql-body">
-          <div class="ql-title">Daily Learning Tracker</div>
-          <div class="ql-sub">Activities · Coding · Revisions · Charts</div>
-        </div>
-        <span class="ql-arrow">↗</span>
-      </a>
-      <a href="prep/Quick-Links-Manager.html" class="hero-ql-btn ql-purple">
-        <div class="ql-icon">🔗</div>
-        <div class="ql-body">
-          <div class="ql-title">Quick Links Manager</div>
-          <div class="ql-sub">Docs · YouTube · GitHub · References</div>
-        </div>
-        <span class="ql-arrow">↗</span>
-      </a>
-      <div class="hero-ql-btn" onclick="window.StudySRS?.showModal()" style="cursor:pointer;border-color:rgba(139,92,246,0.35);">
-        <div class="ql-icon" style="background:linear-gradient(135deg,#8b5cf6,#4f8ef7);color:#fff;display:flex;align-items:center;justify-content:center;border-radius:10px;width:34px;height:34px;font-size:16px;">🧠</div>
-        <div class="ql-body">
-          <div class="ql-title">Spaced Flashcards (SRS)</div>
-          <div class="ql-sub">SM-2 Algorithm · Memory Retention</div>
-        </div>
-        <span class="ql-arrow">⚡</span>
-      </div>
-      <div class="hero-ql-btn" onclick="window.StudyCodeRunner?.showModal()" style="cursor:pointer;border-color:rgba(16,185,129,0.35);">
-        <div class="ql-icon" style="background:linear-gradient(135deg,#10b981,#06b6d4);color:#fff;display:flex;align-items:center;justify-content:center;border-radius:10px;width:34px;height:34px;font-size:16px;">💻</div>
-        <div class="ql-body">
-          <div class="ql-title">DSA Code Playground</div>
-          <div class="ql-sub">Interactive In-Browser JS Sandbox</div>
-        </div>
-        <span class="ql-arrow">▶</span>
-      </div>
-      <div class="hero-ql-btn" onclick="window.StudyQuiz?.showModal()" style="cursor:pointer;border-color:rgba(6,214,160,0.35);">
-        <div class="ql-icon" style="background:linear-gradient(135deg,#06d6a0,#00b4d8);color:#07091a;font-weight:700;display:flex;align-items:center;justify-content:center;border-radius:10px;width:34px;height:34px;font-size:16px;">🎯</div>
-        <div class="ql-body">
-          <div class="ql-title">Topic Practice Quizzes</div>
-          <div class="ql-sub">Timed Assessments · Instant Scores</div>
-        </div>
-        <span class="ql-arrow">⚡</span>
-      </div>
-    </div>
-
-    <!-- Interview Countdown -->
   </div>
 </div>
 
@@ -307,96 +246,109 @@ if ('serviceWorker' in navigator) {
 <div id="pomodoroWidgetContainer" style="max-width:1200px;margin:0 auto;padding:0 24px;"></div>
 <div id="goalsWidgetContainer" style="max-width:1200px;margin:0 auto;padding:0 24px;"></div>
 
-<!-- ═══ DASHBOARD PANEL ═══ -->
-<div class="dash-panel">
-
-  <!-- MODULE PROGRESS RINGS -->
-  <div class="dash-section-title">Module Progress</div>
-  <div class="mod-grid" id="modGrid">
-    <!-- skeleton -->
-    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
-    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
-    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
-    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
-    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
-  </div>
-
-  <!-- RECENT ACTIVITY + ACHIEVEMENTS -->
-  <div class="dash-row">
-    <div class="dash-box">
-      <div class="dash-box-header">
-        <div class="dash-box-icon">⚡</div>
-        <div class="dash-box-title">Recent Activity</div>
-        <div class="dash-box-count" id="activityCount">—</div>
-      </div>
-      <div class="activity-list" id="activityList">
-        <div class="activity-empty">Loading activity…</div>
-      </div>
+<!-- ═══ DASHBOARD & ANALYTICS PANEL (COLLAPSIBLE) ═══ -->
+<div class="dash-panel" id="dashAnalyticsPanel">
+  <div class="dash-panel-toggle-hdr" onclick="toggleAnalyticsPanel()" role="button" tabindex="0" title="Click to collapse/expand analytics dashboard">
+    <div class="dash-panel-toggle-left">
+      <span class="dash-toggle-ico">📊</span>
+      <span class="dash-toggle-title">Study Analytics &amp; Progress Dashboard</span>
+      <span class="dash-toggle-badge">Live Metrics</span>
     </div>
-    <div class="dash-box">
-      <div class="dash-box-header">
-        <div class="dash-box-icon">🏆</div>
-        <div class="dash-box-title">Achievements</div>
-        <div class="dash-box-count" id="achieveCount">—</div>
-      </div>
-      <div class="achievement-grid" id="achievementGrid">
-        <!-- skeletons -->
-        <div class="skel" style="height:48px;border-radius:9px"></div>
-        <div class="skel" style="height:48px;border-radius:9px"></div>
-        <div class="skel" style="height:48px;border-radius:9px"></div>
-        <div class="skel" style="height:48px;border-radius:9px"></div>
-        <div class="skel" style="height:48px;border-radius:9px"></div>
-        <div class="skel" style="height:48px;border-radius:9px"></div>
-        <div class="skel" style="height:48px;border-radius:9px"></div>
-        <div class="skel" style="height:48px;border-radius:9px"></div>
-      </div>
+    <div class="dash-toggle-btn">
+      <span id="dashToggleTxt">Collapse</span> <span id="dashToggleArrow" style="display:inline-block;transition:transform .2s;">▼</span>
     </div>
   </div>
 
-  <!-- ACTIVITY HEATMAP -->
-  <div class="heatmap-wrap">
-    <div class="heatmap-header">
-      <div class="heatmap-title">Activity Heatmap</div>
-      <div class="heatmap-sub" id="heatmapSub">Last 70 days · 0 active days</div>
-    </div>
-    <div class="heatmap-grid" id="heatmapGrid">
-      <!-- injected by JS -->
-    </div>
-    <div class="heatmap-legend">
-      Less&nbsp;
-      <div class="heat-lc heat-0"></div>
-      <div class="heat-lc heat-1"></div>
-      <div class="heat-lc heat-2"></div>
-      <div class="heat-lc heat-3"></div>
-      <div class="heat-lc heat-4"></div>
-      &nbsp;More
-    </div>
-  </div>
+  <div class="dash-panel-collapsible-body" id="dashPanelBody">
 
-  <!-- WEAK TOPICS & REVISION RECOMMENDATIONS -->
-  <div class="dash-row" style="margin-top:14px;">
-    <div class="dash-box" style="flex:1;">
-      <div class="dash-box-header">
-        <div class="dash-box-icon" style="background:rgba(245,158,11,0.15);color:#f59e0b;">⚡</div>
-        <div class="dash-box-title">Topics Needing Revision Today</div>
-        <button class="btn-notes-search" onclick="window.StudyQuiz?.showModal()" style="margin-left:auto;padding:3px 8px;font-size:11px;background:rgba(6,214,160,0.15);color:#06d6a0;border:1px solid rgba(6,214,160,0.3);border-radius:6px;cursor:pointer;">Take Quiz ↗</button>
-      </div>
-      <div id="weakTopicsList" style="padding:4px 0;">
-        <div class="activity-empty">Analyzing study progress…</div>
-      </div>
+    <!-- MODULE PROGRESS RINGS -->
+    <div class="dash-section-title">Module Progress</div>
+    <div class="mod-grid" id="modGrid">
+      <!-- skeleton -->
+      <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
+      <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
+      <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
+      <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
+      <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
     </div>
-    <div class="dash-box" style="flex:1;">
-      <div class="dash-box-header">
-        <div class="dash-box-icon" style="background:rgba(79,142,247,0.15);color:#4f8ef7;">📊</div>
-        <div class="dash-box-title">Recent Quiz Performance</div>
-        <button class="btn-notes-search" onclick="window.StudyQuiz?.openHistory()" style="margin-left:auto;padding:3px 8px;font-size:11px;background:none;border:1px solid var(--border,#262f45);border-radius:6px;color:var(--text2,#8896b8);cursor:pointer;">View All ↗</button>
-      </div>
-      <div id="quizHistoryList" style="padding:4px 0;">
-        <div class="activity-empty">No quiz attempts yet. Take a sprint quiz to test your recall!</div>
-      </div>
-    </div>
-  </div>
 
+    <!-- RECENT ACTIVITY + ACHIEVEMENTS -->
+    <div class="dash-row">
+      <div class="dash-box">
+        <div class="dash-box-header">
+          <div class="dash-box-icon">⚡</div>
+          <div class="dash-box-title">Recent Activity</div>
+          <div class="dash-box-count" id="activityCount">—</div>
+        </div>
+        <div class="activity-list" id="activityList">
+          <div class="activity-empty">Loading activity…</div>
+        </div>
+      </div>
+      <div class="dash-box">
+        <div class="dash-box-header">
+          <div class="dash-box-icon">🏆</div>
+          <div class="dash-box-title">Achievements</div>
+          <div class="dash-box-count" id="achieveCount">—</div>
+        </div>
+        <div class="achievement-grid" id="achievementGrid">
+          <!-- skeletons -->
+          <div class="skel" style="height:48px;border-radius:9px"></div>
+          <div class="skel" style="height:48px;border-radius:9px"></div>
+          <div class="skel" style="height:48px;border-radius:9px"></div>
+          <div class="skel" style="height:48px;border-radius:9px"></div>
+          <div class="skel" style="height:48px;border-radius:9px"></div>
+          <div class="skel" style="height:48px;border-radius:9px"></div>
+          <div class="skel" style="height:48px;border-radius:9px"></div>
+          <div class="skel" style="height:48px;border-radius:9px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY HEATMAP -->
+    <div class="heatmap-wrap">
+      <div class="heatmap-header">
+        <div class="heatmap-title">Activity Heatmap</div>
+        <div class="heatmap-sub" id="heatmapSub">Last 70 days · 0 active days</div>
+      </div>
+      <div class="heatmap-grid" id="heatmapGrid">
+        <!-- injected by JS -->
+      </div>
+      <div class="heatmap-legend">
+        Less&nbsp;
+        <div class="heat-lc heat-0"></div>
+        <div class="heat-lc heat-1"></div>
+        <div class="heat-lc heat-2"></div>
+        <div class="heat-lc heat-3"></div>
+        <div class="heat-lc heat-4"></div>
+        &nbsp;More
+      </div>
+    </div>
+
+    <!-- WEAK TOPICS & REVISION RECOMMENDATIONS -->
+    <div class="dash-row" style="margin-top:14px;">
+      <div class="dash-box" style="flex:1;">
+        <div class="dash-box-header">
+          <div class="dash-box-icon" style="background:rgba(245,158,11,0.15);color:#f59e0b;">⚡</div>
+          <div class="dash-box-title">Topics Needing Revision Today</div>
+          <button class="btn-notes-search" onclick="window.StudyQuiz?.showModal()" style="margin-left:auto;padding:3px 8px;font-size:11px;background:rgba(6,214,160,0.15);color:#06d6a0;border:1px solid rgba(6,214,160,0.3);border-radius:6px;cursor:pointer;">Take Quiz ↗</button>
+        </div>
+        <div id="weakTopicsList" style="padding:4px 0;">
+          <div class="activity-empty">Analyzing study progress…</div>
+        </div>
+      </div>
+      <div class="dash-box" style="flex:1;">
+        <div class="dash-box-header">
+          <div class="dash-box-icon" style="background:rgba(79,142,247,0.15);color:#4f8ef7;">📊</div>
+          <div class="dash-box-title">Recent Quiz Performance</div>
+          <button class="btn-notes-search" onclick="window.StudyQuiz?.openHistory()" style="margin-left:auto;padding:3px 8px;font-size:11px;background:none;border:1px solid var(--border,#262f45);border-radius:6px;color:var(--text2,#8896b8);cursor:pointer;">View All ↗</button>
+        </div>
+        <div id="quizHistoryList" style="padding:4px 0;">
+          <div class="activity-empty">No quiz attempts yet. Take a sprint quiz to test your recall!</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </div>
 <!-- ═══ END DASHBOARD ═══ -->
 
@@ -823,6 +775,58 @@ function buildCard(r, idx) {
 }
 
 
+/* ══════════════════════════════════════════════════════
+   COLLAPSIBLE DASHBOARD & SECTIONS HELPERS
+══════════════════════════════════════════════════════ */
+function toggleAnalyticsPanel() {
+  var body = document.getElementById('dashPanelBody');
+  var txt = document.getElementById('dashToggleTxt');
+  var arrow = document.getElementById('dashToggleArrow');
+  if (!body) return;
+  var isHidden = (body.style.display === 'none' || body.classList.contains('collapsed'));
+  if (isHidden) {
+    body.style.display = 'block';
+    body.classList.remove('collapsed');
+    if (txt) txt.textContent = 'Collapse';
+    if (arrow) arrow.style.transform = 'rotate(0deg)';
+    try { localStorage.setItem('lm_dash_analytics_expanded', 'true'); } catch(e){}
+  } else {
+    body.style.display = 'none';
+    body.classList.add('collapsed');
+    if (txt) txt.textContent = 'Expand';
+    if (arrow) arrow.style.transform = 'rotate(-90deg)';
+    try { localStorage.setItem('lm_dash_analytics_expanded', 'false'); } catch(e){}
+  }
+}
+window.toggleAnalyticsPanel = toggleAnalyticsPanel;
+
+function toggleLangSection(headerEl) {
+  var sec = headerEl.closest('.lang-section');
+  if (!sec) return;
+  var grid = sec.querySelector('.resource-grid');
+  var arrow = headerEl.querySelector('.lang-section-arrow');
+  if (!grid) return;
+  var isCollapsed = (grid.style.display === 'none' || grid.classList.contains('collapsed'));
+  if (isCollapsed) {
+    grid.style.display = 'grid';
+    grid.classList.remove('collapsed');
+    if (arrow) arrow.style.transform = 'rotate(0deg)';
+    try {
+      var id = sec.dataset.langId || sec.id;
+      localStorage.removeItem('lm_lang_sec_collapsed_' + id);
+    } catch(e){}
+  } else {
+    grid.style.display = 'none';
+    grid.classList.add('collapsed');
+    if (arrow) arrow.style.transform = 'rotate(-90deg)';
+    try {
+      var id = sec.dataset.langId || sec.id;
+      localStorage.setItem('lm_lang_sec_collapsed_' + id, 'true');
+    } catch(e){}
+  }
+}
+window.toggleLangSection = toggleLangSection;
+
 function renderResourceGrid() {
   const container = document.getElementById('languageSectionsWrap');
   if (!container) return;
@@ -860,9 +864,14 @@ function renderResourceGrid() {
       ? sorted.length + ' Module' + (sorted.length > 1 ? 's' : '') + ' · ' + domainTotalQ + '+ Qs'
       : sorted.length + ' Tool' + (sorted.length > 1 ? 's' : '');
 
+    var isSecCollapsed = false;
+    try {
+      isSecCollapsed = localStorage.getItem('lm_lang_sec_collapsed_' + domain.id) === 'true';
+    } catch(e){}
+
     html += `
       <section class="lang-section" id="lang-section-${domain.id}" data-lang-id="${domain.id}">
-        <div class="lang-section-header">
+        <div class="lang-section-header" onclick="toggleLangSection(this)" role="button" tabindex="0" title="Click to collapse/expand section">
           <div class="lang-section-left">
             <div class="lang-section-icon" style="background:${domain.color}18;color:${domain.color}">${domain.icon}</div>
             <div class="lang-section-info">
@@ -870,12 +879,13 @@ function renderResourceGrid() {
                 <h2 class="lang-section-title">${domain.title}</h2>
                 ${domain.badge ? `<span class="lang-badge" style="background:${domain.color}18;color:${domain.color}">${domain.badge}</span>` : ''}
                 <span class="lang-count-badge" id="badge-count-${domain.id}">${domainCountLabel}</span>
+                <span class="lang-section-arrow" style="${isSecCollapsed ? 'transform:rotate(-90deg)' : ''}">▼</span>
               </div>
               <p class="lang-section-tagline">${domain.tagline}</p>
             </div>
           </div>
         </div>
-        <div class="resource-grid">
+        <div class="resource-grid" style="${isSecCollapsed ? 'display:none;' : ''}">
           ${sorted.map(function(r, i){ return buildCard(r, i); }).join('')}
         </div>
       </section>

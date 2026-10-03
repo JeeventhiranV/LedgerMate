@@ -1363,9 +1363,14 @@
         `;
       }).join('');
 
+      var isSecCollapsed = false;
+      try {
+        isSecCollapsed = localStorage.getItem('lm_lang_sec_collapsed_' + dom.id) === 'true';
+      } catch(e){}
+
       return `
         <section class="lang-section custom-workspace-domain-section" id="lang-section-${dom.id}" data-lang-id="${dom.id}">
-          <div class="lang-section-header">
+          <div class="lang-section-header" onclick="window.toggleLangSection ? window.toggleLangSection(this) : null" role="button" tabindex="0" title="Click to collapse/expand section">
             <div class="lang-section-left">
               <div class="lang-section-icon" style="background:${dom.color}18;color:${dom.color};">${dom.icon}</div>
               <div class="lang-section-info">
@@ -1373,17 +1378,18 @@
                   <h2 class="lang-section-title">${_esc(dom.title)}</h2>
                   <span class="lang-badge" style="background:${dom.color}18;color:${dom.color};">${_esc(dom.badge)}</span>
                   <span class="lang-count-badge">${domTopics.length} Topic${domTopics.length!==1?'s':''} · ${doneCount} Done (${pct}%)</span>
+                  <span class="lang-section-arrow" style="${isSecCollapsed ? 'transform:rotate(-90deg)' : ''}">▼</span>
                 </div>
                 <p class="lang-section-tagline">${_esc(dom.tagline || 'Custom Personal Learning Workspace')}</p>
               </div>
             </div>
             ${_state.canCustomize ? `
-              <div style="display:flex;gap:6px;">
-                <button class="ws-btn-secondary" style="font-size:11px;padding:4px 8px;" onclick="window.StudyWorkspace.openAddTopicModal('${domCats[0]?domCats[0].id:''}')">+ Add Topic</button>
+              <div style="display:flex;gap:6px;" onclick="event.stopPropagation()">
+                <button class="ws-btn-secondary" style="font-size:11px;padding:4px 8px;" onclick="event.stopPropagation();window.StudyWorkspace.openAddTopicModal('${domCats[0]?domCats[0].id:''}')">+ Add Topic</button>
               </div>
             ` : ''}
           </div>
-          <div class="resource-grid">
+          <div class="resource-grid" style="${isSecCollapsed ? 'display:none;' : ''}">
             ${topicsListHtml}
           </div>
         </section>

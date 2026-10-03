@@ -65,11 +65,11 @@
   let _modalEl = null;
 
   function isStudyContext() {
-    return window.location.pathname.indexOf('/study') !== -1 ||
-           typeof window.StudySync !== 'undefined' ||
-           typeof window._studyProfile !== 'undefined' ||
-           document.body.classList.contains('study-page') ||
-           document.getElementById('statDone') !== null;
+    var path = (typeof window !== 'undefined' && window.location && window.location.pathname) ? window.location.pathname.toLowerCase() : '';
+    if (path.indexOf('/study') !== -1 || path.indexOf('study/index.html') !== -1) return true;
+    if (typeof document !== 'undefined' && document.body && (document.body.classList.contains('study-page') || document.body.classList.contains('prep-page'))) return true;
+    if (typeof document !== 'undefined' && document.getElementById('statDone') !== null && document.getElementById('heroStreak') !== null) return true;
+    return false;
   }
 
   function isNativeAndroid() {
@@ -318,15 +318,15 @@
               </div>
             </div>
 
-            <div class="bpm-matrix-card" id="bpmCard2" onclick="${isStudy ? 'window.LM_ProfileModal.showStreakInfo()' : 'window.LM_ProfileModal.togglePrivacy()'}" style="cursor:pointer;" title="${isStudy ? 'Current Active Daily Study Streak' : 'Tap to toggle stealth balance privacy'}">
-              <div class="bpm-matrix-icon" id="bpmPrivacyIcon">${isStudy ? '🔥' : '👁️'}</div>
+            <div class="bpm-matrix-card" id="bpmCard2" onclick="window.LM_ProfileModal.handleCard2Click()" style="cursor:pointer;" title="${isStudy ? 'Current Active Daily Study Streak' : 'Tap to toggle amount privacy (mask balances)'}">
+              <div class="bpm-matrix-icon" id="bpmPrivacyIcon">${isStudy ? '🔥' : (isPrivacy ? '🙈' : '👁️')}</div>
               <div class="bpm-matrix-info">
-                <div class="bpm-matrix-label" id="bpmCard2Label">${isStudy ? 'Study Streak' : 'Privacy Shield'}</div>
-                <div class="bpm-matrix-val" id="bpmPrivacyStatus">${isStudy ? '0 Days' : 'Hidden'}</div>
+                <div class="bpm-matrix-label" id="bpmCard2Label">${isStudy ? 'Study Streak' : 'Amount Privacy'}</div>
+                <div class="bpm-matrix-val" id="bpmPrivacyStatus">${isStudy ? '0 Days' : (isPrivacy ? 'Masked' : 'Visible')}</div>
               </div>
               <div class="bpm-switch-pill" id="bpmPrivacySwitch">
                 <span class="bpm-switch-knob"></span>
-                <span id="bpmPrivacySwitchText">${isStudy ? 'Active' : 'OFF'}</span>
+                <span id="bpmPrivacySwitchText">${isStudy ? 'Inactive' : (isPrivacy ? 'ON' : 'OFF')}</span>
               </div>
             </div>
 
@@ -602,12 +602,12 @@
         }
       } catch(e) {}
       if (card2Label) card2Label.textContent = 'Study Streak';
-      if (card2Val) card2Val.textContent = streak + ' Days';
+      if (card2Val) card2Val.textContent = streak + (streak === 1 ? ' Day' : ' Days');
       if (card2Icon) card2Icon.textContent = '🔥';
-      if (card2Switch) card2Switch.classList.add('active');
-      if (card2SwitchText) card2SwitchText.textContent = 'Active';
+      if (card2Switch) card2Switch.classList.toggle('active', streak > 0);
+      if (card2SwitchText) card2SwitchText.textContent = streak > 0 ? 'Active' : 'Inactive';
     } else {
-      if (card2Label) card2Label.textContent = 'Privacy Shield';
+      if (card2Label) card2Label.textContent = 'Amount Privacy';
       if (card2Val) card2Val.textContent = isPrivacy ? 'Masked' : 'Visible';
       if (card2Icon) card2Icon.textContent = isPrivacy ? '🙈' : '👁️';
       if (card2Switch) card2Switch.classList.toggle('active', isPrivacy);
@@ -864,6 +864,14 @@
       if (window.LM_Haptic) window.LM_Haptic.notificationSuccess();
     },
 
+    handleCard2Click: function () {
+      if (isStudyContext()) {
+        BankProfileModal.showStreakInfo();
+      } else {
+        BankProfileModal.togglePrivacy();
+      }
+    },
+
     showStreakInfo: function () {
       var streak = 0;
       try { streak = Number(localStorage.getItem('study_streak_count') || 0); } catch(e) {}
@@ -942,10 +950,26 @@
     },
 
     togglePrivacy: function () {
+      var current = isPrivacyModeActive();
+      var next = !current;
       if (typeof window.LM_togglePrivacyMode === 'function') {
         window.LM_togglePrivacyMode();
+      } else {
+        document.body.classList.toggle('privacy-mode', next);
+        try { localStorage.setItem('lm_privacy_mode', next ? 'true' : 'false'); } catch (e) {}
+        if (window.LM_Bus && typeof window.LM_Bus.emit === 'function') {
+          window.LM_Bus.emit('lm:privacy:changed', { privacy: next });
+        }
+        var evt = new CustomEvent('privacy-toggle', { detail: { privacy: next } });
+        window.dispatchEvent(evt);
+        document.dispatchEvent(evt);
       }
       renderProfileDetails();
+      if (typeof window.showToast === 'function') {
+        window.showToast(next ? '🙈 Amount privacy enabled (balances masked)' : '👁️ Amount privacy disabled (balances visible)', 'info');
+      } else if (window.LMToast) {
+        window.LMToast.show(next ? '🙈 Amount privacy enabled' : '👁️ Amount privacy disabled', 'info');
+      }
       if (window.LM_Haptic) window.LM_Haptic.impactLight();
     },
 
