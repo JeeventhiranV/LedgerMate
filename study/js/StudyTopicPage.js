@@ -56,7 +56,15 @@
     }
   }
 
-  function toggleSidebar(forceState) {
+  var _sidebarToggling = false;
+  function toggleSidebar(forceState, e) {
+    if (e && typeof e.stopPropagation === 'function') {
+      e.stopPropagation();
+    }
+    if (_sidebarToggling && typeof forceState !== 'boolean') return;
+    _sidebarToggling = true;
+    setTimeout(function() { _sidebarToggling = false; }, 250);
+
     var sidebar = document.getElementById('sidebar');
     var overlay = document.getElementById('sidebarOverlay');
     if (!sidebar) return;

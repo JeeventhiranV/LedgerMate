@@ -508,8 +508,19 @@
   // ── mobile nav ──
   const backdrop=document.getElementById('sd-backdrop');
   const sidebarEl=document.getElementById('sidebar');   // off-canvas container (holds nav + auth-guard footer)
-  document.getElementById('hdrBurger').onclick=()=>{ sidebarEl.classList.toggle('open'); backdrop.classList.toggle('open'); };
-  backdrop.onclick=closeMobileNav;
+  let _sdNavToggling = false;
+  document.getElementById('hdrBurger').onclick=(e)=>{
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (_sdNavToggling) return;
+    _sdNavToggling = true;
+    setTimeout(() => _sdNavToggling = false, 250);
+    sidebarEl.classList.toggle('open');
+    backdrop.classList.toggle('open');
+  };
+  backdrop.onclick=(e)=>{
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    closeMobileNav();
+  };
   function closeMobileNav(){ sidebarEl.classList.remove('open'); backdrop.classList.remove('open'); }
 
   // ── Supabase sync: pull completed topics (DB wins) and push local-only ones up ──

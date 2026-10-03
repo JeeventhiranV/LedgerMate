@@ -1728,13 +1728,20 @@ function route(){
 /* ════════════════════════════════════════════════════════════
    SIDEBAR / MOBILE / THEME / KEYBOARD
 ════════════════════════════════════════════════════════════ */
-function openSidebar(){ $('sidebar').classList.add('open'); $('sidebarOverlay').classList.add('show'); }
-function closeSidebar(){ $('sidebar').classList.remove('open'); $('sidebarOverlay').classList.remove('show'); }
+function openSidebar(e){ if (e && typeof e.stopPropagation === 'function') e.stopPropagation(); $('sidebar').classList.add('open'); $('sidebarOverlay').classList.add('show'); }
+function closeSidebar(e){ if (e && typeof e.stopPropagation === 'function') e.stopPropagation(); $('sidebar').classList.remove('open'); $('sidebarOverlay').classList.remove('show'); }
 
 function initChrome(){
   buildSidebar();
 
-  $('menuBtn').addEventListener('click',()=>{ $('sidebar').classList.contains('open')?closeSidebar():openSidebar(); });
+  let _dsaNavToggling = false;
+  $('menuBtn').addEventListener('click',(e)=>{
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (_dsaNavToggling) return;
+    _dsaNavToggling = true;
+    setTimeout(() => _dsaNavToggling = false, 250);
+    $('sidebar').classList.contains('open')?closeSidebar(e):openSidebar(e);
+  });
   $('sidebarOverlay').addEventListener('click',closeSidebar);
   $('logoHome').addEventListener('click',()=>location.hash='#home');
 

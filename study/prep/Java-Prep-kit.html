@@ -5981,11 +5981,17 @@ if (themeBtn) {
 const sidebar = document.getElementById('sidebar');
 const overlay = document.getElementById('overlay');
 const menuBtn = document.getElementById('menuBtn');
-menuBtn.addEventListener('click', () => {
+let _javaNavToggling = false;
+menuBtn.addEventListener('click', (e) => {
+  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+  if (_javaNavToggling) return;
+  _javaNavToggling = true;
+  setTimeout(() => _javaNavToggling = false, 250);
   sidebar.classList.toggle('open');
   overlay.classList.toggle('show');
 });
-overlay.addEventListener('click', () => {
+overlay.addEventListener('click', (e) => {
+  if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
   sidebar.classList.remove('open');
   overlay.classList.remove('show');
 });

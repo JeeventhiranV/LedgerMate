@@ -22,7 +22,7 @@
 <body>
 <header class="topbar">
   <div class="header-left">
-    <button id="navToggle" class="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="sidebar" onclick="toggleNav()">☰</button>
+    <button id="navToggle" class="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="sidebar" onclick="toggleNav(event)">☰</button>
     <a href="../index.html" class="hdr-back" title="Back to Study Hub" aria-label="Back to Study Hub">←</a>
     <h1>🧠 DSA CodeBase</h1>
   </div>
@@ -5617,7 +5617,12 @@ toRemove.forEach(map::remove);</pre>
 
 <script>
   // ── Mobile sidebar (off-canvas) toggle ──
-  function toggleNav() {
+  let _dsaCbNavToggling = false;
+  function toggleNav(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (_dsaCbNavToggling) return;
+    _dsaCbNavToggling = true;
+    setTimeout(() => _dsaCbNavToggling = false, 250);
     const nav = document.getElementById('sidebar');
     const bd  = document.getElementById('nav-backdrop');
     const btn = document.getElementById('navToggle');
@@ -5625,7 +5630,8 @@ toRemove.forEach(map::remove);</pre>
     bd.classList.toggle('open', open);
     if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
-  function closeNav() {
+  function closeNav(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('nav-backdrop').classList.remove('open');
     const btn = document.getElementById('navToggle');

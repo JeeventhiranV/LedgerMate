@@ -1698,11 +1698,17 @@ document.addEventListener('DOMContentLoaded', () => {
   CommunityHub.init({ module: 'react', moduleName: 'React Interviews' });
 
   // Sidebar toggle
-  document.getElementById('menuBtn').addEventListener('click', () => {
+  let _reactNavToggling = false;
+  document.getElementById('menuBtn').addEventListener('click', (e) => {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (_reactNavToggling) return;
+    _reactNavToggling = true;
+    setTimeout(() => _reactNavToggling = false, 250);
     document.getElementById('sidebar').classList.toggle('open');
     document.getElementById('sidebarOverlay').classList.toggle('show');
   });
-  document.getElementById('sidebarOverlay').addEventListener('click', () => {
+  document.getElementById('sidebarOverlay').addEventListener('click', (e) => {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('sidebarOverlay').classList.remove('show');
   });

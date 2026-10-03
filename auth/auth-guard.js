@@ -503,12 +503,23 @@
 
     // ── Decide where to put it ───────────────────────────────────────────────
     var existingSidebar = document.getElementById('sidebar');
+    var hubDrawer = document.getElementById('hubDrawer');
+    var isHubPage = window.location.pathname.endsWith('/study/') ||
+                    window.location.pathname.endsWith('/study/index.html') ||
+                    window.location.pathname.endsWith('/study') ||
+                    !!hubDrawer;
 
     if (existingSidebar) {
-      // Pages with existing sidebar (Java / DSA / React) — append footer
+      // Pages with existing sidebar (Java / DSA / React / Topic) — append footer
       existingSidebar.appendChild(footer);
+    } else if (isHubPage) {
+      // Study Hub page: already has #hubDrawer and #hubMenuBtn — do NOT build duplicate authNav!
+      var hubDrawerBody = document.querySelector('#hubDrawer .hub-drawer-body');
+      if (hubDrawerBody) {
+        hubDrawerBody.appendChild(footer);
+      }
     } else {
-      // Pages without sidebar (HR / IPK) — build a new one
+      // Standalone pages without sidebar (HR / IPK / DLT) — build a new one
       _buildAuthNav(footer);
     }
 
@@ -776,8 +787,17 @@
     // ── ☰ button → inject as first child of .topbar or .topbar-left ──────────
     var topbar = document.querySelector('.topbar');
     if (topbar) {
+      var _navTogState = false;
       function _openNav()  { nav.classList.add('open');    overlay.classList.add('show'); }
       function _closeNav() { nav.classList.remove('open'); overlay.classList.remove('show'); }
+
+      function _handleNavToggle(e) {
+        if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+        if (_navTogState) return;
+        _navTogState = true;
+        setTimeout(function () { _navTogState = false; }, 250);
+        nav.classList.contains('open') ? _closeNav() : _openNav();
+      }
 
       var existingBtn = topbar.querySelector('.agf-menu-btn, #menuBtn, .hdr-burger');
       if (!existingBtn) {
@@ -792,15 +812,14 @@
           topbar.insertBefore(menuBtn, topbar.firstChild);
         }
 
-        menuBtn.addEventListener('click', function () {
-          nav.classList.contains('open') ? _closeNav() : _openNav();
-        });
+        menuBtn.addEventListener('click', _handleNavToggle);
       } else {
-        existingBtn.addEventListener('click', function () {
-          nav.classList.contains('open') ? _closeNav() : _openNav();
-        });
+        existingBtn.addEventListener('click', _handleNavToggle);
       }
-      overlay.addEventListener('click', _closeNav);
+      overlay.addEventListener('click', function(e) {
+        if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+        _closeNav();
+      });
     }
   }
 

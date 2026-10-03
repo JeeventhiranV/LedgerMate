@@ -51,7 +51,7 @@ if ('serviceWorker' in navigator) {
 <!-- TOPBAR -->
 <header class="topbar">
   <div class="topbar-left">
-    <button class="topbar-menu-toggle" id="hubMenuBtn" onclick="toggleHubDrawer()" title="Open Tools &amp; Navigation Menu" aria-label="Toggle Navigation Drawer">
+    <button class="topbar-menu-toggle" id="hubMenuBtn" onclick="toggleHubDrawer(undefined, event)" title="Open Tools &amp; Navigation Menu" aria-label="Toggle Navigation Drawer">
       <span>☰</span>
     </button>
     <a href="index.html" class="topbar-brand" title="Study Resources Hub">
@@ -2489,7 +2489,15 @@ function _doNotesSearch(q) {
 }());
 </script>
 <script>
-function toggleHubDrawer(forceState) {
+var _hubDrawerToggling = false;
+function toggleHubDrawer(forceState, e) {
+  if (e && typeof e.stopPropagation === 'function') {
+    e.stopPropagation();
+  }
+  if (_hubDrawerToggling && typeof forceState !== 'boolean') return;
+  _hubDrawerToggling = true;
+  setTimeout(function() { _hubDrawerToggling = false; }, 250);
+
   var drawer = document.getElementById('hubDrawer');
   var overlay = document.getElementById('hubDrawerOverlay');
   if (!drawer || !overlay) return;
