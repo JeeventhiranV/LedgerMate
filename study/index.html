@@ -84,10 +84,10 @@ if ('serviceWorker' in navigator) {
       <button class="topbar-tool-btn btn-notes" onclick="openNotesSearch()" title="Search your notes (Ctrl+/)">
         <span class="tool-ico">🗒</span><span class="tool-lbl">Search Notes</span>
       </button>
-      <button class="topbar-tool-btn btn-customizer" onclick="window.StudyWorkspace?.openWidgetCustomizer()" title="Customize Dashboard &amp; Widgets">
-        <span class="tool-ico">⚙️</span><span class="tool-lbl">Customize</span>
+      <button class="topbar-tool-btn btn-customizer" onclick="window.StudyWorkspace?.openStudio('sections')" title="In-Page Workspace Customization Studio">
+        <span class="tool-ico">⚙️</span><span class="tool-lbl">Studio Hub</span>
       </button>
-      <button class="topbar-tool-btn btn-roadmap" onclick="window.StudyWorkspace?.importTemplate('tpl_python')" title="Import Ready-Made Roadmap Blueprints">
+      <button class="topbar-tool-btn btn-roadmap" onclick="window.StudyWorkspace?.openStudio('blueprints')" title="Import Ready-Made Roadmap Blueprints">
         <span class="tool-ico">📦</span><span class="tool-lbl">Roadmaps</span>
       </button>
     </div>
@@ -384,23 +384,76 @@ if ('serviceWorker' in navigator) {
   </div>
 </div>
 
+<!-- ═══ IN-PAGE WORKSPACE CUSTOMIZATION STUDIO ═══ -->
+<section class="ws-studio-section" id="workspaceCustomizationStudio">
+  <div class="ws-studio-card">
+    <div class="ws-studio-header">
+      <div class="ws-studio-title-wrap">
+        <div class="ws-studio-icon-badge">⚙️</div>
+        <div>
+          <h2 class="ws-studio-title">Workspace Customization Studio</h2>
+          <div class="ws-studio-subtitle">Build custom tracks, manage modules &amp; topics, upload files to Supabase, track material progress, and configure widgets</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openQuickUploadModal()" style="font-size:12px;padding:6px 14px;background:linear-gradient(135deg,#4f8ef7,#8b5cf6);">
+          <span>📤</span> Upload to Supabase
+        </button>
+        <button class="btn-resume-dismiss" onclick="window.StudyWorkspace?.toggleStudioView(false)" title="Close Studio" style="padding:6px 12px;font-size:12.5px;font-weight:600;">
+          ✕ Close Studio
+        </button>
+      </div>
+    </div>
+
+    <!-- Studio Tab Navigation Bar -->
+    <div class="ws-studio-tabs-bar" id="studioTabsBar">
+      <button class="studio-tab-btn active" data-tab="sections" onclick="window.StudyWorkspace?.switchStudioTab('sections')">
+        <span>🌐</span> Custom Sections &amp; Tracks
+      </button>
+      <button class="studio-tab-btn" data-tab="vault" onclick="window.StudyWorkspace?.switchStudioTab('vault')">
+        <span>📁</span> Cloud Materials &amp; File Vault
+      </button>
+      <button class="studio-tab-btn" data-tab="hierarchy" onclick="window.StudyWorkspace?.switchStudioTab('hierarchy')">
+        <span>🧩</span> Modules &amp; Topics Manager
+      </button>
+      <button class="studio-tab-btn" data-tab="widgets" onclick="window.StudyWorkspace?.switchStudioTab('widgets')">
+        <span>📊</span> Dashboard Widgets
+      </button>
+      <button class="studio-tab-btn" data-tab="blueprints" onclick="window.StudyWorkspace?.switchStudioTab('blueprints')">
+        <span>📦</span> Blueprints &amp; Roadmaps
+      </button>
+      <button class="studio-tab-btn" data-tab="goals" onclick="window.StudyWorkspace?.switchStudioTab('goals')">
+        <span>🎯</span> Goals &amp; Milestones
+      </button>
+    </div>
+
+    <!-- Studio Tab Panes -->
+    <div class="studio-tab-pane active" id="studioPane-sections"></div>
+    <div class="studio-tab-pane" id="studioPane-vault"></div>
+    <div class="studio-tab-pane" id="studioPane-hierarchy"></div>
+    <div class="studio-tab-pane" id="studioPane-widgets"></div>
+    <div class="studio-tab-pane" id="studioPane-blueprints"></div>
+    <div class="studio-tab-pane" id="studioPane-goals"></div>
+  </div>
+</section>
+
 <!-- WORKSPACE CONTROLS & 4-STATE STATUS BAR -->
 <div class="workspace-controls-bar" id="workspaceControlsBar">
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-    <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openAddDomainModal()" title="Add Custom Programming Language or Section">
+    <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openStudio('sections')" title="Open In-Page Studio to Add/Manage Custom Sections">
       <span>➕</span> Add Language / Section
     </button>
-    <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openQuickUploadModal()" title="Upload PDF, Notes, Docs or Code to Cloud Storage" style="background:linear-gradient(135deg,#4f8ef7,#8b5cf6);">
+    <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openStudio('vault')" title="Upload PDF, Notes, Docs or Code to Cloud Storage" style="background:linear-gradient(135deg,#4f8ef7,#8b5cf6);">
       <span>📤</span> Upload Material
     </button>
-    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openTemplateModal()" title="Import Ready-to-Learn Roadmaps">
+    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openStudio('blueprints')" title="Import Ready-to-Learn Roadmaps">
       <span>📦</span> Import Roadmap
     </button>
-    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openGoalModal()" title="Create Target Date &amp; Milestones">
+    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openStudio('goals')" title="Create Target Date &amp; Milestones">
       <span>🎯</span> Set Goal
     </button>
-    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openWidgetCustomizer()" title="Customize Dashboard &amp; Widgets">
-      <span>⚙️</span> Customize Workspace
+    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.toggleStudioView(true)" title="Open Full In-Page Workspace Customizer Studio" style="border-color:var(--blue,#4f8ef7);color:var(--blue,#4f8ef7);background:rgba(79,142,247,0.08);">
+      <span>⚙️</span> In-Page Customizer Studio
     </button>
   </div>
   <div style="font-size:11.5px;color:var(--text3);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">

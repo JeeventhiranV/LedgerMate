@@ -1264,4 +1264,308 @@ input:checked + .ws-slider:before { transform: translateX(18px); }
   font-weight: 700;
 }
 
+/* ─── 19. IN-PAGE WORKSPACE CUSTOMIZATION STUDIO ─────────────────────────── */
+.ws-studio-section {
+  max-width: 1200px;
+  margin: 0 auto 32px;
+  padding: 0 24px;
+  display: none;
+  animation: studioSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ws-studio-section.open {
+  display: block;
+}
+@keyframes studioSlideDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ws-studio-card {
+  background: var(--bg2, #11141c);
+  border: 1px solid var(--border2, #2d364f);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  position: relative;
+  overflow: hidden;
+}
+.ws-studio-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-wrap: wrap;
+}
+.ws-studio-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ws-studio-icon-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(79, 142, 247, 0.2), rgba(139, 92, 246, 0.2));
+  border: 1px solid rgba(79, 142, 247, 0.4);
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.ws-studio-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text, #fff);
+  margin: 0;
+}
+.ws-studio-subtitle {
+  font-size: 12px;
+  color: var(--text3, #8a95b8);
+  margin-top: 2px;
+}
+
+/* Studio Tabs Navigation Bar */
+.ws-studio-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 22px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.studio-tab-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border, #262f45);
+  border-radius: 10px;
+  color: var(--text2, #a6b0cf);
+  padding: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+}
+.studio-tab-btn:hover {
+  color: var(--text, #fff);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.studio-tab-btn.active {
+  background: linear-gradient(135deg, rgba(79, 142, 247, 0.18), rgba(139, 92, 246, 0.15));
+  border-color: var(--blue, #4f8ef7);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(79, 142, 247, 0.25);
+}
+
+/* Studio Sub-Panel Bodies */
+.studio-tab-pane {
+  display: none;
+  animation: studioPaneFade 0.2s ease-out;
+}
+.studio-tab-pane.active {
+  display: block;
+}
+@keyframes studioPaneFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── 20. STUDIO TAB 1: SECTIONS & INLINE BUILDER ────────────────────────── */
+.studio-sections-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 22px;
+}
+.studio-sections-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.studio-section-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border, #262f45);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all 0.18s ease;
+}
+.studio-section-card:hover {
+  border-color: rgba(79, 142, 247, 0.4);
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.035);
+}
+.studio-inline-form-card {
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border2, #2d364f);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+/* ─── 21. STUDIO TAB 2: CLOUD FILE VAULT ─────────────────────────────────── */
+.studio-vault-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.studio-vault-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.studio-files-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+.studio-file-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border, #262f45);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.15s;
+}
+.studio-file-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(79, 142, 247, 0.35);
+}
+.studio-file-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.studio-file-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.studio-file-meta {
+  font-size: 11px;
+  color: var(--text3, #8a95b8);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.studio-file-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  gap: 6px;
+}
+
+/* External Link Buttons */
+.ws-btn-extlink {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 6px;
+  color: #38bdf8;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+.ws-btn-extlink:hover {
+  background: #38bdf8;
+  color: #0b0f19;
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.35);
+}
+
+/* ─── 22. STUDIO TAB 3: MODULE & TOPIC HIERARCHY TREE ────────────────────── */
+.studio-tree-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.studio-tree-module {
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid var(--border, #262f45);
+  border-radius: 12px;
+  padding: 14px;
+}
+.studio-tree-module-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+.studio-tree-topics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.studio-tree-topic-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 8px 12px;
+  gap: 10px;
+}
+.studio-tree-topic-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* ─── 23. RESPONSIVE BREAKPOINTS ACROSS ALL DEVICES ──────────────────────── */
+@media (max-width: 1024px) {
+  .studio-sections-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .ws-studio-section {
+    padding: 0 12px;
+  }
+  .ws-studio-card {
+    padding: 16px;
+  }
+  .ws-studio-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .studio-files-grid {
+    grid-template-columns: 1fr;
+  }
+  .studio-tree-topic-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+}
+
+
 
