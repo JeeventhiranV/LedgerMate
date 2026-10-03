@@ -375,16 +375,18 @@ a{color:inherit}
 
   <!-- ══════════════ MAIN ══════════════ -->
   <main class="main">
-    <div class="topbar">
-      <button class="menu-btn" id="menuBtn" aria-label="Toggle navigation">☰</button>
-      <a href="../index.html" class="back-btn">← Study Hub</a>
-      <div class="crumb" id="crumb">
-        <a id="crumbHome">Home</a>
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" id="menuBtn" aria-label="Toggle navigation">☰</button>
+        <a href="../index.html" class="back-btn"><span class="btn-back-arrow">←</span><span class="btn-back-text"> Study Hub</span></a>
+        <div class="crumb" id="crumb">
+          <a id="crumbHome">Home</a>
+        </div>
       </div>
       <div class="topbar-right">
         <button class="theme-btn" id="themeBtn" aria-label="Toggle theme">🌙</button>
       </div>
-    </div>
+    </header>
     <div id="view"><!-- routed view injected --></div>
   </main>
 </div>

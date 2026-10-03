@@ -322,10 +322,11 @@ pre.code-block{background:#090c12;margin:0;padding:14px 16px;overflow-x:auto;fon
 <main class="main">
 
   <!-- TOPBAR -->
-  <div class="topbar">
-    <button class="menu-btn" id="menuBtn">☰</button>
-    <a href="../index.html" class="back-btn">← Study Hub</a>
-    <!-- <div class="topbar-title">React Interview Prep Hub</div> -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" id="menuBtn" aria-label="Toggle navigation">☰</button>
+      <a href="../index.html" class="back-btn"><span class="btn-back-arrow">←</span><span class="btn-back-text"> Study Hub</span></a>
+    </div>
     <div class="topbar-right">
       <div class="progress-chip">
         <span>Done</span>
@@ -334,10 +335,10 @@ pre.code-block{background:#090c12;margin:0;padding:14px 16px;overflow-x:auto;fon
       <div class="progress-chip" id="inProgressChip" style="display:none">
         <span>⏳</span><strong id="inProgressCount">0</strong>
       </div>
-      <button class="clear-btn" onclick="clearAllProgress()">Clear All</button>
-      <button class="theme-btn" id="themeBtn">🌙</button>
+      <button class="clear-btn clear-progress-btn" onclick="clearAllProgress()">Clear All</button>
+      <button class="theme-btn" id="themeBtn" aria-label="Toggle theme">🌙</button>
     </div>
-  </div>
+  </header>
 
   <!-- PROGRESS BAR -->
   <div class="progress-section">

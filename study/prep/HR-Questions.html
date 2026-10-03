@@ -95,10 +95,10 @@
 </head>
 <body>
 
-<div class="topbar">
-  <a href="../index.html" class="back-btn">← Study Hub</a>
-  <!-- <div class="topbar-title">HR Interview Q&A 2026</div> -->
-  <input type="text" class="topbar-search" id="hrSearch" placeholder="Search questions…" autocomplete="off" aria-label="Search questions"/>
+<header class="topbar">
+  <div class="topbar-left">
+    <a href="../index.html" class="back-btn"><span class="btn-back-arrow">←</span><span class="btn-back-text"> Study Hub</span></a>
+  </div>
   <div class="topbar-right">
     <div class="progress-chip">
       <span>Done</span>
@@ -107,16 +107,20 @@
     <div class="progress-chip" id="inProgressChip" style="display:none">
       <span>⏳</span><strong id="inProgressCount">0</strong>
     </div>
-    <span class="search-count" id="searchCount"></span>
     <button class="fav-filter-btn" id="favFilterBtn" title="Show favorites only" aria-label="Filter favorites">⭐ Favs</button>
     <button class="clear-progress-btn" onclick="clearAllProgress()">Clear</button>
     <button class="theme-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle dark/light theme">🌙</button>
   </div>
-</div>
+</header>
 
 <main>
   <h1>HR Questions & Answers</h1>
-    <p class="intro">Collected HR and behavioural interview questions with concise model answers. Use these as preparation notes and customize answers to reflect your experience.</p>
+  <p class="intro">Collected HR and behavioural interview questions with concise model answers. Use these as preparation notes and customize answers to reflect your experience.</p>
+  
+  <div class="hr-search-wrap" style="margin:14px 0;display:flex;align-items:center;gap:10px;">
+    <input type="text" class="topbar-search" id="hrSearch" placeholder="🔍 Search HR questions…" autocomplete="off" aria-label="Search questions" style="flex:1;max-width:540px;padding:9px 14px;border-radius:10px;font-size:13.5px;"/>
+    <span class="search-count" id="searchCount" style="font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;"></span>
+  </div>
     <div class="hr-progress">
       <span class="hr-progress-label">Progress</span>
       <div class="hr-progress-bar-wrap">

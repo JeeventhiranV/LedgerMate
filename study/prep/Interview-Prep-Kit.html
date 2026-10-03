@@ -269,17 +269,18 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <body>
 
 <!-- TOPBAR -->
-<div class="topbar">
-  <a href="../index.html" class="btn-back">← Study Hub</a>
-  <!-- <div class="topbar-title">Interview Prep Kit</div> -->
+<header class="topbar">
+  <div class="topbar-left">
+    <a href="../index.html" class="btn-back back-btn"><span class="btn-back-arrow">←</span><span class="btn-back-text"> Study Hub</span></a>
+  </div>
   <div class="topbar-right">
-    <div class="topbar-prog" id="topbarProgChip" style="display:none">
+    <div class="topbar-prog progress-chip" id="topbarProgChip" style="display:none">
       <span>Done</span>
       <strong id="topbarDoneCount">0</strong>/<strong id="topbarTotalCount">—</strong>
     </div>
-    <button class="btn-icon" id="themeBtn" title="Toggle theme">🌙</button>
+    <button class="theme-btn btn-icon" id="themeBtn" title="Toggle theme">🌙</button>
   </div>
-</div>
+</header>
 
 <!-- HERO -->
 <div class="hero">

@@ -253,9 +253,11 @@
 </head>
 <body>
 <header class="topbar">
-  <button class="hdr-burger" id="hdrBurger" aria-label="Menu">☰</button>
-  <a href="../index.html" class="hdr-back" title="Back to Study Hub" aria-label="Back to Study Hub">←</a>
-  <h1>🏗 System Design<small>Java Backend · LLD · HLD</small></h1>
+  <div class="topbar-left">
+    <button class="hdr-burger menu-btn" id="hdrBurger" aria-label="Menu">☰</button>
+    <a href="../index.html" class="hdr-back back-btn" title="Back to Study Hub" aria-label="Back to Study Hub"><span class="btn-back-arrow">←</span><span class="btn-back-text"> Study Hub</span></a>
+    <h1>🏗 System Design<small>Java Backend · LLD · HLD</small></h1>
+  </div>
   <div class="hdr-search">
     <span style="color:var(--muted)">🔍</span>
     <input type="text" id="globalSearch" placeholder="Search all topics…" autocomplete="off">
@@ -265,7 +267,7 @@
       <span id="progText">0 / 0</span>
       <div class="hdr-prog-bar"><div class="hdr-prog-fill" id="progFill"></div></div>
     </div>
-    <button class="theme-btn" id="themeBtn" aria-label="Toggle theme" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 9px;cursor:pointer;color:var(--text2);font-size:14px;line-height:1">🌙</button>
+    <button class="theme-btn" id="themeBtn" aria-label="Toggle theme">🌙</button>
   </div>
 </header>
 

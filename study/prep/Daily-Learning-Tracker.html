@@ -299,14 +299,16 @@ textarea.form-control{resize:vertical;min-height:68px}
      TOPBAR
 ══════════════════════════════════════════════════════════════ -->
 <header class="topbar">
-  <a href="../index.html" class="btn-back">← Study Hub</a>
-  <div class="topbar-divider"></div>
-  <div class="topbar-logo">
-    <div class="topbar-icon">📚</div>
-    <span class="topbar-title">Daily Learning Tracker</span>
+  <div class="topbar-left">
+    <a href="../index.html" class="btn-back back-btn"><span class="btn-back-arrow">←</span><span class="btn-back-text"> Study Hub</span></a>
+    <div class="topbar-divider"></div>
+    <div class="topbar-logo">
+      <div class="topbar-icon">📚</div>
+      <span class="topbar-title">Daily Learning Tracker</span>
+    </div>
   </div>
   <div class="topbar-right">
-    <button class="btn-theme" id="themeBtn" onclick="DLT.toggleTheme()" title="Toggle theme">🌙</button>
+    <button class="btn-theme theme-btn" id="themeBtn" onclick="DLT.toggleTheme()" title="Toggle theme">🌙</button>
   </div>
 </header>
 

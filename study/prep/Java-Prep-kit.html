@@ -96,24 +96,26 @@
 <main class="main" id="mainContent">
     
   <!-- TOPBAR -->
-  <div class="topbar">
-    <button class="menu-btn" id="menuBtn">☰</button>
-    <a href="../index.html" class="back-btn">← Study Hub</a>
-    <!-- <div class="topbar-title">Java Interview Prep 2026</div> -->
-  
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" id="menuBtn" aria-label="Toggle navigation">☰</button>
+      <a href="../index.html" class="back-btn" title="Back to Study Hub" aria-label="Back to Study Hub">
+        <span class="back-arrow">←</span> <span class="btn-back-text">Study Hub</span>
+      </a>
+    </div>
     
     <div class="topbar-right">
-      <div class="progress-chip">
+      <div class="progress-chip" id="doneChip" title="Solved questions progress">
         <span>Done</span>
         <strong id="answeredCount">0</strong>/<strong id="totalCount">0</strong>
       </div>
-      <div class="progress-chip" id="inProgressChip" style="display:none">
+      <div class="progress-chip" id="inProgressChip" style="display:none" title="In progress questions">
         <span>⏳</span><strong id="inProgressCount">0</strong>
       </div>
       <button class="clear-progress-btn" id="clearProgressBtn" title="Clear all marked done" onclick="clearAllProgress()">Clear</button>
-      <button class="theme-btn" id="themeBtn" title="Toggle theme">🌙</button>
+      <button class="theme-btn" id="themeBtn" title="Toggle dark/light theme" aria-label="Toggle theme">🌙</button>
     </div>
-  </div>
+  </header>
 
   <!-- PROGRESS BAR -->
   <div class="progress-section">

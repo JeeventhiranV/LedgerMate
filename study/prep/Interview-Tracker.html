@@ -475,14 +475,16 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <!-- ═══════════════════════════════════════════════════════════════════
      TOPBAR  (study/index.html style)
 ═══════════════════════════════════════════════════════════════════ -->
-<div class="topbar">
-  <a href="../index.html" class="btn-back">← <span class="btn-back-text">Study Hub</span></a>
-  <div class="topbar-divider"></div>
-  <div class="topbar-logo-icon">🎯</div>
-  <span class="topbar-title">Interview Tracker</span>
+<header class="topbar">
+  <div class="topbar-left">
+    <a href="../index.html" class="btn-back back-btn"><span class="btn-back-arrow">←</span><span class="btn-back-text"> Study Hub</span></a>
+    <div class="topbar-divider"></div>
+    <div class="topbar-logo-icon">🎯</div>
+    <span class="topbar-title">Interview Tracker</span>
+  </div>
   <div class="topbar-right">
     <span class="sync-badge" id="syncBadge" style="display:none">● Local only</span>
-    <button class="btn-theme" id="themeBtn" title="Toggle theme" onclick="IT.toggleTheme()">☀️</button>
+    <button class="btn-theme theme-btn" id="themeBtn" title="Toggle theme" onclick="IT.toggleTheme()">🌙</button>
     <div class="view-toggle">
       <button id="kanbanBtn" class="active" onclick="IT.switchView('kanban')" title="Kanban view">⊞</button>
       <button id="listBtn" onclick="IT.switchView('list')" title="List view">☰</button>
@@ -490,7 +492,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <button class="btn btn-ghost" onclick="IT.exportCSV()" title="Export CSV">⬇ <span class="btn-export-text">Export</span></button>
     <button class="btn btn-primary" onclick="IT.openApp()">+ Add</button>
   </div>
-</div>
+</header>
 
 <!-- ═══════════════════════════════════════════════════════════════════
      STATS BAR  (study/index.html stat-pill style)
