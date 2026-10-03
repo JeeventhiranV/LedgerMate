@@ -326,6 +326,15 @@
           <div class="bpm-section-group">
             <div class="bpm-group-title">SECURITY &amp; VAULT ACCESS</div>
             
+            <button class="bpm-action-row" onclick="window.LM_ProfileModal.openMfaModal()">
+              <span class="bpm-row-icon">📱</span>
+              <div class="bpm-row-text">
+                <div class="bpm-row-title">Two-Factor Authentication (2FA / MFA)</div>
+                <div class="bpm-row-desc" id="bpmMfaDesc">Microsoft / Google Authenticator (TOTP)</div>
+              </div>
+              <span class="bpm-badge" id="bpmMfaBadge">Configure</span>
+            </button>
+
             <button class="bpm-action-row" onclick="window.LM_ProfileModal.openSecurity()">
               <span class="bpm-row-icon">🛡️</span>
               <div class="bpm-row-text">
@@ -644,6 +653,25 @@
     // Admin button visibility
     const adminBtn = document.getElementById('bpmAdminBtn');
     if (adminBtn) adminBtn.style.display = user.role === 'admin' ? 'flex' : 'none';
+
+    // MFA / 2FA status check from Supabase
+    if (typeof _supabase !== 'undefined' && _supabase?.auth?.mfa) {
+      _supabase.auth.mfa.listFactors().then(function (res) {
+        var factors = res && res.data;
+        var hasVerifiedTotp = factors && factors.totp && factors.totp.some(function (f) { return f.status === 'verified'; });
+        var mfaBadge = document.getElementById('bpmMfaBadge');
+        var mfaDesc = document.getElementById('bpmMfaDesc');
+        if (mfaBadge) {
+          mfaBadge.textContent = hasVerifiedTotp ? 'Active 🛡️' : 'Set Up';
+          mfaBadge.style.color = hasVerifiedTotp ? 'var(--teal,#00d4b4)' : 'var(--blue,#3b82f6)';
+        }
+        if (mfaDesc) {
+          mfaDesc.textContent = hasVerifiedTotp 
+            ? 'Microsoft Authenticator · 2FA Active' 
+            : 'Add Microsoft / Google Authenticator (TOTP)';
+        }
+      }).catch(function () {});
+    }
   }
 
   const BankProfileModal = {
@@ -892,6 +920,19 @@
       renderProfileDetails();
     },
 
+    openMfaModal: async function () {
+      if (typeof _supabase === 'undefined' || !_supabase || !_supabase.auth || !_supabase.auth.mfa) {
+        var msg = 'Two-Factor Authentication requires an active cloud session with Supabase.';
+        if (typeof window.showToast === 'function') window.showToast(msg, 'warning');
+        else if (window.LMToast) window.LMToast.show(msg, 'warning');
+        else alert(msg);
+        return;
+      }
+
+      BankProfileModal.close();
+      showMfaManagementDialog();
+    },
+
     openSecurity: function () {
       BankProfileModal.close();
       if (typeof window.openAppLockSettingsModal === 'function') {
@@ -1065,6 +1106,200 @@
       }
     };
     document.head.appendChild(s);
+  }
+
+  async function showMfaManagementDialog() {
+    var existingModal = document.getElementById('lmMfaSetupModal');
+    if (existingModal) existingModal.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = 'lmMfaSetupModal';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(4,8,18,0.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:16px;box-sizing:border-box;animation:bpmFadeIn 0.2s ease forwards;';
+
+    var currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    var isDark = currentTheme !== 'light';
+    var cardBg = isDark ? '#141a29' : '#ffffff';
+    var cardBorder = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)';
+    var textColor = isDark ? '#ffffff' : '#0f172a';
+    var subtextColor = isDark ? '#94a3b8' : '#64748b';
+
+    var factorsRes = await _supabase.auth.mfa.listFactors();
+    var factors = factorsRes.data;
+    var verifiedFactor = factors && factors.totp && factors.totp.find(function (f) { return f.status === 'verified'; });
+
+    if (verifiedFactor) {
+      // User is already enrolled -> show active state and disable option
+      overlay.innerHTML = `
+        <div style="background:${cardBg};border:1px solid ${cardBorder};border-radius:24px;width:100%;max-width:440px;padding:28px 24px;box-shadow:0 25px 60px rgba(0,0,0,0.6);color:${textColor};text-align:center;position:relative;box-sizing:border-box;">
+          <button id="closeMfaModalBtn" style="position:absolute;top:16px;right:16px;background:none;border:none;color:${subtextColor};font-size:20px;cursor:pointer;padding:4px 8px;">✕</button>
+          
+          <div style="width:60px;height:60px;border-radius:18px;background:rgba(0,212,180,0.12);border:1px solid rgba(0,212,180,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px;">🛡️</div>
+          <h3 style="margin:0 0 8px;font-size:18px;font-weight:700;">2FA is Active</h3>
+          <p style="font-size:13px;color:${subtextColor};line-height:1.5;margin:0 0 20px;">Your account is securely protected with <strong>Microsoft Authenticator</strong> (TOTP).</p>
+
+          <div style="background:${isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc'};border:1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0'};border-radius:14px;padding:14px;margin-bottom:24px;text-align:left;">
+            <div style="font-size:12px;color:${subtextColor};margin-bottom:4px;">Enrolled Authenticator</div>
+            <div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;">
+              <span>📱</span> ${verifiedFactor.friendly_name || 'Microsoft Authenticator'}
+              <span style="margin-left:auto;font-size:11px;background:rgba(0,212,180,0.15);color:#00d4b4;padding:2px 8px;border-radius:99px;font-weight:700;">ACTIVE</span>
+            </div>
+          </div>
+
+          <button id="disableMfaBtn" style="width:100%;padding:12px;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.25);border-radius:12px;color:#f43f5e;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:10px;transition:all 0.2s;">Disable Two-Factor Authentication</button>
+          <button id="doneMfaBtn" style="width:100%;padding:11px;background:${isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0'};border:none;border-radius:12px;color:${textColor};font-size:13.5px;font-weight:600;cursor:pointer;">Close</button>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+
+      overlay.querySelector('#closeMfaModalBtn').onclick = function () { overlay.remove(); BankProfileModal.open(); };
+      overlay.querySelector('#doneMfaBtn').onclick = function () { overlay.remove(); BankProfileModal.open(); };
+      overlay.querySelector('#disableMfaBtn').onclick = async function () {
+        if (!confirm('Are you sure you want to disable 2FA? You will no longer be asked for an authenticator code when signing in.')) return;
+        this.disabled = true;
+        this.textContent = 'Disabling…';
+        try {
+          var unRes = await _supabase.auth.mfa.unenroll({ factorId: verifiedFactor.id });
+          if (unRes.error) throw unRes.error;
+          overlay.remove();
+          if (typeof window.showToast === 'function') window.showToast('2FA disabled successfully.', 'info');
+          else if (window.LMToast) window.LMToast.show('2FA disabled successfully.', 'info');
+          BankProfileModal.open();
+        } catch (e) {
+          alert('Could not disable 2FA: ' + e.message);
+          this.disabled = false;
+          this.textContent = 'Disable Two-Factor Authentication';
+        }
+      };
+      return;
+    }
+
+    // Not enrolled -> Start enrollment
+    overlay.innerHTML = `
+      <div style="background:${cardBg};border:1px solid ${cardBorder};border-radius:24px;width:100%;max-width:460px;padding:24px;box-shadow:0 25px 60px rgba(0,0,0,0.6);color:${textColor};position:relative;box-sizing:border-box;max-height:90vh;overflow-y:auto;">
+        <button id="closeMfaModalBtn" style="position:absolute;top:16px;right:16px;background:none;border:none;color:${subtextColor};font-size:20px;cursor:pointer;padding:4px 8px;">✕</button>
+
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+          <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#00d4b4,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:20px;">📱</div>
+          <div>
+            <h3 style="margin:0;font-size:17px;font-weight:700;">Set Up Microsoft Authenticator</h3>
+            <div style="font-size:12px;color:${subtextColor};">Two-Factor Authentication (TOTP)</div>
+          </div>
+        </div>
+
+        <div id="mfaEnrollBody" style="text-align:center;">
+          <div style="font-size:13px;color:${subtextColor};padding:20px;">Generating secret key & QR code…</div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    overlay.querySelector('#closeMfaModalBtn').onclick = function () { overlay.remove(); BankProfileModal.open(); };
+
+    try {
+      // Clean up any unverified TOTP factors first
+      if (factors && factors.totp) {
+        for (var i = 0; i < factors.totp.length; i++) {
+          if (factors.totp[i].status !== 'verified') {
+            await _supabase.auth.mfa.unenroll({ factorId: factors.totp[i].id });
+          }
+        }
+      }
+
+      var enrollRes = await _supabase.auth.mfa.enroll({
+        factorType: 'totp',
+        issuer: 'LedgerMate',
+        friendlyName: 'Microsoft Authenticator'
+      });
+
+      if (enrollRes.error || !enrollRes.data) throw enrollRes.error || new Error('Enrollment failed');
+
+      var factorId = enrollRes.data.id;
+      var qrCodeUrl = enrollRes.data.totp.qr_code;
+      var secretKey = enrollRes.data.totp.secret;
+
+      var enrollBody = overlay.querySelector('#mfaEnrollBody');
+      enrollBody.innerHTML = `
+        <div style="text-align:left;font-size:13px;color:${textColor};line-height:1.5;margin-bottom:14px;">
+          <strong>1.</strong> Open <strong>Microsoft Authenticator</strong> on your phone.<br/>
+          <strong>2.</strong> Tap <strong>+ (Add account)</strong> → <strong>Other (Google, Facebook, etc.)</strong> and scan:
+        </div>
+
+        <div style="background:#ffffff;padding:12px;border-radius:16px;display:inline-block;margin:0 auto 14px;box-shadow:0 4px 16px rgba(0,0,0,0.15);">
+          <img src="${qrCodeUrl}" alt="MFA QR Code" style="width:180px;height:180px;display:block;margin:0 auto;"/>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <div style="font-size:11px;color:${subtextColor};margin-bottom:4px;">Can't scan? Enter key manually in Microsoft Authenticator:</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+            <code style="background:${isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9'};padding:6px 10px;border-radius:8px;font-family:monospace;font-size:12.5px;letter-spacing:1px;font-weight:600;">${secretKey}</code>
+            <button id="copyMfaSecretBtn" style="padding:6px 10px;border-radius:8px;background:rgba(0,212,180,0.12);border:1px solid rgba(0,212,180,0.3);color:#00d4b4;font-size:11.5px;font-weight:600;cursor:pointer;">📋 Copy</button>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0'};padding-top:16px;text-align:left;">
+          <div style="font-size:12px;font-weight:600;color:${textColor};margin-bottom:6px;"><strong>3.</strong> Enter the 6-digit code from Microsoft Authenticator:</div>
+          <input id="bpmMfaConfirmInp" type="text" maxlength="6" inputmode="numeric" placeholder="000000" style="width:100%;height:44px;background:${isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc'};border:1px solid ${isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1'};border-radius:12px;color:${textColor};text-align:center;letter-spacing:6px;font-size:18px;font-weight:700;font-family:monospace;outline:none;margin-bottom:12px;box-sizing:border-box;"/>
+          <button id="bpmMfaActivateBtn" style="width:100%;height:44px;border-radius:12px;background:linear-gradient(135deg,#00d4b4,#10b981);border:none;color:#042f2c;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,212,180,0.3);">Verify &amp; Activate 2FA →</button>
+        </div>
+      `;
+
+      var copyBtn = overlay.querySelector('#copyMfaSecretBtn');
+      if (copyBtn) {
+        copyBtn.onclick = function () {
+          navigator.clipboard.writeText(secretKey).then(function () {
+            copyBtn.textContent = '✅ Copied!';
+            setTimeout(function () { copyBtn.textContent = '📋 Copy'; }, 2000);
+          });
+        };
+      }
+
+      var actBtn = overlay.querySelector('#bpmMfaActivateBtn');
+      var codeInp = overlay.querySelector('#bpmMfaConfirmInp');
+
+      async function doActivate() {
+        var code = (codeInp.value || '').trim();
+        if (!code || code.length < 6) {
+          alert('Please enter the 6-digit code shown in Microsoft Authenticator.');
+          return;
+        }
+        actBtn.disabled = true;
+        actBtn.textContent = 'Verifying…';
+
+        try {
+          var chVerRes = await _supabase.auth.mfa.challengeAndVerify({
+            factorId: factorId,
+            code: code
+          });
+
+          if (chVerRes.error) throw chVerRes.error;
+
+          // Success!
+          overlay.remove();
+          if (typeof window.showToast === 'function') window.showToast('🛡️ Microsoft Authenticator 2FA Activated!', 'success');
+          else if (window.LMToast) window.LMToast.show('🛡️ Microsoft Authenticator 2FA Activated!', 'success');
+          BankProfileModal.open();
+        } catch (e) {
+          alert('Verification failed: ' + (e.message || 'Invalid code. Check Microsoft Authenticator clock time.'));
+          actBtn.disabled = false;
+          actBtn.textContent = 'Verify & Activate 2FA →';
+        }
+      }
+
+      if (actBtn) actBtn.onclick = doActivate;
+      if (codeInp) {
+        codeInp.onkeydown = function (e) {
+          if (e.key === 'Enter') doActivate();
+        };
+      }
+
+    } catch (err) {
+      overlay.querySelector('#mfaEnrollBody').innerHTML = `
+        <div style="padding:20px;color:#f43f5e;font-size:13px;">
+          Failed to start 2FA setup: ${err.message || 'Check network connection'}
+        </div>
+      `;
+    }
   }
 
   // Close on Escape

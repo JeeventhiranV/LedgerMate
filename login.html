@@ -293,6 +293,25 @@ body {
       <button class="btn-primary btn-ledger" id="reqBtn">Submit Request</button>
     </div>
 
+    <!-- ── MFA Authenticator Challenge (Microsoft Authenticator / TOTP) ── -->
+    <div class="section" id="sectionMfa">
+      <div style="text-align:center;margin-bottom:18px;">
+        <div style="width:52px;height:52px;border-radius:14px;background:rgba(0,212,180,0.12);border:1px solid rgba(0,212,180,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:24px;">🔐</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Two-Factor Authentication</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.4;">Enter the 6-digit code from <strong>Microsoft Authenticator</strong> on your mobile device.</div>
+      </div>
+
+      <div class="msg" id="mfaMsg"></div>
+
+      <div class="field">
+        <label class="field-label" for="mfaCode">6-Digit Security Code</label>
+        <input class="field-input" type="text" id="mfaCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" autocomplete="one-time-code" style="text-align:center;letter-spacing:6px;font-size:20px;font-weight:700;font-family:monospace;"/>
+      </div>
+
+      <button class="btn-primary btn-ledger" id="mfaVerifyBtn" style="margin-bottom:12px;">Verify Code →</button>
+      <button type="button" class="btn-link" id="mfaCancelBtn" style="display:block;margin:0 auto;font-size:13px;">← Back to Sign In</button>
+    </div>
+
   </div>
 
   <div class="card-footer">
@@ -461,19 +480,134 @@ body {
     redirect();
   }
 
+  /* ── MFA Authenticator Handler ── */
+  var _currentMfaFactorId = null;
+  var _currentMfaChallengeId = null;
+
+  async function handleMfaChallenge() {
+    clearMsg('mfaMsg');
+    try {
+      var factorsRes = await _supabase.auth.mfa.listFactors();
+      var factors = factorsRes.data;
+      if (factorsRes.error || !factors || !factors.totp || factors.totp.length === 0) {
+        showMsg('signinMsg', 'MFA factor error. Please contact administrator.', 'error');
+        return;
+      }
+      var verifiedFactor = factors.totp.find(function (f) { return f.status === 'verified'; }) || factors.totp[0];
+      _currentMfaFactorId = verifiedFactor.id;
+
+      var chRes = await _supabase.auth.mfa.challenge({ factorId: _currentMfaFactorId });
+      if (chRes.error || !chRes.data) {
+        showMsg('signinMsg', (chRes.error && chRes.error.message) || 'MFA challenge failed', 'error');
+        return;
+      }
+      _currentMfaChallengeId = chRes.data.id;
+
+      // Transition UI to MFA Section
+      var tabs = document.querySelector('.mode-tabs');
+      if (tabs) tabs.style.display = 'none';
+      var allSec = document.querySelectorAll('.section');
+      allSec.forEach(function (el) { el.classList.remove('active'); });
+      var secMfa = document.getElementById('sectionMfa');
+      if (secMfa) secMfa.classList.add('active');
+
+      var mfaInp = document.getElementById('mfaCode');
+      if (mfaInp) {
+        mfaInp.value = '';
+        setTimeout(function () { mfaInp.focus(); }, 150);
+      }
+    } catch (err) {
+      showMsg('signinMsg', err.message || 'MFA setup error', 'error');
+    }
+  }
+
+  var mfaVerifyBtn = document.getElementById('mfaVerifyBtn');
+  if (mfaVerifyBtn) {
+    mfaVerifyBtn.addEventListener('click', async function () {
+      clearMsg('mfaMsg');
+      var code = (document.getElementById('mfaCode')?.value || '').trim();
+      if (!code || code.length < 6) {
+        showMsg('mfaMsg', 'Please enter the complete 6-digit code.', 'error');
+        return;
+      }
+      setLoading(this, true, 'Verifying…');
+
+      try {
+        var verifyRes = await _supabase.auth.mfa.verify({
+          factorId: _currentMfaFactorId,
+          challengeId: _currentMfaChallengeId,
+          code: code
+        });
+
+        if (verifyRes.error) {
+          showMsg('mfaMsg', verifyRes.error.message || 'Incorrect 6-digit code. Please check Microsoft Authenticator.', 'error');
+          setLoading(this, false, 'Verify Code →');
+          return;
+        }
+
+        // Successfully verified MFA (AAL2 granted)!
+        var s = await _supabase.auth.getSession();
+        if (s && s.data && s.data.session && s.data.session.user) {
+          checkProfileAndRedirect(s.data.session.user.id);
+        } else {
+          redirect();
+        }
+      } catch (e) {
+        showMsg('mfaMsg', e.message || 'Verification failed.', 'error');
+        setLoading(this, false, 'Verify Code →');
+      }
+    });
+  }
+
+  var mfaCancelBtn = document.getElementById('mfaCancelBtn');
+  if (mfaCancelBtn) {
+    mfaCancelBtn.addEventListener('click', async function () {
+      try { await _supabase.auth.signOut(); } catch (e) {}
+      localStorage.removeItem('lm_session');
+      var tabs = document.querySelector('.mode-tabs');
+      if (tabs) tabs.style.display = 'flex';
+      setTab('signin');
+      setLoading(document.getElementById('signinBtn'), false, 'Sign In →');
+    });
+  }
+
+  var mfaCodeInp = document.getElementById('mfaCode');
+  if (mfaCodeInp) {
+    mfaCodeInp.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') document.getElementById('mfaVerifyBtn')?.click();
+    });
+  }
+
   /* Only auto-redirect if NOT coming from a logout */
   if (hasSupabase && !_isLogout) {
     try {
-      _supabase.auth.getSession().then(function (r) {
+      _supabase.auth.getSession().then(async function (r) {
         if (!_isLogout && r && r.data && r.data.session) {
+          try {
+            var aal = await _supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            if (aal && aal.data && aal.data.nextLevel === 'aal2' && aal.data.currentLevel === 'aal1') {
+              _dismissLoader();
+              await handleMfaChallenge();
+              return;
+            }
+          } catch (e) {}
           redirect();
         } else {
           _dismissLoader();
         }
       }).catch(function() { _dismissLoader(); });
       
-      _supabase.auth.onAuthStateChange(function (event, session) {
-        if (!_isLogout && event === 'SIGNED_IN' && session) checkProfileAndRedirect(session.user.id);
+      _supabase.auth.onAuthStateChange(async function (event, session) {
+        if (!_isLogout && event === 'SIGNED_IN' && session) {
+          try {
+            var aal = await _supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            if (aal && aal.data && aal.data.nextLevel === 'aal2' && aal.data.currentLevel === 'aal1') {
+              await handleMfaChallenge();
+              return;
+            }
+          } catch (e) {}
+          checkProfileAndRedirect(session.user.id);
+        }
       });
     } catch (e) { _dismissLoader(); }
   } else {
@@ -515,6 +649,19 @@ body {
           setLoading(this, false, 'Sign In →');
           return;
         }
+
+        // Check if 2FA / MFA is required on this account
+        try {
+          var aalRes = await _supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          if (aalRes && aalRes.data && aalRes.data.nextLevel === 'aal2' && aalRes.data.currentLevel === 'aal1') {
+            setLoading(this, false, 'Sign In →');
+            await handleMfaChallenge();
+            return;
+          }
+        } catch (e) {
+          console.warn('[MFA] AAL check error:', e);
+        }
+
         // Redirect handled by onAuthStateChange / checkProfileAndRedirect
       } else {
         // Local / Offline authentication fallback
