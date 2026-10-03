@@ -373,9 +373,10 @@
             <button class="bpm-action-row" id="bpmAdminBtn" style="display:none;" onclick="window.LM_ProfileModal.openAdmin()">
               <span class="bpm-row-icon">⚙️</span>
               <div class="bpm-row-text">
-                <div class="bpm-row-title">System Admin Console</div>
-                <div class="bpm-row-desc">Manage tenant users &amp; database permissions</div>
+                <div class="bpm-row-title">Admin Command Center</div>
+                <div class="bpm-row-desc">User approvals, access control &amp; system settings</div>
               </div>
+              <span id="bpmAdminPendingBadge" class="bpm-badge" style="display:none;background:rgba(244,63,94,0.18);color:#fb7185;border:1px solid rgba(244,63,94,0.3);font-weight:700;"></span>
               <span class="bpm-row-arrow">›</span>
             </button>
           </div>
@@ -650,9 +651,14 @@
     const finVerDesc = document.getElementById('bpmFinanceVersionDesc');
     if (finVerDesc) finVerDesc.textContent = verText;
 
-    // Admin button visibility
+    // Admin button visibility & pending badges
     const adminBtn = document.getElementById('bpmAdminBtn');
-    if (adminBtn) adminBtn.style.display = user.role === 'admin' ? 'flex' : 'none';
+    if (adminBtn) {
+      adminBtn.style.display = user.role === 'admin' ? 'flex' : 'none';
+      if (user.role === 'admin' && window.LM_Admin?.syncPendingCounts) {
+        window.LM_Admin.syncPendingCounts();
+      }
+    }
 
     // MFA / 2FA status check from Supabase
     if (typeof _supabase !== 'undefined' && _supabase?.auth?.mfa) {
@@ -993,12 +999,20 @@
 
     openAdmin: function () {
       BankProfileModal.close();
-      if (window.StudyAdmin && typeof window.StudyAdmin.open === 'function') {
-        window.StudyAdmin.open();
-      } else if (window.LM_Admin && typeof window.LM_Admin.show === 'function') {
-        window.LM_Admin.show();
+      if (window.LM_Admin && typeof window.LM_Admin.show === 'function') {
+        window.LM_Admin.show('approvals');
       } else {
-        window.location.href = window.location.pathname.indexOf('/prep/') !== -1 ? '../index.html?admin=open' : './index.html?admin=open';
+        var isPrep = window.location.pathname.indexOf('/prep/') !== -1;
+        var isStudy = window.location.pathname.indexOf('/study') !== -1;
+        var prefix = isPrep ? '../../' : (isStudy ? '../' : './');
+        var s = document.createElement('script');
+        s.src = prefix + 'src/scripts/Admin/AdminPanel.js';
+        s.onload = function () {
+          if (window.LM_Admin && typeof window.LM_Admin.show === 'function') {
+            window.LM_Admin.show('approvals');
+          }
+        };
+        document.head.appendChild(s);
       }
     },
 

@@ -17,6 +17,7 @@
 <script src="../auth/supabase-config.js"></script>
 <script src="../auth/auth-guard.js"></script>
 <script src="../src/scripts/Common/BankProfileModal.js"></script>
+<script src="../src/scripts/Admin/AdminPanel.js"></script>
 <script src="../src/scripts/Modules/HelpFeedbackModal.js"></script>
 <script src="../src/scripts/Common/AppUpdateService.js"></script>
 <script src="js/lm-toast.js"></script>
@@ -471,30 +472,6 @@ if ('serviceWorker' in navigator) {
     <div class="cd-modal-footer">
       <button class="btn-back" onclick="CDWidget.closeModal()">Cancel</button>
       <button class="res-open-btn" onclick="CDWidget.addInterview()" style="background:var(--blue);border-radius:9px;padding:7px 16px;font-size:12px">Add Interview</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════════════════════════
-     STUDY ADMIN SIDE DRAWER
-══════════════════════════════════════════════════════════════ -->
-<div class="study-admin-overlay" id="studyAdminOverlay">
-  <div class="study-admin-drawer">
-    <div class="sad-header">
-      <div class="sad-header-icon">⚙</div>
-      <div class="sad-titles">
-        <div class="sad-title">Study Admin Panel</div>
-        <div class="sad-sub">Manage users & study module access</div>
-      </div>
-      <button class="sad-close" onclick="StudyAdmin.close()">✕</button>
-    </div>
-    <nav class="sad-tabs">
-      <button class="sad-tab active" data-tab="users"    onclick="StudyAdmin.switchTab('users')">👥 Users</button>
-      <button class="sad-tab"        data-tab="pending"  onclick="StudyAdmin.switchTab('pending')">⏳ Pending</button>
-      <button class="sad-tab"        data-tab="settings" onclick="StudyAdmin.switchTab('settings')">🔧 Settings</button>
-    </nav>
-    <div class="sad-body" id="sadBody">
-      <div class="sad-loading">Loading…</div>
     </div>
   </div>
 </div>
@@ -1456,7 +1433,9 @@ document.addEventListener('DOMContentLoaded', function() {
   if (_urlParams.get('admin') === 'open') {
     history.replaceState(null, '', window.location.pathname);
     document.addEventListener('studyAccessReady', function () {
-      StudyAdmin.open();
+      if (window.LM_Admin && typeof window.LM_Admin.show === 'function') {
+        window.LM_Admin.show('study');
+      }
     }, { once: true });
   }
 
@@ -1763,261 +1742,8 @@ document.addEventListener('DOMContentLoaded', function() {
   window.CDWidget = { openModal: openModal, closeModal: closeModal, addInterview: addInterview, deleteItem: deleteItem };
 }());
 
-/* ══════════════════════════════════════════════════════════════
-   STUDY ADMIN SIDE PANEL
-══════════════════════════════════════════════════════════════ */
-(function () {
-  'use strict';
 
-  var _overlay = document.getElementById('studyAdminOverlay');
-  var _activeTab = 'users';
-  var _allUsers  = [];
 
-  var STUDY_MODS = [
-    { key: 'java',    label: '☕ Java'      },
-    { key: 'dsa',     label: '🧠 DSA'       },
-    { key: 'react',   label: '⚛️ React'     },
-    { key: 'hr',      label: '🤝 HR'         },
-    { key: 'ipk',     label: '📚 PDFs'       },
-    { key: 'tracker', label: '🎯 Tracker'    },
-    { key: 'dlt',     label: '📊 DLT'        },
-    { key: 'chat',    label: '💬 Chat'       },
-  ];
-
-  function open() {
-    // Fresh server-side role check — prevents console bypass of window._studyProfile
-    _supabase.auth.getSession().then(function(r) {
-      var session = r && r.data && r.data.session;
-      if (!session) { alert('Not signed in.'); return; }
-      _supabase.from('user_profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single()
-        .then(function(res) {
-          if (res.error || !res.data || res.data.role !== 'admin') {
-            alert('Admin access required. This panel is only available to administrators.');
-            return;
-          }
-          _overlay.classList.add('open');
-          _loadTab(_activeTab);
-        })
-        .catch(function() {
-          alert('Could not verify admin access. Please try again.');
-        });
-    }).catch(function() {
-      alert('Could not verify admin access. Please try again.');
-    });
-  }
-
-  function close() {
-    _overlay.classList.remove('open');
-  }
-
-  function switchTab(tab) {
-    _activeTab = tab;
-    document.querySelectorAll('.sad-tab').forEach(function (b) {
-      b.classList.toggle('active', b.dataset.tab === tab);
-    });
-    _loadTab(tab);
-  }
-
-  function _loadTab(tab) {
-    if (tab === 'users')    _loadUsers(false);
-    else if (tab === 'pending') _loadUsers(true);
-    else                    _loadSettings();
-  }
-
-  async function _loadUsers(pendingOnly) {
-    var body = document.getElementById('sadBody');
-    body.innerHTML = '<div class="sad-loading">Loading users…</div>';
-    try {
-      var res = await _supabase.from('user_profiles').select('*').order('created_at');
-      if (res.error) throw res.error;
-      _renderUsers(res.data || [], pendingOnly);
-    } catch (e) {
-      body.innerHTML = '<div class="sad-empty">Failed to load: ' + _esc(e.message) + '</div>';
-    }
-  }
-
-  function _renderUsers(profiles, pendingOnly) {
-    _allUsers = profiles;
-    var body = document.getElementById('sadBody');
-    var pending = profiles.filter(function (u) { return !u.active; });
-    var active  = profiles.filter(function (u) { return  u.active; });
-    var html = '';
-
-    if (pendingOnly) {
-      html += '<div class="sad-section-hdr">⏳ Pending Approval (' + pending.length + ')</div>';
-      html += pending.length ? pending.map(_userCard).join('') : '<div class="sad-empty">No pending users 🎉</div>';
-    } else {
-      if (pending.length) {
-        html += '<div class="sad-section-hdr" style="color:var(--rose)">⏳ Pending (' + pending.length + ')</div>';
-        html += pending.map(_userCard).join('');
-        html += '<div class="sad-section-hdr" style="margin-top:20px">✅ Active (' + active.length + ')</div>';
-      } else {
-        html += '<div class="sad-section-hdr">✅ All Users (' + active.length + ')</div>';
-      }
-      html += active.length ? active.map(_userCard).join('') : '<div class="sad-empty">No active users</div>';
-    }
-    body.innerHTML = html;
-  }
-
-  function _userCard(u) {
-    var initial = (u.display_name || u.email || '?').charAt(0).toUpperCase();
-    var mods = u.study_modules !== undefined ? u.study_modules : null;
-    var modBadge = mods === null
-      ? '<span class="sad-badge sad-badge-active">All modules</span>'
-      : Array.isArray(mods) && mods.length === 0
-        ? '<span class="sad-badge sad-badge-pending">No access</span>'
-        : '<span class="sad-badge sad-badge-user">' + mods.length + ' modules</span>';
-    return '<div class="sad-user-card">' +
-      '<div class="sad-user-top">' +
-        '<div class="sad-user-avatar">' + initial + '</div>' +
-        '<div class="sad-user-info">' +
-          '<div class="sad-user-name">' + _esc(u.display_name || u.email.split('@')[0]) + '</div>' +
-          '<div class="sad-user-email">' + _esc(u.email) + '</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="sad-user-badges">' +
-        '<span class="sad-badge ' + (u.role === 'admin' ? 'sad-badge-admin' : 'sad-badge-user') + '">' + u.role + '</span>' +
-        '<span class="sad-badge ' + (u.active ? 'sad-badge-active' : 'sad-badge-pending') + '">' + (u.active ? 'active' : 'pending') + '</span>' +
-        modBadge +
-      '</div>' +
-      '<div class="sad-user-actions">' +
-        (!u.active ? '<button class="sad-btn ok"     onclick="StudyAdmin.approve(\'' + u.id + '\')">✅ Approve</button>' : '') +
-        (u.active  ? '<button class="sad-btn warn"   onclick="StudyAdmin.deactivate(\'' + u.id + '\')">⏸ Pause</button>' : '') +
-        '<button class="sad-btn purple" onclick="StudyAdmin.modAccess(\'' + u.id + '\')">📚 Modules</button>' +
-      '</div>' +
-    '</div>';
-  }
-
-  function _loadSettings() {
-    var body = document.getElementById('sadBody');
-    var wkGoal = parseInt(localStorage.getItem('sr_wk_goal') || '20');
-    body.innerHTML = '<div class="sad-section-hdr">Study Hub Settings</div>' +
-      '<div style="background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:16px;">' +
-        '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">Weekly Question Goal</div>' +
-        '<div style="display:flex;gap:8px;align-items:center">' +
-          '<input id="sadWkGoal" type="number" min="1" max="200" value="' + wkGoal + '" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;color:var(--text);font-family:JetBrains Mono,monospace;width:80px;outline:none">' +
-          '<span style="font-size:12px;color:var(--text3)">questions / week</span>' +
-          '<button onclick="StudyAdmin.saveWkGoal()" class="sad-btn ok" style="margin-left:auto">Save</button>' +
-        '</div>' +
-        '<div style="font-size:11px;color:var(--text3);margin-top:8px">This updates the weekly goal bar shown in the dashboard</div>' +
-      '</div>';
-  }
-
-  async function approve(id) {
-    await _patch(id, { active: true, updated_at: new Date().toISOString() }, 'User approved ✓');
-  }
-
-  async function deactivate(id) {
-    if (!confirm('Deactivate this user?')) return;
-    await _patch(id, { active: false, updated_at: new Date().toISOString() }, 'User deactivated');
-  }
-
-  function modAccess(userId) {
-    var u = _allUsers.find(function (x) { return x.id === userId; });
-    if (!u) return;
-    var name    = u.display_name || u.email;
-    var current = u.study_modules !== undefined ? u.study_modules : null;
-    var hasAccess = current === null || (Array.isArray(current) && current.length > 0);
-    var allowed   = current === null ? STUDY_MODS.map(function (m) { return m.key; }) : (Array.isArray(current) ? current : []);
-
-    var modCheckboxes = STUDY_MODS.map(function (m) {
-      return '<label class="sad-mod-label">' +
-        '<input type="checkbox" id="sm_' + m.key + '" value="' + m.key + '"' + (current === null || allowed.indexOf(m.key) !== -1 ? ' checked' : '') + '>' +
-        m.label + '</label>';
-    }).join('');
-
-    var panel = document.createElement('div');
-    panel.className = 'sad-mod-overlay';
-    panel.id = 'sadModOverlay';
-    panel.innerHTML = '<div class="sad-mod-panel">' +
-      '<div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px">📚 Study Module Access</div>' +
-      '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">' + _esc(name) + '</div>' +
-      '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:11px 13px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.2);border-radius:9px;margin-bottom:14px">' +
-        '<input type="checkbox" id="sm_enabled" ' + (hasAccess ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--purple)">' +
-        '<div>' +
-          '<div style="font-size:13px;font-weight:600;color:var(--text)">Enable Study Hub access</div>' +
-          '<div style="font-size:11px;color:var(--text3)">Uncheck to block all study modules for this user</div>' +
-        '</div>' +
-      '</label>' +
-      '<div id="smModSection" style="' + (hasAccess ? '' : 'opacity:.35;pointer-events:none') + '">' +
-        '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-family:JetBrains Mono,monospace">Module Permissions</div>' +
-        '<div class="sad-module-grid">' + modCheckboxes + '</div>' +
-      '</div>' +
-      '<div style="display:flex;gap:8px;margin-top:18px;">' +
-        '<button onclick="StudyAdmin._saveModules(\'' + userId + '\')" style="flex:1;padding:9px;background:var(--purple);border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Save Access</button>' +
-        '<button onclick="document.getElementById(\'sadModOverlay\').remove()" style="padding:9px 14px;background:none;border:1px solid var(--border);border-radius:9px;color:var(--text2);font-size:13px;cursor:pointer;font-family:Inter,sans-serif">Cancel</button>' +
-      '</div>' +
-    '</div>';
-    document.body.appendChild(panel);
-
-    document.getElementById('sm_enabled').addEventListener('change', function () {
-      var sec = document.getElementById('smModSection');
-      sec.style.opacity = this.checked ? '1' : '.35';
-      sec.style.pointerEvents = this.checked ? '' : 'none';
-    });
-    panel.addEventListener('click', function (e) { if (e.target === panel) panel.remove(); });
-  }
-
-  async function _saveModules(userId) {
-    var enabled = (document.getElementById('sm_enabled') || {}).checked;
-    var studyModules;
-    if (!enabled) {
-      studyModules = [];
-    } else {
-      var checked = STUDY_MODS.filter(function (m) {
-        var el = document.getElementById('sm_' + m.key);
-        return el && el.checked;
-      }).map(function (m) { return m.key; });
-      studyModules = checked.length === STUDY_MODS.length ? null : checked;
-    }
-    document.getElementById('sadModOverlay')?.remove();
-    await _patch(userId, { study_modules: studyModules, updated_at: new Date().toISOString() }, 'Study access updated ✓');
-  }
-
-  function saveWkGoal() {
-    var val = parseInt((document.getElementById('sadWkGoal') || {}).value || '20') || 20;
-    localStorage.setItem('sr_wk_goal', String(val));
-    WK_GOAL = val;
-    renderWeeklyGoal(window._lastRawProgress || []);
-    _sadToast('Weekly goal set to ' + val + ' questions ✓');
-  }
-
-  async function _patch(id, patch, msg) {
-    try {
-      var res = await _supabase.from('user_profiles').update(patch).eq('id', id);
-      if (res.error) throw res.error;
-      _sadToast(msg);
-      _loadTab(_activeTab);
-    } catch (e) {
-      _sadToast('Error: ' + _esc(e.message), true);
-    }
-  }
-
-  function _sadToast(msg, isErr) {
-    var el = document.createElement('div');
-    el.style.cssText = 'position:fixed;bottom:24px;left:24px;z-index:9999;background:var(--bg2);border:1px solid var(--border2);border-left:3px solid ' +
-      (isErr ? 'var(--rose)' : 'var(--teal)') +
-      ';border-radius:9px;padding:9px 14px;font-size:12px;color:var(--text);box-shadow:0 4px 16px rgba(0,0,0,.4);pointer-events:none;';
-    el.textContent = msg;
-    document.body.appendChild(el);
-    setTimeout(function () { el.remove(); }, 2600);
-  }
-
-  function _esc(s) {
-    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
-  if (_overlay) _overlay.addEventListener('click', function (e) { if (e.target === _overlay) close(); });
-
-  window.StudyAdmin = {
-    open: open, close: close, switchTab: switchTab,
-    approve: approve, deactivate: deactivate, modAccess: modAccess,
-    _saveModules: _saveModules, saveWkGoal: saveWkGoal,
-  };
-}());
 
 CommunityHub.init({ module: 'general', moduleName: 'Interview Prep Community' });
 </script>

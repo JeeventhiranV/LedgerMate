@@ -359,13 +359,6 @@
       <input type="file" id="importFile" accept=".json,.csv" style="display:none" onchange="window.importData&&window.importData(event)">
     </div>
 
-    <!-- ── ADMIN (hidden unless admin) ───────────────────── -->
-    <div class="sidebar-section" id="adminSidebarSection" style="display:none;">
-      <div class="sidebar-section-label">Administration</div>
-      <button class="sidebar-nav-item" onclick="window.open('./study/index.html?admin=open','_self')">
-        <span class="nav-icon">📚</span> <span class="nav-label">Study Admin</span>
-      </button>
-    </div>
 
     <!-- ── SIDEBAR FOOTER ─────────────────────────────────── -->
     <div class="sidebar-footer">
@@ -436,8 +429,8 @@
               </div>
             </div>
             <div class="topbar-user-menu-divider"></div>
-            <button class="topbar-user-menu-item" onclick="window.LM_Admin?.show(); document.getElementById('userDropdownMenu').classList.remove('open')">
-              ⚙️ Admin Panel
+            <button class="topbar-user-menu-item" onclick="window.LM_Admin?.show('approvals'); document.getElementById('userDropdownMenu').classList.remove('open')">
+              ⚙️ Admin Command Center
             </button>
             <button class="topbar-user-menu-item" onclick="document.getElementById('userDropdownMenu').classList.remove('open'); openAppLockSettingsModal()">
               🛡️ App Security (PIN & Biometrics)

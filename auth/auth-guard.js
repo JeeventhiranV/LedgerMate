@@ -395,7 +395,6 @@
         '</div>' +
         '<span class="agf-profile-arrow">›</span>' +
       '</div>' +
-      '<button class="agf-admin-btn" id="agfAdminBtn">⚙ Admin Panel</button>' +
       '<button class="agf-signout" id="authLogoutBtn">↩ Sign out</button>';
 
     // ── Decide where to put it ───────────────────────────────────────────────
@@ -490,20 +489,18 @@
       });
     });
 
-    // ── Wire admin panel button ──────────────────────────────────────────────
+    // ── Wire admin panel fallback (if present) ──────────────────────────────
     var agfAdminBtn = document.getElementById('agfAdminBtn');
     if (agfAdminBtn) {
       agfAdminBtn.addEventListener('click', function () {
-        // Close authNav sidebar before opening admin panel
         var nav = document.getElementById('authNav');
         var navOv = document.getElementById('authNavOverlay');
         if (nav) nav.classList.remove('open');
         if (navOv) navOv.classList.remove('show');
-
-        if (window.StudyAdmin) {
-          window.StudyAdmin.open();
+        if (window.LM_Admin && typeof window.LM_Admin.show === 'function') {
+          window.LM_Admin.show('approvals');
         } else {
-          window.location.href = hubUrl + '?admin=open';
+          _openProfileModal();
         }
       });
     }
@@ -830,6 +827,23 @@
               email: session.user.email
             }));
           } catch(e) {}
+
+          // Initialize Admin Realtime Notifications if Admin
+          if (profile.role === 'admin') {
+            var base = _getMainAppUrl().replace('/index.html', '');
+            if (!window.LM_Admin) {
+              var admScript = document.createElement('script');
+              admScript.src = (base || '') + '/src/scripts/Admin/AdminPanel.js';
+              admScript.onload = function () {
+                if (window.LM_Admin && typeof window.LM_Admin.initRealtimeNotifications === 'function') {
+                  window.LM_Admin.initRealtimeNotifications();
+                }
+              };
+              document.head.appendChild(admScript);
+            } else if (typeof window.LM_Admin.initRealtimeNotifications === 'function') {
+              window.LM_Admin.initRealtimeNotifications();
+            }
+          }
 
           _revealWhenReady(session);
         })

@@ -121,7 +121,6 @@ const STATIC_ASSETS = [
   './study/js/StudySRS.js',
   './study/js/CodeRunner.js',
   './study/js/AIInterviewHelper.js',
-  './study/js/StudyAdmin.js',
   './study/js/dsa-answers.js',
   './study/js/dsa-systemdesign-content.js',
   './study/js/study-features.js',
