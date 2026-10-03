@@ -941,3 +941,327 @@ input:checked + .ws-slider:before { transform: translateX(18px); }
   color: var(--text3, #8a95b8);
 }
 
+/* ─── 14. MODERN CUSTOM SECTION HERO & METRICS BANNER ────────────────────── */
+.custom-section-hero {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+  border: 1px solid var(--border2, #2d364f);
+  border-left: 4px solid var(--sec-accent, #4f8ef7);
+  border-radius: 16px;
+  padding: 18px 22px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10px);
+}
+.custom-section-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.custom-section-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+.custom-section-hero-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+.custom-section-hero-info {
+  min-width: 0;
+  flex: 1;
+}
+.custom-section-hero-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text, #fff);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.custom-section-hero-tagline {
+  font-size: 12px;
+  color: var(--text3, #8a95b8);
+  margin-top: 3px;
+}
+.custom-section-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Dual Progress Metrics Bar */
+.custom-section-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.metric-mini-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border, #262f45);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.metric-mini-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text3, #8a95b8);
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.metric-mini-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text, #fff);
+}
+.metric-progress-track {
+  height: 6px;
+  background: var(--bg4, #1c2230);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.metric-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ─── 15. IN-SECTION SEARCH & FILTER BAR ─────────────────────────────────── */
+.section-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.section-search-input {
+  background: var(--bg3, #181d28);
+  border: 1px solid var(--border, #262f45);
+  border-radius: 8px;
+  padding: 7px 12px;
+  color: var(--text, #fff);
+  font-size: 12px;
+  width: 220px;
+  max-width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.section-search-input:focus {
+  border-color: var(--blue, #4f8ef7);
+}
+.section-filter-tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.sec-tab-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border, #262f45);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3, #8a95b8);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.sec-tab-btn:hover {
+  color: var(--text, #fff);
+  background: rgba(255, 255, 255, 0.06);
+}
+.sec-tab-btn.active {
+  background: rgba(79, 142, 247, 0.15);
+  border-color: var(--blue, #4f8ef7);
+  color: var(--blue, #4f8ef7);
+}
+
+/* ─── 16. MODULE / CATEGORY GROUPINGS ────────────────────────────────────── */
+.ws-module-group {
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid var(--border, #262f45);
+  border-radius: 14px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.ws-module-header {
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.ws-module-header:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.ws-module-title-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ws-module-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text, #fff);
+}
+.ws-module-count-badge {
+  font-size: 11px;
+  color: var(--text3, #8a95b8);
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+.ws-module-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ws-module-grid {
+  padding: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+/* ─── 17. GRANULAR MATERIAL PROGRESS ON TOPIC CARDS ──────────────────────── */
+.card-materials-container {
+  margin: 10px 0 6px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.card-materials-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text3, #8a95b8);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+.card-materials-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mat-chip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  font-size: 11px;
+  gap: 6px;
+  transition: background 0.12s;
+}
+.mat-chip-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.mat-chip-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+  cursor: pointer;
+}
+.mat-chip-title {
+  color: var(--text, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mat-chip-status-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: transform 0.12s;
+  flex-shrink: 0;
+}
+.mat-chip-status-btn:hover {
+  transform: scale(1.2);
+}
+
+/* ─── 18. MATERIAL VIEWER PROGRESS TRACKER & NOTES ────────────────────────── */
+.mat-viewer-progress-box {
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border, #262f45);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.mat-viewer-status-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mat-viewer-status-btn {
+  background: var(--bg3, #181d28);
+  border: 1px solid var(--border, #262f45);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 11.5px;
+  color: var(--text3, #8a95b8);
+  cursor: pointer;
+  transition: all 0.14s;
+}
+.mat-viewer-status-btn.active.st-completed {
+  background: rgba(6, 214, 160, 0.2);
+  border-color: #06d6a0;
+  color: #06d6a0;
+  font-weight: 700;
+}
+.mat-viewer-status-btn.active.st-inprogress {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+  color: #f59e0b;
+  font-weight: 700;
+}
+.mat-viewer-status-btn.active.st-pending {
+  background: rgba(148, 163, 184, 0.2);
+  border-color: #94a3b8;
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+
