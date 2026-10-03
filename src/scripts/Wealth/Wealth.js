@@ -1805,6 +1805,10 @@ function updateLoanFormState(prefix = '') {
   }
 }
 
+function updateLoanLiveInterestPreview(prefix = '') {
+  return updateLoanFormState(prefix);
+}
+
 // ------------------------------------------------------------
 // 4. MODAL: RECORD REPAYMENT / PARTIAL COLLECTION
 // ------------------------------------------------------------
@@ -3665,6 +3669,7 @@ window.openAddLoanModal = openAddLoanModal;
 window.closeAddLoanModal = closeAddLoanModal;
 window.openEditLoanModal = openEditLoanModal;
 window.closeEditLoanModal = closeEditLoanModal;
+window.updateLoanFormState = updateLoanFormState;
 window.updateLoanLiveInterestPreview = updateLoanLiveInterestPreview;
 window.getLoanFinancialDetails = getLoanFinancialDetails;
 window.getLoanSummary = getLoanSummary;
@@ -3691,5 +3696,7 @@ window.LM_Wealth = {
   renderWealthLoans,
   openRepayLoanModal,
   openAddLoanModal,
-  openEditLoanModal
+  openEditLoanModal,
+  updateLoanFormState,
+  updateLoanLiveInterestPreview
 };
