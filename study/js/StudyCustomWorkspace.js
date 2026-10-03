@@ -2101,117 +2101,35 @@
     renderActiveStudioTab();
   }
 
-  // ── 15. TOPIC EXPLORER & DETAIL MODAL ──────────────────────────────────────
+  // ── 15. TOPIC EXPLORER & DEDICATED PAGE NAVIGATION ───────────────────────
   function openTopicExplorer(topicId) {
+    if (!topicId) return;
+
     var t = _state.topics.find(function (x) { return x.id === topicId; });
-    if (!t) return;
-
-    var cat = _state.categories.find(function (c) { return c.id === t.category_id; });
+    var cat = t ? _state.categories.find(function (c) { return c.id === t.category_id; }) : null;
     var dom = cat ? _state.domains.find(function (d) { return d.id === cat.domain_id; }) : null;
-    var mats = _state.materials.filter(function (m) { return m.topic_id === t.id; });
 
-    setLastActiveTopic({
-      id: t.id,
-      title: t.title,
-      domainId: dom ? dom.id : null,
-      domainTitle: dom ? dom.title : 'Study Module',
-      status: t.status
-    });
+    if (t) {
+      setLastActiveTopic({
+        id: t.id,
+        title: t.title,
+        domainId: dom ? dom.id : null,
+        domainTitle: dom ? dom.title : 'Study Module',
+        status: t.status
+      });
+    }
 
-    var existing = document.getElementById('topicExplorerModal');
-    if (existing) existing.remove();
+    // If currently on topic.html, update in-page seamlessly
+    if (typeof window !== 'undefined' && window.location.pathname.includes('topic.html')) {
+      if (window.StudyTopicPage && typeof window.StudyTopicPage.loadTopic === 'function') {
+        window.StudyTopicPage.loadTopic(topicId);
+        return;
+      }
+    }
 
-    var modal = document.createElement('div');
-    modal.id = 'topicExplorerModal';
-    modal.className = 'ws-modal-overlay';
-
-    var statusOptions = STATUS_FLOW.map(function (s) {
-      return `<option value="${s}" ${t.status === s ? 'selected' : ''}>${s.toUpperCase()}</option>`;
-    }).join('');
-
-    var matsHtml = mats.length > 0 ? mats.map(function (m) {
-      var mStatus = m.status || 'pending';
-      var mIcon = mStatus === 'completed' ? '✅' : (mStatus === 'inprogress' ? '⏳' : '⚪');
-      var mPct = m.progress_pct !== undefined ? m.progress_pct : (mStatus === 'completed' ? 100 : 0);
-      var displayUrl = m.file_url || m.external_url || '';
-
-      return `
-        <div class="material-card" onclick="window.StudyWorkspace.openMaterialViewer('${m.id}')">
-          <div class="material-top">
-            <span class="material-type-tag ${m.material_type}">${m.material_type}</span>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span style="font-size:11px;color:var(--text3);">${m.file_size_bytes ? Math.round(m.file_size_bytes/1024) + ' KB' : 'Document'}</span>
-              <button class="ws-modal-close" style="font-size:14px;padding:2px;" onclick="event.stopPropagation();window.StudyWorkspace.deleteMaterial('${m.id}')" title="Delete attachment">🗑️</button>
-            </div>
-          </div>
-          <div class="material-title">${_esc(m.title)}</div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;font-size:11px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.05);" onclick="event.stopPropagation()">
-            <div style="display:flex;align-items:center;gap:4px;">
-              <button class="mat-chip-status-btn" onclick="window.StudyWorkspace.cycleMaterialStatus('${m.id}')" title="Click to cycle status">${mIcon}</button>
-              <span class="st-badge st-${mStatus}" style="font-size:10px;padding:1px 6px;">${mStatus} (${mPct}%)</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:4px;">
-              ${displayUrl ? `
-                <a href="${_esc(displayUrl)}" target="_blank" rel="noopener" class="ws-btn-extlink" style="font-size:10px;padding:2px 6px;">
-                  🔗 Open ↗
-                </a>
-              ` : ''}
-              <button class="ws-btn-secondary" style="font-size:10px;padding:2px 6px;" onclick="window.StudyWorkspace.openMaterialViewer('${m.id}')">View</button>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('') : '<div style="color:var(--text3);font-size:12px;padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;">No attached materials yet. Click "+ Add / Upload Material" above.</div>';
-
-    modal.innerHTML = `
-      <div class="ws-modal-dialog wide">
-        <div class="ws-modal-header">
-          <div class="ws-modal-title">
-            <span>📖</span> ${_esc(t.title)}
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <button class="ws-btn-danger" onclick="window.StudyWorkspace.deleteTopic('${t.id}')" title="Delete topic">🗑️ Delete Topic</button>
-            <button class="ws-modal-close" onclick="document.getElementById('topicExplorerModal')?.remove()">✕</button>
-          </div>
-        </div>
-        <div class="ws-modal-body">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-            <div style="font-size:12px;color:var(--text3);">
-              Track: <strong style="color:var(--blue);">${_esc(dom ? dom.title : 'Custom Workspace')}</strong> · Module: <strong>${_esc(cat ? cat.title : 'General')}</strong>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:12px;color:var(--text2);font-weight:600;">Topic Status:</span>
-              <select class="ws-form-select" style="width:auto;padding:4px 10px;font-size:12px;" onchange="window.StudyWorkspace.setTopicStatus('${t.id}', this.value)">
-                ${statusOptions}
-              </select>
-            </div>
-          </div>
-
-          <div style="margin-bottom:20px;">
-            <label class="ws-form-label">📝 Personal Study Notes &amp; Key Takeaways</label>
-            <textarea class="ws-form-textarea" rows="4" placeholder="Add your summary, syntax tricks, edge cases, and personal takeaways..." onchange="window.StudyWorkspace.updateTopicNotes('${t.id}', this.value)">${_esc(t.notes || '')}</textarea>
-          </div>
-
-          <div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <label class="ws-form-label" style="margin:0;">📚 Track Attached Materials (${mats.length} files)</label>
-              ${_state.canCustomize ? `<button class="ws-btn-secondary" style="font-size:11px;padding:3px 8px;" onclick="window.StudyWorkspace.openAddMaterialModal('${t.id}')">📤 + Add / Upload Material</button>` : ''}
-            </div>
-            <div class="materials-grid">
-              ${matsHtml}
-            </div>
-          </div>
-        </div>
-        <div class="ws-modal-footer">
-          <button class="btn-pomo-action" onclick="window.StudyWorkspace.setPomoTopic('${t.id}');window.StudyWorkspace.togglePomoTimer();document.getElementById('topicExplorerModal')?.remove();">
-            ⏱️ Start Focus Session
-          </button>
-          <button class="ws-btn-secondary" onclick="document.getElementById('topicExplorerModal')?.remove()">Close</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
+    // Otherwise, navigate directly to dedicated full-page topic workspace
+    var targetUrl = 'topic.html?id=' + encodeURIComponent(topicId);
+    window.location.href = targetUrl;
   }
 
   function updateTopicNotes(topicId, notes) {

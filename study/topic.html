@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<script>(function(){try{var k=['ledgerMate_theme','prep_theme','sr_theme','dsa_theme','ql_theme','react_prep_theme','theme'];for(var i=0;i<k.length;i++){var t=localStorage.getItem(k[i]);if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);break;}}}catch(e){}})();</script>
+<title>Topic Learning Workspace — Study Resources Hub</title>
+<script>try { localStorage.setItem('lm_last_page', 'study'); } catch (e) {}</script>
+<link rel="manifest" href="../manifest.json"/>
+<meta name="theme-color" content="#10b981"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="styles/Preparation.css"/>
+<link rel="stylesheet" href="styles/study-hub.css"/>
+<link rel="stylesheet" href="styles/study-responsive.css"/>
+<link rel="stylesheet" href="styles/study-workspace.css"/>
+<link rel="stylesheet" href="../src/styles/responsive-upgrades.css"/>
+
+<!-- Auth: Supabase SDK → config → guard → toast → StudySync (order matters) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../auth/supabase-config.js"></script>
+<script src="../auth/auth-guard.js"></script>
+<script src="../src/scripts/Common/HapticFeedback.js"></script>
+<script src="../src/scripts/Common/BankProfileModal.js"></script>
+<script src="../src/scripts/Admin/AdminPanel.js"></script>
+<script src="../src/scripts/Modules/HelpFeedbackModal.js"></script>
+<script src="../src/scripts/Common/AppUpdateService.js"></script>
+<script src="js/lm-toast.js"></script>
+<script src="js/StudySync.js"></script>
+<script src="js/StudyCustomWorkspace.js"></script>
+<script src="js/StudyTopicPage.js"></script>
+<script src="js/community-hub.js"></script>
+<script src="js/StudyTimer.js"></script>
+<script src="js/StudySRS.js"></script>
+<script src="js/CodeRunner.js"></script>
+<script src="js/AIInterviewHelper.js"></script>
+<script src="js/StudyQuizEngine.js"></script>
+<script src="js/LiveStudyRoom.js"></script>
+<script src="js/pwa-push.js"></script>
+<script src="../src/scripts/pwa-install.js"></script>
+
+<style>
+/* ── TOPIC PAGE SPECIFIC STYLES ── */
+.topic-page-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg, #0a0c10);
+}
+.topic-sidebar {
+  width: 300px;
+  background: var(--bg2, #11141c);
+  border-right: 1px solid var(--border, #262f45);
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+}
+.topic-sidebar-inner {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+.topic-main {
+  margin-left: 300px;
+  flex: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg, #0a0c10);
+  transition: margin 0.3s;
+}
+
+/* ── SIDEBAR STYLES ── */
+.sidebar-track-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text, #fff);
+  border-left: 3px solid var(--track-color, #38bdf8);
+  margin-bottom: 6px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 0 6px 6px 0;
+}
+.sidebar-track-icon {
+  font-size: 15px;
+}
+.sidebar-track-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-module-group {
+  margin-left: 8px;
+  margin-bottom: 8px;
+  border-left: 1px dashed rgba(255,255,255,0.08);
+  padding-left: 8px;
+}
+.sidebar-module-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3, #8a95b8);
+  padding: 3px 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.sidebar-mini-add-btn {
+  background: none;
+  border: 1px solid var(--border, #262f45);
+  color: var(--text3, #8a95b8);
+  border-radius: 4px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.sidebar-mini-add-btn:hover {
+  color: var(--text, #fff);
+  border-color: var(--blue, #4f8ef7);
+  background: rgba(79,142,247,0.1);
+}
+.sidebar-topics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+}
+.sidebar-topic-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: var(--text2, #a6b0cf);
+  font-size: 12.5px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  min-width: 0;
+}
+.sidebar-topic-item:hover {
+  background: rgba(255,255,255,0.04);
+  color: var(--text, #fff);
+}
+.sidebar-topic-item.active {
+  background: linear-gradient(135deg, rgba(79,142,247,0.18), rgba(139,92,246,0.15));
+  border: 1px solid rgba(79,142,247,0.35);
+  color: var(--blue, #4f8ef7);
+  font-weight: 600;
+}
+.sidebar-topic-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-topic-badge {
+  font-size: 10px;
+  background: rgba(255,255,255,0.06);
+  padding: 1px 6px;
+  border-radius: 10px;
+  color: var(--text3, #8a95b8);
+}
+.sidebar-topic-item.active .sidebar-topic-badge {
+  background: var(--blue, #4f8ef7);
+  color: #fff;
+}
+
+/* ── TOPIC HERO ── */
+.topic-workspace-hero {
+  background: linear-gradient(180deg, rgba(17,20,28,0.95), rgba(10,12,16,0.9));
+  border-bottom: 1px solid var(--border, #262f45);
+  padding: 24px 32px 20px;
+}
+.topic-breadcrumb-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text3, #8a95b8);
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.breadcrumb-link {
+  color: var(--text2, #a6b0cf);
+  text-decoration: none;
+  transition: color .2s;
+}
+.breadcrumb-link:hover {
+  color: var(--blue, #4f8ef7);
+}
+.breadcrumb-sep {
+  opacity: 0.5;
+  font-size: 10px;
+}
+.breadcrumb-current {
+  color: var(--text, #fff);
+  font-weight: 600;
+}
+.topic-hero-main-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.topic-hero-title-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+.topic-hero-icon {
+  font-size: 32px;
+  line-height: 1;
+  background: rgba(255,255,255,0.04);
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #262f45);
+}
+.topic-hero-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text, #fff);
+  line-height: 1.25;
+}
+.topic-hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12.5px;
+  color: var(--text3, #8a95b8);
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.topic-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.topic-status-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.03);
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #262f45);
+}
+.topic-status-dropdown {
+  background: var(--bg3, #181d28);
+  color: var(--text, #fff);
+  border: 1px solid var(--border, #262f45);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+}
+
+/* ── WORKSPACE CONTENT ── */
+.topic-workspace-body {
+  padding: 24px 32px;
+  flex: 1;
+}
+.topic-workspace-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+.topic-notes-card, .topic-upload-card {
+  background: var(--bg2, #11141c);
+  border: 1px solid var(--border, #262f45);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+.topic-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.topic-card-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text, #fff);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.note-save-badge {
+  font-size: 11px;
+  color: var(--teal, #06d6a0);
+  font-weight: 600;
+}
+.topic-notes-textarea {
+  width: 100%;
+  min-height: 220px;
+  flex: 1;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid var(--border, #262f45);
+  border-radius: 10px;
+  padding: 14px;
+  color: var(--text, #fff);
+  font-family: 'Inter', sans-serif;
+  font-size: 13.5px;
+  line-height: 1.65;
+  resize: vertical;
+  outline: none;
+  transition: border .2s, box-shadow .2s;
+}
+.topic-notes-textarea:focus {
+  border-color: var(--blue, #4f8ef7);
+  box-shadow: 0 0 0 3px rgba(79,142,247,0.15);
+}
+
+/* ── MATERIALS SECTION ── */
+.topic-materials-section {
+  background: var(--bg2, #11141c);
+  border: 1px solid var(--border, #262f45);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 28px;
+}
+.topic-materials-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.topic-materials-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text, #fff);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.topic-mat-filter-tabs {
+  display: flex;
+  gap: 6px;
+  background: rgba(0,0,0,0.3);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #262f45);
+}
+.mat-filter-btn {
+  background: none;
+  border: none;
+  color: var(--text3, #8a95b8);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.mat-filter-btn.active {
+  background: var(--bg3, #181d28);
+  color: var(--text, #fff);
+  font-weight: 700;
+}
+.topic-materials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 16px;
+}
+.topic-page-mat-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border, #262f45);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform .18s, border-color .18s;
+}
+.topic-page-mat-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(79,142,247,0.4);
+}
+.topic-page-mat-card.preview-active {
+  border-color: var(--blue, #4f8ef7);
+  box-shadow: 0 0 0 2px rgba(79,142,247,0.25);
+  background: rgba(79,142,247,0.04);
+}
+.mat-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mat-card-size {
+  font-size: 11px;
+  color: var(--text3, #8a95b8);
+}
+.mat-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text, #fff);
+  line-height: 1.35;
+  margin-bottom: 4px;
+}
+.mat-card-desc {
+  font-size: 12px;
+  color: var(--text3, #8a95b8);
+  line-height: 1.4;
+  max-height: 48px;
+  overflow: hidden;
+}
+.mat-card-storage-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--cyan, #38bdf8);
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mat-card-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mat-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.ws-btn-danger-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0.6;
+  transition: opacity .2s;
+}
+.ws-btn-danger-icon:hover {
+  opacity: 1;
+}
+
+/* ── IN-PAGE PREVIEWER CARD ── */
+.inpage-material-previewer-card {
+  background: var(--bg2, #11141c);
+  border: 2px solid var(--blue, #4f8ef7);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 28px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  animation: fadeIn 0.25s ease;
+}
+.inpage-preview-header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.inpage-preview-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.inpage-pdf-frame-wrap {
+  background: #000;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border, #262f45);
+}
+.inpage-code-block {
+  background: #0f172a;
+  padding: 16px;
+  border-radius: 10px;
+  color: #38bdf8;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  overflow-x: auto;
+  max-height: 480px;
+  line-height: 1.6;
+  border: 1px solid rgba(56,189,248,0.2);
+}
+.inpage-link-hero-box {
+  padding: 32px 20px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 12px;
+  border: 1px solid var(--border, #262f45);
+  text-align: center;
+}
+
+.empty-topic-state, .empty-mats-box {
+  padding: 36px 20px;
+  text-align: center;
+  color: var(--text3, #8a95b8);
+  font-size: 13px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 12px;
+  border: 1px dashed rgba(255,255,255,0.08);
+}
+
+/* ── RESPONSIVENESS ── */
+@media (max-width: 1024px) {
+  .topic-sidebar {
+    transform: translateX(-100%);
+  }
+  .topic-sidebar.open {
+    transform: translateX(0);
+  }
+  .topic-main {
+    margin-left: 0;
+  }
+  .menu-btn {
+    display: flex !important;
+  }
+  .topic-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+  .topic-workspace-hero, .topic-workspace-body {
+    padding: 18px 20px;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="topic-page-layout">
+
+  <!-- ╔═════════════════════ SIDEBAR ═════════════════════╗ -->
+  <aside class="topic-sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-badge">📖 Topic Workspace</div>
+      <div class="logo-sub">Study Resources Hub · Custom Tracks</div>
+    </div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="sidebarSearch" placeholder="Search topics & notes…" autocomplete="off" oninput="window.StudyTopicPage.handleSidebarSearch(this.value)"/>
+    </div>
+
+    <div class="topic-sidebar-inner" id="sidebarTopicTree">
+      <!-- Populated dynamically by StudyTopicPage.js -->
+    </div>
+
+    <div style="padding:14px;border-top:1px solid var(--border,#262f45);background:var(--bg2,#11141c);">
+      <a href="index.html" class="ws-btn-secondary" style="width:100%;justify-content:center;text-decoration:none;font-size:12px;">
+        ⬅️ Back to Study Hub
+      </a>
+    </div>
+  </aside>
+
+  <!-- ╔═════════════════════ MAIN CONTENT ═════════════════════╗ -->
+  <main class="topic-main" id="mainContent">
+
+    <!-- TOPBAR (Same as Dashboard / Study Hub) -->
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="menu-btn" id="menuBtn" onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none;" title="Toggle Topic Sidebar">☰</button>
+        <a href="index.html" class="topbar-brand" title="Return to Study Resources Hub" style="text-decoration:none;display:flex;align-items:center;gap:8px;">
+          <span class="topbar-brand-icon">📚</span>
+          <span class="topbar-brand-text" style="font-family:'Syne',sans-serif;font-weight:800;color:var(--text,#fff);">Study Hub</span>
+        </a>
+      </div>
+
+      <div class="topbar-right" style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+        <div class="topbar-tools" style="display:flex;align-items:center;gap:6px;">
+          <a href="index.html" class="topbar-tool-btn" style="text-decoration:none;" title="Study Hub Main Page">
+            <span class="tool-ico">🏠</span><span class="tool-lbl">Hub</span>
+          </a>
+          <button class="topbar-tool-btn btn-quiz" onclick="window.StudyQuiz?.showModal()" title="Timed Topic Quiz">
+            <span class="tool-ico">🎯</span><span class="tool-lbl">Quiz</span>
+          </button>
+          <button class="topbar-tool-btn btn-srs" onclick="window.StudySRS?.showModal()" title="Flashcards">
+            <span class="tool-ico">🧠</span><span class="tool-lbl">Flashcards</span>
+          </button>
+          <button class="topbar-tool-btn btn-room" onclick="window.LiveStudyRoom?.openLiveStudyRoomModal()" title="Live Peer Room">
+            <span class="tool-ico">🏛️</span><span class="tool-lbl">Live Room</span>
+          </button>
+          <button class="topbar-tool-btn btn-code" onclick="window.StudyCodeRunner?.showModal()" title="Code Execution Playground">
+            <span class="tool-ico">💻</span><span class="tool-lbl">Runner</span>
+          </button>
+          <button class="topbar-tool-btn btn-coach" onclick="window.AIInterviewHelper?.showModal()" title="AI Interview Coach">
+            <span class="tool-ico">🤖</span><span class="tool-lbl">AI Coach</span>
+          </button>
+          <a href="index.html#studio" class="topbar-tool-btn btn-customizer" title="In-Page Customization Studio" style="text-decoration:none;">
+            <span class="tool-ico">⚙️</span><span class="tool-lbl">Studio Hub</span>
+          </a>
+        </div>
+
+        <div class="topbar-utils" style="display:flex;align-items:center;gap:10px;">
+          <!-- Switch to LedgerMate Finance -->
+          <a href="../index.html" class="topbar-switch-btn finance-switch" title="Switch to LedgerMate Finance">
+            <span class="switch-icon">💰</span>
+            <span class="switch-text">LedgerMate</span>
+          </a>
+
+          <!-- Profile Avatar Chip -->
+          <div class="topbar-user-chip" id="studyUserChip" onclick="window.LM_ProfileModal && window.LM_ProfileModal.open()" title="Profile &amp; Vault Settings" style="cursor:pointer;">
+            <div class="topbar-user-avatar" id="studyUserAvatar">U</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- TOPIC MAIN WORKSPACE CONTAINER -->
+    <div class="topic-workspace-body" id="topicWorkspaceContent">
+      <!-- Populated dynamically by StudyTopicPage.js -->
+    </div>
+
+  </main>
+
+</div>
+
+</body>
+</html>
