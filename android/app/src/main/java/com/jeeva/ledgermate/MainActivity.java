@@ -1110,6 +1110,38 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
 
+                    if (conn != null && conn.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND && !currentUrl.contains("app-release.apk")) {
+                        conn.disconnect();
+                        currentUrl = "https://github.com/JeeventhiranV/LedgerMate/releases/download/latest/app-release.apk";
+                        redirectCount = 0;
+                        while (redirectCount < MAX_REDIRECTS) {
+                            URL fallbackUrl = new URL(currentUrl);
+                            conn = (HttpURLConnection) fallbackUrl.openConnection();
+                            conn.setRequestMethod("GET");
+                            conn.setInstanceFollowRedirects(true);
+                            conn.setConnectTimeout(20000);
+                            conn.setReadTimeout(30000);
+                            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile; LedgerMate-AppUpdater/1.0)");
+                            conn.setRequestProperty("Accept", "*/*");
+
+                            int responseCode = conn.getResponseCode();
+                            if (responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||
+                                responseCode == HttpURLConnection.HTTP_MOVED_PERM ||
+                                responseCode == HttpURLConnection.HTTP_SEE_OTHER ||
+                                responseCode == 307 || responseCode == 308) {
+                                String location = conn.getHeaderField("Location");
+                                if (location == null || location.trim().isEmpty()) {
+                                    break;
+                                }
+                                conn.disconnect();
+                                currentUrl = location;
+                                redirectCount++;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+
                     if (conn == null || conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
                         int code = conn != null ? conn.getResponseCode() : -1;
                         sendError(callbackId, "Server returned HTTP " + code + " while downloading update");

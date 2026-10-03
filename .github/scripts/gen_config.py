@@ -78,29 +78,48 @@ print("    URL: " + url[:45] + "...")
 print("    Deploy ID: " + cache_version)
 
 # ── Write version.json ────────────────────────────────────────────────────────
-try:
-    import subprocess
-    build_number = int(subprocess.check_output(["git", "rev-list", "--count", "HEAD"]).decode().strip())
-except Exception:
-    build_number = int(os.environ.get("BUILD_NUMBER", os.environ.get("GITHUB_RUN_NUMBER", "250")))
-
 github_repo = os.environ.get("GITHUB_REPOSITORY", "JeeventhiranV/LedgerMate")
-apk_download_url = f"https://github.com/{github_repo}/releases/download/latest/LedgerMate-v1.0.{build_number}.apk"
+apk_version_code = 317
+apk_version_name = "1.0.317"
+apk_download_url = f"https://github.com/{github_repo}/releases/download/latest/app-release.apk"
+release_notes = "Performance optimizations, Supercharged Supabase, 3D Flashcards, AI DSA Assistant, Live Study Rooms, and Automated CI/CD updates."
+
+if os.path.exists("version.json"):
+    try:
+        with open("version.json", "r") as f:
+            old_ver = json.load(f)
+            apk_version_code = int(old_ver.get("apkVersionCode", apk_version_code))
+            apk_version_name = str(old_ver.get("apkVersionName", f"1.0.{apk_version_code}"))
+            apk_download_url = str(old_ver.get("apkDownloadUrl", apk_download_url))
+            release_notes = str(old_ver.get("releaseNotes", release_notes))
+    except Exception as e:
+        print(f"Warning reading version.json: {e}")
+
+if os.environ.get("APK_BUILD_NUMBER"):
+    try:
+        apk_version_code = int(os.environ["APK_BUILD_NUMBER"])
+        apk_version_name = f"1.0.{apk_version_code}"
+    except Exception:
+        pass
 
 version_info = {
     "version": cache_version,
     "commit": sha,
     "build_date": build_date,
     "timestamp": int(time.time() * 1000),
-    "apkVersionCode": build_number,
-    "apkVersionName": f"1.0.{build_number}",
+    "apkVersionCode": apk_version_code,
+    "apkVersionName": apk_version_name,
     "apkDownloadUrl": apk_download_url,
-    "releaseNotes": "Performance optimizations, Supercharged Supabase, 3D Flashcards, AI DSA Assistant, Live Study Rooms, and Automated CI/CD updates."
+    "releaseNotes": release_notes
 }
 with open("version.json", "w") as f:
     json.dump(version_info, f, indent=2)
 
-print("✅  version.json generated → " + cache_version + " (APK v1.0." + str(build_number) + ", versionCode: " + str(build_number) + ")")
+if os.path.exists("study"):
+    with open("study/version.json", "w") as f:
+        json.dump(version_info, f, indent=2)
+
+print("✅  version.json generated → " + cache_version + " (APK v" + apk_version_name + ", versionCode: " + str(apk_version_code) + ")")
 
 # ── Stamp service-worker.js with auto cache version ──────────────────────────
 sw_path = "service-worker.js"

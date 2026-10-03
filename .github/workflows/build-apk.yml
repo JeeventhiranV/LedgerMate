@@ -55,6 +55,20 @@ jobs:
           mkdir -p build-assets
           cp android/app/build/outputs/apk/release/app-release.apk build-assets/app-release.apk 2>/dev/null || cp android/app/build/outputs/apk/release/*.apk build-assets/app-release.apk
           cp build-assets/app-release.apk build-assets/LedgerMate-v${{ steps.build_ver.outputs.version_name }}.apk
+          
+          # Generate fresh version.json for this APK build
+          cat <<EOF > build-assets/version.json
+          {
+            "version": "lm-v${{ steps.build_ver.outputs.version_name }}",
+            "commit": "${GITHUB_SHA:0:7}",
+            "build_date": "$(date +%Y%m%d)",
+            "timestamp": $(date +%s000),
+            "apkVersionCode": ${{ steps.build_ver.outputs.build_number }},
+            "apkVersionName": "${{ steps.build_ver.outputs.version_name }}",
+            "apkDownloadUrl": "https://github.com/${{ github.repository }}/releases/download/latest/app-release.apk",
+            "releaseNotes": "Performance optimizations, Supercharged Supabase, 3D Flashcards, AI DSA Assistant, Live Study Rooms, and Automated CI/CD updates."
+          }
+          EOF
 
       - name: 📤 Upload APK Artifacts
         uses: actions/upload-artifact@v4
@@ -62,6 +76,7 @@ jobs:
           name: LedgerMate-Android-APK
           path: |
             build-assets/*.apk
+            build-assets/version.json
             android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
@@ -74,6 +89,7 @@ jobs:
           files: |
             build-assets/app-release.apk
             build-assets/LedgerMate-v${{ steps.build_ver.outputs.version_name }}.apk
+            build-assets/version.json
           draft: false
           prerelease: false
         env:
