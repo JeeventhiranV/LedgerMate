@@ -2441,13 +2441,34 @@
   }
 
   function renderCustomDomainSections() {
-    var container = document.getElementById('languageSectionsWrap');
+    var container = document.getElementById('customSectionsWrap') || document.getElementById('languageSectionsWrap');
     if (!container) return;
 
     var existingCustom = document.querySelectorAll('.custom-workspace-domain-section');
     existingCustom.forEach(function (el) { el.remove(); });
 
-    if (!_state.domains || _state.domains.length === 0) return;
+    if (!_state.domains || _state.domains.length === 0) {
+      if (document.getElementById('customSectionsWrap')) {
+        document.getElementById('customSectionsWrap').innerHTML = `
+          <div class="custom-track-empty-hero" style="background:var(--bg2,#11141c);border:1px dashed var(--border,#262f45);border-radius:16px;padding:24px 20px;text-align:center;margin-bottom:28px;">
+            <div style="font-size:28px;margin-bottom:6px;">🚀</div>
+            <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--text,#fff);margin-bottom:4px;">Custom Learning Tracks &amp; Workspaces</div>
+            <p style="font-size:12.5px;color:var(--text3,#8a95b8);max-width:520px;margin:0 auto 14px;line-height:1.5;">
+              Create customized learning domains, attach PDFs/docs/links, set target goals, and launch dedicated full-page topic workspaces.
+            </p>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+              <button class="ws-btn-primary" onclick="window.StudyWorkspace.openAddDomainModal()" style="font-size:12px;padding:7px 14px;">
+                ➕ Create First Custom Track
+              </button>
+              <button class="ws-btn-secondary" onclick="window.StudyWorkspace.openStudio('blueprints')" style="font-size:12px;padding:7px 14px;">
+                📦 Import Roadmap
+              </button>
+            </div>
+          </div>
+        `;
+      }
+      return;
+    }
 
     var customHtml = _state.domains.map(function (dom) {
       var domCats = _state.categories.filter(function (c) { return c.domain_id === dom.id; });
@@ -2697,7 +2718,11 @@
       `;
     }).join('');
 
-    container.insertAdjacentHTML('beforeend', customHtml);
+    if (document.getElementById('customSectionsWrap')) {
+      container.innerHTML = customHtml;
+    } else {
+      container.insertAdjacentHTML('afterbegin', customHtml);
+    }
   }
 
   // ── 18. PUBLIC API EXPORTS ─────────────────────────────────────────────────

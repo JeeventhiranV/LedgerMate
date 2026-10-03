@@ -41,13 +41,49 @@
 
 <style>
 /* ── TOPIC PAGE SPECIFIC STYLES ── */
+* {
+  box-sizing: border-box;
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background: var(--bg, #0a0c10);
+  color: var(--text, #fff);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
 .topic-page-layout {
   display: flex;
   min-height: 100vh;
-  background: var(--bg, #0a0c10);
+  position: relative;
+  width: 100%;
+  overflow-x: hidden;
 }
+
+/* ── SIDEBAR DRAWER (CLOSED BY DEFAULT ON ALL SCREEN SIZES) ── */
+.topic-sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s cubic-bezier(.4, 0, .2, 1);
+}
+.topic-sidebar-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .topic-sidebar {
-  width: 300px;
+  width: 320px;
+  max-width: 88vw;
   background: var(--bg2, #11141c);
   border-right: 1px solid var(--border, #262f45);
   position: fixed;
@@ -55,24 +91,125 @@
   left: 0;
   height: 100vh;
   overflow-y: auto;
-  z-index: 100;
+  z-index: 1001;
   display: flex;
   flex-direction: column;
-  transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(.4, 0, .2, 1);
+  box-shadow: 6px 0 32px rgba(0, 0, 0, 0.6);
 }
+.topic-sidebar.open {
+  transform: translateX(0);
+}
+
 .topic-sidebar-inner {
   flex: 1;
   overflow-y: auto;
   padding: 12px;
 }
+
+/* ── MAIN CONTENT: ALWAYS TAKES FULL WIDTH ── */
 .topic-main {
-  margin-left: 300px;
-  flex: 1;
+  margin-left: 0 !important;
+  width: 100%;
+  min-width: 0;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: var(--bg, #0a0c10);
-  transition: margin 0.3s;
+  overflow-x: hidden;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: rgba(17, 20, 28, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border, #262f45);
+  position: sticky;
+  top: 0;
+  z-index: 900;
+  gap: 12px;
+  width: 100%;
+}
+
+.menu-btn {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border, #262f45);
+  color: var(--text, #fff);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+.menu-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--blue, #4f8ef7);
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--text, #fff);
+  white-space: nowrap;
+}
+
+.topbar-custom-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border, #262f45);
+  color: var(--text2, #a6b0cf);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.topbar-custom-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text, #fff);
+  border-color: var(--blue, #4f8ef7);
+}
+
+.topbar-user-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.topbar-user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f8ef7, #8b5cf6);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(79, 142, 247, 0.3);
 }
 
 /* ── SIDEBAR STYLES ── */
@@ -80,7 +217,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
+  padding: 8px 10px;
   font-size: 13px;
   font-weight: 700;
   color: var(--text, #fff);
@@ -120,8 +257,8 @@
   border: 1px solid var(--border, #262f45);
   color: var(--text3, #8a95b8);
   border-radius: 4px;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -144,7 +281,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
+  padding: 7px 10px;
   border-radius: 8px;
   color: var(--text2, #a6b0cf);
   font-size: 12.5px;
@@ -185,6 +322,7 @@
   background: linear-gradient(180deg, rgba(17,20,28,0.95), rgba(10,12,16,0.9));
   border-bottom: 1px solid var(--border, #262f45);
   padding: 24px 32px 20px;
+  width: 100%;
 }
 .topic-breadcrumb-bar {
   display: flex;
@@ -232,6 +370,7 @@
   padding: 10px;
   border-radius: 12px;
   border: 1px solid var(--border, #262f45);
+  flex-shrink: 0;
 }
 .topic-hero-title {
   font-family: 'Syne', sans-serif;
@@ -239,6 +378,7 @@
   font-weight: 800;
   color: var(--text, #fff);
   line-height: 1.25;
+  word-break: break-word;
 }
 .topic-hero-meta {
   display: flex;
@@ -279,13 +419,17 @@
 /* ── WORKSPACE CONTENT ── */
 .topic-workspace-body {
   padding: 24px 32px;
-  flex: 1;
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 .topic-workspace-grid {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
   gap: 24px;
   margin-bottom: 28px;
+  width: 100%;
 }
 .topic-notes-card, .topic-upload-card {
   background: var(--bg2, #11141c);
@@ -294,12 +438,16 @@
   padding: 20px;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  width: 100%;
 }
 .topic-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 6px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .topic-card-title {
   font-family: 'Syne', sans-serif;
@@ -317,7 +465,7 @@
 }
 .topic-notes-textarea {
   width: 100%;
-  min-height: 220px;
+  min-height: 230px;
   flex: 1;
   background: rgba(0,0,0,0.25);
   border: 1px solid var(--border, #262f45);
@@ -329,6 +477,7 @@
   line-height: 1.65;
   resize: vertical;
   outline: none;
+  box-sizing: border-box;
   transition: border .2s, box-shadow .2s;
 }
 .topic-notes-textarea:focus {
@@ -343,6 +492,8 @@
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 28px;
+  width: 100%;
+  min-width: 0;
 }
 .topic-materials-header-row {
   display: flex;
@@ -368,6 +519,7 @@
   padding: 4px;
   border-radius: 8px;
   border: 1px solid var(--border, #262f45);
+  flex-wrap: wrap;
 }
 .mat-filter-btn {
   background: none;
@@ -387,8 +539,9 @@
 }
 .topic-materials-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
+  width: 100%;
 }
 .topic-page-mat-card {
   background: rgba(255,255,255,0.02);
@@ -399,6 +552,7 @@
   flex-direction: column;
   gap: 10px;
   transition: transform .18s, border-color .18s;
+  min-width: 0;
 }
 .topic-page-mat-card:hover {
   transform: translateY(-2px);
@@ -424,6 +578,7 @@
   color: var(--text, #fff);
   line-height: 1.35;
   margin-bottom: 4px;
+  word-break: break-word;
 }
 .mat-card-desc {
   font-size: 12px;
@@ -476,6 +631,8 @@
   margin-bottom: 28px;
   box-shadow: 0 12px 40px rgba(0,0,0,0.5);
   animation: fadeIn 0.25s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 .inpage-preview-header-main {
   display: flex;
@@ -484,6 +641,8 @@
   margin-bottom: 14px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .inpage-preview-topbar {
   display: flex;
@@ -498,6 +657,7 @@
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--border, #262f45);
+  width: 100%;
 }
 .inpage-code-block {
   background: #0f172a;
@@ -510,6 +670,8 @@
   max-height: 480px;
   line-height: 1.6;
   border: 1px solid rgba(56,189,248,0.2);
+  width: 100%;
+  box-sizing: border-box;
 }
 .inpage-link-hero-box {
   padding: 32px 20px;
@@ -517,6 +679,7 @@
   border-radius: 12px;
   border: 1px solid var(--border, #262f45);
   text-align: center;
+  width: 100%;
 }
 
 .empty-topic-state, .empty-mats-box {
@@ -530,24 +693,32 @@
 }
 
 /* ── RESPONSIVENESS ── */
-@media (max-width: 1024px) {
-  .topic-sidebar {
-    transform: translateX(-100%);
-  }
-  .topic-sidebar.open {
-    transform: translateX(0);
-  }
-  .topic-main {
-    margin-left: 0;
-  }
-  .menu-btn {
-    display: flex !important;
-  }
+@media (max-width: 960px) {
   .topic-workspace-grid {
     grid-template-columns: 1fr;
   }
   .topic-workspace-hero, .topic-workspace-body {
-    padding: 18px 20px;
+    padding: 16px 18px;
+  }
+}
+@media (max-width: 600px) {
+  .topbar {
+    padding: 10px 14px;
+  }
+  .topbar-page-badge {
+    display: none !important;
+  }
+  .topic-hero-title {
+    font-size: 20px;
+  }
+  .topic-workspace-hero, .topic-workspace-body {
+    padding: 12px 14px;
+  }
+  .topic-materials-section {
+    padding: 16px;
+  }
+  .topic-materials-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
@@ -556,14 +727,23 @@
 
 <div class="topic-page-layout">
 
-  <!-- ╔═════════════════════ SIDEBAR ═════════════════════╗ -->
+  <!-- BACKDROP OVERLAY FOR OFF-CANVAS SIDEBAR -->
+  <div class="topic-sidebar-overlay" id="sidebarOverlay" onclick="window.StudyTopicPage.toggleSidebar(false)"></div>
+
+  <!-- ╔═════════════════════ SIDEBAR (DRAWER) ═════════════════════╗ -->
   <aside class="topic-sidebar" id="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-badge">📖 Topic Workspace</div>
-      <div class="logo-sub">Study Resources Hub · Custom Tracks</div>
+    <div class="sidebar-logo" style="display:flex;align-items:center;justify-content:space-between;padding:16px 14px;border-bottom:1px solid var(--border,#262f45);">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="logo-badge" style="font-size:18px;">📖</div>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14.5px;color:var(--text,#fff);">Topic Workspace</div>
+          <div style="font-size:11px;color:var(--text3,#8a95b8);">Study Resources Hub</div>
+        </div>
+      </div>
+      <button class="sidebar-close-btn" onclick="window.StudyTopicPage.toggleSidebar(false)" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:6px;" title="Close Menu">✕</button>
     </div>
 
-    <div class="search-wrap">
+    <div class="search-wrap" style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);">
       <span class="search-icon">🔍</span>
       <input class="search-input" id="sidebarSearch" placeholder="Search topics & notes…" autocomplete="off" oninput="window.StudyTopicPage.handleSidebarSearch(this.value)"/>
     </div>
@@ -572,62 +752,64 @@
       <!-- Populated dynamically by StudyTopicPage.js -->
     </div>
 
-    <div style="padding:14px;border-top:1px solid var(--border,#262f45);background:var(--bg2,#11141c);">
-      <a href="index.html" class="ws-btn-secondary" style="width:100%;justify-content:center;text-decoration:none;font-size:12px;">
-        ⬅️ Back to Study Hub
-      </a>
+    <!-- ALL STUDY TOOLS ACCESSIBLE IN SLIDE-OUT MENU -->
+    <div class="sidebar-tools-section" style="padding:12px 14px;border-top:1px solid var(--border,#262f45);background:rgba(0,0,0,0.15);">
+      <div style="font-size:11px;font-weight:700;color:var(--text3,#8a95b8);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Study Tools &amp; Hub</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <a href="index.html" class="ws-btn-secondary" style="font-size:11px;padding:6px 8px;justify-content:center;text-decoration:none;">
+          🏠 Hub
+        </a>
+        <a href="index.html#studio" class="ws-btn-secondary" style="font-size:11px;padding:6px 8px;justify-content:center;text-decoration:none;">
+          ⚙️ Studio
+        </a>
+        <button class="ws-btn-secondary" style="font-size:11px;padding:6px 8px;justify-content:center;" onclick="window.StudyQuiz?.showModal()">
+          🎯 Quiz
+        </button>
+        <button class="ws-btn-secondary" style="font-size:11px;padding:6px 8px;justify-content:center;" onclick="window.StudySRS?.showModal()">
+          🧠 Flashcards
+        </button>
+        <button class="ws-btn-secondary" style="font-size:11px;padding:6px 8px;justify-content:center;" onclick="window.LiveStudyRoom?.openLiveStudyRoomModal()">
+          🏛️ Live Room
+        </button>
+        <button class="ws-btn-secondary" style="font-size:11px;padding:6px 8px;justify-content:center;" onclick="window.StudyCodeRunner?.showModal()">
+          💻 Runner
+        </button>
+        <button class="ws-btn-secondary" style="font-size:11px;padding:6px 8px;justify-content:center;" onclick="window.AIInterviewHelper?.showModal()">
+          🤖 AI Coach
+        </button>
+        <a href="../index.html" class="ws-btn-secondary" style="font-size:11px;padding:6px 8px;justify-content:center;text-decoration:none;">
+          💰 Finance
+        </a>
+      </div>
     </div>
   </aside>
 
   <!-- ╔═════════════════════ MAIN CONTENT ═════════════════════╗ -->
   <main class="topic-main" id="mainContent">
 
-    <!-- TOPBAR (Same as Dashboard / Study Hub) -->
+    <!-- TOPBAR (Clean, focused on topic study, timer, and profile) -->
     <header class="topbar">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <button class="menu-btn" id="menuBtn" onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none;" title="Toggle Topic Sidebar">☰</button>
-        <a href="index.html" class="topbar-brand" title="Return to Study Resources Hub" style="text-decoration:none;display:flex;align-items:center;gap:8px;">
+      <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+        <button class="menu-btn" id="menuBtn" onclick="window.StudyTopicPage.toggleSidebar()" title="Toggle Topic Sidebar &amp; Menu">☰</button>
+        <a href="index.html" class="topbar-brand" title="Return to Study Resources Hub">
           <span class="topbar-brand-icon">📚</span>
-          <span class="topbar-brand-text" style="font-family:'Syne',sans-serif;font-weight:800;color:var(--text,#fff);">Study Hub</span>
+          <span class="topbar-brand-text">Study Hub</span>
         </a>
+        <div class="topbar-page-badge" style="font-size:11.5px;color:var(--text3,#8a95b8);background:rgba(255,255,255,0.04);padding:3px 8px;border-radius:6px;border:1px solid var(--border,#262f45);display:none;align-items:center;gap:4px;">
+          <span>🎯</span> Topic Workspace
+        </div>
       </div>
 
-      <div class="topbar-right" style="margin-left:auto;display:flex;align-items:center;gap:12px;">
-        <div class="topbar-tools" style="display:flex;align-items:center;gap:6px;">
-          <a href="index.html" class="topbar-tool-btn" style="text-decoration:none;" title="Study Hub Main Page">
-            <span class="tool-ico">🏠</span><span class="tool-lbl">Hub</span>
-          </a>
-          <button class="topbar-tool-btn btn-quiz" onclick="window.StudyQuiz?.showModal()" title="Timed Topic Quiz">
-            <span class="tool-ico">🎯</span><span class="tool-lbl">Quiz</span>
-          </button>
-          <button class="topbar-tool-btn btn-srs" onclick="window.StudySRS?.showModal()" title="Flashcards">
-            <span class="tool-ico">🧠</span><span class="tool-lbl">Flashcards</span>
-          </button>
-          <button class="topbar-tool-btn btn-room" onclick="window.LiveStudyRoom?.openLiveStudyRoomModal()" title="Live Peer Room">
-            <span class="tool-ico">🏛️</span><span class="tool-lbl">Live Room</span>
-          </button>
-          <button class="topbar-tool-btn btn-code" onclick="window.StudyCodeRunner?.showModal()" title="Code Execution Playground">
-            <span class="tool-ico">💻</span><span class="tool-lbl">Runner</span>
-          </button>
-          <button class="topbar-tool-btn btn-coach" onclick="window.AIInterviewHelper?.showModal()" title="AI Interview Coach">
-            <span class="tool-ico">🤖</span><span class="tool-lbl">AI Coach</span>
-          </button>
-          <a href="index.html#studio" class="topbar-tool-btn btn-customizer" title="In-Page Customization Studio" style="text-decoration:none;">
-            <span class="tool-ico">⚙️</span><span class="tool-lbl">Studio Hub</span>
-          </a>
-        </div>
-
-        <div class="topbar-utils" style="display:flex;align-items:center;gap:10px;">
-          <!-- Switch to LedgerMate Finance -->
-          <a href="../index.html" class="topbar-switch-btn finance-switch" title="Switch to LedgerMate Finance">
-            <span class="switch-icon">💰</span>
-            <span class="switch-text">LedgerMate</span>
-          </a>
-
-          <!-- Profile Avatar Chip -->
-          <div class="topbar-user-chip" id="studyUserChip" onclick="window.LM_ProfileModal && window.LM_ProfileModal.open()" title="Profile &amp; Vault Settings" style="cursor:pointer;">
-            <div class="topbar-user-avatar" id="studyUserAvatar">U</div>
-          </div>
+      <div class="topbar-right" style="display:flex;align-items:center;gap:10px;">
+        <!-- Single Focus Timer is injected by auth-guard (_injectTimerChip) -->
+        <a href="index.html" class="topbar-custom-btn" title="Return to Study Resources Hub">
+          <span>🏠</span><span>Hub</span>
+        </a>
+        <button class="topbar-custom-btn" onclick="window.StudyWorkspace?.openAddMaterialModal(window.StudyTopicPage.getCurrentTopicId())" style="background:linear-gradient(135deg,rgba(79,142,247,0.15),rgba(139,92,246,0.15));border-color:rgba(79,142,247,0.35);color:var(--blue,#4f8ef7);" title="Quick Upload File / Link to Topic">
+          <span>📤</span><span>Upload</span>
+        </button>
+        <div class="topbar-user-chip" id="studyUserChip" onclick="window.LM_ProfileModal && window.LM_ProfileModal.open()" title="Profile &amp; Vault Settings">
+          <div class="topbar-user-avatar" id="studyUserAvatar">U</div>
         </div>
       </div>
     </header>

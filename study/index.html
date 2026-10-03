@@ -469,6 +469,7 @@ if ('serviceWorker' in navigator) {
   <span class="filter-label">Domain:</span>
   <div class="filter-chips" id="filterChips">
     <button class="chip active" data-filter="all">🌐 All Domains</button>
+    <button class="chip" data-filter="custom" style="background:linear-gradient(135deg,rgba(79,142,247,0.15),rgba(139,92,246,0.15));border-color:rgba(79,142,247,0.4);color:var(--blue,#4f8ef7);font-weight:700;">✨ Custom Tracks</button>
     <button class="chip" data-filter="java">☕ Java Ecosystem</button>
     <button class="chip" data-filter="frontend">⚛️ React &amp; Frontend</button>
     <button class="chip" data-filter="dsa">🧠 DSA &amp; Algorithms</button>
@@ -493,6 +494,11 @@ if ('serviceWorker' in navigator) {
     <div class="no-results-icon">🔍</div>
     <div class="no-results-text">No resources match your search or filter.</div>
   </div>
+  
+  <!-- 1. CUSTOM LEARNING TRACKS & CREATED TOPICS (RENDERED AT TOP) -->
+  <div id="customSectionsWrap"></div>
+
+  <!-- 2. STATIC PREPARATION MODULES & DOMAINS (RENDERED BELOW CUSTOM TRACKS) -->
   <div id="languageSectionsWrap"></div>
 
 </div>
@@ -1642,6 +1648,7 @@ function applyFilters() {
 
     var show = true;
     if (activeFilter === 'fav')        show = isFav;
+    else if (activeFilter === 'custom') show = card.closest('.custom-workspace-domain-section') !== null;
     else if (activeFilter === 'done')  show = hasProg || (mstatus === 'completed');
     else if (activeFilter === 'inprogress') show = hasInprog || (mstatus === 'wip' || mstatus === 'inprogress');
     else if (activeFilter === 'st-pending')   show = (mstatus === 'pending');

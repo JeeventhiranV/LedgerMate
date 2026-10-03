@@ -637,6 +637,7 @@
   function _injectTimerChip() {
     /* Skip on study/index.html — it has its own FAB + card */
     if (document.getElementById('stFab')) return;
+    if (document.getElementById('stTimerChip')) return;
 
     var topbar = document.querySelector('.topbar');
     if (!topbar) return;

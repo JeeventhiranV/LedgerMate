@@ -56,6 +56,25 @@
     }
   }
 
+  function toggleSidebar(forceState) {
+    var sidebar = document.getElementById('sidebar');
+    var overlay = document.getElementById('sidebarOverlay');
+    if (!sidebar) return;
+    var isOpen = sidebar.classList.contains('open');
+    var next = typeof forceState === 'boolean' ? forceState : !isOpen;
+    if (next) {
+      sidebar.classList.add('open');
+      if (overlay) overlay.classList.add('open');
+    } else {
+      sidebar.classList.remove('open');
+      if (overlay) overlay.classList.remove('open');
+    }
+  }
+
+  function getCurrentTopicId() {
+    return _currentTopicId;
+  }
+
   function loadTopic(topicId) {
     if (!topicId) return;
     _currentTopicId = topicId;
@@ -66,6 +85,9 @@
       newUrl.searchParams.set('id', topicId);
       window.history.pushState({ topicId: topicId }, '', newUrl.toString());
     } catch (e) {}
+
+    // Auto-close drawer so topic workspace has 100% full view
+    toggleSidebar(false);
 
     renderAll();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -765,6 +787,8 @@
   window.StudyTopicPage = {
     init: init,
     loadTopic: loadTopic,
+    toggleSidebar: toggleSidebar,
+    getCurrentTopicId: getCurrentTopicId,
     renderAll: renderAll,
     renderSidebar: renderSidebar,
     renderMainWorkspace: renderMainWorkspace,
