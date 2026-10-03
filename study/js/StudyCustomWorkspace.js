@@ -2633,43 +2633,34 @@
       return `
         <section class="lang-section custom-workspace-domain-section" id="lang-section-${dom.id}" data-lang-id="${dom.id}" style="margin-bottom:28px;">
           
-          <div class="custom-section-hero" style="--sec-accent:${dom.color};">
-            <div class="custom-section-hero-top">
-              <div class="custom-section-hero-left" onclick="window.toggleLangSection ? window.toggleLangSection(this) : null" role="button" tabindex="0" title="Click to collapse/expand section" style="cursor:pointer;">
-                <div class="custom-section-hero-icon" style="background:${dom.color}20;color:${dom.color};">${dom.icon}</div>
-                <div class="custom-section-hero-info">
-                  <div class="custom-section-hero-title">
-                    <span>${_esc(dom.title)}</span>
-                    <span class="lang-badge" style="background:${dom.color}18;color:${dom.color};">${_esc(dom.badge || 'Custom Track')}</span>
-                    ${dateBadgeHtml}
-                    <span class="lang-section-arrow" style="${isSecCollapsed ? 'transform:rotate(-90deg)' : ''};margin-left:8px;font-size:11px;display:inline-block;transition:transform 0.2s ease;">▼</span>
-                  </div>
-                  <div class="custom-section-hero-tagline">${_esc(dom.tagline || 'Personal Customizable Learning Domain & Materials')}</div>
+          <div class="lang-section-header" onclick="window.toggleLangSection ? window.toggleLangSection(this) : null" role="button" tabindex="0" title="Click to collapse/expand section">
+            <div class="lang-section-left">
+              <div class="lang-section-icon" style="background:${dom.color}18;color:${dom.color};">${dom.icon}</div>
+              <div class="lang-section-info">
+                <div class="lang-section-title-row">
+                  <h2 class="lang-section-title">${_esc(dom.title)}</h2>
+                  <span class="lang-badge" style="background:${dom.color}18;color:${dom.color};">${_esc(dom.badge || 'Custom Track')}</span>
+                  ${dateBadgeHtml}
+                  <span class="lang-count-badge">${allDomTopics.length} Topic${allDomTopics.length !== 1 ? 's' : ''} · ${doneTopicsCount} Solved</span>
+                  <span class="lang-section-arrow" style="${isSecCollapsed ? 'transform:rotate(-90deg)' : ''}">▼</span>
                 </div>
+                <p class="lang-section-tagline">${_esc(dom.tagline || 'Personal Customizable Learning Domain & Materials')}</p>
               </div>
-              
-              ${_state.canCustomize ? `
-                <div class="custom-section-toolbar">
-                  <button class="ws-btn-secondary" style="font-size:11.5px;padding:5px 10px;" onclick="window.StudyWorkspace.openAddCategoryModal('${dom.id}')" title="Add a module/category under this section">
-                    ➕ Add Module
-                  </button>
-                  <button class="ws-btn-primary" style="font-size:11.5px;padding:5px 10px;" onclick="window.StudyWorkspace.openAddTopicModal('${domCats[0]?domCats[0].id:''}')" title="Add new topic">
-                    🎯 Add Topic
-                  </button>
-                  <button class="ws-btn-primary" style="font-size:11.5px;padding:5px 10px;background:linear-gradient(135deg,#4f8ef7,#8b5cf6);" onclick="window.StudyWorkspace.openQuickUploadModal('${dom.id}')" title="Upload Material">
-                    📤 Upload File
-                  </button>
-                  <button class="ws-btn-secondary" style="font-size:11.5px;padding:5px 10px;" onclick="window.StudyWorkspace.openEditDomainModal('${dom.id}')" title="Edit Section Properties">
-                    ✏️ Edit
-                  </button>
-                  <button class="ws-btn-danger" style="font-size:11.5px;padding:5px 10px;" onclick="window.StudyWorkspace.confirmDeleteDomain('${dom.id}')" title="Delete entire section">
-                    🗑️ Delete Section
-                  </button>
-                </div>
-              ` : ''}
             </div>
+            
+            ${_state.canCustomize ? `
+              <div class="lang-section-actions" onclick="event.stopPropagation()">
+                <button class="ws-btn-secondary" style="font-size:11px;padding:4px 8px;" onclick="window.StudyWorkspace.openAddCategoryModal('${dom.id}')" title="Add a module under this section">➕ Module</button>
+                <button class="ws-btn-primary" style="font-size:11px;padding:4px 8px;" onclick="window.StudyWorkspace.openAddTopicModal('${domCats[0]?domCats[0].id:''}')" title="Add new topic">🎯 Topic</button>
+                <button class="ws-btn-primary" style="font-size:11px;padding:4px 8px;background:linear-gradient(135deg,#4f8ef7,#8b5cf6);" onclick="window.StudyWorkspace.openQuickUploadModal('${dom.id}')" title="Upload Material">📤 Upload</button>
+                <button class="ws-btn-secondary" style="font-size:11px;padding:4px 8px;" onclick="window.StudyWorkspace.openEditDomainModal('${dom.id}')" title="Edit Section Properties">✏️</button>
+                <button class="ws-btn-danger" style="font-size:11px;padding:4px 8px;" onclick="window.StudyWorkspace.confirmDeleteDomain('${dom.id}')" title="Delete entire section">🗑️</button>
+              </div>
+            ` : ''}
+          </div>
 
-            <div class="custom-section-metrics-row">
+          <div class="section-modules-wrapper" style="${isSecCollapsed ? 'display:none;' : ''}">
+            <div class="custom-section-metrics-row" style="margin-bottom:14px;">
               <div class="metric-mini-card">
                 <div class="metric-mini-top">
                   <span>🎯 TOPIC VELOCITY</span>
@@ -2698,20 +2689,18 @@
                 <div style="font-size:11px;color:var(--teal);margin-top:2px;">🔥 Continuous Learning</div>
               </div>
             </div>
-          </div>
 
-          <div class="section-filter-bar" style="${isSecCollapsed ? 'display:none;' : ''}">
-            <div class="section-filter-tabs">
-              <button class="sec-tab-btn ${filterState.tab==='all'?'active':''}" onclick="window.StudyWorkspace.handleSectionFilterTab('${dom.id}', 'all')">All (${allDomTopics.length})</button>
-              <button class="sec-tab-btn ${filterState.tab==='completed'?'active':''}" onclick="window.StudyWorkspace.handleSectionFilterTab('${dom.id}', 'completed')">✅ Completed (${doneTopicsCount})</button>
-              <button class="sec-tab-btn ${filterState.tab==='inprogress'?'active':''}" onclick="window.StudyWorkspace.handleSectionFilterTab('${dom.id}', 'inprogress')">⏳ In Progress</button>
-              <button class="sec-tab-btn ${filterState.tab==='pending'?'active':''}" onclick="window.StudyWorkspace.handleSectionFilterTab('${dom.id}', 'pending')">⚪ Pending</button>
-              <button class="sec-tab-btn ${filterState.tab==='has_materials'?'active':''}" onclick="window.StudyWorkspace.handleSectionFilterTab('${dom.id}', 'has_materials')">📂 Has Files (${allDomMats.length})</button>
+            <div class="section-filter-bar" style="margin-bottom:14px;">
+              <div class="section-filter-tabs">
+                <button class="sec-tab-btn ${filterState.tab==='all'?'active':''}" onclick="window.StudyWorkspace.handleSectionFilterTab('${dom.id}', 'all')">All (${allDomTopics.length})</button>
+                <button class="sec-tab-btn ${filterState.tab==='completed'?'active':''}" onclick="window.StudyWorkspace.handleSectionFilterTab('${dom.id}', 'completed')">✅ Completed (${doneTopicsCount})</button>
+                <button class="sec-tab-btn ${filterState.tab==='inprogress'?'active':''}" onclick="window.StudyWorkspace.handleSectionFilterTab('${dom.id}', 'inprogress')">⏳ In Progress</button>
+                <button class="sec-tab-btn ${filterState.tab==='pending'?'active':''}" onclick="window.StudyWorkspace.handleSectionFilterTab('${dom.id}', 'pending')">⚪ Pending</button>
+                <button class="sec-tab-btn ${filterState.tab==='has_materials'?'active':''}" onclick="window.StudyWorkspace.handleSectionFilterTab('${dom.id}', 'has_materials')">📂 Has Files (${allDomMats.length})</button>
+              </div>
+              <input type="text" class="section-search-input" placeholder="🔍 Search ${dom.title}..." value="${_esc(filterState.query)}" oninput="window.StudyWorkspace.handleSectionSearch('${dom.id}', this.value)"/>
             </div>
-            <input type="text" class="section-search-input" placeholder="🔍 Search ${dom.title}..." value="${_esc(filterState.query)}" oninput="window.StudyWorkspace.handleSectionSearch('${dom.id}', this.value)"/>
-          </div>
 
-          <div class="section-modules-wrapper" style="${isSecCollapsed ? 'display:none;' : ''}">
             ${modulesHtml}
           </div>
         </section>
