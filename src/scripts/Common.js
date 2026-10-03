@@ -2,34 +2,113 @@ let transactions = []; // All transactions will be stored here
 const fmtINR = (v) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Math.round(v) || 0);
 if (typeof window !== 'undefined') window.fmtINR = fmtINR;
 
-/* Micro-haptics helper for Android & modern mobile web */
-const LM_Haptic = {
-  light: () => {
+/* Micro-haptics helper for Android, Web & iOS WebKit */
+const LM_Haptic = (function (global) {
+  function _vibrateRaw(pattern) {
     try {
-      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10);
+      if (global.localStorage && global.localStorage.getItem('lm_haptic_enabled') === 'false') return false;
+      if (global.AndroidBridge && typeof global.AndroidBridge.vibrate === 'function') {
+        global.AndroidBridge.vibrate(Array.isArray(pattern) ? (pattern[0] || 15) : (Number(pattern) || 15));
+        return true;
+      }
+      if (global.AndroidInterface && typeof global.AndroidInterface.vibrate === 'function') {
+        global.AndroidInterface.vibrate(Array.isArray(pattern) ? (pattern[0] || 15) : (Number(pattern) || 15));
+        return true;
+      }
+      if (global.webkit && global.webkit.messageHandlers && global.webkit.messageHandlers.haptic && typeof global.webkit.messageHandlers.haptic.postMessage === 'function') {
+        global.webkit.messageHandlers.haptic.postMessage(pattern);
+        return true;
+      }
+      var nav = global.navigator || (typeof navigator !== 'undefined' ? navigator : null);
+      if (nav && typeof nav.vibrate === 'function') {
+        return nav.vibrate(pattern);
+      }
     } catch (e) {}
-  },
-  medium: () => {
-    try {
-      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(25);
-    } catch (e) {}
-  },
-  success: () => {
-    try {
-      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate([15, 50, 15]);
-    } catch (e) {}
-  },
-  warning: () => {
-    try {
-      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate([35, 45, 35]);
-    } catch (e) {}
-  },
-  error: () => {
-    try {
-      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate([50, 60, 50, 60]);
-    } catch (e) {}
+    return false;
   }
-};
+
+  const base = {
+    light: function () { return _vibrateRaw(10); },
+    medium: function () { return _vibrateRaw(25); },
+    heavy: function () { return _vibrateRaw(45); },
+    selection: function () { return _vibrateRaw(6); },
+    success: function () { return _vibrateRaw([15, 50, 15]); },
+    warning: function () { return _vibrateRaw([35, 45, 35]); },
+    error: function () { return _vibrateRaw([50, 60, 50, 60]); },
+    vibrate: function (p) { return _vibrateRaw(p || 15); },
+    impact: function (style) {
+      const s = String(style || 'light').toLowerCase();
+      if (s === 'medium' || s === 'med') return this.medium();
+      if (s === 'heavy' || s === 'strong') return this.heavy();
+      if (s === 'selection') return this.selection();
+      return this.light();
+    },
+    notification: function (type) {
+      const t = String(type || 'success').toLowerCase();
+      if (t === 'warning' || t === 'warn') return this.warning();
+      if (t === 'error' || t === 'err' || t === 'danger') return this.error();
+      return this.success();
+    },
+    impactLight: function () { return this.light(); },
+    impactlight: function () { return this.light(); },
+    impact_light: function () { return this.light(); },
+    impactMedium: function () { return this.medium(); },
+    impactmedium: function () { return this.medium(); },
+    impact_medium: function () { return this.medium(); },
+    impactHeavy: function () { return this.heavy(); },
+    impactheavy: function () { return this.heavy(); },
+    impact_heavy: function () { return this.heavy(); },
+    selectionChange: function () { return this.selection(); },
+    selectionchange: function () { return this.selection(); },
+    selection_change: function () { return this.selection(); },
+    click: function () { return this.light(); },
+    notificationSuccess: function () { return this.success(); },
+    notificationsuccess: function () { return this.success(); },
+    notification_success: function () { return this.success(); },
+    notificationWarning: function () { return this.warning(); },
+    notificationwarning: function () { return this.warning(); },
+    notification_warning: function () { return this.warning(); },
+    notificationError: function () { return this.error(); },
+    notificationerror: function () { return this.error(); },
+    notification_error: function () { return this.error(); },
+    isSupported: function () {
+      try {
+        return !!((global.AndroidBridge && typeof global.AndroidBridge.vibrate === 'function') ||
+          (global.AndroidInterface && typeof global.AndroidInterface.vibrate === 'function') ||
+          (global.webkit && global.webkit.messageHandlers && global.webkit.messageHandlers.haptic) ||
+          (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function'));
+      } catch (e) { return false; }
+    },
+    isEnabled: function () {
+      try { return global.localStorage ? global.localStorage.getItem('lm_haptic_enabled') !== 'false' : true; } catch (e) { return true; }
+    },
+    setEnabled: function (v) {
+      try { if (global.localStorage) global.localStorage.setItem('lm_haptic_enabled', v ? 'true' : 'false'); } catch (e) {}
+    },
+    toggle: function () {
+      const next = !this.isEnabled();
+      this.setEnabled(next);
+      if (next) this.light();
+      return next;
+    }
+  };
+
+  if (typeof Proxy !== 'undefined') {
+    return new Proxy(base, {
+      get: function (target, prop) {
+        if (prop in target) return target[prop];
+        if (typeof prop === 'symbol' || prop === 'then' || prop === 'toJSON' || prop === 'valueOf' || prop === 'toString') return undefined;
+        const lower = String(prop).toLowerCase().replace(/[^a-z0-9]/g, '');
+        for (const k in target) {
+          if (k.toLowerCase().replace(/[^a-z0-9]/g, '') === lower) return target[k];
+        }
+        return function () { try { return target.light(); } catch (e) { return false; } };
+      }
+    });
+  }
+  return base;
+})(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this));
+
 if (typeof window !== 'undefined') window.LM_Haptic = LM_Haptic;
 const nowISO = () => new Date().toISOString().slice(0,10);
 const uid = (prefix='id') => prefix + '_' + Math.random().toString(36).slice(2,9);

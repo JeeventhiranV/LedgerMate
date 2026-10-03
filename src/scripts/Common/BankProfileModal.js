@@ -9,6 +9,59 @@
 (function () {
   'use strict';
 
+  // ── Fallback Haptic Safety Net (in case BankProfileModal is loaded standalone) ──
+  if (typeof window !== 'undefined' && !window.LM_Haptic) {
+    (function (g) {
+      function _v(p) {
+        try {
+          if (g.localStorage && g.localStorage.getItem('lm_haptic_enabled') === 'false') return false;
+          if (g.AndroidBridge && typeof g.AndroidBridge.vibrate === 'function') {
+            g.AndroidBridge.vibrate(Array.isArray(p) ? (p[0] || 15) : (Number(p) || 15)); return true;
+          }
+          if (g.AndroidInterface && typeof g.AndroidInterface.vibrate === 'function') {
+            g.AndroidInterface.vibrate(Array.isArray(p) ? (p[0] || 15) : (Number(p) || 15)); return true;
+          }
+          var nav = g.navigator || (typeof navigator !== 'undefined' ? navigator : null);
+          if (nav && typeof nav.vibrate === 'function') return nav.vibrate(p);
+        } catch (e) {}
+        return false;
+      }
+      var b = {
+        light: function () { return _v(10); },
+        medium: function () { return _v(25); },
+        heavy: function () { return _v(45); },
+        selection: function () { return _v(6); },
+        success: function () { return _v([15, 50, 15]); },
+        warning: function () { return _v([35, 45, 35]); },
+        error: function () { return _v([50, 60, 50, 60]); },
+        vibrate: function (p) { return _v(p || 15); },
+        impact: function () { return _v(10); },
+        notification: function () { return _v([15, 50, 15]); },
+        impactLight: function () { return _v(10); },
+        impactlight: function () { return _v(10); },
+        impactMedium: function () { return _v(25); },
+        impactmedium: function () { return _v(25); },
+        impactHeavy: function () { return _v(45); },
+        impactheavy: function () { return _v(45); },
+        selectionChange: function () { return _v(6); },
+        selectionchange: function () { return _v(6); },
+        notificationSuccess: function () { return _v([15, 50, 15]); },
+        notificationsuccess: function () { return _v([15, 50, 15]); },
+        notificationWarning: function () { return _v([35, 45, 35]); },
+        notificationwarning: function () { return _v([35, 45, 35]); },
+        notificationError: function () { return _v([50, 60, 50, 60]); },
+        notificationerror: function () { return _v([50, 60, 50, 60]); }
+      };
+      g.LM_Haptic = (typeof Proxy !== 'undefined') ? new Proxy(b, {
+        get: function (t, p) {
+          if (p in t) return t[p];
+          if (typeof p === 'symbol' || p === 'then' || p === 'toJSON') return undefined;
+          return function () { try { return t.light(); } catch (e) { return false; } };
+        }
+      }) : b;
+    })(window);
+  }
+
   let _modalEl = null;
 
   function isStudyContext() {
@@ -1123,6 +1176,7 @@
   }
 
   async function showMfaManagementDialog() {
+    try { window.LM_Haptic?.impactLight?.(); } catch (e) {}
     var existingModal = document.getElementById('lmMfaSetupModal');
     if (existingModal) existingModal.remove();
 
@@ -1166,8 +1220,16 @@
 
       document.body.appendChild(overlay);
 
-      overlay.querySelector('#closeMfaModalBtn').onclick = function () { overlay.remove(); BankProfileModal.open(); };
-      overlay.querySelector('#doneMfaBtn').onclick = function () { overlay.remove(); BankProfileModal.open(); };
+      overlay.querySelector('#closeMfaModalBtn').onclick = function () {
+        try { window.LM_Haptic?.impactLight?.(); } catch (e) {}
+        overlay.remove();
+        BankProfileModal.open();
+      };
+      overlay.querySelector('#doneMfaBtn').onclick = function () {
+        try { window.LM_Haptic?.impactLight?.(); } catch (e) {}
+        overlay.remove();
+        BankProfileModal.open();
+      };
       overlay.querySelector('#disableMfaBtn').onclick = async function () {
         if (!confirm('Are you sure you want to disable 2FA? You will no longer be asked for an authenticator code when signing in.')) return;
         this.disabled = true;
@@ -1175,11 +1237,13 @@
         try {
           var unRes = await _supabase.auth.mfa.unenroll({ factorId: verifiedFactor.id });
           if (unRes.error) throw unRes.error;
+          try { window.LM_Haptic?.notificationSuccess?.(); } catch (e) {}
           overlay.remove();
           if (typeof window.showToast === 'function') window.showToast('2FA disabled successfully.', 'info');
           else if (window.LMToast) window.LMToast.show('2FA disabled successfully.', 'info');
           BankProfileModal.open();
         } catch (e) {
+          try { window.LM_Haptic?.notificationError?.(); } catch (err) {}
           alert('Could not disable 2FA: ' + e.message);
           this.disabled = false;
           this.textContent = 'Disable Two-Factor Authentication';
@@ -1208,7 +1272,11 @@
     `;
 
     document.body.appendChild(overlay);
-    overlay.querySelector('#closeMfaModalBtn').onclick = function () { overlay.remove(); BankProfileModal.open(); };
+    overlay.querySelector('#closeMfaModalBtn').onclick = function () {
+      try { window.LM_Haptic?.impactLight?.(); } catch (e) {}
+      overlay.remove();
+      BankProfileModal.open();
+    };
 
     try {
       // Clean up any unverified TOTP factors first
@@ -1262,8 +1330,11 @@
       if (copyBtn) {
         copyBtn.onclick = function () {
           navigator.clipboard.writeText(secretKey).then(function () {
+            try { window.LM_Haptic?.notificationSuccess?.(); } catch (e) {}
             copyBtn.textContent = '✅ Copied!';
             setTimeout(function () { copyBtn.textContent = '📋 Copy'; }, 2000);
+          }).catch(function () {
+            try { window.LM_Haptic?.impactLight?.(); } catch (e) {}
           });
         };
       }
@@ -1274,6 +1345,7 @@
       async function doActivate() {
         var code = (codeInp.value || '').trim();
         if (!code || code.length < 6) {
+          try { window.LM_Haptic?.notificationWarning?.(); } catch (e) {}
           alert('Please enter the 6-digit code shown in Microsoft Authenticator.');
           return;
         }
@@ -1289,11 +1361,13 @@
           if (chVerRes.error) throw chVerRes.error;
 
           // Success!
+          try { window.LM_Haptic?.notificationSuccess?.(); } catch (e) {}
           overlay.remove();
           if (typeof window.showToast === 'function') window.showToast('🛡️ Microsoft Authenticator 2FA Activated!', 'success');
           else if (window.LMToast) window.LMToast.show('🛡️ Microsoft Authenticator 2FA Activated!', 'success');
           BankProfileModal.open();
         } catch (e) {
+          try { window.LM_Haptic?.notificationError?.(); } catch (err) {}
           alert('Verification failed: ' + (e.message || 'Invalid code. Check Microsoft Authenticator clock time.'));
           actBtn.disabled = false;
           actBtn.textContent = 'Verify & Activate 2FA →';
@@ -1308,6 +1382,7 @@
       }
 
     } catch (err) {
+      try { window.LM_Haptic?.notificationError?.(); } catch (e) {}
       overlay.querySelector('#mfaEnrollBody').innerHTML = `
         <div style="padding:20px;color:#f43f5e;font-size:13px;">
           Failed to start 2FA setup: ${err.message || 'Check network connection'}

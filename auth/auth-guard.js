@@ -11,6 +11,110 @@
 
 (function () {
 
+  // ── Universal Resilient Haptic Engine (Pre-init for all app & study pages) ──
+  if (!window.LM_Haptic) {
+    (function (global) {
+      function _v(pattern) {
+        try {
+          if (global.localStorage && global.localStorage.getItem('lm_haptic_enabled') === 'false') return false;
+          if (global.AndroidBridge && typeof global.AndroidBridge.vibrate === 'function') {
+            global.AndroidBridge.vibrate(Array.isArray(pattern) ? (pattern[0] || 15) : (Number(pattern) || 15));
+            return true;
+          }
+          if (global.AndroidInterface && typeof global.AndroidInterface.vibrate === 'function') {
+            global.AndroidInterface.vibrate(Array.isArray(pattern) ? (pattern[0] || 15) : (Number(pattern) || 15));
+            return true;
+          }
+          if (global.webkit && global.webkit.messageHandlers && global.webkit.messageHandlers.haptic && typeof global.webkit.messageHandlers.haptic.postMessage === 'function') {
+            global.webkit.messageHandlers.haptic.postMessage(pattern);
+            return true;
+          }
+          var nav = global.navigator || (typeof navigator !== 'undefined' ? navigator : null);
+          if (nav && typeof nav.vibrate === 'function') {
+            return nav.vibrate(pattern);
+          }
+        } catch (e) {}
+        return false;
+      }
+      var base = {
+        light: function () { return _v(10); },
+        medium: function () { return _v(25); },
+        heavy: function () { return _v(45); },
+        selection: function () { return _v(6); },
+        success: function () { return _v([15, 50, 15]); },
+        warning: function () { return _v([35, 45, 35]); },
+        error: function () { return _v([50, 60, 50, 60]); },
+        vibrate: function (p) { return _v(p || 15); },
+        impact: function (s) {
+          s = String(s || 'light').toLowerCase();
+          if (s === 'medium' || s === 'med') return this.medium();
+          if (s === 'heavy' || s === 'strong') return this.heavy();
+          if (s === 'selection') return this.selection();
+          return this.light();
+        },
+        notification: function (t) {
+          t = String(t || 'success').toLowerCase();
+          if (t === 'warning' || t === 'warn') return this.warning();
+          if (t === 'error' || t === 'err' || t === 'danger') return this.error();
+          return this.success();
+        },
+        impactLight: function () { return this.light(); },
+        impactlight: function () { return this.light(); },
+        impact_light: function () { return this.light(); },
+        impactMedium: function () { return this.medium(); },
+        impactmedium: function () { return this.medium(); },
+        impact_medium: function () { return this.medium(); },
+        impactHeavy: function () { return this.heavy(); },
+        impactheavy: function () { return this.heavy(); },
+        impact_heavy: function () { return this.heavy(); },
+        selectionChange: function () { return this.selection(); },
+        selectionchange: function () { return this.selection(); },
+        selection_change: function () { return this.selection(); },
+        click: function () { return this.light(); },
+        notificationSuccess: function () { return this.success(); },
+        notificationsuccess: function () { return this.success(); },
+        notification_success: function () { return this.success(); },
+        notificationWarning: function () { return this.warning(); },
+        notificationwarning: function () { return this.warning(); },
+        notification_warning: function () { return this.warning(); },
+        notificationError: function () { return this.error(); },
+        notificationerror: function () { return this.error(); },
+        notification_error: function () { return this.error(); },
+        isSupported: function () {
+          try {
+            return !!((global.AndroidBridge && typeof global.AndroidBridge.vibrate === 'function') ||
+              (global.AndroidInterface && typeof global.AndroidInterface.vibrate === 'function') ||
+              (global.webkit && global.webkit.messageHandlers && global.webkit.messageHandlers.haptic) ||
+              (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function'));
+          } catch (e) { return false; }
+        },
+        isEnabled: function () {
+          try { return global.localStorage ? global.localStorage.getItem('lm_haptic_enabled') !== 'false' : true; } catch (e) { return true; }
+        },
+        setEnabled: function (val) {
+          try { if (global.localStorage) global.localStorage.setItem('lm_haptic_enabled', val ? 'true' : 'false'); } catch (e) {}
+        },
+        toggle: function () {
+          var n = !this.isEnabled();
+          this.setEnabled(n);
+          if (n) this.light();
+          return n;
+        }
+      };
+      global.LM_Haptic = (typeof Proxy !== 'undefined') ? new Proxy(base, {
+        get: function (target, prop) {
+          if (prop in target) return target[prop];
+          if (typeof prop === 'symbol' || prop === 'then' || prop === 'toJSON' || prop === 'valueOf' || prop === 'toString') return undefined;
+          var lower = String(prop).toLowerCase().replace(/[^a-z0-9]/g, '');
+          for (var k in target) {
+            if (k.toLowerCase().replace(/[^a-z0-9]/g, '') === lower) return target[k];
+          }
+          return function () { try { return target.light(); } catch (e) { return false; } };
+        }
+      }) : base;
+    })(window);
+  }
+
   // ── Centralized Unified Theme Management ────────────────────────────────────
   var THEME_KEYS = ['ledgerMate_theme', 'prep_theme', 'sr_theme', 'dsa_theme', 'ql_theme', 'react_prep_theme', 'theme'];
   

@@ -67,6 +67,8 @@
   <!-- Cloud auth + sync – MUST load before AuthManager -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="./auth/supabase-config.js"></script>
+  <!-- Haptics Engine FIRST – universal tactile feedback -->
+  <script src="./src/scripts/Common/HapticFeedback.js"></script>
   <!-- AppBus FIRST – event bus used by all modules -->
   <script src="./src/scripts/Core/AppBus.js"></script>
   <!-- Auth layer – MUST load before Common.js -->
