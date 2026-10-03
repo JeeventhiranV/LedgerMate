@@ -109,142 +109,110 @@
   }
 
   function getUserData() {
+    let bestUser = null;
+
     // 1. In-memory study user
     if (window._studyUser && (window._studyUser.email || window._studyUser.displayName)) {
-      const em = window._studyUser.email || window._studyUser.username || '';
-      const rawName = window._studyUser.displayName || (em ? em.split('@')[0] : 'User');
-      const disp = rawName ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : 'User';
-      return {
-        displayName: disp,
-        username: em || disp,
-        email: em || 'user@ledgermate.local',
-        role: window._studyUser.role || (window._studyProfile ? window._studyProfile.role : 'user'),
-        userId: window._studyUser.userId || window._studyUser.id || 'default'
-      };
+      bestUser = Object.assign({}, window._studyUser);
     }
-
     // 2. LocalStorage study user metadata
-    try {
-      const studyMeta = localStorage.getItem('study_user_meta');
-      if (studyMeta) {
-        const parsedMeta = JSON.parse(studyMeta);
-        if (parsedMeta && (parsedMeta.email || parsedMeta.displayName || parsedMeta.name)) {
-          const em = parsedMeta.email || parsedMeta.username || '';
-          const rawName = parsedMeta.displayName || parsedMeta.name || (em ? em.split('@')[0] : 'User');
-          const disp = rawName ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : 'User';
-          return {
-            displayName: disp,
-            username: em || disp,
-            email: em || 'user@ledgermate.local',
-            role: parsedMeta.role || (window._studyProfile ? window._studyProfile.role : 'user'),
-            userId: parsedMeta.userId || parsedMeta.id || 'default'
-          };
+    if (!bestUser) {
+      try {
+        const studyMeta = localStorage.getItem('study_user_meta');
+        if (studyMeta) {
+          const parsed = JSON.parse(studyMeta);
+          if (parsed && (parsed.email || parsed.displayName || parsed.name)) {
+            bestUser = parsed;
+          }
         }
-      }
-    } catch(e) {}
-
+      } catch(e) {}
+    }
     // 3. Finance LM_Auth
-    if (window.LM_Auth && typeof window.LM_Auth.getCurrentUser === 'function') {
+    if (!bestUser && window.LM_Auth && typeof window.LM_Auth.getCurrentUser === 'function') {
       const u = window.LM_Auth.getCurrentUser();
       if (u && (u.email || u.username || u.displayName)) {
-        const em = u.email || u.username || '';
-        const rawName = u.displayName || (em ? em.split('@')[0] : 'User');
-        const disp = rawName ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : 'User';
-        return {
-          displayName: disp,
-          username: em || disp,
-          email: em || 'user@ledgermate.local',
-          role: u.role || 'user',
-          userId: u.userId || u.id || 'default'
-        };
+        bestUser = Object.assign({}, u);
       }
     }
-
     // 4. Finance lm_session
-    try {
-      const sess = localStorage.getItem('lm_session');
-      if (sess) {
-        const parsed = JSON.parse(sess);
-        const userObj = parsed.user || parsed;
-        const meta = userObj.user_metadata || {};
-        const em = userObj.email || userObj.username || '';
-        const rawName = meta.full_name || meta.name || userObj.displayName || (em ? em.split('@')[0] : '');
-        if (em || rawName) {
-          const formattedName = rawName ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : (em ? em.split('@')[0] : 'User');
-          return {
-            displayName: formattedName,
-            username: em || formattedName,
-            email: em || 'user@ledgermate.local',
-            role: parsed.role || (window._studyProfile ? window._studyProfile.role : 'user'),
-            userId: userObj.id || parsed.userId || 'default'
-          };
+    if (!bestUser) {
+      try {
+        const sess = localStorage.getItem('lm_session');
+        if (sess) {
+          const parsed = JSON.parse(sess);
+          const userObj = parsed.user || parsed;
+          if (userObj && (userObj.email || userObj.username || userObj.displayName || parsed.role)) {
+            bestUser = Object.assign({}, userObj, { role: parsed.role || userObj.role });
+          }
         }
-      }
-    } catch (e) {}
-
-    // 5. Scan all Supabase tokens in localStorage (sb-*-auth-token or supabase.auth.token or any key containing auth-token)
-    try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && ((k.indexOf('sb-') === 0 && k.indexOf('-auth-token') !== -1) || k.indexOf('auth-token') !== -1 || k === 'supabase.auth.token')) {
-          const item = localStorage.getItem(k);
-          if (item) {
-            const parsed = JSON.parse(item);
-            const userObj = parsed.user || (parsed.currentSession && parsed.currentSession.user) || (parsed.session && parsed.session.user);
-            if (userObj && (userObj.email || userObj.id)) {
-              const meta = userObj.user_metadata || {};
-              const em = userObj.email || '';
-              const rawName = meta.full_name || meta.name || userObj.name || (em ? em.split('@')[0] : 'User');
-              const formattedName = rawName ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : 'User';
-              return {
-                displayName: formattedName,
-                username: em || formattedName,
-                email: em || 'user@ledgermate.local',
-                role: (window._studyProfile && window._studyProfile.role) || 'user',
-                userId: userObj.id || 'default'
-              };
+      } catch (e) {}
+    }
+    // 5. Scan all Supabase tokens in localStorage
+    if (!bestUser) {
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && ((k.indexOf('sb-') === 0 && k.indexOf('-auth-token') !== -1) || k.indexOf('auth-token') !== -1 || k === 'supabase.auth.token')) {
+            const item = localStorage.getItem(k);
+            if (item) {
+              const parsed = JSON.parse(item);
+              const userObj = parsed.user || (parsed.currentSession && parsed.currentSession.user) || (parsed.session && parsed.session.user);
+              if (userObj && (userObj.email || userObj.id)) {
+                bestUser = userObj;
+                break;
+              }
             }
           }
         }
-      }
-    } catch (e) {}
-
-    // 6. DOM Extraction Fallback (e.g. from hero greeting or sidebar profile)
-    try {
-      const heroEl = document.getElementById('heroTitle');
-      if (heroEl && heroEl.textContent && heroEl.textContent.indexOf(',') !== -1) {
-        const part = heroEl.textContent.split(',')[1].replace(/[!.]/g, '').trim();
-        if (part && part.toLowerCase() !== 'user' && part.toLowerCase() !== 'study resources hub') {
-          return {
-            displayName: part,
-            username: part,
-            email: part.toLowerCase() + '@gmail.com',
-            role: (window._studyProfile && window._studyProfile.role) || 'user',
-            userId: 'default'
-          };
+      } catch (e) {}
+    }
+    // 6. DOM Extraction Fallback
+    if (!bestUser) {
+      try {
+        const heroEl = document.getElementById('heroTitle');
+        if (heroEl && heroEl.textContent && heroEl.textContent.indexOf(',') !== -1) {
+          const part = heroEl.textContent.split(',')[1].replace(/[!.]/g, '').trim();
+          if (part && part.toLowerCase() !== 'user' && part.toLowerCase() !== 'study resources hub') {
+            bestUser = { displayName: part, username: part, email: part.toLowerCase() + '@gmail.com' };
+          }
         }
-      }
-      const agfName = document.querySelector('.agf-name');
-      const agfEmail = document.querySelector('.agf-email');
-      if (agfName && agfName.textContent && agfName.textContent.trim() !== 'User') {
-        const n = agfName.textContent.trim();
-        const em = agfEmail ? agfEmail.textContent.trim() : '';
-        return {
-          displayName: n,
-          username: em || n,
-          email: em || 'user@ledgermate.local',
-          role: (window._studyProfile && window._studyProfile.role) || 'user',
-          userId: 'default'
-        };
-      }
-    } catch (e) {}
+        if (!bestUser) {
+          const agfName = document.querySelector('.agf-name');
+          const agfEmail = document.querySelector('.agf-email');
+          if (agfName && agfName.textContent && agfName.textContent.trim() !== 'User') {
+            bestUser = { displayName: agfName.textContent.trim(), username: agfName.textContent.trim(), email: agfEmail ? agfEmail.textContent.trim() : '' };
+          }
+        }
+      } catch (e) {}
+    }
+
+    const em = (bestUser && (bestUser.email || bestUser.username)) || '';
+    const meta = (bestUser && (bestUser.user_metadata || bestUser.meta)) || {};
+    const rawName = (bestUser && (bestUser.displayName || bestUser.name || meta.full_name || meta.name)) || (em ? em.split('@')[0] : 'User');
+    const disp = rawName ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : 'User';
+
+    // Robust Role Detection: prioritize admin if ANY source has admin
+    let detectedRole = 'user';
+    if (bestUser && bestUser.role === 'admin') detectedRole = 'admin';
+    if (window._studyProfile && window._studyProfile.role === 'admin') detectedRole = 'admin';
+    if (window._studyUser && window._studyUser.role === 'admin') detectedRole = 'admin';
+    if (meta.role === 'admin') detectedRole = 'admin';
+    if (window.LM_Auth && typeof window.LM_Auth.isAdmin === 'function' && window.LM_Auth.isAdmin()) detectedRole = 'admin';
+    if (detectedRole !== 'admin') {
+      try {
+        const ls = JSON.parse(localStorage.getItem('lm_session') || '{}');
+        if (ls.role === 'admin' || ls.user?.role === 'admin') detectedRole = 'admin';
+        const sm = JSON.parse(localStorage.getItem('study_user_meta') || '{}');
+        if (sm.role === 'admin') detectedRole = 'admin';
+      } catch(e) {}
+    }
 
     return {
-      displayName: 'User',
-      username: 'user@ledgermate.local',
-      email: 'user@ledgermate.local',
-      role: 'user',
-      userId: 'default'
+      displayName: disp,
+      username: em || disp,
+      email: em || 'user@ledgermate.local',
+      role: detectedRole,
+      userId: (bestUser && (bestUser.userId || bestUser.id)) || 'default'
     };
   }
 
@@ -422,9 +390,14 @@
                 <span id="bpmThemeSwitchText">Dark</span>
               </div>
             </button>
+          </div>
 
-            <button class="bpm-action-row" id="bpmAdminBtn" style="display:none;" onclick="window.LM_ProfileModal.openAdmin()">
-              <span class="bpm-row-icon">⚙️</span>
+          <!-- System & Administration Group (shown for admin users) -->
+          <div class="bpm-section-group" id="bpmAdminSectionGroup" style="display:none;">
+            <div class="bpm-group-title">SYSTEM &amp; ADMINISTRATION</div>
+
+            <button class="bpm-action-row" id="bpmAdminBtn" onclick="window.LM_ProfileModal.openAdmin()">
+              <span class="bpm-row-icon">👑</span>
               <div class="bpm-row-text">
                 <div class="bpm-row-title">Admin Command Center</div>
                 <div class="bpm-row-desc">User approvals, access control &amp; system settings</div>
@@ -704,11 +677,17 @@
     const finVerDesc = document.getElementById('bpmFinanceVersionDesc');
     if (finVerDesc) finVerDesc.textContent = verText;
 
-    // Admin button visibility & pending badges
+    // Admin button & section visibility
+    const isAdmin = (user.role === 'admin') ||
+                    (window._studyProfile && window._studyProfile.role === 'admin') ||
+                    (window._studyUser && window._studyUser.role === 'admin') ||
+                    (window.LM_Auth && typeof window.LM_Auth.isAdmin === 'function' && window.LM_Auth.isAdmin());
+    const adminSection = document.getElementById('bpmAdminSectionGroup');
     const adminBtn = document.getElementById('bpmAdminBtn');
+    if (adminSection) adminSection.style.display = isAdmin ? 'block' : 'none';
     if (adminBtn) {
-      adminBtn.style.display = user.role === 'admin' ? 'flex' : 'none';
-      if (user.role === 'admin' && window.LM_Admin?.syncPendingCounts) {
+      adminBtn.style.display = isAdmin ? 'flex' : 'none';
+      if (isAdmin && window.LM_Admin?.syncPendingCounts) {
         window.LM_Admin.syncPendingCounts();
       }
     }
@@ -746,7 +725,7 @@
 
       // Async live refresh from Supabase if available
       if (typeof _supabase !== 'undefined' && _supabase && _supabase.auth) {
-        _supabase.auth.getSession().then(function (res) {
+        _supabase.auth.getSession().then(async function (res) {
           var s = res && res.data && res.data.session;
           if (s && s.user) {
             var u = s.user;
@@ -754,14 +733,45 @@
             var m = u.user_metadata || {};
             var n = m.full_name || m.name || (em ? em.split('@')[0] : 'User');
             var disp = n ? (n.charAt(0).toUpperCase() + n.slice(1)) : 'User';
+            
+            var userRole = (window._studyProfile && window._studyProfile.role) || (window._studyUser && window._studyUser.role) || m.role || 'user';
+            
+            try {
+              var sess = JSON.parse(localStorage.getItem('lm_session') || '{}');
+              if (sess.role === 'admin' || (sess.user && sess.user.role === 'admin')) userRole = 'admin';
+              var sm = JSON.parse(localStorage.getItem('study_user_meta') || '{}');
+              if (sm.role === 'admin') userRole = 'admin';
+            } catch(e) {}
+
+            if (typeof _supabase.from === 'function') {
+              try {
+                var profRes = await _supabase.from('user_profiles').select('role,active').eq('id', u.id).maybeSingle();
+                if (profRes && profRes.data && profRes.data.role) {
+                  userRole = profRes.data.role;
+                }
+              } catch(e) {}
+            }
+
+            if (window._studyProfile) {
+              window._studyProfile.role = userRole;
+            } else {
+              window._studyProfile = { role: userRole };
+            }
+
             window._studyUser = {
               displayName: disp,
               username: em,
               email: em,
-              role: (window._studyProfile && window._studyProfile.role) || 'user',
+              role: userRole,
               userId: u.id
             };
             try { localStorage.setItem('study_user_meta', JSON.stringify(window._studyUser)); } catch(e){}
+            try {
+              var currLm = JSON.parse(localStorage.getItem('lm_session') || '{}');
+              currLm.role = userRole;
+              localStorage.setItem('lm_session', JSON.stringify(currLm));
+            } catch(e) {}
+
             renderProfileDetails();
           }
         }).catch(function(){});
