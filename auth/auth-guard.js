@@ -453,17 +453,23 @@
     var user    = session.user;
     var email   = user.email || '';
     var meta    = user.user_metadata || {};
-    var rawName = meta.full_name || meta.name || (email ? email.split('@')[0] : 'User');
+    var cached  = null;
+    try { cached = JSON.parse(localStorage.getItem('lm_session')); } catch(e) {}
+    var rawName = meta.full_name || meta.name || (cached && cached.displayName) || (email ? email.split('@')[0] : 'User');
     var name    = rawName ? (rawName.charAt(0).toUpperCase() + rawName.slice(1)) : 'User';
     var initial = name.charAt(0).toUpperCase();
     var hubUrl  = _getHubUrl();
+    var isHubPage = window.location.pathname.endsWith('/study/') ||
+                    window.location.pathname.endsWith('/study/index.html') ||
+                    window.location.pathname.endsWith('/study') ||
+                    !!document.getElementById('hubDrawer');
 
     // Cache user metadata globally for BankProfileModal
     window._studyUser = {
       displayName: name,
       username: email,
       email: email,
-      role: (window._studyProfile && window._studyProfile.role) || 'user',
+      role: (window._studyProfile && window._studyProfile.role) || (cached && cached.role) || 'user',
       userId: user.id
     };
     try {
@@ -474,15 +480,25 @@
     var studyAv = document.getElementById('studyUserAvatar');
     if (studyAv) studyAv.textContent = initial;
 
+    // ── Purge any existing auth footers to prevent duplicate items ──────────
+    var oldFooters = document.querySelectorAll('.agf');
+    for (var i = 0; i < oldFooters.length; i++) {
+      oldFooters[i].remove();
+    }
+
     // ── Build auth footer element ────────────────────────────────────────────
     var mainUrl = _getMainAppUrl();
+
+    var homeLinkHtml = isHubPage ? '' : (
+      '<a href="' + hubUrl + '" class="agf-home">' +
+        '<span class="agf-home-icon">🏠</span>Study Hub' +
+      '</a>'
+    );
 
     var footer = document.createElement('div');
     footer.className = 'agf';
     footer.innerHTML =
-      '<a href="' + hubUrl + '" class="agf-home">' +
-        '<span class="agf-home-icon">🏠</span>Study Hub' +
-      '</a>' +
+      homeLinkHtml +
       '<button class="agf-mainapp" id="agfMainAppBtn">' +
         '<span class="agf-home-icon">💰</span>LedgerMate' +
       '</button>' +
@@ -504,16 +520,12 @@
     // ── Decide where to put it ───────────────────────────────────────────────
     var existingSidebar = document.getElementById('sidebar');
     var hubDrawer = document.getElementById('hubDrawer');
-    var isHubPage = window.location.pathname.endsWith('/study/') ||
-                    window.location.pathname.endsWith('/study/index.html') ||
-                    window.location.pathname.endsWith('/study') ||
-                    !!hubDrawer;
 
     if (existingSidebar) {
       // Pages with existing sidebar (Java / DSA / React / Topic) — append footer
       existingSidebar.appendChild(footer);
     } else if (isHubPage) {
-      // Study Hub page: already has #hubDrawer and #hubMenuBtn — do NOT build duplicate authNav!
+      // Study Hub page: already has #hubDrawer and #hubMenuBtn — append single footer inside hub-drawer-body
       var hubDrawerBody = document.querySelector('#hubDrawer .hub-drawer-body');
       if (hubDrawerBody) {
         hubDrawerBody.appendChild(footer);
@@ -551,61 +563,38 @@
       });
     }
 
-    // ── Module Switcher: LedgerMate Finance OS (Option A) ───────────────────
-    var topbarContainer = document.querySelector('.topbar-utils, .topbar-actions, .topbar-right');
-    if (topbarContainer && !document.querySelector('.topbar-switch-btn')) {
-      var switchBtn = document.createElement('a');
-      switchBtn.className = 'topbar-switch-btn finance-switch';
-      switchBtn.href = mainUrl;
-      switchBtn.title = 'Switch to LedgerMate Finance';
-      switchBtn.setAttribute('aria-label', 'Switch to LedgerMate Finance');
-      switchBtn.innerHTML = '<span class="switch-icon">💰</span><span class="switch-text">LedgerMate</span>';
-      switchBtn.addEventListener('click', function () {
-        try { localStorage.setItem('lm_last_page', 'main'); } catch (e) {}
-      });
-      topbarContainer.insertBefore(switchBtn, topbarContainer.firstChild);
-    }
-
-    // ── Wire existing or injected Topbar User Chip across Study Module ───────
+    // ── Wire existing Topbar User Chip across Study Hub ──────────────────────
     var existingChip = document.getElementById('studyUserChip');
     if (existingChip) {
       existingChip.onclick = function () {
         _openProfileModal();
       };
-    } else {
-      var topbarUtils = document.querySelector('.topbar-utils, .topbar-actions, .topbar-right');
-      if (topbarUtils) {
-        var chip = document.createElement('div');
-        chip.className = 'topbar-user-chip';
-        chip.id = 'studyUserChip';
-        chip.title = 'Account Vault & Profile Settings';
-        chip.setAttribute('aria-label', 'Open profile modal');
-        chip.innerHTML = '<div class="topbar-user-avatar">' + initial + '</div>';
-        chip.addEventListener('click', function () {
-          _openProfileModal();
-        });
-        topbarUtils.appendChild(chip);
-      }
     }
 
     // ── Wire LedgerMate nav ──────────────────────────────────────────────────
-    document.getElementById('agfMainAppBtn').addEventListener('click', function () {
-      try { localStorage.setItem('lm_last_page', 'main'); } catch (e) {}
-      window.location.href = mainUrl;
-    });
+    var mainAppBtn = footer.querySelector('#agfMainAppBtn');
+    if (mainAppBtn) {
+      mainAppBtn.addEventListener('click', function () {
+        try { localStorage.setItem('lm_last_page', 'main'); } catch (e) {}
+        window.location.href = mainUrl;
+      });
+    }
 
     // ── Wire sign out ────────────────────────────────────────────────────────
-    document.getElementById('authLogoutBtn').addEventListener('click', function () {
-      localStorage.removeItem('lm_session');
-      _supabase.auth.signOut().then(function () {
-        _redirect(_getLoginUrl());
-      }).catch(function() {
-        _redirect(_getLoginUrl());
+    var logoutBtn = footer.querySelector('#authLogoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function () {
+        localStorage.removeItem('lm_session');
+        _supabase.auth.signOut().then(function () {
+          _redirect(_getLoginUrl());
+        }).catch(function() {
+          _redirect(_getLoginUrl());
+        });
       });
-    });
+    }
 
     // ── Wire admin panel fallback (if present) ──────────────────────────────
-    var agfAdminBtn = document.getElementById('agfAdminBtn');
+    var agfAdminBtn = footer.querySelector('#agfAdminBtn');
     if (agfAdminBtn) {
       agfAdminBtn.addEventListener('click', function () {
         var nav = document.getElementById('authNav');
@@ -621,8 +610,8 @@
     }
 
     // ── Wire theme toggle using LM_Theme ────────────────────────────────────
-    var agfThemeBtn = document.getElementById('agfThemeBtn');
-    var agfThemeRow = document.getElementById('agfThemeRow');
+    var agfThemeBtn = footer.querySelector('#agfThemeBtn');
+    var agfThemeRow = footer.querySelector('#agfThemeRow');
 
     if (agfThemeBtn) {
       agfThemeBtn.textContent = (window.LM_Theme ? window.LM_Theme.get() : _getSavedTheme()) === 'dark' ? '🌙' : '☀️';
@@ -630,6 +619,14 @@
         e.stopPropagation();
         if (window.LM_Theme) {
           window.LM_Theme.toggle();
+        } else {
+          var nextTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', nextTheme);
+          var keys = ['ledgerMate_theme', 'prep_theme', 'sr_theme', 'dsa_theme', 'ql_theme', 'react_prep_theme', 'theme'];
+          keys.forEach(function (k) { try { localStorage.setItem(k, nextTheme); } catch (err) {} });
+        }
+        if (agfThemeBtn) {
+          agfThemeBtn.textContent = (window.LM_Theme ? window.LM_Theme.get() : _getSavedTheme()) === 'dark' ? '🌙' : '☀️';
         }
       });
     }
@@ -638,6 +635,14 @@
         if (e.target !== agfThemeBtn) {
           if (window.LM_Theme) {
             window.LM_Theme.toggle();
+          } else {
+            var nextTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', nextTheme);
+            var keys = ['ledgerMate_theme', 'prep_theme', 'sr_theme', 'dsa_theme', 'ql_theme', 'react_prep_theme', 'theme'];
+            keys.forEach(function (k) { try { localStorage.setItem(k, nextTheme); } catch (err) {} });
+          }
+          if (agfThemeBtn) {
+            agfThemeBtn.textContent = (window.LM_Theme ? window.LM_Theme.get() : _getSavedTheme()) === 'dark' ? '🌙' : '☀️';
           }
         }
       });
@@ -709,6 +714,12 @@
       { href: prepPrefix + 'Daily-Learning-Tracker.html', icon: '📊', label: 'Daily Tracker'        },
       { href: prepPrefix + 'Quick-Links-Manager.html',   icon: '🔗', label: 'Quick Links'           },
     ];
+
+    // ── Purge old nav/overlay if present ──────────────────────────────────────
+    var oldNav = document.getElementById('authNav');
+    if (oldNav) oldNav.remove();
+    var oldOv = document.getElementById('authNavOverlay');
+    if (oldOv) oldOv.remove();
 
     // ── Overlay ──────────────────────────────────────────────────────────────
     var overlay = document.createElement('div');
