@@ -435,10 +435,16 @@ if ('serviceWorker' in navigator) {
 <!-- WORKSPACE CONTROLS & 4-STATE STATUS BAR -->
 <div class="workspace-controls-bar" id="workspaceControlsBar">
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-    <button class="ws-btn-primary" onclick="window.StudyWorkspace?.importTemplate('tpl_python')" title="Import Roadmaps">
-      <span>📦</span> Import Roadmap Template
+    <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openAddDomainModal()" title="Add Custom Programming Language or Section">
+      <span>➕</span> Add Language / Section
     </button>
-    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openWidgetCustomizer()" title="Customize Dashboard">
+    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openTemplateModal()" title="Import Ready-to-Learn Roadmaps">
+      <span>📦</span> Import Roadmap
+    </button>
+    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openGoalModal()" title="Create Target Date &amp; Milestones">
+      <span>🎯</span> Set Goal
+    </button>
+    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openWidgetCustomizer()" title="Customize Dashboard &amp; Widgets">
       <span>⚙️</span> Customize Dashboard
     </button>
   </div>

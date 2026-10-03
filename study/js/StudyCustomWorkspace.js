@@ -3,8 +3,9 @@
    ─────────────────────────────────────────────────────────────────────────
    Features:
    - Custom Domains, Categories, Topics, Subtopics & Materials CRUD
+   - Interactive Modals: Add Language/Domain, Add Module, Add Topic, Add Materials
    - 4-State Status Engine (Pending / In Progress / Completed / On Hold)
-   - Multi-Format Material Viewers (PDF, Markdown Notes, Code Runner, Links)
+   - Multi-Format Material Viewers (PDF Embed, Markdown Notes, Code Runner, Links)
    - Smart "Resume Learning" Engine & Breadcrumbs
    - Pomodoro Focus Timer & Study Time Session Logging
    - Learning Goals & Target Date Milestones Planner
@@ -308,7 +309,7 @@
     var secs = _pomoTimer.timeLeft % 60;
     var timeStr = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
 
-    var topicsOptions = '<option value="">-- General Focus Session --</option>';
+    var topicsOptions = '<option value="">-- General Focus Sprint --</option>';
     _state.topics.forEach(function (t) {
       var sel = (_pomoTimer.activeTopicId === t.id) ? 'selected' : '';
       topicsOptions += `<option value="${t.id}" ${sel}>${_esc(t.title)} (${t.status})</option>`;
@@ -493,7 +494,395 @@
     renderGoalsWidget();
   }
 
-  // ── 7. WIDGET CUSTOMIZER & PREFERENCES ─────────────────────────────────────
+  // ── 7. ADD DOMAIN / SECTION MODAL ──────────────────────────────────────────
+  function openAddDomainModal() {
+    var existing = document.getElementById('addDomainModal');
+    if (existing) existing.remove();
+
+    var modal = document.createElement('div');
+    modal.id = 'addDomainModal';
+    modal.className = 'ws-modal-overlay';
+
+    modal.innerHTML = `
+      <div class="ws-modal-dialog">
+        <div class="ws-modal-header">
+          <div class="ws-modal-title">
+            <span>✨</span> Create New Learning Language / Section
+          </div>
+          <button class="ws-modal-close" onclick="document.getElementById('addDomainModal')?.remove()">✕</button>
+        </div>
+        <div class="ws-modal-body">
+          <div class="ws-form-group">
+            <label class="ws-form-label">Language / Domain Title</label>
+            <input type="text" id="domTitleInput" class="ws-form-input" placeholder="e.g. Python Ecosystem, Golang Microservices, AWS Solutions Architect..." required autofocus/>
+          </div>
+
+          <div class="ws-form-row">
+            <div class="ws-form-group">
+              <label class="ws-form-label">Icon / Emoji</label>
+              <input type="text" id="domIconInput" class="ws-form-input" value="📘" maxlength="4"/>
+            </div>
+            <div class="ws-form-group">
+              <label class="ws-form-label">Accent Theme Color</label>
+              <select id="domColorInput" class="ws-form-select">
+                <option value="#38bdf8" selected>🔵 Blue (#38bdf8)</option>
+                <option value="#f59e0b">🟡 Amber Gold (#f59e0b)</option>
+                <option value="#06d6a0">🟢 Emerald Teal (#06d6a0)</option>
+                <option value="#8b5cf6">🟣 Purple Violet (#8b5cf6)</option>
+                <option value="#ec4899">🌸 Rose Pink (#ec4899)</option>
+                <option value="#22d3ee">🌊 Cyan (#22d3ee)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="ws-form-row">
+            <div class="ws-form-group">
+              <label class="ws-form-label">Track Badge</label>
+              <input type="text" id="domBadgeInput" class="ws-form-input" placeholder="e.g. Backend Track, Cloud Cert, Senior Level" value="Custom Track"/>
+            </div>
+            <div class="ws-form-group">
+              <label class="ws-form-label">Target Completion Date (Optional)</label>
+              <input type="date" id="domDateInput" class="ws-form-input"/>
+            </div>
+          </div>
+
+          <div class="ws-form-group">
+            <label class="ws-form-label">Tagline &amp; Description</label>
+            <textarea id="domTaglineInput" class="ws-form-textarea" rows="2" placeholder="Brief summary of skills, frameworks, and topics covered..."></textarea>
+          </div>
+        </div>
+        <div class="ws-modal-footer">
+          <button class="ws-btn-primary" onclick="window.StudyWorkspace.saveNewDomain()">
+            💾 Create Language Section
+          </button>
+          <button class="ws-btn-secondary" onclick="document.getElementById('addDomainModal')?.remove()">Cancel</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  }
+
+  function saveNewDomain() {
+    var title = document.getElementById('domTitleInput')?.value.trim();
+    if (!title) {
+      if (window.LMToast) window.LMToast.show('⚠️ Please enter a language or section title');
+      return;
+    }
+
+    var icon = document.getElementById('domIconInput')?.value.trim() || '📘';
+    var color = document.getElementById('domColorInput')?.value || '#38bdf8';
+    var badge = document.getElementById('domBadgeInput')?.value.trim() || 'Custom Track';
+    var date = document.getElementById('domDateInput')?.value || null;
+    var tagline = document.getElementById('domTaglineInput')?.value.trim() || '';
+
+    var domainId = 'dom_' + Date.now();
+    var newDomain = {
+      id: domainId,
+      title: title,
+      icon: icon,
+      color: color,
+      badge: badge,
+      tagline: tagline,
+      target_date: date,
+      status: 'inprogress',
+      order_index: _state.domains.length
+    };
+
+    _state.domains.push(newDomain);
+
+    // Auto create default module
+    var catId = 'cat_' + Date.now();
+    _state.categories.push({
+      id: catId,
+      domain_id: domainId,
+      title: 'Core Fundamentals & Topics',
+      order_index: 0
+    });
+
+    _state.topics.push({
+      id: 'top_' + Date.now(),
+      category_id: catId,
+      title: title + ' - Fundamentals & Core Concepts',
+      status: 'pending',
+      difficulty: 'Beginner',
+      priority: 'High',
+      order_index: 0
+    });
+
+    _saveLocal();
+
+    _getUid().then(function (uid) {
+      if (uid) {
+        _supabase.from('study_custom_domains').insert(Object.assign({ user_id: uid }, newDomain)).then(function () {});
+      }
+    });
+
+    document.getElementById('addDomainModal')?.remove();
+    if (window.LMToast) window.LMToast.show('✅ New section created: ' + title);
+    renderAllWidgets();
+  }
+
+  // ── 8. ADD CATEGORY & TOPIC MODALS ─────────────────────────────────────────
+  function openAddTopicModal(categoryId) {
+    var existing = document.getElementById('addTopicModal');
+    if (existing) existing.remove();
+
+    var cat = _state.categories.find(function (c) { return c.id === categoryId; });
+
+    var modal = document.createElement('div');
+    modal.id = 'addTopicModal';
+    modal.className = 'ws-modal-overlay';
+
+    modal.innerHTML = `
+      <div class="ws-modal-dialog">
+        <div class="ws-modal-header">
+          <div class="ws-modal-title">
+            <span>🎯</span> Add Topic to ${_esc(cat ? cat.title : 'Module')}
+          </div>
+          <button class="ws-modal-close" onclick="document.getElementById('addTopicModal')?.remove()">✕</button>
+        </div>
+        <div class="ws-modal-body">
+          <div class="ws-form-group">
+            <label class="ws-form-label">Topic / Question Title</label>
+            <input type="text" id="topTitleInput" class="ws-form-input" placeholder="e.g. Asyncio Event Loop Internals, Goroutines vs OS Threads..." required autofocus/>
+          </div>
+
+          <div class="ws-form-row">
+            <div class="ws-form-group">
+              <label class="ws-form-label">Difficulty</label>
+              <select id="topDiffInput" class="ws-form-select">
+                <option value="Beginner">🟢 Beginner</option>
+                <option value="Intermediate" selected>🟡 Intermediate</option>
+                <option value="Advanced">🔴 Advanced</option>
+              </select>
+            </div>
+            <div class="ws-form-group">
+              <label class="ws-form-label">Priority</label>
+              <select id="topPrioInput" class="ws-form-select">
+                <option value="Low">Low</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="High">High</option>
+                <option value="Critical">Critical</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="ws-form-group">
+            <label class="ws-form-label">Initial Status</label>
+            <select id="topStatusInput" class="ws-form-select">
+              <option value="pending" selected>⚪ Pending</option>
+              <option value="inprogress">⏳ In Progress</option>
+              <option value="completed">✅ Completed</option>
+              <option value="onhold">⏸️ On Hold</option>
+            </select>
+          </div>
+
+          <div class="ws-form-group">
+            <label class="ws-form-label">Key Notes / Takeaways</label>
+            <textarea id="topNotesInput" class="ws-form-textarea" rows="3" placeholder="Key points, syntax patterns, edge cases..."></textarea>
+          </div>
+        </div>
+        <div class="ws-modal-footer">
+          <button class="ws-btn-primary" onclick="window.StudyWorkspace.saveNewTopic('${categoryId}')">
+            💾 Save Topic
+          </button>
+          <button class="ws-btn-secondary" onclick="document.getElementById('addTopicModal')?.remove()">Cancel</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  }
+
+  function saveNewTopic(categoryId) {
+    var title = document.getElementById('topTitleInput')?.value.trim();
+    if (!title) {
+      if (window.LMToast) window.LMToast.show('⚠️ Please enter a topic title');
+      return;
+    }
+
+    var diff = document.getElementById('topDiffInput')?.value || 'Intermediate';
+    var prio = document.getElementById('topPrioInput')?.value || 'Medium';
+    var st = document.getElementById('topStatusInput')?.value || 'pending';
+    var notes = document.getElementById('topNotesInput')?.value.trim() || '';
+
+    var newTop = {
+      id: 'top_' + Date.now(),
+      category_id: categoryId,
+      title: title,
+      difficulty: diff,
+      priority: prio,
+      status: st,
+      notes: notes,
+      status_changed_at: st !== 'pending' ? new Date().toISOString() : null,
+      order_index: _state.topics.length
+    };
+
+    _state.topics.push(newTop);
+    _saveLocal();
+
+    _getUid().then(function (uid) {
+      if (uid) {
+        _supabase.from('study_custom_topics').insert(Object.assign({ user_id: uid }, newTop)).then(function () {});
+      }
+    });
+
+    document.getElementById('addTopicModal')?.remove();
+    if (window.LMToast) window.LMToast.show('✅ Topic added: ' + title);
+    renderAllWidgets();
+  }
+
+  // ── 9. ADD MATERIAL MODAL ──────────────────────────────────────────────────
+  function openAddMaterialModal(topicId) {
+    var existing = document.getElementById('addMaterialModal');
+    if (existing) existing.remove();
+
+    var modal = document.createElement('div');
+    modal.id = 'addMaterialModal';
+    modal.className = 'ws-modal-overlay';
+
+    modal.innerHTML = `
+      <div class="ws-modal-dialog">
+        <div class="ws-modal-header">
+          <div class="ws-modal-title">
+            <span>📎</span> Attach Study Material
+          </div>
+          <button class="ws-modal-close" onclick="document.getElementById('addMaterialModal')?.remove()">✕</button>
+        </div>
+        <div class="ws-modal-body">
+          <div class="ws-form-group">
+            <label class="ws-form-label">Material Title</label>
+            <input type="text" id="matTitleInput" class="ws-form-input" placeholder="e.g. Official Documentation Cheat Sheet, Architecture PDF, Solution Snippet..." required/>
+          </div>
+
+          <div class="ws-form-group">
+            <label class="ws-form-label">Material Type</label>
+            <select id="matTypeInput" class="ws-form-select">
+              <option value="note">📝 Rich Markdown Note / Summary</option>
+              <option value="code">💻 Code Snippet / Playground</option>
+              <option value="link">🔗 Documentation / Web URL</option>
+              <option value="video">🎥 YouTube / Video Walkthrough</option>
+              <option value="pdf">📄 PDF / Document Link</option>
+            </select>
+          </div>
+
+          <div class="ws-form-group">
+            <label class="ws-form-label">External URL / Document Link (Optional)</label>
+            <input type="url" id="matUrlInput" class="ws-form-input" placeholder="https://..."/>
+          </div>
+
+          <div class="ws-form-group">
+            <label class="ws-form-label">Note Content / Code Body</label>
+            <textarea id="matContentInput" class="ws-form-textarea" rows="5" placeholder="Write markdown content or paste code snippets here..."></textarea>
+          </div>
+        </div>
+        <div class="ws-modal-footer">
+          <button class="ws-btn-primary" onclick="window.StudyWorkspace.saveNewMaterial('${topicId}')">
+            💾 Attach Material
+          </button>
+          <button class="ws-btn-secondary" onclick="document.getElementById('addMaterialModal')?.remove()">Cancel</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  }
+
+  function saveNewMaterial(topicId) {
+    var title = document.getElementById('matTitleInput')?.value.trim();
+    if (!title) {
+      if (window.LMToast) window.LMToast.show('⚠️ Please enter a material title');
+      return;
+    }
+
+    var type = document.getElementById('matTypeInput')?.value || 'note';
+    var url = document.getElementById('matUrlInput')?.value.trim() || '';
+    var content = document.getElementById('matContentInput')?.value || '';
+
+    var newMat = {
+      id: 'mat_' + Date.now(),
+      topic_id: topicId,
+      title: title,
+      material_type: type,
+      external_url: url,
+      content: content,
+      created_at: new Date().toISOString()
+    };
+
+    _state.materials.unshift(newMat);
+    _saveLocal();
+
+    _getUid().then(function (uid) {
+      if (uid) {
+        _supabase.from('study_materials').insert(Object.assign({ user_id: uid }, newMat)).then(function () {});
+      }
+    });
+
+    document.getElementById('addMaterialModal')?.remove();
+    if (window.LMToast) window.LMToast.show('✅ Material attached!');
+    openTopicExplorer(topicId);
+  }
+
+  function openMaterialViewer(materialId) {
+    var mat = _state.materials.find(function (m) { return m.id === materialId; });
+    if (!mat) return;
+
+    var existing = document.getElementById('materialViewerModal');
+    if (existing) existing.remove();
+
+    var modal = document.createElement('div');
+    modal.id = 'materialViewerModal';
+    modal.className = 'ws-modal-overlay';
+
+    var bodyHtml = '';
+    if (mat.material_type === 'pdf' && mat.external_url) {
+      bodyHtml = `
+        <div style="height:480px;background:#000;border-radius:8px;overflow:hidden;">
+          <iframe src="${_esc(mat.external_url)}" style="width:100%;height:100%;border:none;"></iframe>
+        </div>
+      `;
+    } else if (mat.material_type === 'code') {
+      bodyHtml = `
+        <pre style="background:#0f172a;padding:16px;border-radius:10px;color:#38bdf8;font-family:'JetBrains Mono',monospace;font-size:13px;overflow-x:auto;max-height:450px;line-height:1.6;"><code>${_esc(mat.content)}</code></pre>
+      `;
+    } else if (mat.material_type === 'link' || mat.material_type === 'video') {
+      bodyHtml = `
+        <div style="padding:16px;background:rgba(255,255,255,0.03);border-radius:10px;">
+          <p style="font-size:13px;color:var(--text);margin-bottom:12px;">${_esc(mat.content || mat.title)}</p>
+          <a href="${_esc(mat.external_url)}" target="_blank" rel="noopener" class="ws-btn-primary" style="text-decoration:none;display:inline-flex;">
+            🔗 Open Link in New Tab ↗
+          </a>
+        </div>
+      `;
+    } else {
+      bodyHtml = `
+        <div style="font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;background:rgba(255,255,255,0.02);padding:16px;border-radius:10px;">${_esc(mat.content)}</div>
+      `;
+    }
+
+    modal.innerHTML = `
+      <div class="ws-modal-dialog wide">
+        <div class="ws-modal-header">
+          <div class="ws-modal-title">
+            <span class="material-type-tag ${mat.material_type}">${mat.material_type}</span>
+            <span>${_esc(mat.title)}</span>
+          </div>
+          <button class="ws-modal-close" onclick="document.getElementById('materialViewerModal')?.remove()">✕</button>
+        </div>
+        <div class="ws-modal-body">
+          ${bodyHtml}
+        </div>
+        <div class="ws-modal-footer">
+          <button class="ws-btn-secondary" onclick="document.getElementById('materialViewerModal')?.remove()">Close</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  }
+
+  // ── 10. WIDGET CUSTOMIZER DRAWER ───────────────────────────────────────────
   function _isWidgetVisible(widgetKey) {
     return (_state.prefs.active_widgets || []).indexOf(widgetKey) !== -1;
   }
@@ -535,13 +924,23 @@
 
     drawer.innerHTML = `
       <div class="drawer-header">
-        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);">⚙️ Customize Dashboard Widgets</div>
+        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);">⚙️ Customize Workspace &amp; Dashboard</div>
         <button class="ws-modal-close" onclick="document.getElementById('widgetCustomizerDrawer')?.remove()">✕</button>
       </div>
       <div class="drawer-body">
-        <p style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.5;">
-          Toggle dashboard widgets on or off based on your personal study routine. Changes are synced across your devices.
-        </p>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+          <button class="ws-btn-primary" onclick="window.StudyWorkspace.openAddDomainModal();document.getElementById('widgetCustomizerDrawer')?.remove();" style="width:100%;justify-content:center;">
+            ➕ Add New Language / Section
+          </button>
+          <button class="ws-btn-secondary" onclick="window.StudyWorkspace.openTemplateModal();document.getElementById('widgetCustomizerDrawer')?.remove();" style="width:100%;justify-content:center;">
+            📦 Import Curriculum Blueprint
+          </button>
+          <button class="ws-btn-secondary" onclick="window.StudyWorkspace.openGoalModal();document.getElementById('widgetCustomizerDrawer')?.remove();" style="width:100%;justify-content:center;">
+            🎯 Set Learning Goal &amp; Milestones
+          </button>
+        </div>
+
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text3);margin-bottom:10px;letter-spacing:.05em;">Dashboard Widget Visibility</div>
         ${rows}
       </div>
     `;
@@ -573,7 +972,7 @@
     renderAllWidgets();
   }
 
-  // ── 8. PRE-BUILT ROADMAP TEMPLATES ─────────────────────────────────────────
+  // ── 11. PRE-BUILT ROADMAP TEMPLATES ────────────────────────────────────────
   var TEMPLATES = [
     {
       id: 'tpl_python',
@@ -612,6 +1011,51 @@
       ]
     }
   ];
+
+  function openTemplateModal() {
+    var existing = document.getElementById('templateModal');
+    if (existing) existing.remove();
+
+    var modal = document.createElement('div');
+    modal.id = 'templateModal';
+    modal.className = 'ws-modal-overlay';
+
+    var tplCards = TEMPLATES.map(function (tpl) {
+      return `
+        <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border,#262f45);border-radius:12px;padding:16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
+            <div style="width:40px;height:40px;border-radius:10px;background:${tpl.color}18;color:${tpl.color};display:grid;place-items:center;font-size:20px;flex-shrink:0;">${tpl.icon}</div>
+            <div>
+              <div style="font-size:14px;font-weight:700;color:var(--text);">${tpl.title}</div>
+              <div style="font-size:11.5px;color:var(--text3);margin-top:2px;">${tpl.tagline}</div>
+            </div>
+          </div>
+          <button class="ws-btn-primary" onclick="window.StudyWorkspace.importTemplate('${tpl.id}');document.getElementById('templateModal')?.remove();">
+            📥 Import 1-Click
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    modal.innerHTML = `
+      <div class="ws-modal-dialog">
+        <div class="ws-modal-header">
+          <div class="ws-modal-title">
+            <span>📦</span> Ready-to-Learn Curriculum Blueprints
+          </div>
+          <button class="ws-modal-close" onclick="document.getElementById('templateModal')?.remove()">✕</button>
+        </div>
+        <div class="ws-modal-body">
+          <p style="font-size:12px;color:var(--text3);margin-bottom:16px;">
+            Choose a curated industry roadmap to instantly populate your workspace with structured modules, topics, and interview questions.
+          </p>
+          ${tplCards}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  }
 
   function importTemplate(templateId) {
     var tpl = TEMPLATES.find(function (t) { return t.id === templateId; });
@@ -663,7 +1107,104 @@
     renderAllWidgets();
   }
 
-  // ── 9. TOPIC EXPLORER & MATERIAL MODALS ────────────────────────────────────
+  // ── 12. GOAL MODAL ─────────────────────────────────────────────────────────
+  function openGoalModal() {
+    var existing = document.getElementById('addGoalModal');
+    if (existing) existing.remove();
+
+    var modal = document.createElement('div');
+    modal.id = 'addGoalModal';
+    modal.className = 'ws-modal-overlay';
+
+    modal.innerHTML = `
+      <div class="ws-modal-dialog">
+        <div class="ws-modal-header">
+          <div class="ws-modal-title">
+            <span>🎯</span> Create Learning Goal &amp; Milestones
+          </div>
+          <button class="ws-modal-close" onclick="document.getElementById('addGoalModal')?.remove()">✕</button>
+        </div>
+        <div class="ws-modal-body">
+          <div class="ws-form-group">
+            <label class="ws-form-label">Goal Title</label>
+            <input type="text" id="goalTitleInput" class="ws-form-input" placeholder="e.g. Master Spring Boot Microservices, Clear AWS Exam, Complete 100 DSA..." required autofocus/>
+          </div>
+
+          <div class="ws-form-row">
+            <div class="ws-form-group">
+              <label class="ws-form-label">Target Completion Date</label>
+              <input type="date" id="goalDateInput" class="ws-form-input"/>
+            </div>
+            <div class="ws-form-group">
+              <label class="ws-form-label">Target Questions / Topics</label>
+              <input type="number" id="goalTargetCountInput" class="ws-form-input" value="30" min="1"/>
+            </div>
+          </div>
+
+          <div class="ws-form-group">
+            <label class="ws-form-label">Milestones (comma-separated)</label>
+            <textarea id="goalMilestonesInput" class="ws-form-textarea" rows="3" placeholder="Milestone 1: Complete 10 Core Topics, Milestone 2: Build Hands-on Project, Milestone 3: Mock Exam"></textarea>
+          </div>
+        </div>
+        <div class="ws-modal-footer">
+          <button class="ws-btn-primary" onclick="window.StudyWorkspace.saveNewGoal()">
+            💾 Save Goal
+          </button>
+          <button class="ws-btn-secondary" onclick="document.getElementById('addGoalModal')?.remove()">Cancel</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  }
+
+  function saveNewGoal() {
+    var title = document.getElementById('goalTitleInput')?.value.trim();
+    if (!title) {
+      if (window.LMToast) window.LMToast.show('⚠️ Please enter a goal title');
+      return;
+    }
+
+    var date = document.getElementById('goalDateInput')?.value || null;
+    var targetCount = parseInt(document.getElementById('goalTargetCountInput')?.value || '30', 10);
+    var rawMilestones = document.getElementById('goalMilestonesInput')?.value.trim() || '';
+
+    var ms = rawMilestones.split(',').map(function (s) { return s.trim(); }).filter(Boolean).map(function (t) {
+      return { id: 'ms_' + Math.random().toString(36).substr(2, 6), title: t, completed: false };
+    });
+
+    if (ms.length === 0) {
+      ms = [
+        { id: 'ms_1', title: 'Complete first 10 topics', completed: false },
+        { id: 'ms_2', title: 'Hands-on practice & notes review', completed: false },
+        { id: 'ms_3', title: 'Mock assessment clearance', completed: false }
+      ];
+    }
+
+    var newGoal = {
+      id: 'goal_' + Date.now(),
+      title: title,
+      target_date: date,
+      target_topics: targetCount,
+      milestones: ms,
+      status: 'active'
+    };
+
+    _state.goals.unshift(newGoal);
+    _saveLocal();
+
+    _getUid().then(function (uid) {
+      if (uid) {
+        _supabase.from('study_learning_goals').insert(Object.assign({ user_id: uid }, newGoal)).then(function () {});
+      }
+    });
+
+    document.getElementById('addGoalModal')?.remove();
+    if (window.LMToast) window.LMToast.show('✅ Goal created: ' + title);
+    renderAllWidgets();
+  }
+
+  // ── 13. TOPIC EXPLORER & DETAIL MODAL ──────────────────────────────────────
   function openTopicExplorer(topicId) {
     var t = _state.topics.find(function (x) { return x.id === topicId; });
     if (!t) return;
@@ -763,11 +1304,93 @@
     });
   }
 
-  // ── 10. RENDER ALL WIDGETS ────────────────────────────────────────────────
+  // ── 14. RENDER ALL WIDGETS & CUSTOM SECTIONS ───────────────────────────────
   function renderAllWidgets() {
     renderResumeHero();
     initPomodoroWidget();
     renderGoalsWidget();
+    renderCustomDomainSections();
+  }
+
+  function renderCustomDomainSections() {
+    var container = document.getElementById('languageSectionsWrap');
+    if (!container) return;
+
+    var existingCustom = document.querySelectorAll('.custom-workspace-domain-section');
+    existingCustom.forEach(function (el) { el.remove(); });
+
+    if (!_state.domains || _state.domains.length === 0) return;
+
+    var customHtml = _state.domains.map(function (dom) {
+      var domCats = _state.categories.filter(function (c) { return c.domain_id === dom.id; });
+      var domTopics = [];
+      domCats.forEach(function (c) {
+        var cTops = _state.topics.filter(function (t) { return t.category_id === c.id; });
+        domTopics = domTopics.concat(cTops);
+      });
+
+      var doneCount = domTopics.filter(function (t) { return t.status === 'completed'; }).length;
+      var inprogCount = domTopics.filter(function (t) { return t.status === 'inprogress'; }).length;
+      var pct = domTopics.length > 0 ? Math.round((doneCount / domTopics.length) * 100) : 0;
+
+      var topicsListHtml = domTopics.map(function (t) {
+        var matsCount = _state.materials.filter(function (m) { return m.topic_id === t.id; }).length;
+        var stClass = 'st-' + (t.status || 'pending');
+        return `
+          <div class="res-card" style="--c-accent:${dom.color};--c-bg:${dom.color}18;cursor:pointer;" onclick="window.StudyWorkspace.openTopicExplorer('${t.id}')">
+            <div class="res-card-top">
+              <div class="res-icon" style="background:${dom.color}18;">${dom.icon}</div>
+              <div class="res-info">
+                <div class="res-category">${dom.badge || 'Topic'}</div>
+                <div class="res-title">${_esc(t.title)}</div>
+              </div>
+            </div>
+            <div class="res-desc">${_esc(t.notes || 'Click to view notes, attachments & study timer...')}</div>
+            <div class="res-tags">
+              <span class="st-badge ${stClass}">${t.status || 'pending'}</span>
+              <span class="res-tag">${t.difficulty || 'Intermediate'}</span>
+              ${matsCount > 0 ? `<span class="res-notes-badge">📎 ${matsCount} material${matsCount>1?'s':''}</span>` : ''}
+            </div>
+            <div class="res-footer">
+              <button class="btn-pomo-action" style="font-size:11px;padding:4px 10px;" onclick="event.stopPropagation();window.StudyWorkspace.cycleTopicStatus('${t.id}')">
+                Cycle Status
+              </button>
+              <button class="ws-btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="event.stopPropagation();window.StudyWorkspace.openTopicExplorer('${t.id}')">
+                Open ↗
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <section class="lang-section custom-workspace-domain-section" id="lang-section-${dom.id}" data-lang-id="${dom.id}">
+          <div class="lang-section-header">
+            <div class="lang-section-left">
+              <div class="lang-section-icon" style="background:${dom.color}18;color:${dom.color};">${dom.icon}</div>
+              <div class="lang-section-info">
+                <div class="lang-section-title-row">
+                  <h2 class="lang-section-title">${_esc(dom.title)}</h2>
+                  <span class="lang-badge" style="background:${dom.color}18;color:${dom.color};">${_esc(dom.badge)}</span>
+                  <span class="lang-count-badge">${domTopics.length} Topic${domTopics.length!==1?'s':''} · ${doneCount} Done (${pct}%)</span>
+                </div>
+                <p class="lang-section-tagline">${_esc(dom.tagline || 'Custom Personal Learning Workspace')}</p>
+              </div>
+            </div>
+            ${_state.canCustomize ? `
+              <div style="display:flex;gap:6px;">
+                <button class="ws-btn-secondary" style="font-size:11px;padding:4px 8px;" onclick="window.StudyWorkspace.openAddTopicModal('${domCats[0]?domCats[0].id:''}')">+ Add Topic</button>
+              </div>
+            ` : ''}
+          </div>
+          <div class="resource-grid">
+            ${topicsListHtml}
+          </div>
+        </section>
+      `;
+    }).join('');
+
+    container.insertAdjacentHTML('beforeend', customHtml);
   }
 
   // ── Public API ──
@@ -775,6 +1398,7 @@
     init: init,
     renderAllWidgets: renderAllWidgets,
     renderResumeHero: renderResumeHero,
+    renderCustomDomainSections: renderCustomDomainSections,
     setLastActiveTopic: setLastActiveTopic,
     clearLastActiveTopic: clearLastActiveTopic,
     cycleTopicStatus: cycleTopicStatus,
@@ -786,7 +1410,17 @@
     toggleMilestone: toggleMilestone,
     openWidgetCustomizer: openWidgetCustomizer,
     toggleWidgetVisibility: toggleWidgetVisibility,
+    openAddDomainModal: openAddDomainModal,
+    saveNewDomain: saveNewDomain,
+    openAddTopicModal: openAddTopicModal,
+    saveNewTopic: saveNewTopic,
+    openAddMaterialModal: openAddMaterialModal,
+    saveNewMaterial: saveNewMaterial,
+    openMaterialViewer: openMaterialViewer,
+    openTemplateModal: openTemplateModal,
     importTemplate: importTemplate,
+    openGoalModal: openGoalModal,
+    saveNewGoal: saveNewGoal,
     openTopicExplorer: openTopicExplorer,
     updateTopicNotes: updateTopicNotes,
     getState: function () { return _state; }
