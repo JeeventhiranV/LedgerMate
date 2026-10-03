@@ -1252,101 +1252,198 @@ function renderDailyTargetAndDifficulty(rawProgress) {
 }
 
 /* ══════════════════════════════════════════════════════
-   LOAD DASHBOARD FROM SUPABASE
+   LOAD DASHBOARD (LOCAL FALLBACK + SUPABASE LIVE SYNC)
 ══════════════════════════════════════════════════════ */
-function loadDashboard() {
-  StudySync.loadAll().then(function(data) {
-    if (!data) return;
+function getLocalProgressData() {
+  var byModule = {};
+  var rawProgress = [];
+  var recent = [];
+  var totalDone = 0;
+  var totalIP = 0;
 
-    var byModule = data.byModule || {};
-    var streakData = data.streak;
-    var recent = data.recent || [];
-    var raw = data.rawProgress || [];
+  var modMapping = [
+    { mod: 'java', key: 'prep_progress_v1', total: 120, name: 'Java Prep' },
+    { mod: 'dsa', key: 'dsa_progress_v1', total: 171, name: 'DSA Hub' },
+    { mod: 'react', key: 'react_progress_v1', total: 31, name: 'React Prep' },
+    { mod: 'hr', key: 'hr_progress_v1', total: 48, name: 'HR Questions' },
+    { mod: 'ipk', key: 'ipk_progress_v1', total: 83, name: 'Interview Kit' }
+  ];
 
-    // Update hero: streak banner
-    var streak = streakData ? (streakData.streak || 0) : 0;
-    var longest = streakData ? (streakData.longest || 0) : 0;
-    window._studyStreak = streak;
-    try { localStorage.setItem('study_streak_count', streak); } catch(e) {}
-    if (streak > 0) {
-      document.getElementById('streakVal').textContent = streak;
-      document.getElementById('longestVal').textContent = longest;
-      document.getElementById('heroStreak').style.display = '';
-    }
+  modMapping.forEach(function(m) {
+    var p = getProgress(m.key, m.total);
+    byModule[m.mod] = { done: p.done, inprog: p.inProgress, last: null };
+    totalDone += p.done;
+    totalIP += p.inProgress;
 
-    // Update hero from the dashboard modules only (excludes the animator) —
-    // DB when synced, else localStorage fallback (per module).
-    var totalDone = 0, totalIP = 0;
-    MOD_CONFIG.forEach(function(m) {
-      var d = modTotals(m, byModule);
-      totalDone += d.done; totalIP += d.inprog;
-    });
-    document.getElementById('statDone').textContent = totalDone;
-    if (totalIP > 0) {
-      document.getElementById('statInProgress').textContent = totalIP;
-      document.getElementById('statInProgressPill').style.display = '';
-    } else {
-      document.getElementById('statInProgressPill').style.display = 'none';
-    }
-
-    // Overall bar from DB
-    var donePct = TOTAL_Q > 0 ? Math.round(totalDone / TOTAL_Q * 100) : 0;
-    var ipPct   = TOTAL_Q > 0 ? Math.round(Math.min(totalIP, TOTAL_Q - totalDone) / TOTAL_Q * 100) : 0;
-    document.getElementById('overallBarDone').style.width = donePct + '%';
-    document.getElementById('overallBarIp').style.width   = ipPct + '%';
-    document.getElementById('overallPctLabel').textContent = donePct + '% complete · ' + totalDone + '/' + TOTAL_Q;
-
-    // Daily target and difficulty matrix
-    renderDailyTargetAndDifficulty(raw);
-
-    // Module rings from DB
-    renderModRingsDB(byModule);
-
-    // Activity feed
-    renderActivityFeed(recent);
-
-    // Resume chip — show last-touched module
-    _renderResumeChip(recent);
-
-    // Achievements
-    renderAchievements({
-      totalDone: totalDone,
-      streak: streak,
-      java: (byModule.java || {}).done || 0,
-      dsa:  (byModule.dsa  || {}).done || 0,
-      react:(byModule.react|| {}).done || 0,
-      hr:   (byModule.hr   || {}).done || 0,
-      ipk:  (byModule.ipk  || {}).done || 0,
-    });
-
-    // Heatmap
-    renderHeatmap(raw);
-
-    // Due for review (spaced repetition)
-    renderDueForReview(raw);
-
-    // Weekly goal
-    renderWeeklyGoal(raw);
-
-    // Weak topics & Quiz History
-    renderWeakTopics(byModule);
-    renderQuizHistoryDashboard();
-
-  }).catch(function() {
-    // On error: render with empty/local data
-    renderHeatmap([]);
-    renderWeeklyGoal([]);
-    renderDailyTargetAndDifficulty([]);
-    renderWeakTopics({});
-    renderQuizHistoryDashboard();
-    var localStats = { totalDone: 0, streak: 0, java: 0, dsa: 0, react: 0, hr: 0, ipk: 0 };
-    RESOURCES.forEach(function(r) {
-      var p = getProgress(r.progressKey, r.totalQ);
-      localStats.totalDone += p.done;
-    });
-    renderAchievements(localStats);
-    renderActivityFeed([]);
+    try {
+      var raw = JSON.parse(localStorage.getItem(m.key) || '{}');
+      if (raw && typeof raw === 'object') {
+        Object.keys(raw).forEach(function(k) {
+          var st = raw[k];
+          if (st === 'done' || st === 'inprogress') {
+            rawProgress.push({
+              module: m.mod,
+              module_key: m.mod,
+              item_id: k,
+              status: st,
+              status_changed_at: new Date().toISOString()
+            });
+          }
+        });
+      }
+    } catch(e){}
   });
+
+  try {
+    var up = JSON.parse(localStorage.getItem('study_progress_v1') || '{}');
+    if (up && typeof up === 'object') {
+      Object.keys(up).forEach(function(k) {
+        var val = up[k];
+        if (val && typeof val === 'object' && val.status) {
+          rawProgress.push({
+            module: val.module || 'study',
+            module_key: val.module || 'study',
+            item_id: val.item_id || k,
+            status: val.status,
+            status_changed_at: val.status_changed_at || val.updated_at || new Date().toISOString()
+          });
+        }
+      });
+    }
+  } catch(e){}
+
+  var streak = 0;
+  try {
+    streak = Number(localStorage.getItem('study_streak_count') || 0);
+    if (!streak) {
+      var ps = JSON.parse(localStorage.getItem('prep_streak_v1') || '{}');
+      if (ps && ps.streak) streak = Number(ps.streak) || 0;
+    }
+  } catch(e){}
+
+  recent = rawProgress.slice(0, 10);
+
+  return {
+    byModule: byModule,
+    streak: { streak: streak, longest: streak },
+    recent: recent,
+    rawProgress: rawProgress,
+    totalDone: totalDone,
+    totalIP: totalIP
+  };
+}
+
+function applyDashboardData(data) {
+  if (!data) return;
+
+  var byModule = data.byModule || {};
+  var streakData = data.streak;
+  var recent = data.recent || [];
+  var raw = data.rawProgress || [];
+
+  // Streak banner
+  var streak = streakData ? (streakData.streak || 0) : 0;
+  var longest = streakData ? (streakData.longest || 0) : 0;
+  window._studyStreak = streak;
+  try { localStorage.setItem('study_streak_count', streak); } catch(e) {}
+  var heroStreakEl = document.getElementById('heroStreak');
+  if (heroStreakEl) {
+    if (streak > 0) {
+      var sVal = document.getElementById('streakVal');
+      var lVal = document.getElementById('longestVal');
+      if (sVal) sVal.textContent = streak;
+      if (lVal) lVal.textContent = longest;
+      heroStreakEl.style.display = '';
+    } else {
+      heroStreakEl.style.display = 'none';
+    }
+  }
+
+  // Question counts
+  var totalDone = 0, totalIP = 0;
+  MOD_CONFIG.forEach(function(m) {
+    var d = modTotals(m, byModule);
+    totalDone += d.done; totalIP += d.inprog;
+  });
+  var statDoneEl = document.getElementById('statDone');
+  if (statDoneEl) statDoneEl.textContent = totalDone;
+
+  var statIpEl = document.getElementById('statInProgress');
+  var statIpPill = document.getElementById('statInProgressPill');
+  if (statIpEl && statIpPill) {
+    if (totalIP > 0) {
+      statIpEl.textContent = totalIP;
+      statIpPill.style.display = '';
+    } else {
+      statIpPill.style.display = 'none';
+    }
+  }
+
+  // Overall progress bar
+  var donePct = TOTAL_Q > 0 ? Math.round(totalDone / TOTAL_Q * 100) : 0;
+  var ipPct   = TOTAL_Q > 0 ? Math.round(Math.min(totalIP, TOTAL_Q - totalDone) / TOTAL_Q * 100) : 0;
+  var obDone = document.getElementById('overallBarDone');
+  var obIp = document.getElementById('overallBarIp');
+  var obPct = document.getElementById('overallPctLabel');
+  if (obDone) obDone.style.width = donePct + '%';
+  if (obIp) obIp.style.width = ipPct + '%';
+  if (obPct) obPct.textContent = donePct + '% complete · ' + totalDone + '/' + TOTAL_Q;
+
+  // Daily target and difficulty matrix
+  renderDailyTargetAndDifficulty(raw);
+
+  // Module rings
+  renderModRingsDB(byModule);
+
+  // Activity feed
+  renderActivityFeed(recent);
+
+  // Resume chip
+  if (typeof _renderResumeChip === 'function') {
+    _renderResumeChip(recent);
+  }
+
+  // Achievements
+  renderAchievements({
+    totalDone: totalDone,
+    streak: streak,
+    java: (byModule.java || {}).done || 0,
+    dsa:  (byModule.dsa  || {}).done || 0,
+    react:(byModule.react|| {}).done || 0,
+    hr:   (byModule.hr   || {}).done || 0,
+    ipk:  (byModule.ipk  || {}).done || 0,
+  });
+
+  // Heatmap
+  renderHeatmap(raw);
+
+  // Due for review
+  renderDueForReview(raw);
+
+  // Weekly goal
+  renderWeeklyGoal(raw);
+
+  // Weak topics & Quiz History
+  renderWeakTopics(byModule);
+  renderQuizHistoryDashboard();
+}
+
+function loadDashboard() {
+  // 1. Instantly render from local data so user never sees empty stuck loaders
+  var local = getLocalProgressData();
+  applyDashboardData(local);
+
+  // 2. Refresh from Supabase live cloud database
+  if (window.StudySync && typeof window.StudySync.loadAll === 'function') {
+    StudySync.loadAll().then(function(cloudData) {
+      if (cloudData) {
+        applyDashboardData(cloudData);
+      }
+    }).catch(function(err) {
+      console.warn('[StudyHub] Cloud sync fallback to local progress:', err);
+    });
+  }
+}
 
 function renderWeakTopics(byModule) {
   var el = document.getElementById('weakTopicsList');
@@ -1661,22 +1758,37 @@ document.addEventListener('DOMContentLoaded', function() {
   for (var i = 0; i < 70; i++) skel70 += '<div class="heat-cell heat-0"></div>';
   document.getElementById('heatmapGrid').innerHTML = skel70;
 
-  // Interview Tracker banner stats
+  // Interview Tracker banner stats (if present)
   (function() {
     try {
-      var apps = JSON.parse(localStorage.getItem('it_apps_v1') || '[]');
-      var INACTIVE = ['offer','accepted','rejected','withdrawn'];
-      var active = apps.filter(function(a){ return !INACTIVE.includes(a.status); }).length;
-      var offers = apps.filter(function(a){ return a.status === 'offer' || a.status === 'accepted'; }).length;
-      document.getElementById('tbTotal').textContent  = apps.length;
-      document.getElementById('tbActive').textContent = active;
-      document.getElementById('tbOffers').textContent = offers;
-    } catch(e) {
-      ['tbTotal','tbActive','tbOffers'].forEach(function(id){ document.getElementById(id).textContent = '0'; });
-    }
+      var tbT = document.getElementById('tbTotal');
+      var tbA = document.getElementById('tbActive');
+      var tbO = document.getElementById('tbOffers');
+      if (tbT && tbA && tbO) {
+        var apps = JSON.parse(localStorage.getItem('it_apps_v1') || '[]');
+        var INACTIVE = ['offer','accepted','rejected','withdrawn'];
+        var active = apps.filter(function(a){ return !INACTIVE.includes(a.status); }).length;
+        var offers = apps.filter(function(a){ return a.status === 'offer' || a.status === 'accepted'; }).length;
+        tbT.textContent = apps.length;
+        tbA.textContent = active;
+        tbO.textContent = offers;
+      }
+    } catch(e) {}
   })();
 
-  // Load live DB data
+  // Restore Analytics Panel collapse state
+  try {
+    if (localStorage.getItem('lm_dash_analytics_expanded') === 'false') {
+      var dashBody = document.getElementById('dashPanelBody');
+      var dashTxt = document.getElementById('dashToggleTxt');
+      var dashArrow = document.getElementById('dashToggleArrow');
+      if (dashBody) dashBody.style.display = 'none';
+      if (dashTxt) dashTxt.textContent = 'Expand';
+      if (dashArrow) dashArrow.style.transform = 'rotate(-90deg)';
+    }
+  } catch(e) {}
+
+  // Load live DB / local dashboard data
   loadDashboard();
 
   // Filter chips
