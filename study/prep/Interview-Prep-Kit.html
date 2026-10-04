@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="../styles/study-responsive.css"/>
+<link rel="stylesheet" href="../styles/study-workspace.css"/>
 <link rel="stylesheet" href="../../src/styles/responsive-upgrades.css"/>
 <style>
 /* ══════════════════════════════════════════════
@@ -263,6 +264,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <script src="../../auth/supabase-config.js"></script>
 <script src="../../auth/auth-guard.js"></script>
 <script src="../js/StudySync.js"></script>
+<script src="../js/StudyFileViewer.js"></script>
 <script src="../js/study-features.js"></script>
 <script src="../js/community-hub.js"></script>
 </head>
@@ -590,6 +592,14 @@ function toggleCompleted(id) {
 function viewPDF(path, id, name) {
   markViewed(id);
   const url = encodeURI(PDF_BASE + path);
+  if (window.StudyFileViewer && typeof window.StudyFileViewer.open === 'function') {
+    window.StudyFileViewer.open({
+      title: name,
+      fileUrl: url,
+      type: 'pdf'
+    });
+    return;
+  }
   window.open(url, '_blank', 'noopener,noreferrer');
   toast('📖 Opening: ' + name);
 }

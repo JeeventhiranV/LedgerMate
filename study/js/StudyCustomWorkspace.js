@@ -2153,6 +2153,13 @@
     mat.last_accessed_at = new Date().toISOString();
     _saveLocal();
 
+    if (window.StudyFileViewer && typeof window.StudyFileViewer.openMaterial === 'function') {
+      window.StudyFileViewer.openMaterial(materialId, _state, function (id, st, pct) {
+        setMaterialStatus(id, st, pct);
+      });
+      return;
+    }
+
     var existing = document.getElementById('materialViewerModal');
     if (existing) existing.remove();
 
@@ -2166,10 +2173,15 @@
     if (mat.material_type === 'pdf' && displayUrl) {
       bodyHtml = `
         <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-          <span style="font-size:12px;color:var(--text3);">Embedded PDF Viewer:</span>
-          <a href="${_esc(displayUrl)}" target="_blank" rel="noopener" class="ws-btn-extlink" style="font-size:11.5px;padding:5px 12px;">
-            🔗 Open PDF in New Tab ↗
-          </a>
+          <span style="font-size:12px;color:var(--text3);">PDF Viewer:</span>
+          <div style="display:flex;gap:6px;">
+            <button class="ws-btn-primary" style="font-size:11.5px;padding:5px 12px;" onclick="window.StudyFileViewer ? window.StudyFileViewer.openInNativeApp('${_esc(displayUrl)}','${_esc(mat.title)}') : window.open('${_esc(displayUrl)}','_blank')">
+              📱 Open in App ↗
+            </button>
+            <a href="${_esc(displayUrl)}" target="_blank" rel="noopener" class="ws-btn-extlink" style="font-size:11.5px;padding:5px 12px;">
+              🔗 Open in Tab ↗
+            </a>
+          </div>
         </div>
         <div style="height:520px;background:#000;border-radius:10px;overflow:hidden;border:1px solid var(--border,#262f45);">
           <iframe src="${_esc(displayUrl)}" style="width:100%;height:100%;border:none;"></iframe>

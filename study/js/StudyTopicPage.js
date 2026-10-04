@@ -336,15 +336,14 @@
           </div>
 
           <div class="mat-card-actions">
+            <button class="ws-btn-primary" onclick="window.StudyTopicPage.openMaterialModal('${m.id}')" style="font-weight:700;font-size:12px;padding:6px 14px;">
+              👁️ View Full Screen
+            </button>
             ${displayUrl ? `
               <a href="${_esc(displayUrl)}" target="_blank" rel="noopener noreferrer" class="ws-btn-extlink" style="font-weight:700;font-size:12px;padding:6px 14px;">
                 🔗 Open Link ↗
               </a>
             ` : ''}
-
-            <button class="ws-btn-secondary" onclick="window.StudyTopicPage.openMaterialPreview('${m.id}')" style="font-size:11.5px;padding:5px 10px;">
-              👁️ View in Page
-            </button>
           </div>
         </div>
       `;
@@ -361,12 +360,20 @@
           pBody = `
             <div class="inpage-preview-topbar">
               <div style="font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;">
-                <span>📄 Embedded PDF Viewer:</span>
+                <span>📄 PDF Viewer:</span>
                 <span style="color:var(--blue,#4f8ef7);">${_esc(activeMat.title)}</span>
               </div>
-              <a href="${_esc(pUrl)}" target="_blank" rel="noopener noreferrer" class="ws-btn-extlink" style="font-size:12px;padding:6px 14px;">
-                🔗 Open PDF in New Tab ↗
-              </a>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <button class="ws-btn-primary" onclick="window.StudyTopicPage.openMaterialModal('${activeMat.id}')" style="font-size:12px;padding:6px 12px;">
+                  ⛶ Open Full Screen
+                </button>
+                <button class="ws-btn-secondary" onclick="window.StudyFileViewer ? window.StudyFileViewer.openInNativeApp('${_esc(pUrl)}','${_esc(activeMat.title)}') : window.open('${_esc(pUrl)}','_blank')" style="font-size:12px;padding:6px 12px;">
+                  📱 Open in App
+                </button>
+                <a href="${_esc(pUrl)}" target="_blank" rel="noopener noreferrer" class="ws-btn-extlink" style="font-size:12px;padding:6px 12px;">
+                  🔗 In Tab ↗
+                </a>
+              </div>
             </div>
             <div class="inpage-pdf-frame-wrap">
               <iframe src="${_esc(pUrl)}" style="width:100%;height:650px;border:none;border-radius:10px;"></iframe>
@@ -628,7 +635,22 @@
     renderMainWorkspace();
   }
 
+  function openMaterialModal(materialId) {
+    if (window.StudyFileViewer && typeof window.StudyFileViewer.openMaterial === 'function') {
+      var state = window.StudyWorkspace ? window.StudyWorkspace.getState() : null;
+      window.StudyFileViewer.openMaterial(materialId, state, function (id, st, pct) {
+        cycleMaterialStatus(id);
+      });
+      return;
+    }
+    openMaterialPreview(materialId);
+  }
+
   function openMaterialPreview(materialId) {
+    if (window.innerWidth <= 768 || window.AndroidBridge) {
+      openMaterialModal(materialId);
+      return;
+    }
     _activePreviewMaterialId = materialId;
     renderMainWorkspace();
     var el = document.getElementById('inpageMaterialPreviewer');
@@ -864,6 +886,7 @@
     copyNotes: copyNotes,
     clearNotes: clearNotes,
     setMaterialFilter: setMaterialFilter,
+    openMaterialModal: openMaterialModal,
     openMaterialPreview: openMaterialPreview,
     closeMaterialPreview: closeMaterialPreview,
     cycleMaterialStatus: cycleMaterialStatus,

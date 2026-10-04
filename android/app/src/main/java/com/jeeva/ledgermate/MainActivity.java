@@ -224,14 +224,21 @@ public class MainActivity extends AppCompatActivity {
             private boolean handleUrlLoading(WebView view, String url) {
                 if (url == null) return false;
 
-                // If internal or auth url, let the WebView handle it directly (return false)
+                // 1. If direct PDF link, launch in external/system PDF reader instead of loading raw bytes into WebView
+                if (isPdfUrl(url)) {
+                    launchPdfViewerIntent(url, "Study Document");
+                    return true;
+                }
+
+                // 2. If internal or auth url, let the WebView handle it directly (return false)
                 if (isInternalOrAuthUrl(url)) {
                     return false;
                 }
 
-                // External URLs: open in external browser or app
+                // 3. External URLs: open in external browser or app
                 try {
                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
                     return true;
                 } catch (Exception e) {
@@ -635,6 +642,100 @@ public class MainActivity extends AppCompatActivity {
                 String script = "if (window.LM_NativeBridgeCallbacks && typeof window.LM_NativeBridgeCallbacks['" + safeCallbackId + "'] === 'function') { " +
                         "try { window.LM_NativeBridgeCallbacks['" + safeCallbackId + "'](" + jsonPayload + "); } catch(e) { console.error('Native callback error:', e); } }";
                 webView.evaluateJavascript(script, null);
+            }
+        });
+    }
+
+    private boolean isPdfUrl(String url) {
+        if (url == null || url.trim().isEmpty()) return false;
+        try {
+            Uri uri = Uri.parse(url);
+            String path = uri.getPath();
+            if (path != null && path.toLowerCase().endsWith(".pdf")) {
+                return true;
+            }
+            String lowerUrl = url.toLowerCase();
+            return lowerUrl.contains(".pdf?") || lowerUrl.contains(".pdf#") || lowerUrl.endsWith(".pdf");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public void launchPdfViewerIntent(String url, String title) {
+        if (url == null || url.isEmpty()) return;
+        executorService.execute(() -> {
+            try {
+                // If local file path or already a content URI
+                if (url.startsWith("file://") || url.startsWith("content://")) {
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(Uri.parse(url), "application/pdf");
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(Intent.createChooser(intent, "Open PDF with"));
+                    return;
+                }
+
+                // If remote HTTP/HTTPS PDF, download to cache/pdfs/ and open via FileProvider
+                File pdfDir = new File(getCacheDir(), "pdfs");
+                if (!pdfDir.exists()) pdfDir.mkdirs();
+
+                String safeName = (title != null && !title.isEmpty())
+                        ? title.replaceAll("[^a-zA-Z0-9._-]", "_")
+                        : ("doc_" + System.currentTimeMillis());
+                if (!safeName.toLowerCase().endsWith(".pdf")) safeName += ".pdf";
+
+                File destFile = new File(pdfDir, safeName);
+
+                URL u = new URL(url);
+                HttpURLConnection conn = (HttpURLConnection) u.openConnection();
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(30000);
+                conn.setInstanceFollowRedirects(true);
+                conn.connect();
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    try (InputStream in = conn.getInputStream();
+                         FileOutputStream out = new FileOutputStream(destFile)) {
+                        byte[] buffer = new byte[8192];
+                        int bytesRead;
+                        while ((bytesRead = in.read(buffer)) != -1) {
+                            out.write(buffer, 0, bytesRead);
+                        }
+                        out.flush();
+                    }
+
+                    runOnUiThread(() -> {
+                        try {
+                            Uri contentUri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", destFile);
+                            Intent intent = new Intent(Intent.ACTION_VIEW);
+                            intent.setDataAndType(contentUri, "application/pdf");
+                            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(Intent.createChooser(intent, "Open PDF with"));
+                        } catch (Exception e) {
+                            try {
+                                Intent fallback = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                startActivity(fallback);
+                            } catch (Exception ignored) {}
+                        }
+                    });
+                } else {
+                    runOnUiThread(() -> {
+                        try {
+                            Intent fallback = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                            fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(fallback);
+                        } catch (Exception ignored) {}
+                    });
+                }
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    try {
+                        Intent fallback = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(fallback);
+                    } catch (Exception ignored) {}
+                });
             }
         });
     }
@@ -1533,6 +1634,23 @@ public class MainActivity extends AppCompatActivity {
                 } catch (Exception e) {
                     sendError(callbackId, "Failed to launch biometrics: " + e.getMessage());
                 }
+            });
+        }
+
+        @JavascriptInterface
+        public void openPdfUrl(String url, String title) {
+            launchPdfViewerIntent(url, title);
+        }
+
+        @JavascriptInterface
+        public void openExternalUrl(String url) {
+            if (url == null || url.isEmpty()) return;
+            runOnUiThread(() -> {
+                try {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                } catch (Exception ignored) {}
             });
         }
     }
