@@ -15,6 +15,7 @@ Auto-injected by GitHub Actions (no config needed):
 import json
 import os
 import re
+import subprocess
 import sys
 import time
 from datetime import date
@@ -79,28 +80,36 @@ print("    Deploy ID: " + cache_version)
 
 # ── Write version.json ────────────────────────────────────────────────────────
 github_repo = os.environ.get("GITHUB_REPOSITORY", "JeeventhiranV/LedgerMate")
-apk_version_code = 330
+apk_version_code = 335
 
+# 1. Attempt git rev-list count
 try:
-    git_count = subprocess.check_output(["git", "rev-list", "--count", "HEAD"]).decode().strip()
+    git_count = subprocess.check_output(["git", "rev-list", "--count", "HEAD"], stderr=subprocess.DEVNULL).decode().strip()
     if git_count and git_count.isdigit():
-        apk_version_code = int(git_count)
+        apk_version_code = max(apk_version_code, int(git_count))
 except Exception as e:
     print(f"Notice getting git rev-list count: {e}")
 
-if apk_version_code <= 1 and os.path.exists("version.json"):
-    try:
-        with open("version.json", "r") as f:
-            old_ver = json.load(f)
-            apk_version_code = int(old_ver.get("apkVersionCode", apk_version_code))
-    except Exception as e:
-        print(f"Warning reading version.json: {e}")
+# 2. Check existing version.json files
+for v_file in ["version.json", "study/version.json"]:
+    if os.path.exists(v_file):
+        try:
+            with open(v_file, "r") as f:
+                old_ver = json.load(f)
+                old_code = int(old_ver.get("apkVersionCode", 0))
+                if old_code > 0:
+                    apk_version_code = max(apk_version_code, old_code)
+        except Exception as e:
+            print(f"Warning reading {v_file}: {e}")
 
-if os.environ.get("APK_BUILD_NUMBER"):
-    try:
-        apk_version_code = int(os.environ["APK_BUILD_NUMBER"])
-    except Exception:
-        pass
+# 3. Check environment overrides
+for env_key in ["APK_BUILD_NUMBER", "BUILD_NUMBER", "GITHUB_RUN_NUMBER"]:
+    val = os.environ.get(env_key)
+    if val and val.strip().isdigit():
+        try:
+            apk_version_code = max(apk_version_code, int(val.strip()))
+        except Exception:
+            pass
 
 apk_version_name = f"1.0.{apk_version_code}"
 apk_download_url = f"https://github.com/{github_repo}/releases/download/latest/app-release.apk"

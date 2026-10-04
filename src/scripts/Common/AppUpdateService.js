@@ -92,6 +92,23 @@
     }, 3500);
   }
 
+  function isSemanticNewer(remoteVerStr, currentVerStr) {
+    try {
+      const cleanR = String(remoteVerStr || '').replace(/^lm-v|^v/, '').trim();
+      const cleanC = String(currentVerStr || '').replace(/^lm-v|^v/, '').trim();
+      if (!cleanR || !cleanC || cleanR === cleanC) return false;
+      const rParts = cleanR.split('.').map(x => parseInt(x, 10) || 0);
+      const cParts = cleanC.split('.').map(x => parseInt(x, 10) || 0);
+      for (let i = 0; i < Math.max(rParts.length, cParts.length); i++) {
+        const r = rParts[i] || 0;
+        const c = cParts[i] || 0;
+        if (r > c) return true;
+        if (r < c) return false;
+      }
+    } catch (e) {}
+    return false;
+  }
+
   async function fetchLatestVersionMeta() {
     var primaryUrl = 'version.json';
     try {
@@ -113,21 +130,122 @@
     if (typeof window !== 'undefined' && window.location && window.location.origin) {
       candidateUrls.push(window.location.origin + '/version.json');
       candidateUrls.push(window.location.origin + '/LedgerMate/version.json');
+      candidateUrls.push(window.location.origin + '/study/version.json');
     }
+    candidateUrls.push('https://jeeventhiranv.github.io/LedgerMate/version.json');
     candidateUrls.push('https://raw.githubusercontent.com/JeeventhiranV/LedgerMate/main/version.json');
+    candidateUrls.push('https://github.com/JeeventhiranV/LedgerMate/releases/download/latest/version.json');
+
     const uniqueUrls = Array.from(new Set(candidateUrls));
-    for (const u of uniqueUrls) {
+    const results = [];
+    const cacheBuster = `_t=${Date.now()}&_r=${Math.random().toString(36).slice(2, 8)}`;
+
+    // 1. Concurrently fetch all version.json endpoints
+    const versionJsonPromises = uniqueUrls.map(async (u) => {
       try {
-        const res = await fetch(u + '?_t=' + Date.now(), { cache: 'no-store' });
+        const sep = u.includes('?') ? '&' : '?';
+        const res = await fetch(`${u}${sep}${cacheBuster}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        });
         if (res.ok) {
           const data = await res.json();
           if (data && (typeof data.apkVersionCode !== 'undefined' || typeof data.version !== 'undefined' || typeof data.versionCode !== 'undefined')) {
-            return data;
+            const code = Number(data.apkVersionCode || data.versionCode || (data.apkVersionName && data.apkVersionName.split('.').pop()) || 0);
+            return {
+              ...data,
+              apkVersionCode: code,
+              apkVersionName: data.apkVersionName || (code > 0 ? `1.0.${code}` : (data.version || '1.0.0')),
+              apkDownloadUrl: data.apkDownloadUrl || 'https://github.com/JeeventhiranV/LedgerMate/releases/download/latest/app-release.apk',
+              sourceUrl: u
+            };
           }
         }
       } catch (e) {}
+      return null;
+    });
+
+    // 2. Concurrently fetch GitHub Releases API
+    const ghReleasePromise = (async () => {
+      try {
+        const ghUrl = `https://api.github.com/repos/JeeventhiranV/LedgerMate/releases/latest?${cacheBuster}`;
+        const res = await fetch(ghUrl, {
+          cache: 'no-store',
+          headers: {
+            'Accept': 'application/vnd.github.v3+json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+          }
+        });
+        if (res.ok) {
+          const release = await res.json();
+          if (release) {
+            let apkCode = 0;
+            let apkName = '';
+            // Parse from release name (e.g. "LedgerMate Android App v1.0.335") or tag_name
+            const combinedText = `${release.name || ''} ${release.tag_name || ''}`;
+            const match = combinedText.match(/(?:v|1\.0\.)(\d{2,})/);
+            if (match && match[1]) {
+              apkCode = parseInt(match[1], 10);
+              apkName = `1.0.${apkCode}`;
+            }
+
+            // Find APK asset URL
+            let downloadUrl = 'https://github.com/JeeventhiranV/LedgerMate/releases/download/latest/app-release.apk';
+            if (Array.isArray(release.assets)) {
+              const apkAsset = release.assets.find(a => a.name && a.name.endsWith('.apk') && !a.name.includes('debug'));
+              if (apkAsset && apkAsset.browser_download_url) {
+                downloadUrl = apkAsset.browser_download_url;
+                if (!apkCode) {
+                  const assetMatch = apkAsset.name.match(/(?:v|1\.0\.)(\d{2,})/);
+                  if (assetMatch && assetMatch[1]) {
+                    apkCode = parseInt(assetMatch[1], 10);
+                    apkName = `1.0.${apkCode}`;
+                  }
+                }
+              }
+            }
+
+            if (apkCode > 0) {
+              return {
+                version: release.tag_name || apkName,
+                commit: release.target_commitish || '',
+                apkVersionCode: apkCode,
+                apkVersionName: apkName || `1.0.${apkCode}`,
+                apkDownloadUrl: downloadUrl,
+                releaseNotes: release.body || 'Feature updates, performance enhancements, UI improvements, and bug fixes.',
+                sourceUrl: 'github-api'
+              };
+            }
+          }
+        }
+      } catch (e) {}
+      return null;
+    })();
+
+    const allSettled = await Promise.allSettled([...versionJsonPromises, ghReleasePromise]);
+    for (const settled of allSettled) {
+      if (settled.status === 'fulfilled' && settled.value) {
+        results.push(settled.value);
+      }
     }
-    return null;
+
+    if (results.length === 0) return null;
+
+    // Pick candidate with the highest apkVersionCode
+    results.sort((a, b) => {
+      const codeA = Number(a.apkVersionCode || 0);
+      const codeB = Number(b.apkVersionCode || 0);
+      if (codeB !== codeA) return codeB - codeA;
+      const tsA = Number(a.timestamp || 0);
+      const tsB = Number(b.timestamp || 0);
+      return tsB - tsA;
+    });
+
+    console.log('[AppUpdate] Evaluated version candidates:', results);
+    return results[0];
   }
 
   function injectModalStyles() {
@@ -747,6 +865,8 @@
       const currentVer = getInstalledVersion();
       const currentCode = Number(currentVer.versionCode) || 1;
       const remoteCode  = Number(remoteMeta && (remoteMeta.apkVersionCode || remoteMeta.versionCode)) || currentCode;
+      const currentName = String(currentVer.versionName || '1.0.0');
+      const remoteName  = String((remoteMeta && (remoteMeta.apkVersionName || remoteMeta.version)) || currentName);
 
       if (!isNative) {
         // Web / PWA mode
@@ -769,13 +889,13 @@
           } else {
             updateSidebarVersionBadge(false);
             if (manual) {
-              showNotificationToast(`App is up to date! (${remoteDeploy || activeDeploy || 'v1.0.288'})`, 'success');
+              showNotificationToast(`App is up to date! (${remoteDeploy || activeDeploy || ('v' + currentName)})`, 'success');
             }
           }
         } else {
           updateSidebarVersionBadge(false);
           if (manual) {
-            showNotificationToast('App is up to date! (v1.0.288)', 'success');
+            showNotificationToast(`App is up to date! (v${currentName})`, 'success');
           }
         }
         return;
@@ -784,14 +904,16 @@
       // Native Android APK mode
       if (!remoteMeta) {
         if (manual) {
-          showNotificationToast('⚠️ Could not connect to update server.', 'warning');
+          showNotificationToast('⚠️ Could not connect to update server. Please check your connection.', 'warning');
         }
         return;
       }
 
-      console.log(`[AppUpdate] Installed: v${currentVer.versionName} (${currentCode}), Remote: v${remoteMeta.apkVersionName} (${remoteCode})`);
+      console.log(`[AppUpdate] Installed: v${currentName} (code ${currentCode}), Remote Highest: v${remoteName} (code ${remoteCode})`);
 
-      if (remoteCode > currentCode) {
+      const hasUpdate = (remoteCode > currentCode) || (remoteCode === currentCode && isSemanticNewer(remoteName, currentName));
+
+      if (hasUpdate) {
         updateSidebarVersionBadge(true);
         if (!manual) {
           // Check snooze cooldown
@@ -806,7 +928,7 @@
       } else {
         updateSidebarVersionBadge(false);
         if (manual) {
-          showNotificationToast(`You're on the latest version (v${currentVer.versionName})`, 'success');
+          showNotificationToast(`You're on the latest version (v${currentName})`, 'success');
         }
       }
     } catch (e) {

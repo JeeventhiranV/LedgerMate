@@ -1,10 +1,10 @@
 {
-  "version": "lm-v2.28.0",
-  "commit": "d077e54",
-  "build_date": "20261003",
-  "timestamp": 1791048000000,
-  "apkVersionCode": 330,
-  "apkVersionName": "1.0.330",
+  "version": "lm-v20261004.local",
+  "commit": "local",
+  "build_date": "20261004",
+  "timestamp": 1791085615122,
+  "apkVersionCode": 335,
+  "apkVersionName": "1.0.335",
   "apkDownloadUrl": "https://github.com/JeeventhiranV/LedgerMate/releases/download/latest/app-release.apk",
   "releaseNotes": "Feature updates, security enhancements, UI improvements, and bug fixes."
 }
