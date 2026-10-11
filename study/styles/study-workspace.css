@@ -397,7 +397,7 @@
   margin-bottom: 14px;
 }
 .goals-title {
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-heading, 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
   font-size: 14px;
   font-weight: 700;
   color: var(--text, #fff);
@@ -507,7 +507,7 @@
   background: rgba(255, 255, 255, 0.02);
 }
 .ws-modal-title {
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-heading, 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
   font-size: 16px;
   font-weight: 700;
   color: var(--text, #fff);
@@ -985,7 +985,7 @@ input:checked + .ws-slider:before { transform: translateX(18px); }
   flex: 1;
 }
 .custom-section-hero-title {
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-heading, 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
   font-size: 17px;
   font-weight: 700;
   color: var(--text, #fff);
@@ -1315,7 +1315,7 @@ input:checked + .ws-slider:before { transform: translateX(18px); }
   flex-shrink: 0;
 }
 .ws-studio-title {
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-heading, 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
   font-size: 18px;
   font-weight: 800;
   color: var(--text, #fff);
@@ -1722,7 +1722,7 @@ body.sfv-modal-open {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-heading, 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
 }
 
 .sfv-filesize {
@@ -1990,7 +1990,7 @@ body.sfv-modal-open {
 .sfv-doc-heading {
   margin: 0 0 18px;
   font-size: 20px;
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-heading, 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
   color: var(--text, #fff);
   border-bottom: 1px solid var(--border, #202738);
   padding-bottom: 14px;

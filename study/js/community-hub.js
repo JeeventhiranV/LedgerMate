@@ -110,7 +110,7 @@
 .ch-panel.hidden{opacity:0;transform:scale(.92);pointer-events:none}
 .ch-panel-hdr{display:flex;align-items:center;gap:10px;padding:12px 16px 10px;border-bottom:1px solid var(--border,#1e2436);cursor:grab;flex-shrink:0}
 .ch-panel-hdr:active{cursor:grabbing}
-.ch-panel-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text,#e2e8f8);flex:1}
+.ch-panel-title{font-family:var(--font-heading,'Plus Jakarta Sans',sans-serif);font-size:13px;font-weight:700;color:var(--text,#e2e8f8);flex:1}
 .ch-panel-meta{font-size:10px;color:var(--text3,#535d7e);margin-top:1px}
 .ch-hdr-btn{background:none;border:none;cursor:pointer;color:var(--text3,#535d7e);padding:4px 5px;border-radius:5px;font-size:13px;transition:color .14s;line-height:1}
 .ch-hdr-btn:hover{color:var(--text,#e2e8f8)}

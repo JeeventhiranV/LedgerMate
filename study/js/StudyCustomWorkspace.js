@@ -1145,7 +1145,7 @@
 
         <!-- Inline Section Creator Form -->
         <div class="studio-inline-form-card">
-          <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;">
+          <div style="font-family:var(--font-heading,'Plus Jakarta Sans',sans-serif);font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;">
             ✨ Quick Create New Track
           </div>
           <div class="ws-form-group">
@@ -3387,7 +3387,7 @@
         document.getElementById('customSectionsWrap').innerHTML = `
           <div class="custom-track-empty-hero" style="background:var(--bg2,#11141c);border:1px dashed var(--border,#262f45);border-radius:16px;padding:24px 20px;text-align:center;margin-bottom:28px;">
             <div style="font-size:28px;margin-bottom:6px;">🚀</div>
-            <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--text,#fff);margin-bottom:4px;">Custom Learning Tracks &amp; Workspaces</div>
+            <div style="font-family:var(--font-heading,'Plus Jakarta Sans',sans-serif);font-size:16px;font-weight:800;color:var(--text,#fff);margin-bottom:4px;">Custom Learning Tracks &amp; Workspaces</div>
             <p style="font-size:12.5px;color:var(--text3,#8a95b8);max-width:520px;margin:0 auto 14px;line-height:1.5;">
               Create customized learning domains, attach PDFs/docs/links, set target goals, and launch dedicated full-page topic workspaces.
             </p>

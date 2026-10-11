@@ -558,7 +558,7 @@
         <!-- Score Overview -->
         <div style="padding:20px 22px;overflow-y:auto;flex:1;">
           <div style="text-align:center;padding:16px 0 24px;border-bottom:1px solid var(--border,#262f45);">
-            <div style="font-size:48px;font-weight:800;font-family:'Syne',sans-serif;color:${pct >= 70 ? '#06d6a0' : pct >= 50 ? '#f59e0b' : '#f43f5e'};margin-bottom:4px;">${pct}%</div>
+            <div style="font-size:48px;font-weight:800;font-family:var(--font-heading,'Plus Jakarta Sans',sans-serif);letter-spacing:-0.03em;color:${pct >= 70 ? '#06d6a0' : pct >= 50 ? '#f59e0b' : '#f43f5e'};margin-bottom:4px;">${pct}%</div>
             <div style="font-size:14px;font-weight:600;color:#fff;">You answered ${correct} out of ${total} correctly</div>
             <div style="font-size:12px;color:var(--text2,#8896b8);margin-top:4px;">Time completed: ${_fmtTime(timeSpent)}</div>
           </div>

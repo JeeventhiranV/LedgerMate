@@ -8,7 +8,7 @@
 <meta name="description" content="Enterprise Java Backend, Low-Level Design and System Design interview handbook — Java 21, Spring Boot 3, Kafka, Redis, Resilience4j, design patterns, with diagrams, full code and interview Q&A.">
 <meta name="robots" content="index,follow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- Syntax highlighting -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
 <link rel="stylesheet" href="../styles/study-responsive.css">
@@ -35,7 +35,7 @@
   }
   *{margin:0;padding:0;box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;line-height:1.6;transition:background .25s,color .25s}
+  body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Inter',sans-serif;letter-spacing:-0.011em;-webkit-font-smoothing:antialiased;line-height:1.6;transition:background .25s,color .25s}
   a{color:var(--accent);text-decoration:none}
 
   /* ── Header ── */
@@ -47,7 +47,7 @@
     border:1px solid var(--border);color:var(--text);font-size:1.05rem;line-height:1;padding:6px 11px;
     border-radius:8px;text-decoration:none;flex-shrink:0;transition:color .15s,border-color .15s}
   .hdr-back:hover{color:var(--accent);border-color:var(--accent)}
-  header h1{font-family:'Syne',sans-serif;font-size:1.05rem;color:var(--accent);white-space:nowrap}
+  header h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.05rem;color:var(--accent);white-space:nowrap}
   header h1 small{color:var(--muted);font-weight:400;font-size:.7rem;display:block;letter-spacing:.5px}
   .hdr-search{flex:1;max-width:420px;display:flex;align-items:center;gap:8px;background:var(--bg2);
     border:1px solid var(--border);border-radius:9px;padding:7px 12px}
@@ -107,7 +107,7 @@
   main{flex:1;min-width:0;padding:26px 32px 90px;max-width:1100px;margin:0 auto}
   .sd-topic-head{display:flex;align-items:flex-start;gap:14px;border-bottom:1px solid var(--border);padding-bottom:18px;margin-bottom:8px}
   .sd-topic-ico{font-size:2.2rem;line-height:1}
-  .sd-topic-h1{font-family:'Syne',sans-serif;font-size:1.7rem;font-weight:800}
+  .sd-topic-h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.7rem;font-weight:800}
   .sd-topic-sub{font-size:.8rem;color:var(--text2);margin-top:3px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .sd-topic-actions{margin-left:auto;display:flex;gap:8px;flex-shrink:0}
   .sd-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:.74rem;
@@ -121,7 +121,7 @@
   .sd-intopic-search input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:.82rem}
 
   .sd-block{border:1px solid var(--border);border-radius:11px;margin:14px 0;overflow:hidden;background:var(--surface)}
-  .sd-h2{font-family:'Syne',sans-serif;font-size:1.02rem;font-weight:700;color:var(--accent2);
+  .sd-h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.02rem;font-weight:700;color:var(--accent2);
     padding:13px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;user-select:none;background:var(--surface)}
   .sd-h2::before{content:'▾';font-size:.7rem;color:var(--muted);transition:transform .2s}
   .sd-block.collapsed .sd-h2::before{transform:rotate(-90deg)}
@@ -175,7 +175,7 @@
 
   /* overview / home */
   .sd-hero{background:linear-gradient(135deg,#161b29,#1b2236);border:1px solid var(--border);border-radius:14px;padding:30px 28px;margin-bottom:22px}
-  .sd-hero h2{font-family:'Syne',sans-serif;font-size:1.6rem;margin-bottom:10px}
+  .sd-hero h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.6rem;margin-bottom:10px}
   .sd-hero p{color:var(--text2);font-size:.9rem;max-width:760px}
   .sd-cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
   .sd-cat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:.15s}
