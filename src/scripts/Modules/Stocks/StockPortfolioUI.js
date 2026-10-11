@@ -779,7 +779,11 @@
 
     // 2. Stock Allocation Donut Chart
     var holdingCanvas = document.getElementById('stockHoldingChart');
-    if (holdingCanvas) {
+    if (holdingCanvas && typeof Chart !== 'undefined') {
+      if (typeof Chart.getChart === 'function') {
+        var existingHolding = Chart.getChart(holdingCanvas);
+        if (existingHolding) { try { existingHolding.destroy(); } catch(e){} }
+      }
       var holdingLabels = holdings.map(h => h.symbol);
       var holdingValues = holdings.map(h => h.metrics.currentValue);
       var hColors = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#14b8a6', '#6366f1', '#f97316'];

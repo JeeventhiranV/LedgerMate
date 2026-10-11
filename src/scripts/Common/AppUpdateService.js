@@ -48,6 +48,14 @@
       let verStr = (ver && ver.versionName) ? ver.versionName : '1.0.0';
       if (!verStr.startsWith('v')) verStr = 'v' + verStr;
 
+      if (!isNativeAndroid()) {
+        badge.textContent = verStr;
+        badge.title = `LedgerMate Web (${verStr})`;
+        badge.style.borderColor = '';
+        badge.style.color = '';
+        return;
+      }
+
       if (hasUpdate) {
         badge.innerHTML = `${verStr} <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#ef4444;box-shadow:0 0 6px #ef4444;margin-left:2px;animation:pulse 1.5s infinite;"></span>`;
         badge.title = `Update Available! Tap to install`;
@@ -826,6 +834,14 @@
   }
 
   async function checkForUpdates(manual = false) {
+    if (!isNativeAndroid()) {
+      // App update check is only required on the mobile app; disabled on web.
+      if (manual) {
+        showNotificationToast('App update is only available on the Android mobile app.', 'info');
+      }
+      return;
+    }
+
     if (_checking) return;
     const now = Date.now();
     if (!manual && now - _lastCheckedTime < 30000) return; // rate limit background checks to 30s
@@ -854,52 +870,12 @@
     }
 
     try {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(reg => {
-          reg.update().catch(() => {});
-        }).catch(() => {});
-      }
-
       const remoteMeta = await fetchLatestVersionMeta();
-      const isNative = isNativeAndroid();
       const currentVer = getInstalledVersion();
       const currentCode = Number(currentVer.versionCode) || 1;
       const remoteCode  = Number(remoteMeta && (remoteMeta.apkVersionCode || remoteMeta.versionCode)) || currentCode;
       const currentName = String(currentVer.versionName || '1.0.0');
       const remoteName  = String((remoteMeta && (remoteMeta.apkVersionName || remoteMeta.version)) || currentName);
-
-      if (!isNative) {
-        // Web / PWA mode
-        if (remoteMeta) {
-          const activeDeploy = (window.LM_DEPLOY_ID || localStorage.getItem('lm_active_deploy_commit') || '').replace(/^lm-v/, '');
-          const remoteDeploy = (remoteMeta.version || remoteMeta.apkVersionName || remoteMeta.commit || '').replace(/^lm-v/, '');
-          
-          if (remoteDeploy && activeDeploy && remoteDeploy !== activeDeploy) {
-            updateSidebarVersionBadge(true);
-            if (manual) {
-              showNotificationToast(`New build available (${remoteDeploy}). Updating...`, 'info');
-              if ('caches' in window) {
-                caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => {
-                  window.location.reload(true);
-                }).catch(() => window.location.reload(true));
-              } else {
-                window.location.reload(true);
-              }
-            }
-          } else {
-            updateSidebarVersionBadge(false);
-            if (manual) {
-              showNotificationToast(`App is up to date! (${remoteDeploy || activeDeploy || ('v' + currentName)})`, 'success');
-            }
-          }
-        } else {
-          updateSidebarVersionBadge(false);
-          if (manual) {
-            showNotificationToast(`App is up to date! (v${currentName})`, 'success');
-          }
-        }
-        return;
-      }
 
       // Native Android APK mode
       if (!remoteMeta) {
@@ -955,22 +931,33 @@
   window.LM_AppUpdateService = AppUpdateAPI;
   window.AppUpdateService = AppUpdateAPI;
 
-  // Immediate badge refresh on load
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+  // Only register background check triggers on native mobile app
+  if (isNativeAndroid()) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        updateSidebarVersionBadge(false);
+        setTimeout(() => checkForUpdates(false), 2000);
+      });
+    } else {
       updateSidebarVersionBadge(false);
       setTimeout(() => checkForUpdates(false), 2000);
+    }
+
+    // Check on app foreground/visibility change
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        setTimeout(() => checkForUpdates(false), 2000);
+      }
     });
   } else {
-    updateSidebarVersionBadge(false);
-    setTimeout(() => checkForUpdates(false), 2000);
-  }
-
-  // Check on app foreground/visibility change
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      setTimeout(() => checkForUpdates(false), 2000);
+    // On web: refresh version badge statically without triggering update checks
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        updateSidebarVersionBadge(false);
+      });
+    } else {
+      updateSidebarVersionBadge(false);
     }
-  });
+  }
 
 })();

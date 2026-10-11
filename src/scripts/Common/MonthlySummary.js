@@ -183,6 +183,11 @@ async function showMonthlySummary(selectedMonth = null, selectedYear = null, com
       });
     }
 
+    if (typeof Chart !== 'undefined' && typeof Chart.getChart === 'function') {
+      const existing = Chart.getChart(ctx);
+      if (existing) { try { existing.destroy(); } catch(e){} }
+    }
+
     new Chart(ctx, {
       type: 'bar',
       data: { labels: dataA.days, datasets },

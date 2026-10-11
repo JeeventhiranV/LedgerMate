@@ -840,7 +840,11 @@ function renderPredictionsTab(container) {
   setTimeout(() => {
     // Category pie
     const catCtx = document.getElementById('spendCatChart');
-    if (catCtx && topCats.length) {
+    if (catCtx && topCats.length && typeof Chart !== 'undefined') {
+      if (typeof Chart.getChart === 'function') {
+        const existing = Chart.getChart(catCtx);
+        if (existing) { try { existing.destroy(); } catch(e){} }
+      }
       const PALETTE = ['#3b82f6','#f59e0b','#10b981','#8b5cf6','#ef4444','#06b6d4','#f97316','#6366f1'];
       new Chart(catCtx, {
         type: 'doughnut',
@@ -851,7 +855,11 @@ function renderPredictionsTab(container) {
 
     // Trend bar chart
     const trendCtx = document.getElementById('spendTrendChart');
-    if (trendCtx && topCats.length) {
+    if (trendCtx && topCats.length && typeof Chart !== 'undefined') {
+      if (typeof Chart.getChart === 'function') {
+        const existing = Chart.getChart(trendCtx);
+        if (existing) { try { existing.destroy(); } catch(e){} }
+      }
       const months = [...new Set(topCats.flatMap(([,d])=>Object.keys(d.months)))].sort().slice(-3);
       const PALETTE2 = ['#3b82f6','#f59e0b','#10b981','#8b5cf6','#ef4444'];
       const datasets = topCats.slice(0,5).map(([cat,data], i) => ({
@@ -1040,6 +1048,10 @@ function renderRetirementTab(container) {
   setTimeout(() => {
     const canvas = document.getElementById('retirementChart');
     if (!canvas || typeof Chart === 'undefined') return;
+    if (typeof Chart.getChart === 'function') {
+      const existing = Chart.getChart(canvas);
+      if (existing) { try { existing.destroy(); } catch(e){} }
+    }
     const mo = yearsToRetire * 12;
     let cur = nw;
     const pts = [{ y: currentAge, v: cur }];

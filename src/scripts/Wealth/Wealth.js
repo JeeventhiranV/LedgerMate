@@ -2874,8 +2874,16 @@ function renderWealthNetWorth(container) {
   if (snapshots.length > 1) {
     setTimeout(() => {
       const ctx = document.getElementById('nwHistoryChart');
-      if (!ctx) return;
-      new Chart(ctx, {
+      if (!ctx || typeof Chart === 'undefined') return;
+      if (typeof Chart.getChart === 'function') {
+        const existing = Chart.getChart(ctx);
+        if (existing) { try { existing.destroy(); } catch(e){} }
+      }
+      if (window._nwHistoryChartInstance && typeof window._nwHistoryChartInstance.destroy === 'function') {
+        try { window._nwHistoryChartInstance.destroy(); } catch(e){}
+        window._nwHistoryChartInstance = null;
+      }
+      window._nwHistoryChartInstance = new Chart(ctx, {
         type: 'line',
         data: { labels: chartLabels, datasets: [{
           label: 'Net Worth', data: chartData,
@@ -3040,7 +3048,16 @@ function _doRenderAllocation(container) {
   if (totalCurrent > 0) {
     setTimeout(() => {
       const ctx = document.getElementById('allocDoughnut');
-      if (ctx) new Chart(ctx, {
+      if (!ctx || typeof Chart === 'undefined') return;
+      if (typeof Chart.getChart === 'function') {
+        const existing = Chart.getChart(ctx);
+        if (existing) { try { existing.destroy(); } catch(e){} }
+      }
+      if (window._allocDoughnutChartInstance && typeof window._allocDoughnutChartInstance.destroy === 'function') {
+        try { window._allocDoughnutChartInstance.destroy(); } catch(e){}
+        window._allocDoughnutChartInstance = null;
+      }
+      window._allocDoughnutChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: { labels: chartLabels, datasets: [{ data: chartData, backgroundColor: chartColors, borderWidth: 2, borderColor: 'transparent' }] },
         options: { responsive:true, maintainAspectRatio:false, cutout:'65%',
@@ -3632,7 +3649,18 @@ function renderWealthDashboard() {
   if (catEntries.length > 0) {
     setTimeout(() => {
       const ctx = document.getElementById('dashAllocChart');
-      if (ctx) new Chart(ctx, {
+      if (!ctx || typeof Chart === 'undefined') return;
+      if (typeof Chart.getChart === 'function') {
+        const existing = Chart.getChart(ctx);
+        if (existing) {
+          try { existing.destroy(); } catch(e){}
+        }
+      }
+      if (window._dashAllocChartInstance && typeof window._dashAllocChartInstance.destroy === 'function') {
+        try { window._dashAllocChartInstance.destroy(); } catch(e){}
+        window._dashAllocChartInstance = null;
+      }
+      window._dashAllocChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: { labels: catEntries.map(e=>e[0]), datasets: [{ data: catEntries.map(e=>e[1]), backgroundColor: catEntries.map(([c])=>(ASSET_CATEGORIES[c]||{color:'#888'}).color), borderWidth:2, borderColor:'transparent' }] },
         options: { responsive:true, maintainAspectRatio:true, cutout:'60%', plugins:{legend:{display:false},tooltip:{enabled:false}} }
