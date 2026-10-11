@@ -6,7 +6,7 @@
  *  1. Android Storage Access Framework (SAF) folder picker & native JSON writing.
  *  2. Web File System Access API (showDirectoryPicker) fallback for desktop/PWA.
  *  3. Automatic debounced snapshots on data change and scheduled periodic backups.
- *  4. 30-Day (1 Month) retention policy and max 100 backups cap (oldest pruned).
+ *  4. Non-destructive GZIP archiving into dedicated Backups/ folder (zero deletion policy).
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -15,8 +15,6 @@
 
   var _backupTimer = null;
   var _isBackingUp = false;
-  var MAX_RETENTION_DAYS = 30;
-  var MAX_BACKUP_COUNT = 100;
 
   function isNativeAndroid() {
     return typeof window.AndroidBridge !== 'undefined' &&
@@ -181,42 +179,69 @@
     return 'LedgerMate_Backup_' + yyyy + '-' + mm + '-' + dd + '_' + hh + min + ss + '.json';
   }
 
-  function _pruneWebFolder(dirHandle) {
+  function _archiveWebFolder(dirHandle) {
     return new Promise(function (resolve) {
       if (!dirHandle || typeof dirHandle.values !== 'function') { resolve(0); return; }
       (async function () {
         try {
           var files = [];
-          var now = Date.now();
-          var maxAgeMs = MAX_RETENTION_DAYS * 24 * 60 * 60 * 1000;
-          var deletedCount = 0;
+          var archivedCount = 0;
+
+          // Locate or create dedicated "Backups" subfolder inside dirHandle
+          var backupsDir;
+          try {
+            backupsDir = await dirHandle.getDirectoryHandle('Backups', { create: true });
+          } catch (e) {
+            backupsDir = null;
+          }
 
           for await (var entry of dirHandle.values()) {
             if (entry.kind === 'file' && entry.name.startsWith('LedgerMate_Backup_') && entry.name.endsWith('.json')) {
               var f = await entry.getFile();
-              if (f.lastModified && (now - f.lastModified) > maxAgeMs) {
-                try {
-                  await dirHandle.removeEntry(entry.name);
-                  deletedCount++;
-                  continue;
-                } catch (e) {}
-              }
-              files.push({ entry: entry, lastModified: f.lastModified || 0, name: entry.name });
+              files.push({ entry: entry, lastModified: f.lastModified || 0, name: entry.name, file: f });
             }
           }
 
-          if (files.length > MAX_BACKUP_COUNT) {
+          // Keep the newest backup uncompressed in root; compress all older ones into Backups/
+          if (files.length > 1 && backupsDir) {
             files.sort(function (a, b) { return b.lastModified - a.lastModified; }); // newest first
-            for (var i = MAX_BACKUP_COUNT; i < files.length; i++) {
+            for (var i = 1; i < files.length; i++) {
+              var item = files[i];
               try {
-                await dirHandle.removeEntry(files[i].name);
-                deletedCount++;
-              } catch (e) {}
+                var gzName = item.name + '.gz';
+                if (typeof CompressionStream !== 'undefined') {
+                  var fileData = await item.file.arrayBuffer();
+                  var cs = new CompressionStream('gzip');
+                  var writer = cs.writable.getWriter();
+                  writer.write(fileData);
+                  writer.close();
+                  var compressedBytes = await new Response(cs.readable).arrayBuffer();
+
+                  var destHandle = await backupsDir.getFileHandle(gzName, { create: true });
+                  var destWritable = await destHandle.createWritable();
+                  await destWritable.write(compressedBytes);
+                  await destWritable.close();
+
+                  await dirHandle.removeEntry(item.name);
+                  archivedCount++;
+                } else {
+                  // Fallback without compression: copy JSON into Backups/
+                  var content = await item.file.text();
+                  var fallbackHandle = await backupsDir.getFileHandle(item.name, { create: true });
+                  var fallbackWritable = await fallbackHandle.createWritable();
+                  await fallbackWritable.write(content);
+                  await fallbackWritable.close();
+                  await dirHandle.removeEntry(item.name);
+                  archivedCount++;
+                }
+              } catch (archiveErr) {
+                console.warn('[LocalBackup] Error archiving ' + item.name + ':', archiveErr);
+              }
             }
           }
-          resolve(deletedCount);
+          resolve(archivedCount);
         } catch (e) {
-          console.warn('[LocalBackup] Web pruning error:', e);
+          console.warn('[LocalBackup] Web archiving error:', e);
           resolve(0);
         }
       })();
@@ -253,7 +278,8 @@
             delete window.LM_NativeBridgeCallbacks[callbackId];
             _isBackingUp = false;
             if (res && res.status === 'success') {
-              console.log('[LocalBackup] ✅ Native backup saved:', fileName, 'Pruned:', res.prunedCount);
+              var archivedMsg = (res.archivedCount != null) ? res.archivedCount : (res.prunedCount || 0);
+              console.log('[LocalBackup] ✅ Native backup saved:', fileName, 'Archived & compressed:', archivedMsg);
               try { localStorage.setItem('lm_last_local_backup_time', String(Date.now())); } catch (e) {}
               if (!isSilent && typeof window.showToast === 'function') {
                 window.showToast('💾 Local backup created: ' + fileName, 'success');
@@ -288,10 +314,10 @@
             await writable.write(jsonStr);
             await writable.close();
 
-            var pruned = await _pruneWebFolder(dir);
+            var archived = await _archiveWebFolder(dir);
             _isBackingUp = false;
 
-            console.log('[LocalBackup] ✅ Web backup saved:', fileName, 'Pruned:', pruned);
+            console.log('[LocalBackup] ✅ Web backup saved:', fileName, 'Archived & compressed:', archived);
             try { localStorage.setItem('lm_last_local_backup_time', String(Date.now())); } catch (e) {}
             if (!isSilent && typeof window.showToast === 'function') {
               window.showToast('💾 Local backup created: ' + fileName, 'success');
@@ -359,8 +385,8 @@
     performBackup         : performBackup,
     queueAutoBackup       : queueAutoBackup,
     startAutoBackup       : startAutoBackup,
-    MAX_RETENTION_DAYS    : MAX_RETENTION_DAYS,
-    MAX_BACKUP_COUNT      : MAX_BACKUP_COUNT
+    MAX_RETENTION_DAYS    : null,
+    MAX_BACKUP_COUNT      : null
   };
 
 })();

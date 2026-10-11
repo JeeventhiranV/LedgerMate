@@ -497,12 +497,27 @@ function autoSortDropdowns(data) {
 // ----------------------------
 // File Import Handler
 // ----------------------------
+async function readFileTextOrGzip(file) {
+  if (!file) return '';
+  const lowerName = (file.name || '').toLowerCase();
+  if (lowerName.endsWith('.gz')) {
+    if (typeof DecompressionStream !== 'undefined') {
+      const ds = new DecompressionStream('gzip');
+      const decompressedStream = file.stream().pipeThrough(ds);
+      return await new Response(decompressedStream).text();
+    }
+    throw new Error('GZIP decompression not supported in this environment.');
+  }
+  return await file.text();
+}
+
 window.importData = async function(e) {
   const file = e?.target?.files?.[0];
   if (!file) return;
   try {
-    const txt = await file.text();
-    if (file.name.toLowerCase().endsWith('.csv')) {
+    const txt = await readFileTextOrGzip(file);
+    const lowerName = (file.name || '').toLowerCase();
+    if (lowerName.endsWith('.csv')) {
       await importCSVText(txt);
     } else {
       await fullImportJSONText(txt, 'Manual');
@@ -566,8 +581,18 @@ function bindUI(){
 
   // file import input
   if (!document.getElementById('fileImport')) {
-    const fi = document.createElement('input'); fi.type='file'; fi.accept='.csv,.json'; fi.id='fileImport'; fi.style.display='none';
-    fi.onchange = async(e)=>{ const f = e.target.files[0]; if (!f) return; const txt = await f.text(); if (f.name.endsWith('.csv')) await smartImportCSV(txt); else await fullImportJSONText(txt); }
+    const fi = document.createElement('input'); fi.type='file'; fi.accept='.csv,.json,.gz,.json.gz'; fi.id='fileImport'; fi.style.display='none';
+    fi.onchange = async(e)=>{
+      const f = e.target.files[0];
+      if (!f) return;
+      try {
+        const txt = await readFileTextOrGzip(f);
+        if (f.name.toLowerCase().endsWith('.csv')) await smartImportCSV(txt);
+        else await fullImportJSONText(txt);
+      } catch (err) {
+        if (typeof showToast === 'function') showToast('❌ Import error: ' + (err?.message || err), 'error');
+      }
+    };
     document.body.appendChild(fi);
   }
 }

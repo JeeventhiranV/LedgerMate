@@ -41,12 +41,16 @@ import androidx.biometric.BiometricPrompt;
 import java.util.concurrent.Executor;
 
 import androidx.documentfile.provider.DocumentFile;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
@@ -615,48 +619,132 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private int performBackupPruning(DocumentFile dir, int maxDays, int maxCount) {
-        int deletedCount = 0;
+        // Backups are never deleted; older backups are compressed and archived in Backups/
+        return performBackupArchivingAndCompression(dir);
+    }
+
+    private int performBackupArchivingAndCompression(DocumentFile selectedDir) {
+        int compressedCount = 0;
         try {
-            DocumentFile[] files = dir.listFiles();
-            if (files == null || files.length == 0) return 0;
+            if (selectedDir == null || !selectedDir.exists() || !selectedDir.isDirectory()) return 0;
 
-            long now = System.currentTimeMillis();
-            long maxAgeMs = (long) (maxDays > 0 ? maxDays : 30) * 24L * 60L * 60L * 1000L;
-            int cap = maxCount > 0 ? maxCount : 100;
+            // 1. Locate or create dedicated "Backups" subfolder inside selectedDir
+            DocumentFile backupFolder = selectedDir.findFile("backups");
+            if (backupFolder == null) {
+                backupFolder = selectedDir.findFile("Backups");
+            }
+            if (backupFolder == null) {
+                backupFolder = selectedDir.createDirectory("Backups");
+            }
+            if (backupFolder == null) {
+                backupFolder = selectedDir;
+            }
 
-            List<DocumentFile> backupFiles = new java.util.ArrayList<>();
-            for (DocumentFile f : files) {
-                if (f != null && f.isFile() && f.getName() != null &&
-                        (f.getName().startsWith("LedgerMate_Backup_") || f.getName().endsWith(".json"))) {
-                    // Check 30-day (1 month) expiration
-                    long fileTime = f.lastModified();
-                    if (fileTime > 0 && (now - fileTime) > maxAgeMs) {
-                        try {
-                            if (f.delete()) {
-                                deletedCount++;
-                                continue;
-                            }
-                        } catch (Exception ignored) {}
+            // 2. Identify all uncompressed JSON backup files in selectedDir root
+            DocumentFile[] rootFiles = selectedDir.listFiles();
+            List<DocumentFile> uncompressedBackups = new java.util.ArrayList<>();
+            if (rootFiles != null) {
+                for (DocumentFile f : rootFiles) {
+                    if (f != null && f.isFile() && f.getName() != null &&
+                            (f.getName().startsWith("LedgerMate_Backup_") || f.getName().startsWith("ledgermate_backup_")) &&
+                            f.getName().endsWith(".json")) {
+                        uncompressedBackups.add(f);
                     }
-                    backupFiles.add(f);
                 }
             }
 
-            // Check count cap (max 100 files, keep newest, delete oldest in LIFO/FIFO)
-            if (backupFiles.size() > cap) {
-                backupFiles.sort((a, b) -> Long.compare(b.lastModified(), a.lastModified()));
-                for (int i = cap; i < backupFiles.size(); i++) {
-                    try {
-                        if (backupFiles.get(i).delete()) {
-                            deletedCount++;
-                        }
-                    } catch (Exception ignored) {}
+            // Sort descending by lastModified (newest first)
+            if (uncompressedBackups.size() > 1) {
+                uncompressedBackups.sort((a, b) -> Long.compare(b.lastModified(), a.lastModified()));
+            }
+
+            // Keep index 0 (the single newest backup) in selectedDir root uncompressed.
+            // All older backups (index 1+) are compressed with GZIP into Backups/ folder.
+            for (int i = 1; i < uncompressedBackups.size(); i++) {
+                DocumentFile oldFile = uncompressedBackups.get(i);
+                if (compressAndArchiveFile(oldFile, backupFolder)) {
+                    compressedCount++;
                 }
             }
+
+            // 3. Scan inside backupFolder itself: compress any uncompressed .json files found there
+            if (backupFolder != selectedDir) {
+                DocumentFile[] subFiles = backupFolder.listFiles();
+                if (subFiles != null) {
+                    for (DocumentFile sf : subFiles) {
+                        if (sf != null && sf.isFile() && sf.getName() != null &&
+                                (sf.getName().startsWith("LedgerMate_Backup_") || sf.getName().startsWith("ledgermate_backup_")) &&
+                                sf.getName().endsWith(".json")) {
+                            if (compressAndArchiveFile(sf, backupFolder)) {
+                                compressedCount++;
+                            }
+                        }
+                    }
+                }
+            }
+
+            android.util.Log.i("MainActivity", "Local backup archiving completed. Compressed & moved: " + compressedCount);
         } catch (Exception e) {
-            android.util.Log.w("MainActivity", "Backup pruning error: " + e.getMessage());
+            android.util.Log.w("MainActivity", "Backup archiving error: " + e.getMessage());
         }
-        return deletedCount;
+        return compressedCount;
+    }
+
+    private boolean compressAndArchiveFile(DocumentFile sourceFile, DocumentFile targetFolder) {
+        if (sourceFile == null || !sourceFile.exists() || targetFolder == null || !targetFolder.exists()) return false;
+        String origName = sourceFile.getName();
+        if (origName == null || !origName.endsWith(".json")) return false;
+
+        String gzName = origName + ".gz";
+
+        // If compressed target already exists and has valid size, delete redundant uncompressed source
+        DocumentFile existingGz = targetFolder.findFile(gzName);
+        if (existingGz != null && existingGz.exists() && existingGz.length() > 0) {
+            try {
+                return sourceFile.delete();
+            } catch (Exception ignored) {
+                return false;
+            }
+        }
+
+        DocumentFile gzFile = targetFolder.createFile("application/gzip", gzName);
+        if (gzFile == null) {
+            gzFile = targetFolder.createFile("application/octet-stream", gzName);
+        }
+        if (gzFile == null) return false;
+
+        boolean success = false;
+        try (InputStream in = new BufferedInputStream(getContentResolver().openInputStream(sourceFile.getUri()));
+             OutputStream out = getContentResolver().openOutputStream(gzFile.getUri());
+             GZIPOutputStream gzipOut = new GZIPOutputStream(new BufferedOutputStream(out))) {
+            if (in == null || out == null) return false;
+
+            byte[] buffer = new byte[8192];
+            int len;
+            while ((len = in.read(buffer)) > 0) {
+                gzipOut.write(buffer, 0, len);
+            }
+            gzipOut.finish();
+            gzipOut.flush();
+            success = true;
+        } catch (Exception e) {
+            android.util.Log.w("MainActivity", "Failed to compress " + origName + ": " + e.getMessage());
+            try { gzFile.delete(); } catch (Exception ignored) {}
+            return false;
+        }
+
+        if (success && gzFile.length() > 0) {
+            try {
+                sourceFile.delete();
+                return true;
+            } catch (Exception e) {
+                android.util.Log.w("MainActivity", "Could not remove source after compression: " + e.getMessage());
+                return true;
+            }
+        } else {
+            try { gzFile.delete(); } catch (Exception ignored) {}
+            return false;
+        }
     }
 
     private void returnToJs(String callbackId, String jsonPayload) {
@@ -1540,14 +1628,15 @@ public class MainActivity extends AppCompatActivity {
                         out.flush();
                     }
 
-                    // Auto-prune backups older than 30 days or beyond 100 files cap
-                    int pruned = performBackupPruning(dir, 30, 100);
+                    // Compress and archive older backups into Backups/ without deleting
+                    int archived = performBackupArchivingAndCompression(dir);
 
                     JSONObject resp = new JSONObject();
                     resp.put("status", "success");
                     resp.put("fileName", name);
                     resp.put("fileUri", backupFile.getUri().toString());
-                    resp.put("prunedCount", pruned);
+                    resp.put("archivedCount", archived);
+                    resp.put("prunedCount", 0);
                     resp.put("timestamp", System.currentTimeMillis());
                     returnToJs(callbackId, resp.toString());
 
@@ -1576,10 +1665,11 @@ public class MainActivity extends AppCompatActivity {
                         sendError(callbackId, "Backup directory not accessible.");
                         return;
                     }
-                    int pruned = performBackupPruning(dir, maxDays > 0 ? maxDays : 30, maxCount > 0 ? maxCount : 100);
+                    int archived = performBackupArchivingAndCompression(dir);
                     JSONObject resp = new JSONObject();
                     resp.put("status", "success");
-                    resp.put("prunedCount", pruned);
+                    resp.put("archivedCount", archived);
+                    resp.put("prunedCount", 0);
                     returnToJs(callbackId, resp.toString());
                 } catch (Exception e) {
                     sendError(callbackId, "Prune failed: " + e.getMessage());
