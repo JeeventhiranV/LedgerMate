@@ -251,8 +251,24 @@
 
     if (results.length === 0) return null;
 
-    // Pick candidate with the highest apkVersionCode
-    results.sort((a, b) => {
+    // For Native Android APK updates, the ground truth is GitHub Releases.
+    // If a GitHub Release asset or API response exists, any candidate claiming a higher
+    // versionCode than what is published in GitHub Releases is phantom (e.g. from an unbuilt web commit).
+    let eligibleCandidates = results;
+    if (isNativeAndroid()) {
+      const releaseCandidate = results.find(r => r.sourceUrl === 'github-api' || (typeof r.sourceUrl === 'string' && r.sourceUrl.includes('/releases/download/latest/version.json')));
+      if (releaseCandidate && Number(releaseCandidate.apkVersionCode || 0) > 0) {
+        const maxReleaseCode = Number(releaseCandidate.apkVersionCode);
+        // Discard any phantom candidate claiming a versionCode higher than what exists in GitHub Releases
+        eligibleCandidates = results.filter(r => Number(r.apkVersionCode || 0) <= maxReleaseCode);
+        if (eligibleCandidates.length === 0) {
+          eligibleCandidates = [releaseCandidate];
+        }
+      }
+    }
+
+    // Pick candidate with the highest validated apkVersionCode
+    eligibleCandidates.sort((a, b) => {
       const codeA = Number(a.apkVersionCode || 0);
       const codeB = Number(b.apkVersionCode || 0);
       if (codeB !== codeA) return codeB - codeA;
@@ -261,8 +277,8 @@
       return tsB - tsA;
     });
 
-    console.log('[AppUpdate] Evaluated version candidates:', results);
-    return results[0];
+    console.log('[AppUpdate] Evaluated version candidates:', eligibleCandidates);
+    return eligibleCandidates[0];
   }
 
   function injectModalStyles() {

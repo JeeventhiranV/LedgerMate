@@ -25,16 +25,21 @@ jobs:
       - name: 🔢 Calculate Deterministic Build Number
         id: build_ver
         run: |
-          # Highest historical APK release was 349.
-          # Base offset of 12 on git rev-list ensures monotonic progression beyond 350.
+          # Highest historical APK release baseline
+          LATEST_CODE=354
+          REMOTE_CODE=$(curl -sL --max-time 10 "https://github.com/${{ github.repository }}/releases/download/latest/version.json" | grep -o '"apkVersionCode"[^,]*' | grep -o '[0-9]*' | head -n 1 || echo "0")
+          if [ -n "$REMOTE_CODE" ] && [ "$REMOTE_CODE" -gt "$LATEST_CODE" ] 2>/dev/null; then
+            LATEST_CODE=$REMOTE_CODE
+          fi
+
           GIT_COUNT=$(git rev-list --count HEAD)
           BUILD_NUM=$(( GIT_COUNT + 12 ))
-          if [ "$BUILD_NUM" -lt 351 ]; then
-            BUILD_NUM=351
+          if [ "$BUILD_NUM" -le "$LATEST_CODE" ]; then
+            BUILD_NUM=$(( LATEST_CODE + 1 ))
           fi
           echo "build_number=${BUILD_NUM}" >> $GITHUB_OUTPUT
           echo "version_name=1.0.${BUILD_NUM}" >> $GITHUB_OUTPUT
-          echo "Calculated APK VersionCode: ${BUILD_NUM}, VersionName: 1.0.${BUILD_NUM}"
+          echo "Calculated APK VersionCode: ${BUILD_NUM}, VersionName: 1.0.${BUILD_NUM} (Latest Release was: ${LATEST_CODE})"
 
       - name: ☕ Setup Java 17
         uses: actions/setup-java@v4

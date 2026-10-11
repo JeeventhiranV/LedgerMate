@@ -80,17 +80,18 @@ print("    Deploy ID: " + cache_version)
 
 # ── Write version.json ────────────────────────────────────────────────────────
 github_repo = os.environ.get("GITHUB_REPOSITORY", "JeeventhiranV/LedgerMate")
-apk_version_code = 351
 
-# 1. Attempt git rev-list count with offset (matching build-apk.yml)
-try:
-    git_count = subprocess.check_output(["git", "rev-list", "--count", "HEAD"], stderr=subprocess.DEVNULL).decode().strip()
-    if git_count and git_count.isdigit():
-        apk_version_code = max(apk_version_code, int(git_count) + 12)
-except Exception as e:
-    print(f"Notice getting git rev-list count: {e}")
+# The APK build workflow (build-apk.yml) is responsible for building APKs and releasing them.
+# When a web patch or web build runs (deploy.yml via gen_config.py), we MUST NOT increment
+# the APK version code, because no new APK was built!
+# Instead, we read the authoritative latest released APK version from GitHub Releases.
 
-# 2. Check existing version.json files
+apk_version_code = 354
+apk_version_name = "1.0.354"
+apk_download_url = f"https://github.com/{github_repo}/releases/download/latest/app-release.apk"
+release_notes = "Feature updates, security enhancements, UI improvements, and bug fixes."
+
+# 1. Read existing version.json files as baseline
 for v_file in ["version.json", "study/version.json"]:
     if os.path.exists(v_file):
         try:
@@ -98,22 +99,41 @@ for v_file in ["version.json", "study/version.json"]:
                 old_ver = json.load(f)
                 old_code = int(old_ver.get("apkVersionCode", 0))
                 if old_code > 0:
-                    apk_version_code = max(apk_version_code, old_code)
+                    apk_version_code = old_code
+                    if old_ver.get("apkVersionName"):
+                        apk_version_name = old_ver.get("apkVersionName")
+                    if old_ver.get("apkDownloadUrl"):
+                        apk_download_url = old_ver.get("apkDownloadUrl")
+                    if old_ver.get("releaseNotes"):
+                        release_notes = old_ver.get("releaseNotes")
+                    break
         except Exception as e:
-            print(f"Warning reading {v_file}: {e}")
+            print(f"Notice reading {v_file}: {e}")
 
-# 3. Check environment overrides
-for env_key in ["APK_BUILD_NUMBER", "BUILD_NUMBER", "GITHUB_RUN_NUMBER"]:
-    val = os.environ.get(env_key)
-    if val and val.strip().isdigit():
-        try:
-            apk_version_code = max(apk_version_code, int(val.strip()))
-        except Exception:
-            pass
+# 2. Query GitHub Releases for the actual latest published APK release
+try:
+    import urllib.request
+    rel_url = f"https://github.com/{github_repo}/releases/download/latest/version.json"
+    req = urllib.request.Request(rel_url, headers={"User-Agent": "LedgerMate-CI"})
+    with urllib.request.urlopen(req, timeout=6) as resp:
+        if resp.status == 200:
+            rel_ver = json.loads(resp.read().decode())
+            code = int(rel_ver.get("apkVersionCode", 0))
+            if code > 0:
+                apk_version_code = code
+                apk_version_name = rel_ver.get("apkVersionName", f"1.0.{code}")
+                apk_download_url = rel_ver.get("apkDownloadUrl", apk_download_url)
+                if rel_ver.get("releaseNotes"):
+                    release_notes = rel_ver.get("releaseNotes")
+                print(f"✅ Synced with latest published APK release: v{apk_version_name} (code: {apk_version_code})")
+except Exception as e:
+    print(f"Notice fetching release version.json: {e} (using baseline {apk_version_code})")
 
-apk_version_name = f"1.0.{apk_version_code}"
-apk_download_url = f"https://github.com/{github_repo}/releases/download/latest/app-release.apk"
-release_notes = "Feature updates, security enhancements, UI improvements, and bug fixes."
+# 3. Environment override (used only when an explicit APK build number is supplied)
+env_build = os.environ.get("APK_BUILD_NUMBER")
+if env_build and env_build.strip().isdigit():
+    apk_version_code = int(env_build.strip())
+    apk_version_name = f"1.0.{apk_version_code}"
 
 version_info = {
     "version": cache_version,
