@@ -6,8 +6,8 @@ android {
     namespace 'com.jeeva.ledgermate'
     compileSdk 34
 
-    def buildNum = System.getenv("BUILD_NUMBER") ?: (project.hasProperty("BUILD_NUMBER") ? project.property("BUILD_NUMBER") : "1")
-    def verName  = System.getenv("VERSION_NAME") ?: (project.hasProperty("VERSION_NAME") ? project.property("VERSION_NAME") : "1.0.0")
+    def buildNum = System.getenv("BUILD_NUMBER") ?: (project.hasProperty("BUILD_NUMBER") ? project.property("BUILD_NUMBER") : "351")
+    def verName  = System.getenv("VERSION_NAME") ?: (project.hasProperty("VERSION_NAME") ? project.property("VERSION_NAME") : "1.0.351")
 
     defaultConfig {
         applicationId "com.jeeva.ledgermate"

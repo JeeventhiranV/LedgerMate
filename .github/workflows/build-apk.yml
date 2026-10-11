@@ -3,10 +3,9 @@ name: 📱 Build Android APK
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.gitignore'
+    paths:
+      - 'android/**'
+      - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
 permissions:
@@ -26,7 +25,13 @@ jobs:
       - name: 🔢 Calculate Deterministic Build Number
         id: build_ver
         run: |
-          BUILD_NUM=$(git rev-list --count HEAD)
+          # Highest historical APK release was 349.
+          # Base offset of 12 on git rev-list ensures monotonic progression beyond 350.
+          GIT_COUNT=$(git rev-list --count HEAD)
+          BUILD_NUM=$(( GIT_COUNT + 12 ))
+          if [ "$BUILD_NUM" -lt 351 ]; then
+            BUILD_NUM=351
+          fi
           echo "build_number=${BUILD_NUM}" >> $GITHUB_OUTPUT
           echo "version_name=1.0.${BUILD_NUM}" >> $GITHUB_OUTPUT
           echo "Calculated APK VersionCode: ${BUILD_NUM}, VersionName: 1.0.${BUILD_NUM}"

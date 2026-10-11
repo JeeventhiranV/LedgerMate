@@ -80,13 +80,13 @@ print("    Deploy ID: " + cache_version)
 
 # ── Write version.json ────────────────────────────────────────────────────────
 github_repo = os.environ.get("GITHUB_REPOSITORY", "JeeventhiranV/LedgerMate")
-apk_version_code = 335
+apk_version_code = 351
 
-# 1. Attempt git rev-list count
+# 1. Attempt git rev-list count with offset (matching build-apk.yml)
 try:
     git_count = subprocess.check_output(["git", "rev-list", "--count", "HEAD"], stderr=subprocess.DEVNULL).decode().strip()
     if git_count and git_count.isdigit():
-        apk_version_code = max(apk_version_code, int(git_count))
+        apk_version_code = max(apk_version_code, int(git_count) + 12)
 except Exception as e:
     print(f"Notice getting git rev-list count: {e}")
 

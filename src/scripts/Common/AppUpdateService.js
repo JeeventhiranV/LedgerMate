@@ -17,9 +17,18 @@
   const DISMISS_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4 hours snooze on 'Remind Later'
 
   function isNativeAndroid() {
-    return typeof window.AndroidBridge !== 'undefined' &&
-           typeof window.AndroidBridge.isNativeApp === 'function' &&
-           window.AndroidBridge.isNativeApp();
+    if (typeof window === 'undefined' || !window.AndroidBridge) return false;
+    try {
+      if (typeof window.AndroidBridge.isNativeApp === 'function') {
+        return Boolean(window.AndroidBridge.isNativeApp());
+      }
+      if (typeof window.AndroidBridge.getAppVersion === 'function') {
+        return true;
+      }
+    } catch (e) {
+      return false;
+    }
+    return false;
   }
 
   function getInstalledVersion() {
@@ -931,33 +940,36 @@
   window.LM_AppUpdateService = AppUpdateAPI;
   window.AppUpdateService = AppUpdateAPI;
 
-  // Only register background check triggers on native mobile app
-  if (isNativeAndroid()) {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => {
-        updateSidebarVersionBadge(false);
-        setTimeout(() => checkForUpdates(false), 2000);
-      });
-    } else {
-      updateSidebarVersionBadge(false);
-      setTimeout(() => checkForUpdates(false), 2000);
-    }
+  function triggerBackgroundUpdateCheck() {
+    if (!isNativeAndroid()) return;
+    updateSidebarVersionBadge(false);
+    checkForUpdates(false);
+  }
 
-    // Check on app foreground/visibility change
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        setTimeout(() => checkForUpdates(false), 2000);
-      }
+  // Initial badge setup & mobile update triggers
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      updateSidebarVersionBadge(false);
+      setTimeout(triggerBackgroundUpdateCheck, 2000);
     });
   } else {
-    // On web: refresh version badge statically without triggering update checks
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => {
-        updateSidebarVersionBadge(false);
-      });
-    } else {
-      updateSidebarVersionBadge(false);
-    }
+    updateSidebarVersionBadge(false);
+    setTimeout(triggerBackgroundUpdateCheck, 2000);
   }
+
+  // Backup check at 4s in case AndroidBridge injection was delayed
+  setTimeout(triggerBackgroundUpdateCheck, 4000);
+
+  // Check on app foreground/visibility change (mobile only)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && isNativeAndroid()) {
+      setTimeout(triggerBackgroundUpdateCheck, 1500);
+    }
+  });
+  window.addEventListener('focus', () => {
+    if (isNativeAndroid()) {
+      setTimeout(triggerBackgroundUpdateCheck, 1500);
+    }
+  });
 
 })();
