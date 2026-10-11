@@ -3447,6 +3447,59 @@ body.privacy-mode [data-amount]:active {
   transform: scale(0.97) !important;
 }
 
+.loan-btn-danger {
+  padding: 9px 20px !important;
+  border-radius: 10px !important;
+  border: none !important;
+  background: linear-gradient(135deg, var(--rose), #ef4444) !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 2px 10px rgba(244, 63, 94, 0.3) !important;
+}
+.loan-btn-danger:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.45) !important;
+  opacity: 0.95 !important;
+}
+.loan-btn-danger:active {
+  transform: scale(0.97) !important;
+}
+
+/* Vehicle & General status badges */
+.v-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.3px !important;
+}
+.v-badge-success {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: var(--emerald, #10b981) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+.v-badge-warning {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: var(--gold, #f59e0b) !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+}
+.v-badge-danger {
+  background: rgba(244, 63, 94, 0.15) !important;
+  color: var(--rose, #f43f5e) !important;
+  border: 1px solid rgba(244, 63, 94, 0.3) !important;
+}
+.v-badge-neutral {
+  background: rgba(148, 163, 184, 0.12) !important;
+  color: var(--text-3, #94a3b8) !important;
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+}
+
 /* Mobile Responsiveness for Loan Modals */
 @media (max-width: 640px) {
   .loan-type-grid {

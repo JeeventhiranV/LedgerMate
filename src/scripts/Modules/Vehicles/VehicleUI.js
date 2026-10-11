@@ -100,7 +100,7 @@
             </div>
 
             <div style="display:flex;align-items:center;gap:8px;">
-              <button class="ws-btn-secondary" style="font-size:12px;padding:6px 12px;border-radius:10px;" onclick="window.LM_VehicleUI.openAddEditVehicleModal()">
+              <button class="btn-secondary" style="font-size:12px;padding:6px 14px;border-radius:10px;" onclick="window.LM_VehicleUI.openAddEditVehicleModal()">
                 + Add Vehicle
               </button>
             </div>
@@ -155,7 +155,7 @@
                     ${(activeVehicle.currentOdometer || 0).toLocaleString('en-IN')} <span style="font-size:12px;font-weight:600;color:var(--text3,#94a3b8);">KM</span>
                   </div>
                 </div>
-                <button class="ws-btn-secondary" style="font-size:11px;padding:4px 8px;border-radius:8px;" onclick="window.LM_VehicleUI.openUpdateOdometerModal('${activeVehicle.id}')" title="Quick Update Odometer">
+                <button class="btn-secondary" style="font-size:11px;padding:5px 10px;border-radius:8px;" onclick="window.LM_VehicleUI.openUpdateOdometerModal('${activeVehicle.id}')" title="Quick Update Odometer">
                   ✏️ Edit
                 </button>
               </div>
@@ -163,19 +163,19 @@
 
             <!-- Quick Action Bar -->
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;border-top:1px solid rgba(255,255,255,0.07);padding-top:14px;">
-              <button class="ws-btn-primary" style="font-size:12px;padding:5px 12px;border-radius:8px;" onclick="window.LM_VehicleUI.openLogServiceModal('${activeVehicle.id}', 'oil_change')">
+              <button class="btn-primary" style="font-size:12px;padding:6px 14px;border-radius:10px;" onclick="window.LM_VehicleUI.openLogServiceModal('${activeVehicle.id}', 'oil_change')">
                 🛢️ Log Oil Change
               </button>
-              <button class="ws-btn-secondary" style="font-size:12px;padding:5px 12px;border-radius:8px;" onclick="window.LM_VehicleUI.openLogServiceModal('${activeVehicle.id}', 'general_service')">
+              <button class="btn-secondary" style="font-size:12px;padding:6px 14px;border-radius:10px;" onclick="window.LM_VehicleUI.openLogServiceModal('${activeVehicle.id}', 'general_service')">
                 🔧 Log Service
               </button>
-              <button class="ws-btn-secondary" style="font-size:12px;padding:5px 12px;border-radius:8px;" onclick="window.LM_VehicleUI.openLogFuelModal('${activeVehicle.id}')">
+              <button class="btn-secondary" style="font-size:12px;padding:6px 14px;border-radius:10px;" onclick="window.LM_VehicleUI.openLogFuelModal('${activeVehicle.id}')">
                 ⛽ Add Fuel Fill
               </button>
-              <button class="ws-btn-secondary" style="font-size:12px;padding:5px 12px;border-radius:8px;" onclick="window.LM_VehicleUI.openAddEditVehicleModal('${activeVehicle.id}')">
+              <button class="btn-secondary" style="font-size:12px;padding:6px 14px;border-radius:10px;" onclick="window.LM_VehicleUI.openAddEditVehicleModal('${activeVehicle.id}')">
                 ⚙️ Vehicle Settings
               </button>
-              <button class="ws-btn-danger" style="font-size:12px;padding:5px 10px;border-radius:8px;margin-left:auto;" onclick="window.LM_VehicleUI.openDeleteConfirmModal('${activeVehicle.id}')" title="Delete Vehicle">
+              <button class="btn-danger" style="font-size:12px;padding:6px 12px;border-radius:10px;margin-left:auto;" onclick="window.LM_VehicleUI.openDeleteConfirmModal('${activeVehicle.id}')" title="Delete Vehicle">
                 🗑️
               </button>
             </div>
@@ -191,7 +191,7 @@
                   <span style="font-size:20px;">🛢️</span>
                   <strong style="font-size:14px;color:var(--text,#fff);">Engine Oil Health</strong>
                 </div>
-                <span class="st-badge ${oilInfo.isOverdue ? 'st-pending' : (oilInfo.isDueSoon ? 'st-inprogress' : 'st-completed')}" style="font-size:10px;">
+                <span class="v-badge ${oilInfo.isOverdue ? 'v-badge-danger' : (oilInfo.isDueSoon ? 'v-badge-warning' : 'v-badge-success')}">
                   ${oilInfo.isOverdue ? '🚨 OVERDUE' : (oilInfo.isDueSoon ? '⏳ DUE SOON' : '✅ HEALTHY')}
                 </span>
               </div>
@@ -224,7 +224,7 @@
                   <span style="font-size:20px;">🛡️</span>
                   <strong style="font-size:14px;color:var(--text,#fff);">Insurance Policy</strong>
                 </div>
-                <span class="st-badge ${insInfo.isExpired ? 'st-pending' : (insInfo.isExpiringSoon ? 'st-inprogress' : 'st-completed')}" style="font-size:10px;">
+                <span class="v-badge ${!insInfo.hasPolicy ? 'v-badge-neutral' : (insInfo.isExpired ? 'v-badge-danger' : (insInfo.isExpiringSoon ? 'v-badge-warning' : 'v-badge-success'))}">
                   ${!insInfo.hasPolicy ? 'NO POLICY' : (insInfo.isExpired ? '🚨 EXPIRED' : (insInfo.isExpiringSoon ? '⏳ EXPIRING SOON' : '✅ ACTIVE'))}
                 </span>
               </div>
@@ -252,7 +252,7 @@
                   <span style="font-size:20px;">🔧</span>
                   <strong style="font-size:14px;color:var(--text,#fff);">General Service</strong>
                 </div>
-                <span class="st-badge ${srvInfo.isOverdue ? 'st-pending' : (srvInfo.isDueSoon ? 'st-inprogress' : 'st-completed')}" style="font-size:10px;">
+                <span class="v-badge ${srvInfo.isOverdue ? 'v-badge-danger' : (srvInfo.isDueSoon ? 'v-badge-warning' : 'v-badge-success')}">
                   ${srvInfo.isOverdue ? '🚨 OVERDUE' : (srvInfo.isDueSoon ? '⏳ DUE SOON' : '✅ ON TRACK')}
                 </span>
               </div>
@@ -272,7 +272,7 @@
                   <span style="font-size:20px;">💨</span>
                   <strong style="font-size:14px;color:var(--text,#fff);">PUC &amp; Tyre Specs</strong>
                 </div>
-                <span class="st-badge ${pucInfo.isExpired ? 'st-pending' : (pucInfo.isExpiringSoon ? 'st-inprogress' : 'st-completed')}" style="font-size:10px;">
+                <span class="v-badge ${!pucInfo.hasPuc ? 'v-badge-neutral' : (pucInfo.isExpired ? 'v-badge-danger' : 'v-badge-success')}">
                   ${!pucInfo.hasPuc ? 'NO PUC' : (pucInfo.isExpired ? '🚨 PUC EXPIRED' : '✅ PUC OK')}
                 </span>
               </div>
@@ -362,7 +362,7 @@
                 Key inspections recommended every <strong>${benchmark.serviceIntervalKm.toLocaleString('en-IN')} km</strong> or <strong>${benchmark.serviceIntervalMonths} months</strong>
               </div>
             </div>
-            <button class="ws-btn-primary" style="font-size:11px;padding:4px 10px;" onclick="window.LM_VehicleUI.openLogServiceModal('${vehicle.id}', 'general_service')">
+            <button class="btn-primary" style="font-size:11px;padding:6px 12px;border-radius:8px;" onclick="window.LM_VehicleUI.openLogServiceModal('${vehicle.id}', 'general_service')">
               + Log Service Complete
             </button>
           </div>
@@ -397,7 +397,7 @@
               <h3 style="font-size:15px;font-weight:700;color:var(--text,#fff);margin:0;">🔧 Service &amp; Repair History</h3>
               <div style="font-size:12px;color:var(--text3,#94a3b8);margin-top:2px;">Complete record of maintenance, oil replacements, repairs, and expenditures</div>
             </div>
-            <button class="ws-btn-primary" style="font-size:11px;padding:6px 12px;" onclick="window.LM_VehicleUI.openLogServiceModal('${vehicle.id}')">
+            <button class="btn-primary" style="font-size:11px;padding:6px 14px;border-radius:8px;" onclick="window.LM_VehicleUI.openLogServiceModal('${vehicle.id}')">
               + Log Service / Oil Change
             </button>
           </div>
@@ -459,7 +459,7 @@
                     </div>
                     <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
                       ${l.cost > 0 ? `<div style="text-align:right;"><div style="font-size:15px;font-weight:800;color:#38bdf8;">${_fmtINR(l.cost)}</div><div style="font-size:9.5px;color:var(--text3,#94a3b8);">Expenditure</div></div>` : '<span style="font-size:11px;color:var(--text3,#94a3b8);">Free / DIY</span>'}
-                      <button class="ws-btn-secondary" style="font-size:11px;padding:4px 8px;color:#f43f5e;border-color:rgba(244,63,94,0.3);" title="Delete Log" onclick="window.LM_VehicleUI.deleteServiceLog('${vehicle.id}', '${l.id}')">✕</button>
+                      <button class="btn-secondary" style="font-size:11px;padding:4px 8px;color:#f43f5e;border-color:rgba(244,63,94,0.3);border-radius:6px;" title="Delete Log" onclick="window.LM_VehicleUI.deleteServiceLog('${vehicle.id}', '${l.id}')">✕</button>
                     </div>
                   </div>
                 `;
@@ -491,7 +491,7 @@
               <h3 style="font-size:15px;font-weight:700;color:var(--text,#fff);margin:0;">Fuel Fills &amp; Mileage Tracking</h3>
               <div style="font-size:12px;color:var(--text3,#94a3b8);margin-top:2px;">Track petrol consumption and actual running economy</div>
             </div>
-            <button class="ws-btn-primary" style="font-size:11px;padding:4px 10px;" onclick="window.LM_VehicleUI.openLogFuelModal('${vehicle.id}')">
+            <button class="btn-primary" style="font-size:11px;padding:6px 14px;border-radius:8px;" onclick="window.LM_VehicleUI.openLogFuelModal('${vehicle.id}')">
               + Log Fuel Fill
             </button>
           </div>
@@ -530,7 +530,7 @@
                   <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);padding:10px 14px;border-radius:10px;flex-wrap:wrap;gap:8px;">
                     <div>
                       <div style="font-size:13px;font-weight:700;color:var(--text,#fff);">
-                        ${f.liters} Liters ${_fmtINR(f.cost)} ${f.isFullTank ? '<span class="st-badge st-completed" style="font-size:9px;padding:1px 5px;">Full Tank</span>' : ''}
+                        ${f.liters} Liters ${_fmtINR(f.cost)} ${f.isFullTank ? '<span class="v-badge v-badge-success" style="font-size:9px;padding:1px 6px;">Full Tank</span>' : ''}
                       </div>
                       <div style="font-size:11.5px;color:var(--text3,#94a3b8);margin-top:2px;">
                         ${f.date} · Odo: ${f.odometer ? f.odometer.toLocaleString('en-IN') + ' km' : 'N/A'} ${f.fuelStation ? '· ' + _esc(f.fuelStation) : ''}
@@ -543,7 +543,7 @@
                           ${f.calculatedCostPerKm > 0 ? `<div style="font-size:10px;color:var(--text3,#94a3b8);">₹${f.calculatedCostPerKm}/km</div>` : ''}
                         </div>
                       ` : ''}
-                      <button class="ws-btn-secondary" style="font-size:10px;padding:3px 6px;" onclick="window.LM_VehicleUI.deleteFuelLog('${vehicle.id}', '${f.id}')">✕</button>
+                      <button class="btn-secondary" style="font-size:10px;padding:3px 8px;border-radius:6px;" onclick="window.LM_VehicleUI.deleteFuelLog('${vehicle.id}', '${f.id}')">✕</button>
                     </div>
                   </div>
                 `;
@@ -610,18 +610,18 @@
             Get engine oil change countdowns, service interval roadmaps, insurance expiry alerts, and fuel mileage calculations.
           </p>
 
-          <button class="ws-btn-primary" style="font-size:14px;padding:10px 24px;border-radius:12px;box-shadow:0 4px 14px rgba(2,132,199,0.4);" onclick="window.LM_VehicleUI.openAddEditVehicleModal()">
+          <button class="btn-primary" style="font-size:14px;padding:12px 28px;border-radius:12px;box-shadow:0 4px 16px rgba(0,240,255,0.3);" onclick="window.LM_VehicleUI.openAddEditVehicleModal()">
             + Add Your Bike or Scooty
           </button>
 
           <div style="margin-top:36px;border-top:1px solid rgba(255,255,255,0.08);padding-top:24px;text-align:left;">
             <div style="font-size:12px;text-transform:uppercase;color:var(--text3,#94a3b8);font-weight:700;margin-bottom:12px;">Quick Presets Supported:</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <span class="st-badge st-completed">🛵 Scooters (Activa, Jupiter, Access)</span>
-              <span class="st-badge st-completed">🏍️ Commuter (Splendor, Shine, Platina)</span>
-              <span class="st-badge st-completed">🏍️ Cruiser (Classic 350, Hunter)</span>
-              <span class="st-badge st-completed">🏍️ Performance (MT-15, R15, Duke)</span>
-              <span class="st-badge st-completed">⚡ Electric (Ather, Ola, iQube)</span>
+              <span class="v-badge v-badge-success">🛵 Scooters (Activa, Jupiter, Access)</span>
+              <span class="v-badge v-badge-success">🏍️ Commuter (Splendor, Shine, Platina)</span>
+              <span class="v-badge v-badge-success">🏍️ Cruiser (Classic 350, Hunter)</span>
+              <span class="v-badge v-badge-success">🏍️ Performance (MT-15, R15, Duke)</span>
+              <span class="v-badge v-badge-success">⚡ Electric (Ather, Ola, iQube)</span>
             </div>
           </div>
         </div>
@@ -637,152 +637,244 @@
       var service = _getService();
       var v = vehicleId ? service.getVehicleById(vehicleId) : null;
       var isEdit = !!v;
+      var curType = v?.type || 'commuter';
 
       var existing = document.getElementById('vehicleFormModal');
       if (existing) existing.remove();
 
       var modal = document.createElement('div');
       modal.id = 'vehicleFormModal';
-      modal.className = 'ws-modal-overlay';
+      modal.className = 'modal-overlay show';
+      modal.onclick = function (e) {
+        if (e.target === modal) modal.remove();
+      };
+
+      var escHandler = function (e) {
+        if (e.key === 'Escape') {
+          modal.remove();
+          document.removeEventListener('keydown', escHandler);
+        }
+      };
+      document.addEventListener('keydown', escHandler);
+
       modal.innerHTML = `
-        <div class="ws-modal-dialog" style="max-width:580px;max-height:90vh;overflow-y:auto;">
-          <div class="ws-modal-header">
-            <div class="ws-modal-title" style="color:#38bdf8;">
-              <span>${isEdit ? '✏️ Edit Vehicle' : '🏍️ Add New Vehicle'}</span>
+        <div class="modal loan-modal-box" style="max-width:620px;" onclick="event.stopPropagation()">
+          <div class="loan-modal-header">
+            <div class="loan-modal-header-icon">${isEdit ? '✏️' : '🏍️'}</div>
+            <div class="loan-modal-header-text">
+              <h3 class="loan-modal-title">${isEdit ? 'Edit Vehicle Details' : 'Add New Vehicle'}</h3>
+              <p class="loan-modal-subtitle">${isEdit ? 'Update specifications, service baselines & reminder dates' : 'Track maintenance intervals, engine oil, fuel & reminders'}</p>
             </div>
-            <button class="ws-modal-close" onclick="document.getElementById('vehicleFormModal')?.remove()">✕</button>
+            <button type="button" class="loan-modal-close-btn" onclick="document.getElementById('vehicleFormModal')?.remove()">×</button>
           </div>
-          <div class="ws-modal-body" style="padding:16px;">
+          <div class="modal-body loan-modal-body">
             <form id="vehicleForm" onsubmit="event.preventDefault(); window.LM_VehicleUI.saveVehicleForm('${vehicleId || ''}');">
               
-              <!-- Vehicle Basic Info -->
-              <div style="margin-bottom:14px;">
-                <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;font-weight:600;">Vehicle Type *</label>
-                <select id="vType" class="ws-input" onchange="window.LM_VehicleUI.onTypeChange(this.value)" required>
-                  <option value="scooter" ${v?.type==='scooter'?'selected':''}>🛵 Scooter / Scooty (Activa, Jupiter, Access)</option>
-                  <option value="commuter" ${(!v || v.type==='commuter')?'selected':''}>🏍️ Commuter Bike (Splendor, Shine, Platina)</option>
-                  <option value="cruiser" ${v?.type==='cruiser'?'selected':''}>🏍️ Cruiser / Classic (Royal Enfield, H'ness)</option>
-                  <option value="sports" ${v?.type==='sports'?'selected':''}>🏍️ Performance / Sports (MT-15, R15, Duke)</option>
-                  <option value="electric" ${v?.type==='electric'?'selected':''}>⚡ Electric 2-Wheeler (Ather, Ola, iQube)</option>
-                  <option value="car" ${v?.type==='car'?'selected':''}>🚗 Car / 4-Wheeler</option>
-                </select>
+              <!-- 1. Hero Vehicle Type Selection -->
+              <div class="loan-form-section">
+                <label class="loan-form-label">SELECT VEHICLE TYPE *</label>
+                <div class="loan-type-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-bottom: 16px;">
+                  <div class="loan-type-card ${curType === 'scooter' ? 'active' : ''}" data-type="scooter" onclick="window.LM_VehicleUI.selectVehicleType('scooter')">
+                    <div class="loan-type-card-radio"></div>
+                    <div class="loan-type-card-icon">🛵</div>
+                    <div class="loan-type-card-info">
+                      <div class="loan-type-card-title">Scooter / Scooty</div>
+                      <div class="loan-type-card-sub">Activa, Jupiter, Access, Ntorq</div>
+                    </div>
+                  </div>
+                  <div class="loan-type-card ${curType === 'commuter' ? 'active' : ''}" data-type="commuter" onclick="window.LM_VehicleUI.selectVehicleType('commuter')">
+                    <div class="loan-type-card-radio"></div>
+                    <div class="loan-type-card-icon">🏍️</div>
+                    <div class="loan-type-card-info">
+                      <div class="loan-type-card-title">Commuter Motorcycle</div>
+                      <div class="loan-type-card-sub">Splendor, Shine, Platina, Pulsar</div>
+                    </div>
+                  </div>
+                  <div class="loan-type-card ${curType === 'cruiser' ? 'active' : ''}" data-type="cruiser" onclick="window.LM_VehicleUI.selectVehicleType('cruiser')">
+                    <div class="loan-type-card-radio"></div>
+                    <div class="loan-type-card-icon">🏍️</div>
+                    <div class="loan-type-card-info">
+                      <div class="loan-type-card-title">Cruiser / Classic</div>
+                      <div class="loan-type-card-sub">Classic 350, Hunter, H'ness CB350</div>
+                    </div>
+                  </div>
+                  <div class="loan-type-card ${curType === 'sports' ? 'active' : ''}" data-type="sports" onclick="window.LM_VehicleUI.selectVehicleType('sports')">
+                    <div class="loan-type-card-radio"></div>
+                    <div class="loan-type-card-icon">🏍️</div>
+                    <div class="loan-type-card-info">
+                      <div class="loan-type-card-title">Performance / Sports</div>
+                      <div class="loan-type-card-sub">MT-15, R15, Duke, Apache RR</div>
+                    </div>
+                  </div>
+                  <div class="loan-type-card ${curType === 'electric' ? 'active' : ''}" data-type="electric" onclick="window.LM_VehicleUI.selectVehicleType('electric')">
+                    <div class="loan-type-card-radio"></div>
+                    <div class="loan-type-card-icon">⚡</div>
+                    <div class="loan-type-card-info">
+                      <div class="loan-type-card-title">Electric 2-Wheeler</div>
+                      <div class="loan-type-card-sub">Ather, Ola S1, TVS iQube, Chetak</div>
+                    </div>
+                  </div>
+                  <div class="loan-type-card ${curType === 'car' ? 'active' : ''}" data-type="car" onclick="window.LM_VehicleUI.selectVehicleType('car')">
+                    <div class="loan-type-card-radio"></div>
+                    <div class="loan-type-card-icon">🚗</div>
+                    <div class="loan-type-card-info">
+                      <div class="loan-type-card-title">Car / 4-Wheeler</div>
+                      <div class="loan-type-card-sub">Hatchback, Sedan, SUV, EV</div>
+                    </div>
+                  </div>
+                </div>
+                <input type="hidden" id="vType" value="${curType}" />
               </div>
 
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-                <div>
-                  <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;font-weight:600;">Vehicle Nickname / Title *</label>
-                  <input type="text" id="vName" class="ws-input" value="${_esc(v?.name || '')}" placeholder="e.g. My Yamaha MT-15" required />
+              <!-- 2. Vehicle Identification -->
+              <div class="loan-form-section">
+                <label class="loan-form-label">VEHICLE DETAILS</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                  <div>
+                    <label class="loan-form-label">Vehicle Nickname / Title *</label>
+                    <input type="text" id="vName" class="loan-input font-bold" value="${_esc(v?.name || '')}" placeholder="e.g. My Yamaha MT-15" required />
+                  </div>
+                  <div>
+                    <label class="loan-form-label">Registration Plate Number</label>
+                    <input type="text" id="vRegNumber" class="loan-input" value="${_esc(v?.regNumber || '')}" placeholder="e.g. TN 09 AB 1234" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;" />
+                  </div>
                 </div>
-                <div>
-                  <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;font-weight:600;">Registration Number (Plate)</label>
-                  <input type="text" id="vRegNumber" class="ws-input" value="${_esc(v?.regNumber || '')}" placeholder="e.g. TN 09 AB 1234" style="text-transform:uppercase;" />
-                </div>
-              </div>
 
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
-                <div>
-                  <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">Brand / Make</label>
-                  <input type="text" id="vBrand" class="ws-input" value="${_esc(v?.brand || '')}" placeholder="e.g. Yamaha, Honda" />
-                </div>
-                <div>
-                  <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">Model</label>
-                  <input type="text" id="vModel" class="ws-input" value="${_esc(v?.model || '')}" placeholder="e.g. MT-15, Activa 6G" />
-                </div>
-                <div>
-                  <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">Engine CC</label>
-                  <input type="number" id="vEngineCC" class="ws-input" value="${v?.engineCC || ''}" placeholder="e.g. 155" />
-                </div>
-              </div>
-
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
-                <div>
-                  <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;font-weight:600;">Current Odometer (KM) *</label>
-                  <input type="number" id="vOdo" class="ws-input" value="${v?.currentOdometer || 0}" min="0" required />
-                </div>
-                <div>
-                  <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">Daily Usage (Average KM)</label>
-                  <input type="number" id="vAvgDaily" class="ws-input" value="${v?.avgDailyKm || 20}" min="1" />
-                </div>
-              </div>
-
-              <!-- Engine Oil Settings -->
-              <div style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px;margin-bottom:14px;">
-                <div style="font-size:13px;font-weight:700;color:#38bdf8;margin-bottom:10px;">🛢️ Engine Oil Tracking</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
                   <div>
-                    <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:2px;">Last Oil Change Odo (KM)</label>
-                    <input type="number" id="vOilLastOdo" class="ws-input" value="${v?.oil?.lastChangedOdometer || 0}" min="0" />
+                    <label class="loan-form-label">Brand / Make</label>
+                    <input type="text" id="vBrand" class="loan-input" value="${_esc(v?.brand || '')}" placeholder="e.g. Yamaha, Honda" />
                   </div>
                   <div>
-                    <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:2px;">Last Oil Change Date</label>
-                    <input type="date" id="vOilLastDate" class="ws-input" value="${v?.oil?.lastChangedDate || ''}" />
-                  </div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                  <div>
-                    <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:2px;">Change Interval (KM)</label>
-                    <input type="number" id="vOilIntervalKm" class="ws-input" value="${v?.oil?.recommendedIntervalKm || 3000}" min="500" step="100" />
+                    <label class="loan-form-label">Model</label>
+                    <input type="text" id="vModel" class="loan-input" value="${_esc(v?.model || '')}" placeholder="e.g. MT-15, Activa 6G" />
                   </div>
                   <div>
-                    <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:2px;">Oil Grade / Spec</label>
-                    <input type="text" id="vOilGrade" class="ws-input" value="${_esc(v?.oil?.grade || '10W-30')}" placeholder="e.g. 10W-40 Synthetic" />
-                  </div>
-                </div>
-              </div>
-
-              <!-- General Service Settings -->
-              <div style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px;margin-bottom:14px;">
-                <div style="font-size:13px;font-weight:700;color:#38bdf8;margin-bottom:10px;">🔧 General Service Tracking</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
-                  <div>
-                    <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:2px;">Last Service Odo (KM)</label>
-                    <input type="number" id="vSrvLastOdo" class="ws-input" value="${v?.service?.lastServiceOdometer || 0}" min="0" />
-                  </div>
-                  <div>
-                    <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:2px;">Service Interval (KM)</label>
-                    <input type="number" id="vSrvIntervalKm" class="ws-input" value="${v?.service?.recommendedIntervalKm || 3500}" min="500" step="100" />
-                  </div>
-                </div>
-                <div>
-                  <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:2px;">Preferred Service Center / Mechanic</label>
-                  <input type="text" id="vSrvCenter" class="ws-input" value="${_esc(v?.service?.serviceCenter || '')}" placeholder="e.g. Official Service Center or Local Workshop" />
-                </div>
-              </div>
-
-              <!-- Insurance & PUC -->
-              <div style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px;margin-bottom:14px;">
-                <div style="font-size:13px;font-weight:700;color:#38bdf8;margin-bottom:10px;">🛡️ Insurance &amp; PUC Expiry</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
-                  <div>
-                    <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:2px;">Insurance Provider</label>
-                    <input type="text" id="vInsProvider" class="ws-input" value="${_esc(v?.insurance?.provider || '')}" placeholder="e.g. Acko, HDFC ERGO" />
-                  </div>
-                  <div>
-                    <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:2px;">Policy Expiry Date</label>
-                    <input type="date" id="vInsExpiry" class="ws-input" value="${v?.insurance?.expiryDate || ''}" />
-                  </div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                  <div>
-                    <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:2px;">Policy Number</label>
-                    <input type="text" id="vInsPolicyNo" class="ws-input" value="${_esc(v?.insurance?.policyNumber || '')}" placeholder="e.g. POL-123456" />
-                  </div>
-                  <div>
-                    <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:2px;">PUC Expiry Date</label>
-                    <input type="date" id="vPucExpiry" class="ws-input" value="${v?.puc?.expiryDate || ''}" />
+                    <label class="loan-form-label">Engine CC</label>
+                    <input type="number" id="vEngineCC" class="loan-input" value="${v?.engineCC || ''}" placeholder="e.g. 155" />
                   </div>
                 </div>
               </div>
 
-              <div class="ws-modal-footer" style="padding:10px 0 0;display:flex;justify-content:flex-end;gap:8px;">
-                <button type="button" class="ws-btn-secondary" onclick="document.getElementById('vehicleFormModal')?.remove()">Cancel</button>
-                <button type="submit" class="ws-btn-primary">Save Vehicle</button>
+              <!-- 3. Current Usage & Odometer -->
+              <div class="loan-form-section">
+                <label class="loan-form-label">CURRENT USAGE &amp; RUNNING</label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                  <div>
+                    <label class="loan-form-label">Current Odometer (KM) *</label>
+                    <input type="number" id="vOdo" class="loan-input font-bold" value="${v?.currentOdometer || 0}" min="0" required />
+                  </div>
+                  <div>
+                    <label class="loan-form-label">Daily Usage (Average KM)</label>
+                    <input type="number" id="vAvgDaily" class="loan-input" value="${v?.avgDailyKm || 20}" min="1" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 4. Engine Oil Settings Card -->
+              <div class="loan-calculation-card" style="margin-bottom:14px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                  <span style="font-size:16px;">🛢️</span>
+                  <span style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.4px;">Engine Oil Tracking</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                  <div>
+                    <label class="loan-form-label">Last Oil Change Odo (KM)</label>
+                    <input type="number" id="vOilLastOdo" class="loan-input" value="${v?.oil?.lastChangedOdometer || 0}" min="0" />
+                  </div>
+                  <div>
+                    <label class="loan-form-label">Last Oil Change Date</label>
+                    <input type="date" id="vOilLastDate" class="loan-input" value="${v?.oil?.lastChangedDate || ''}" />
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                  <div>
+                    <label class="loan-form-label">Change Interval (KM)</label>
+                    <input type="number" id="vOilIntervalKm" class="loan-input" value="${v?.oil?.recommendedIntervalKm || 3000}" min="500" step="100" oninput="this.dataset.touched='true'" />
+                  </div>
+                  <div>
+                    <label class="loan-form-label">Oil Grade / Spec</label>
+                    <input type="text" id="vOilGrade" class="loan-input" value="${_esc(v?.oil?.grade || '10W-30')}" placeholder="e.g. 10W-40 Synthetic" oninput="this.dataset.touched='true'" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 5. General Service Settings Card -->
+              <div class="loan-calculation-card" style="margin-bottom:14px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                  <span style="font-size:16px;">🔧</span>
+                  <span style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.4px;">General Service Tracking</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                  <div>
+                    <label class="loan-form-label">Last Service Odo (KM)</label>
+                    <input type="number" id="vSrvLastOdo" class="loan-input" value="${v?.service?.lastServiceOdometer || 0}" min="0" />
+                  </div>
+                  <div>
+                    <label class="loan-form-label">Service Interval (KM)</label>
+                    <input type="number" id="vSrvIntervalKm" class="loan-input" value="${v?.service?.recommendedIntervalKm || 3500}" min="500" step="100" oninput="this.dataset.touched='true'" />
+                  </div>
+                </div>
+                <div>
+                  <label class="loan-form-label">Preferred Service Center / Mechanic</label>
+                  <input type="text" id="vSrvCenter" class="loan-input" value="${_esc(v?.service?.serviceCenter || '')}" placeholder="e.g. Official Service Center or Local Workshop" />
+                </div>
+              </div>
+
+              <!-- 6. Insurance & PUC Expiry Card -->
+              <div class="loan-calculation-card" style="margin-bottom:16px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                  <span style="font-size:16px;">🛡️</span>
+                  <span style="font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.4px;">Insurance &amp; PUC Expiry</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                  <div>
+                    <label class="loan-form-label">Insurance Provider</label>
+                    <input type="text" id="vInsProvider" class="loan-input" value="${_esc(v?.insurance?.provider || '')}" placeholder="e.g. Acko, HDFC ERGO, ICICI Lombard" />
+                  </div>
+                  <div>
+                    <label class="loan-form-label">Policy Expiry Date</label>
+                    <input type="date" id="vInsExpiry" class="loan-input" value="${v?.insurance?.expiryDate || ''}" />
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                  <div>
+                    <label class="loan-form-label">Policy Number</label>
+                    <input type="text" id="vInsPolicyNo" class="loan-input" value="${_esc(v?.insurance?.policyNumber || '')}" placeholder="e.g. POL-123456" />
+                  </div>
+                  <div>
+                    <label class="loan-form-label">PUC Expiry Date</label>
+                    <input type="date" id="vPucExpiry" class="loan-input" value="${v?.puc?.expiryDate || ''}" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="loan-modal-footer">
+                <button type="button" class="loan-btn-cancel" onclick="document.getElementById('vehicleFormModal')?.remove()">Cancel</button>
+                <button type="submit" class="loan-btn-submit">${isEdit ? 'Update Vehicle' : 'Save Vehicle'}</button>
               </div>
             </form>
           </div>
         </div>
       `;
       document.body.appendChild(modal);
+    },
+
+    /**
+     * Select Vehicle Type from Hero Grid
+     */
+    selectVehicleType: function (type) {
+      var hidden = document.getElementById('vType');
+      if (hidden) hidden.value = type;
+      var cards = document.querySelectorAll('#vehicleFormModal .loan-type-card');
+      cards.forEach(function (card) {
+        if (card.getAttribute('data-type') === type) {
+          card.classList.add('active');
+        } else {
+          card.classList.remove('active');
+        }
+      });
+      this.onTypeChange(type);
     },
 
     /**
@@ -859,23 +951,47 @@
 
       var modal = document.createElement('div');
       modal.id = 'updateOdoModal';
-      modal.className = 'ws-modal-overlay';
+      modal.className = 'modal-overlay show';
+      modal.onclick = function (e) {
+        if (e.target === modal) modal.remove();
+      };
+
+      var escHandler = function (e) {
+        if (e.key === 'Escape') {
+          modal.remove();
+          document.removeEventListener('keydown', escHandler);
+        }
+      };
+      document.addEventListener('keydown', escHandler);
+
       modal.innerHTML = `
-        <div class="ws-modal-dialog" style="max-width:380px;">
-          <div class="ws-modal-header">
-            <div class="ws-modal-title">✏️ Update Odometer</div>
-            <button class="ws-modal-close" onclick="document.getElementById('updateOdoModal')?.remove()">✕</button>
-          </div>
-          <div class="ws-modal-body" style="padding:16px;">
-            <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">
-              Update current odometer reading for <strong>${_esc(v.name)}</strong>:
+        <div class="modal loan-modal-box" style="max-width:440px;" onclick="event.stopPropagation()">
+          <div class="loan-modal-header">
+            <div class="loan-modal-header-icon">⏱️</div>
+            <div class="loan-modal-header-text">
+              <h3 class="loan-modal-title">Update Odometer</h3>
+              <p class="loan-modal-subtitle">${_esc(v.name)} · Current: ${(v.currentOdometer || 0).toLocaleString('en-IN')} KM</p>
             </div>
-            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Current KM Reading</label>
-            <input type="number" id="quickOdoInput" class="ws-input" value="${v.currentOdometer || 0}" min="${v.currentOdometer || 0}" style="font-size:18px;font-weight:700;font-family:'JetBrains Mono';" required />
+            <button type="button" class="loan-modal-close-btn" onclick="document.getElementById('updateOdoModal')?.remove()">×</button>
           </div>
-          <div class="ws-modal-footer">
-            <button class="ws-btn-secondary" onclick="document.getElementById('updateOdoModal')?.remove()">Cancel</button>
-            <button class="ws-btn-primary" onclick="window.LM_VehicleUI.saveQuickOdometer('${v.id}')">Update KM</button>
+          <div class="modal-body loan-modal-body">
+            <div class="loan-form-section">
+              <label class="loan-form-label">CURRENT KM READING *</label>
+              <div class="loan-amount-input-wrap">
+                <span class="loan-currency-symbol" style="font-size:15px;letter-spacing:1px;">KM</span>
+                <input type="number" id="quickOdoInput" class="loan-amount-input" value="${v.currentOdometer || 0}" min="${v.currentOdometer || 0}" required />
+              </div>
+              <div class="loan-amount-presets" style="margin-top:10px;">
+                <button type="button" class="loan-chip-btn" onclick="var q=document.getElementById('quickOdoInput'); if(q) q.value = Number(q.value)+50;">+50 km</button>
+                <button type="button" class="loan-chip-btn" onclick="var q=document.getElementById('quickOdoInput'); if(q) q.value = Number(q.value)+100;">+100 km</button>
+                <button type="button" class="loan-chip-btn" onclick="var q=document.getElementById('quickOdoInput'); if(q) q.value = Number(q.value)+250;">+250 km</button>
+                <button type="button" class="loan-chip-btn" onclick="var q=document.getElementById('quickOdoInput'); if(q) q.value = Number(q.value)+500;">+500 km</button>
+              </div>
+            </div>
+            <div class="loan-modal-footer">
+              <button type="button" class="loan-btn-cancel" onclick="document.getElementById('updateOdoModal')?.remove()">Cancel</button>
+              <button type="button" class="loan-btn-submit" onclick="window.LM_VehicleUI.saveQuickOdometer('${v.id}')">Update KM</button>
+            </div>
           </div>
         </div>
       `;
@@ -911,20 +1027,36 @@
 
       var modal = document.createElement('div');
       modal.id = 'serviceLogModal';
-      modal.className = 'ws-modal-overlay';
+      modal.className = 'modal-overlay show';
+      modal.onclick = function (e) {
+        if (e.target === modal) modal.remove();
+      };
+
+      var escHandler = function (e) {
+        if (e.key === 'Escape') {
+          modal.remove();
+          document.removeEventListener('keydown', escHandler);
+        }
+      };
+      document.addEventListener('keydown', escHandler);
+
       modal.innerHTML = `
-        <div class="ws-modal-dialog" style="max-width:440px;">
-          <div class="ws-modal-header">
-            <div class="ws-modal-title">🔧 Log Maintenance for ${_esc(v.name)}</div>
-            <button class="ws-modal-close" onclick="document.getElementById('serviceLogModal')?.remove()">✕</button>
+        <div class="modal loan-modal-box" style="max-width:520px;" onclick="event.stopPropagation()">
+          <div class="loan-modal-header">
+            <div class="loan-modal-header-icon">${type === 'oil_change' ? '🛢️' : '🔧'}</div>
+            <div class="loan-modal-header-text">
+              <h3 class="loan-modal-title">${type === 'oil_change' ? 'Log Engine Oil Change' : 'Log Maintenance'}</h3>
+              <p class="loan-modal-subtitle">${_esc(v.name)}</p>
+            </div>
+            <button type="button" class="loan-modal-close-btn" onclick="document.getElementById('serviceLogModal')?.remove()">×</button>
           </div>
-          <div class="ws-modal-body" style="padding:16px;">
+          <div class="modal-body loan-modal-body">
             <form id="srvLogForm" onsubmit="event.preventDefault(); window.LM_VehicleUI.saveServiceLog('${v.id}');">
-              <div style="margin-bottom:12px;">
-                <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Maintenance Type</label>
-                <select id="logType" class="ws-input">
-                  <option value="oil_change" ${type==='oil_change'?'selected':''}>🛢️ Engine Oil Change</option>
-                  <option value="general_service" ${type==='general_service'?'selected':''}>🔧 Periodic General Service</option>
+              <div class="loan-form-section">
+                <label class="loan-form-label">MAINTENANCE TYPE *</label>
+                <select id="logType" class="loan-select">
+                  <option value="oil_change" ${type === 'oil_change' ? 'selected' : ''}>🛢️ Engine Oil Change</option>
+                  <option value="general_service" ${type === 'general_service' ? 'selected' : ''}>🔧 Periodic General Service</option>
                   <option value="repair">🛠️ Mechanical Repair / Replacement</option>
                   <option value="tyre">💨 Tyre Air / Rotation / Replacement</option>
                   <option value="battery">🔋 Battery Service / Replacement</option>
@@ -932,49 +1064,48 @@
                 </select>
               </div>
 
-              <div style="margin-bottom:12px;">
-                <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Title / Summary *</label>
-                <input type="text" id="logTitle" class="ws-input" value="${type==='oil_change'?'Engine Oil & Filter Change':'General Service & Inspection'}" required />
+              <div class="loan-form-section">
+                <label class="loan-form-label">TITLE / SUMMARY *</label>
+                <input type="text" id="logTitle" class="loan-input font-bold" value="${type === 'oil_change' ? 'Engine Oil & Filter Change' : 'General Service & Inspection'}" required />
               </div>
 
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
                 <div>
-                  <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Date</label>
-                  <input type="date" id="logDate" class="ws-input" value="${todayStr}" required />
+                  <label class="loan-form-label">DATE *</label>
+                  <input type="date" id="logDate" class="loan-input" value="${todayStr}" required />
                 </div>
                 <div>
-                  <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Odometer (KM)</label>
-                  <input type="number" id="logOdo" class="ws-input" value="${v.currentOdometer || 0}" min="0" required />
-                </div>
-              </div>
-
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-                <div>
-                  <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Cost (₹)</label>
-                  <input type="number" id="logCost" class="ws-input" placeholder="0" min="0" />
-                </div>
-                <div>
-                  <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Workshop / Garage</label>
-                  <input type="text" id="logWorkshop" class="ws-input" placeholder="e.g. Local Garage" />
+                  <label class="loan-form-label">ODOMETER (KM) *</label>
+                  <input type="number" id="logOdo" class="loan-input" value="${v.currentOdometer || 0}" min="0" required />
                 </div>
               </div>
 
-              <div style="margin-bottom:14px;">
-                <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Notes / Parts Replaced</label>
-                <input type="text" id="logNotes" class="ws-input" placeholder="e.g. Replaced oil filter, brake pads" />
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+                <div>
+                  <label class="loan-form-label">COST (₹)</label>
+                  <input type="number" id="logCost" class="loan-input" placeholder="0" min="0" />
+                </div>
+                <div>
+                  <label class="loan-form-label">WORKSHOP / GARAGE</label>
+                  <input type="text" id="logWorkshop" class="loan-input" placeholder="e.g. Official Service Center" />
+                </div>
               </div>
 
-              <!-- 1-Tap LedgerMate Expense Link -->
-              <div style="background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);padding:10px 12px;border-radius:10px;margin-bottom:14px;">
-                <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;color:var(--text,#fff);">
-                  <input type="checkbox" id="logLinkTx" checked />
-                  <span><strong>Record Expense in LedgerMate:</strong> Automatically log cost as Automobile expense transaction</span>
+              <div class="loan-form-section">
+                <label class="loan-form-label">NOTES / PARTS REPLACED</label>
+                <input type="text" id="logNotes" class="loan-input" placeholder="e.g. Replaced oil filter, spark plug, brake pads" />
+              </div>
+
+              <div style="background:rgba(0,240,255,0.08);border:1px solid rgba(0,240,255,0.22);padding:12px 14px;border-radius:12px;margin-bottom:16px;">
+                <label style="display:flex;align-items:center;gap:10px;font-size:12.5px;cursor:pointer;color:var(--text,#fff);">
+                  <input type="checkbox" id="logLinkTx" checked style="width:16px;height:16px;accent-color:var(--teal);" />
+                  <span><strong>Record Expense in LedgerMate:</strong> Auto-record cost as Automobile expense transaction</span>
                 </label>
               </div>
 
-              <div class="ws-modal-footer" style="padding:0;display:flex;justify-content:flex-end;gap:8px;">
-                <button type="button" class="ws-btn-secondary" onclick="document.getElementById('serviceLogModal')?.remove()">Cancel</button>
-                <button type="submit" class="ws-btn-primary">Save Log</button>
+              <div class="loan-modal-footer">
+                <button type="button" class="loan-btn-cancel" onclick="document.getElementById('serviceLogModal')?.remove()">Cancel</button>
+                <button type="submit" class="loan-btn-submit">Save Maintenance Log</button>
               </div>
             </form>
           </div>
@@ -1023,59 +1154,75 @@
 
       var modal = document.createElement('div');
       modal.id = 'fuelLogModal';
-      modal.className = 'ws-modal-overlay';
+      modal.className = 'modal-overlay show';
+      modal.onclick = function (e) {
+        if (e.target === modal) modal.remove();
+      };
+
+      var escHandler = function (e) {
+        if (e.key === 'Escape') {
+          modal.remove();
+          document.removeEventListener('keydown', escHandler);
+        }
+      };
+      document.addEventListener('keydown', escHandler);
+
       modal.innerHTML = `
-        <div class="ws-modal-dialog" style="max-width:420px;">
-          <div class="ws-modal-header">
-            <div class="ws-modal-title">⛽ Log Fuel Fill-Up</div>
-            <button class="ws-modal-close" onclick="document.getElementById('fuelLogModal')?.remove()">✕</button>
+        <div class="modal loan-modal-box" style="max-width:480px;" onclick="event.stopPropagation()">
+          <div class="loan-modal-header">
+            <div class="loan-modal-header-icon">⛽</div>
+            <div class="loan-modal-header-text">
+              <h3 class="loan-modal-title">Log Fuel Fill-Up</h3>
+              <p class="loan-modal-subtitle">${_esc(v.name)}</p>
+            </div>
+            <button type="button" class="loan-modal-close-btn" onclick="document.getElementById('fuelLogModal')?.remove()">×</button>
           </div>
-          <div class="ws-modal-body" style="padding:16px;">
+          <div class="modal-body loan-modal-body">
             <form id="fuelForm" onsubmit="event.preventDefault(); window.LM_VehicleUI.saveFuelLog('${v.id}');">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
                 <div>
-                  <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Date</label>
-                  <input type="date" id="fuelDate" class="ws-input" value="${todayStr}" required />
+                  <label class="loan-form-label">DATE *</label>
+                  <input type="date" id="fuelDate" class="loan-input" value="${todayStr}" required />
                 </div>
                 <div>
-                  <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Current Odo (KM) *</label>
-                  <input type="number" id="fuelOdo" class="ws-input" value="${v.currentOdometer || 0}" min="0" required />
-                </div>
-              </div>
-
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-                <div>
-                  <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Fuel Liters *</label>
-                  <input type="number" step="0.01" id="fuelLiters" class="ws-input" placeholder="e.g. 5.5" required />
-                </div>
-                <div>
-                  <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Amount Paid (₹) *</label>
-                  <input type="number" id="fuelCost" class="ws-input" placeholder="e.g. 550" required />
+                  <label class="loan-form-label">CURRENT ODO (KM) *</label>
+                  <input type="number" id="fuelOdo" class="loan-input font-bold" value="${v.currentOdometer || 0}" min="0" required />
                 </div>
               </div>
 
-              <div style="margin-bottom:12px;">
-                <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;">Fuel Station (Optional)</label>
-                <input type="text" id="fuelStation" class="ws-input" placeholder="e.g. IndianOil, Shell, HP" />
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+                <div>
+                  <label class="loan-form-label">FUEL LITERS *</label>
+                  <input type="number" step="0.01" id="fuelLiters" class="loan-input font-bold" placeholder="e.g. 5.5" required />
+                </div>
+                <div>
+                  <label class="loan-form-label">AMOUNT PAID (₹) *</label>
+                  <input type="number" step="0.01" id="fuelCost" class="loan-input font-bold" placeholder="e.g. 550" required />
+                </div>
               </div>
 
-              <div style="margin-bottom:14px;">
-                <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;color:var(--text,#fff);">
-                  <input type="checkbox" id="fuelFullTank" checked />
-                  <span>Full Tank fill-up (Required for exact km/L calculation)</span>
+              <div class="loan-form-section">
+                <label class="loan-form-label">FUEL STATION (OPTIONAL)</label>
+                <input type="text" id="fuelStation" class="loan-input" placeholder="e.g. IndianOil, Shell, HP, Bharat Petroleum" />
+              </div>
+
+              <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px;">
+                <label style="display:flex;align-items:center;gap:10px;font-size:12px;cursor:pointer;color:var(--text,#fff);">
+                  <input type="checkbox" id="fuelFullTank" checked style="width:16px;height:16px;accent-color:var(--teal);" />
+                  <span><strong>Full Tank fill-up:</strong> Required for exact KM/L fuel efficiency calculation</span>
                 </label>
               </div>
 
-              <div style="background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);padding:10px 12px;border-radius:10px;margin-bottom:14px;">
-                <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;color:var(--text,#fff);">
-                  <input type="checkbox" id="fuelLinkTx" checked />
-                  <span>Record Expense in LedgerMate under Fuel</span>
+              <div style="background:rgba(0,240,255,0.08);border:1px solid rgba(0,240,255,0.22);border-radius:12px;padding:12px 14px;margin-bottom:16px;">
+                <label style="display:flex;align-items:center;gap:10px;font-size:12px;cursor:pointer;color:var(--text,#fff);">
+                  <input type="checkbox" id="fuelLinkTx" checked style="width:16px;height:16px;accent-color:var(--teal);" />
+                  <span><strong>Record Expense in LedgerMate:</strong> Auto-record cost as Fuel expense transaction</span>
                 </label>
               </div>
 
-              <div class="ws-modal-footer" style="padding:0;display:flex;justify-content:flex-end;gap:8px;">
-                <button type="button" class="ws-btn-secondary" onclick="document.getElementById('fuelLogModal')?.remove()">Cancel</button>
-                <button type="submit" class="ws-btn-primary">Save Fuel Log</button>
+              <div class="loan-modal-footer">
+                <button type="button" class="loan-btn-cancel" onclick="document.getElementById('fuelLogModal')?.remove()">Cancel</button>
+                <button type="submit" class="loan-btn-submit">Save Fuel Log</button>
               </div>
             </form>
           </div>
@@ -1130,21 +1277,37 @@
 
       var modal = document.createElement('div');
       modal.id = 'deleteVehicleModal';
-      modal.className = 'ws-modal-overlay';
+      modal.className = 'modal-overlay show';
+      modal.onclick = function (e) {
+        if (e.target === modal) modal.remove();
+      };
+
+      var escHandler = function (e) {
+        if (e.key === 'Escape') {
+          modal.remove();
+          document.removeEventListener('keydown', escHandler);
+        }
+      };
+      document.addEventListener('keydown', escHandler);
+
       modal.innerHTML = `
-        <div class="ws-modal-dialog" style="max-width:400px;">
-          <div class="ws-modal-header">
-            <div class="ws-modal-title" style="color:#f43f5e;">⚠️ Delete Vehicle</div>
-            <button class="ws-modal-close" onclick="document.getElementById('deleteVehicleModal')?.remove()">✕</button>
-          </div>
-          <div class="ws-modal-body" style="padding:16px;">
-            <div class="danger-warning-box">
-              Permanently delete <strong>"${_esc(v.name)}"</strong> and all its maintenance, fuel logs, and reminder alerts?
+        <div class="modal loan-modal-box" style="max-width:440px;" onclick="event.stopPropagation()">
+          <div class="loan-modal-header" style="border-bottom-color:rgba(244,63,94,0.3);">
+            <div class="loan-modal-header-icon" style="background:rgba(244,63,94,0.12);border-color:rgba(244,63,94,0.3);color:var(--rose);">🗑️</div>
+            <div class="loan-modal-header-text">
+              <h3 class="loan-modal-title" style="color:var(--rose);">Delete Vehicle</h3>
+              <p class="loan-modal-subtitle">Permanent action</p>
             </div>
+            <button type="button" class="loan-modal-close-btn" onclick="document.getElementById('deleteVehicleModal')?.remove()">×</button>
           </div>
-          <div class="ws-modal-footer">
-            <button class="ws-btn-secondary" onclick="document.getElementById('deleteVehicleModal')?.remove()">Cancel</button>
-            <button class="ws-btn-danger-solid" onclick="window.LM_VehicleUI.confirmDeleteVehicle('${v.id}')">🗑️ Yes, Delete</button>
+          <div class="modal-body loan-modal-body">
+            <div style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.25);border-radius:12px;padding:14px;color:var(--text);font-size:13px;line-height:1.5;margin-bottom:18px;">
+              Permanently delete <strong>"${_esc(v.name)}"</strong> and all of its service history, fuel records, and reminders?
+            </div>
+            <div class="loan-modal-footer" style="margin-top:0;">
+              <button type="button" class="loan-btn-cancel" onclick="document.getElementById('deleteVehicleModal')?.remove()">Cancel</button>
+              <button type="button" class="loan-btn-danger" onclick="window.LM_VehicleUI.confirmDeleteVehicle('${v.id}')">🗑️ Yes, Delete Vehicle</button>
+            </div>
           </div>
         </div>
       `;
@@ -1216,7 +1379,7 @@
                 </div>
               </div>
             </div>
-            <button class="ws-btn-secondary" style="font-size:11px;padding:3px 8px;">View ↗</button>
+            <button class="btn-secondary" style="font-size:11px;padding:4px 10px;border-radius:6px;">View ↗</button>
           </div>
         </div>
       `;
