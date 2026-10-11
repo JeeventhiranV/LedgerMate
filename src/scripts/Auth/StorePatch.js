@@ -77,19 +77,34 @@
       if (!USER_DATA_STORES.has(storeName)) return all;
 
       const profileId = getCurrentProfile();
+      const currentUser = window.LM_Auth?.getCurrentUser?.();
+      const username = currentUser?.username;
+      const email = currentUser?.email;
 
       /* Admins see all records */
       if (isAdminSession()) return all;
 
-      /* Users see only their own records + legacy untagged records */
-      return all.filter(r => !r.profile || r.profile === profileId);
+      /* Users see their own records + legacy/default/guest records + matching username/email */
+      return all.filter(r => {
+        if (!r) return false;
+        if (!r.profile || r.profile === 'default' || r.profile === 'guest') return true;
+        if (r.profile === profileId) return true;
+        if (username && r.profile === username) return true;
+        if (email && r.profile === email) return true;
+        return false;
+      });
     };
 
     /* ─── Patched put ────────────────────────────────── */
     window.put = async function patchedPut(storeName, obj) {
       if (USER_DATA_STORES.has(storeName) && obj && typeof obj === 'object') {
-        if (!obj.profile) {
-          obj = { ...obj, profile: getCurrentProfile() };
+        const curProfile = getCurrentProfile();
+        if (!obj.profile || obj.profile === 'default' || obj.profile === 'guest') {
+          if (curProfile && curProfile !== 'default') {
+            obj = { ...obj, profile: curProfile };
+          } else if (!obj.profile) {
+            obj = { ...obj, profile: 'default' };
+          }
         }
       }
       const result = await _origPut(storeName, obj);

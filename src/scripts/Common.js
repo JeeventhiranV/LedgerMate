@@ -4338,7 +4338,8 @@ async function FinalJson(){
     vehicles: (function(){
       try {
         if (window.LM_VehicleService && typeof window.LM_VehicleService.exportData === 'function') {
-          return window.LM_VehicleService.exportData();
+          var vList = window.LM_VehicleService.exportData();
+          if (Array.isArray(vList) && vList.length > 0) return vList;
         }
         return state.vehicles || [];
       } catch(e) { return state.vehicles || []; }
@@ -4531,6 +4532,15 @@ window.LM_StartApp = async function LM_StartApp() {
           await window.LM_CreditCardsService.init();
         } catch (e) {
           console.warn('[LM] CreditCardsService auto-init error:', e);
+        }
+      }
+
+      /* ── Initialize Vehicle Tracking Service in background ── */
+      if (window.LM_VehicleService) {
+        try {
+          await window.LM_VehicleService.init();
+        } catch (e) {
+          console.warn('[LM] VehicleService auto-init error:', e);
         }
       }
 

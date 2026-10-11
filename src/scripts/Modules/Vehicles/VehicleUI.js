@@ -37,6 +37,17 @@
 
   var VehicleUI = {
     /**
+     * Initialize UI and render page
+     */
+    init: async function () {
+      var service = _getService();
+      if (service && typeof service.init === 'function') {
+        await service.init();
+      }
+      this.render();
+    },
+
+    /**
      * Set active vehicle
      */
     setActiveVehicle: function (id) {
@@ -67,7 +78,18 @@
 
       var vehicles = service.getAllVehicles();
       if (!vehicles || vehicles.length === 0) {
-        this.renderEmptyState(container);
+        if (!service._isInitialized && typeof service.init === 'function') {
+          service.init().then(function () {
+            var reloaded = service.getAllVehicles();
+            if (reloaded && reloaded.length > 0) {
+              window.LM_VehicleUI.render();
+            } else {
+              window.LM_VehicleUI.renderEmptyState(container);
+            }
+          });
+        } else {
+          this.renderEmptyState(container);
+        }
         return;
       }
 
@@ -1391,5 +1413,18 @@
   };
 
   window.LM_VehicleUI = VehicleUI;
+
+  if (typeof window !== 'undefined' && window.LM_Bus && typeof window.LM_Bus.on === 'function') {
+    window.LM_Bus.on('lm:data:changed', function (ev) {
+      if (ev && (ev.store === 'vehicles' || ev.source === 'vehicles')) {
+        if (document.getElementById('page-vehicles') && document.getElementById('page-vehicles').style.display !== 'none') {
+          VehicleUI.render();
+        }
+        if (typeof VehicleUI.renderDashboardWidget === 'function') {
+          VehicleUI.renderDashboardWidget();
+        }
+      }
+    });
+  }
 
 })();

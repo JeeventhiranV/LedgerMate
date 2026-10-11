@@ -1455,8 +1455,12 @@ function showPage(page) {
     }
     if (page === 'vehicles') {
       try {
-        if (window.LM_VehicleUI && typeof window.LM_VehicleUI.render === 'function') {
-          window.LM_VehicleUI.render();
+        if (window.LM_VehicleUI) {
+          if (typeof window.LM_VehicleUI.init === 'function') {
+            window.LM_VehicleUI.init();
+          } else if (typeof window.LM_VehicleUI.render === 'function') {
+            window.LM_VehicleUI.render();
+          }
         }
       } catch (e) { console.warn('[LM] Vehicles page error:', e); }
     }

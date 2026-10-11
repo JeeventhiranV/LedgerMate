@@ -187,13 +187,16 @@
             }
           }
         } else if (typeof state === 'object' && Array.isArray(state.vehicles)) {
-          _vehicles = state.vehicles;
+          _vehicles = state.vehicles.slice();
         }
       } catch (err) {
         console.warn('[VehicleService] init error, falling back to state:', err);
         if (typeof state === 'object' && Array.isArray(state.vehicles)) {
-          _vehicles = state.vehicles;
+          _vehicles = state.vehicles.slice();
         }
+      }
+      if ((!_vehicles || _vehicles.length === 0) && typeof state === 'object' && Array.isArray(state.vehicles) && state.vehicles.length > 0) {
+        _vehicles = state.vehicles.slice();
       }
       _isInitialized = true;
       try {
@@ -208,6 +211,9 @@
      * Get all vehicles for current profile
      */
     getAllVehicles: function () {
+      if ((!_vehicles || _vehicles.length === 0) && typeof state === 'object' && Array.isArray(state.vehicles) && state.vehicles.length > 0) {
+        _vehicles = state.vehicles.slice();
+      }
       return _vehicles || [];
     },
 
@@ -216,7 +222,8 @@
      */
     getVehicleById: function (id) {
       if (!id) return null;
-      return _vehicles.find(function (v) { return String(v.id) === String(id); }) || null;
+      var list = this.getAllVehicles();
+      return list.find(function (v) { return String(v.id) === String(id); }) || null;
     },
 
     /**
@@ -960,7 +967,7 @@
     // ── COMMON JSON EXPORT & IMPORT HOOKS ────────────────────────────────────
 
     exportData: function () {
-      return _vehicles || [];
+      return this.getAllVehicles();
     },
 
     importData: async function (importedVehicles) {
@@ -981,7 +988,7 @@
 
   window.LM_VehicleService = VehicleService;
 
-  // Auto-init on DOM readiness
+  // Auto-init on DOM readiness, app readiness, and bus events
   if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', function () {
@@ -990,6 +997,19 @@
     } else {
       VehicleService.init();
     }
+    document.addEventListener('lm:app:ready', function () {
+      VehicleService.init();
+    });
+  }
+
+  if (typeof window !== 'undefined' && window.LM_Bus && typeof window.LM_Bus.on === 'function') {
+    window.LM_Bus.on('lm:app:ready', function () { VehicleService.init(); });
+    window.LM_Bus.on('lm:auth:login', function () { VehicleService.init(); });
+    window.LM_Bus.on('lm:data:changed', function (ev) {
+      if (ev && (ev.store === 'vehicles' || ev.source === 'vehicles' || !ev.store)) {
+        VehicleService.init();
+      }
+    });
   }
 
 })();
