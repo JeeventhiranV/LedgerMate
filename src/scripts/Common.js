@@ -147,7 +147,7 @@ let db = null;
 async function openDB() {
     return new Promise((resolve, reject) => {
         const DB_NAME    = "ledgermate_db";
-        const DB_VERSION = 17;
+        const DB_VERSION = 19;
 
         const req = indexedDB.open(DB_NAME, DB_VERSION);
 
@@ -220,6 +220,8 @@ async function openDB() {
             ensureStore("tx_templates",        { keyPath: "id", autoIncrement: true }, ["profile"]);
             ensureStore("dashboard_config",    { keyPath: "id" });
             ensureStore("credit_cards",        { keyPath: "id" }, ["profile", "statement_day", "due_day"]);
+            ensureStore("vehicles",            { keyPath: "id" }, ["profile", "regNumber", "type"]);
+            ensureStore("receipt_attachments", { keyPath: "id" }, ["userId", "transactionId", "profile"]);
             console.log("✅ DB schema upgrade complete");
         };
     });
@@ -304,9 +306,12 @@ let state = {
   tx_templates: [],
   dashboard_config: {},
   credit_cards: [],
+  vehicles: [],
+  receipt_attachments: [],
   timeRange: 30,
   customRange: { start: '', end: '' }
 };
+window.state = state;
 
 // Charts
 let cashflowChart=null, doughnutChart=null, budgetChart=null;
@@ -453,6 +458,16 @@ if (dd.length) {
     state.credit_cards = await getAll('credit_cards');
   } else {
     state.credit_cards = [];
+  }
+  if (db && db.objectStoreNames.contains('vehicles')) {
+    state.vehicles = await getAll('vehicles');
+  } else {
+    state.vehicles = [];
+  }
+  if (db && db.objectStoreNames.contains('receipt_attachments')) {
+    state.receipt_attachments = await getAll('receipt_attachments');
+  } else {
+    state.receipt_attachments = [];
   }
 
   // restore folder handle if present
@@ -1716,6 +1731,7 @@ function _doRenderAll(){
   processRecurringTransactions();
   renderBudgetOverview();
   renderDashboardCreditCardReminders();
+  try { renderDashboardVehicleAlerts(); } catch (e) {}
   try { applyDashboardConfig(); } catch(e) {}
 }
 
@@ -2812,96 +2828,219 @@ async function fullExport() {
 
 
 async function fullImportJSONText(txt, source = "Unknown"){
-  try{
-    const data = JSON.parse(txt);
+  if (!txt || typeof txt !== 'string' || !txt.trim()) {
+    showToast('❌ Import error: Empty or invalid file content', 'error');
+    return false;
+  }
 
-    /* Clear only the current user's data (not other users') */
-    await clearAllStores();
+  let data;
+  try {
+    data = JSON.parse(txt);
+  } catch (parseErr) {
+    console.error('[LM] JSON Parse error during import:', parseErr);
+    showToast('❌ Import error: Not a valid JSON file', 'error');
+    return false;
+  }
 
-    /* Restore all data stores */
-    for (const t of (data.transactions||[]))        await put('transactions', t);
-    for (const b of (data.budgets||[]))              await put('budgets', b);
-    for (const l of (data.loans||[]))               await put('loans', l);
-    for (const r of (data.reminders||[]))           await put('reminders', r);
-    if (data.dropdowns)                             await put('dropdowns', data.dropdowns);
-    if (data.settings)                              await put('settings', {key:'meta', value:data.settings});
-    if (data.users)       for (const u of data.users)                   await put('users', u);
-    if (data.savings)     for (const s of data.savings)                 await put('savings', s);
-    if (data.investments) for (const inv of data.investments)           await put('investments', inv);
-    if (data.trips)       for (const trip of data.trips)                await put('trips', trip);
-    const routesList = data.routes || data.trip_routes || [];
-    for (const route of routesList)                                     await put('trip_routes', route);
-    if (data.credentials) for (const cred of data.credentials)          await put('credentials', cred);
-    if (data.notes)       for (const note of data.notes)                await put('notes', note);
-    if (data.note_folders)      for (const f of data.note_folders)      await put('note_folders', f);
-    if (data.note_attachments)  for (const a of data.note_attachments)  await put('note_attachments', a);
-    if (data.note_versions)     for (const v of data.note_versions)     await put('note_versions', v);
-    if (data.audit_logs)        for (const lg of data.audit_logs)       await put('audit_logs', lg);
-    if (data.emi_loans)         for (const el of data.emi_loans)        await put('emi_loans', el);
-    if (data.net_worth_snapshots) for (const s of data.net_worth_snapshots) await put('net_worth_snapshots', s);
-    if (data.allocation_targets)  for (const t of data.allocation_targets)  await put('allocation_targets', t);
-    if (data.sip_plan)            for (const p of data.sip_plan)             await put('sip_plan', p);
-    if (data.essentials_settings) {
-      for (const [key, value] of Object.entries(data.essentials_settings))
-        await put('essentials_settings', { key, value });
+  if (!data || typeof data !== 'object') {
+    showToast('❌ Import error: Invalid backup data structure', 'error');
+    return false;
+  }
+
+  try {
+    /* 1. Clear only the current user's data */
+    try {
+      await clearAllStores();
+    } catch (clearErr) {
+      console.warn('[LM] Warning during clearAllStores:', clearErr);
     }
 
-    /* ── Restore Savings Goals ────────────────────────── */
-    if (Array.isArray(data.savings_goals)) {
-      for (const sg of data.savings_goals) await put('savings_goals', sg);
-    }
+    /* 2. Isolated helper for list stores: item failure never aborts other items or stores */
+    const safePutList = async (storeName, list) => {
+      if (!Array.isArray(list) || list.length === 0) return 0;
+      let count = 0;
+      for (const item of list) {
+        if (!item || typeof item !== 'object') continue;
+        try {
+          await put(storeName, item);
+          count++;
+        } catch (itemErr) {
+          console.warn(`[LM] Failed importing record into ${storeName}:`, itemErr, item);
+        }
+      }
+      return count;
+    };
 
-    /* ── Restore Subscriptions ────────────────────────── */
-    if (Array.isArray(data.subscriptions)) {
-      for (const sub of data.subscriptions) await put('subscriptions', sub);
-    }
+    /* 3. Core transactions, budgets, loans, and reminders */
+    try { await safePutList('transactions', data.transactions); } catch (e) { console.warn('[LM] Error importing transactions:', e); }
+    try { await safePutList('budgets', data.budgets); } catch (e) { console.warn('[LM] Error importing budgets:', e); }
+    try { await safePutList('loans', data.loans); } catch (e) { console.warn('[LM] Error importing loans:', e); }
+    try { await safePutList('reminders', data.reminders); } catch (e) { console.warn('[LM] Error importing reminders:', e); }
+    try { await safePutList('users', data.users); } catch (e) { console.warn('[LM] Error importing users:', e); }
+    try { await safePutList('savings', data.savings); } catch (e) { console.warn('[LM] Error importing savings:', e); }
+    try { await safePutList('investments', data.investments); } catch (e) { console.warn('[LM] Error importing investments:', e); }
+    try { await safePutList('recurringTransactions', data.recurringTransactions); } catch (e) { console.warn('[LM] Error importing recurringTransactions:', e); }
 
-    /* ── Restore FD / RD Deposits ─────────────────────── */
-    if (Array.isArray(data.fd_rd)) {
-      for (const fd of data.fd_rd) await put('fd_rd', fd);
-    }
+    /* 4. Trips, routes, and credentials */
+    try { await safePutList('trips', data.trips); } catch (e) { console.warn('[LM] Error importing trips:', e); }
+    try {
+      const routesList = Array.isArray(data.routes) ? data.routes : (Array.isArray(data.trip_routes) ? data.trip_routes : []);
+      await safePutList('trip_routes', routesList);
+    } catch (e) { console.warn('[LM] Error importing trip_routes:', e); }
+    try { await safePutList('credentials', data.credentials); } catch (e) { console.warn('[LM] Error importing credentials:', e); }
 
-    /* ── Restore Transaction Templates ────────────────── */
-    if (Array.isArray(data.tx_templates)) {
-      for (const tmpl of data.tx_templates) await put('tx_templates', tmpl);
-    }
+    /* 5. Notes, attachments, versions, and folders */
+    try { await safePutList('notes', data.notes); } catch (e) { console.warn('[LM] Error importing notes:', e); }
+    try { await safePutList('note_folders', data.note_folders); } catch (e) { console.warn('[LM] Error importing note_folders:', e); }
+    try { await safePutList('note_attachments', data.note_attachments); } catch (e) { console.warn('[LM] Error importing note_attachments:', e); }
+    try { await safePutList('note_versions', data.note_versions); } catch (e) { console.warn('[LM] Error importing note_versions:', e); }
+    try { await safePutList('audit_logs', data.audit_logs || data.auditLog); } catch (e) { console.warn('[LM] Error importing audit_logs:', e); }
 
-    /* ── Restore Dashboard Config ─────────────────────── */
+    /* 6. Wealth snapshots, EMI, SIP, goals & subscriptions */
+    try { await safePutList('emi_loans', data.emi_loans); } catch (e) { console.warn('[LM] Error importing emi_loans:', e); }
+    try { await safePutList('net_worth_snapshots', data.net_worth_snapshots); } catch (e) { console.warn('[LM] Error importing net_worth_snapshots:', e); }
+    try { await safePutList('allocation_targets', data.allocation_targets); } catch (e) { console.warn('[LM] Error importing allocation_targets:', e); }
+    try { await safePutList('sip_plan', data.sip_plan); } catch (e) { console.warn('[LM] Error importing sip_plan:', e); }
+    try { await safePutList('savings_goals', data.savings_goals); } catch (e) { console.warn('[LM] Error importing savings_goals:', e); }
+    try { await safePutList('subscriptions', data.subscriptions); } catch (e) { console.warn('[LM] Error importing subscriptions:', e); }
+    try { await safePutList('fd_rd', data.fd_rd); } catch (e) { console.warn('[LM] Error importing fd_rd:', e); }
+    try { await safePutList('tx_templates', data.tx_templates); } catch (e) { console.warn('[LM] Error importing tx_templates:', e); }
+
+    /* 7. Singleton & configuration stores */
+    if (data.dropdowns && typeof data.dropdowns === 'object') {
+      try { await put('dropdowns', data.dropdowns); } catch (e) { console.warn('[LM] Error importing dropdowns:', e); }
+    }
+    if (data.settings && typeof data.settings === 'object') {
+      try { await put('settings', { key: 'meta', value: data.settings }); } catch (e) { console.warn('[LM] Error importing settings:', e); }
+    }
     if (data.dashboard_config && typeof data.dashboard_config === 'object') {
-      await put('dashboard_config', data.dashboard_config);
+      try { await put('dashboard_config', data.dashboard_config); } catch (e) { console.warn('[LM] Error importing dashboard_config:', e); }
+    }
+    if (data.essentials_settings && typeof data.essentials_settings === 'object') {
+      try {
+        for (const [key, value] of Object.entries(data.essentials_settings)) {
+          await put('essentials_settings', { key, value });
+        }
+      } catch (e) { console.warn('[LM] Error importing essentials_settings:', e); }
     }
 
-    /* ── Restore Recurring Transactions ──────────────── */
-    if (Array.isArray(data.recurringTransactions)) {
-      for (const rec of data.recurringTransactions) await put('recurringTransactions', rec);
+    /* 8. Credit Cards & Service Hook */
+    if (Array.isArray(data.credit_cards)) {
+      try {
+        await safePutList('credit_cards', data.credit_cards);
+        if (window.LM_CreditCardsService && typeof window.LM_CreditCardsService.importData === 'function') {
+          await window.LM_CreditCardsService.importData(data.credit_cards);
+        }
+      } catch (e) { console.warn('[LM] Error importing credit cards:', e); }
     }
 
-    /* ── Restore Credit Cards Data ─────────────────── */
-    if (data.credit_cards && Array.isArray(data.credit_cards)) {
-      for (const cc of data.credit_cards) await put('credit_cards', cc);
-      if (window.LM_CreditCardsService && typeof window.LM_CreditCardsService.importData === 'function') {
-        await window.LM_CreditCardsService.importData(data.credit_cards);
+    /* 9. Vehicles & Service History with Service Hook */
+    if (Array.isArray(data.vehicles)) {
+      try {
+        await safePutList('vehicles', data.vehicles);
+        if (window.LM_VehicleService && typeof window.LM_VehicleService.importData === 'function') {
+          await window.LM_VehicleService.importData(data.vehicles);
+        }
+      } catch (e) { console.warn('[LM] Error importing vehicles:', e); }
+    }
+
+    /* 10. Receipt Attachments Offline Cache */
+    if (Array.isArray(data.receipt_attachments)) {
+      try {
+        await safePutList('receipt_attachments', data.receipt_attachments);
+      } catch (e) { console.warn('[LM] Error importing receipt attachments:', e); }
+    }
+
+    const currentUid = window.LM_Auth?.getCurrentUserId?.() || 'default';
+
+    /* 11. Bill Splitter with Module Hook */
+    if (Array.isArray(data.bill_splits)) {
+      try {
+        if (window.LM_BillSplitter && typeof window.LM_BillSplitter.importData === 'function') {
+          window.LM_BillSplitter.importData(data.bill_splits);
+        } else {
+          if (currentUid) localStorage.setItem(`lm_u_${currentUid}_bill_splits_v1`, JSON.stringify(data.bill_splits));
+          localStorage.setItem('lm_bill_splits_v1', JSON.stringify(data.bill_splits));
+        }
+      } catch(e) {
+        console.warn('[LM] Error restoring bill splits:', e);
       }
     }
 
-    /* ── Restore appSettings / theme ─────────────────── */
-    if (data.appSettings && typeof data.appSettings === 'object') {
-      Object.assign(settings, data.appSettings);
-      localStorage.setItem('appSettings', JSON.stringify(settings));
-      const uid = window.LM_Auth?.getCurrentUserId?.();
-      if (uid) localStorage.setItem(`lm_u_${uid}_appSettings`, JSON.stringify(settings));
-      /* Apply restored theme immediately */
-      const theme = settings.theme || 'dark';
-      document.documentElement.setAttribute('data-theme', theme);
-      document.body.setAttribute('data-theme', theme);
-      if (typeof updateThemeIconElements === 'function') updateThemeIconElements(theme);
+    /* 12. Study Hub & Prep Data */
+    if (data.study_data && typeof data.study_data === 'object') {
+      try {
+        if (data.study_data.custom_workspace) {
+          localStorage.setItem('lm_study_custom_workspace_v2', JSON.stringify(data.study_data.custom_workspace));
+        }
+        if (data.study_data.user_prefs) {
+          localStorage.setItem('lm_study_user_prefs_v2', JSON.stringify(data.study_data.user_prefs));
+        }
+        if (data.study_data.tombstones) {
+          localStorage.setItem('lm_study_deleted_tombstones_v2', JSON.stringify(data.study_data.tombstones));
+        }
+        if (data.study_data.progress) {
+          localStorage.setItem('study_progress_v1', JSON.stringify(data.study_data.progress));
+        }
+        if (data.study_data.streak) {
+          localStorage.setItem('prep_streak_v1', JSON.stringify(data.study_data.streak));
+        }
+        if (data.study_data.quiz_history) {
+          localStorage.setItem('lm_quiz_history_v1', JSON.stringify(data.study_data.quiz_history));
+        }
+        if (data.study_data.srs_cards) {
+          localStorage.setItem('study_srs_cards_v1', JSON.stringify(data.study_data.srs_cards));
+        }
+        if (data.study_data.timer_logs) {
+          localStorage.setItem('study_timer_logs', JSON.stringify(data.study_data.timer_logs));
+        }
+      } catch(e) {
+        console.warn('[LM] Error restoring study hub data:', e);
+      }
     }
 
-    /* ── Restore Stock Portfolio Data ─────────────────── */
+    /* 13. User Reviews & Local Feedback */
+    if (data.user_feedback && typeof data.user_feedback === 'object') {
+      try {
+        if (Array.isArray(data.user_feedback.items)) {
+          localStorage.setItem('lm_local_feedback_v1', JSON.stringify(data.user_feedback.items));
+        }
+        if (Array.isArray(data.user_feedback.comments)) {
+          localStorage.setItem('lm_local_feedback_comments_v1', JSON.stringify(data.user_feedback.comments));
+        }
+      } catch(e) {
+        console.warn('[LM] Error restoring user feedback:', e);
+      }
+    }
+
+    /* 14. Activity Logs */
+    if (Array.isArray(data.activity_logs) && data.activity_logs.length > 0) {
+      try {
+        localStorage.setItem('lm_activity_log', JSON.stringify(data.activity_logs));
+      } catch(e) {
+        console.warn('[LM] Error restoring activity logs:', e);
+      }
+    }
+
+    /* 15. appSettings / Theme */
+    if (data.appSettings && typeof data.appSettings === 'object') {
+      try {
+        Object.assign(settings, data.appSettings);
+        localStorage.setItem('appSettings', JSON.stringify(settings));
+        if (currentUid) localStorage.setItem(`lm_u_${currentUid}_appSettings`, JSON.stringify(settings));
+        const theme = settings.theme || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+        document.body.setAttribute('data-theme', theme);
+        if (typeof updateThemeIconElements === 'function') updateThemeIconElements(theme);
+      } catch(e) {
+        console.warn('[LM] Error restoring app settings / theme:', e);
+      }
+    }
+
+    /* 16. Stock Portfolio Data */
     if (data.stock_portfolio_data) {
       try {
-        const uid = window.LM_Auth?.getCurrentUserId?.() || 'guest';
-        localStorage.setItem(`lm_u_${uid}_stock_portfolio_data`, JSON.stringify(data.stock_portfolio_data));
+        localStorage.setItem(`lm_u_${currentUid}_stock_portfolio_data`, JSON.stringify(data.stock_portfolio_data));
         if (window.LM_StockPortfolioService && typeof window.LM_StockPortfolioService.importData === 'function') {
           await window.LM_StockPortfolioService.importData(data.stock_portfolio_data);
         }
@@ -2910,27 +3049,33 @@ async function fullImportJSONText(txt, source = "Unknown"){
       }
     }
 
-    /* ── Restore Category Rules ───────────────────────── */
+    /* 17. Category Rules */
     if (Array.isArray(data.category_rules)) {
-      if (window.LM_CategoryRules && typeof window.LM_CategoryRules.saveRules === 'function') {
-        window.LM_CategoryRules.saveRules(data.category_rules);
-      } else {
-        const uid = window.LM_Auth?.getCurrentUserId?.() || 'default';
-        localStorage.setItem(`lm_u_${uid}_category_rules_v1`, JSON.stringify(data.category_rules));
+      try {
+        if (window.LM_CategoryRules && typeof window.LM_CategoryRules.saveRules === 'function') {
+          window.LM_CategoryRules.saveRules(data.category_rules);
+        } else {
+          localStorage.setItem(`lm_u_${currentUid}_category_rules_v1`, JSON.stringify(data.category_rules));
+        }
+      } catch(e) {
+        console.warn('[LM] Error restoring category rules:', e);
       }
     }
 
-    /* ── Restore Custom Stocks ────────────────────────── */
+    /* 18. Custom Stocks */
     if (Array.isArray(data.custom_stocks)) {
-      if (window.LM_StockRegistry && typeof window.LM_StockRegistry.importCustomStocks === 'function') {
-        window.LM_StockRegistry.importCustomStocks(data.custom_stocks);
-      } else {
-        try { localStorage.setItem('lm_custom_stocks', JSON.stringify(data.custom_stocks)); } catch(e){}
+      try {
+        if (window.LM_StockRegistry && typeof window.LM_StockRegistry.importCustomStocks === 'function') {
+          window.LM_StockRegistry.importCustomStocks(data.custom_stocks);
+        } else {
+          localStorage.setItem('lm_custom_stocks', JSON.stringify(data.custom_stocks));
+        }
+      } catch(e) {
+        console.warn('[LM] Error restoring custom stocks:', e);
       }
     }
 
-    /* ── Restore Emergency Fund & Gold Data ───────────── */
-    const currentUid = window.LM_Auth?.getCurrentUserId?.() || 'default';
+    /* 19. Emergency Fund & Gold Data */
     if (data.emergency_fund) {
       try { localStorage.setItem(`lm_u_${currentUid}_ef`, JSON.stringify(data.emergency_fund)); } catch(e){}
     }
@@ -2938,13 +3083,22 @@ async function fullImportJSONText(txt, source = "Unknown"){
       try { localStorage.setItem(`lm_u_${currentUid}_gold_data`, JSON.stringify(data.gold_data)); } catch(e){}
     }
 
+    /* 20. Refresh in-memory state & re-render */
     if (source !== "Drive"){
-      await loadAllFromDB();
-      if (typeof renderAll === 'function') renderAll();
+      try {
+        await loadAllFromDB();
+      } catch (loadErr) {
+        console.warn('[LM] loadAllFromDB post-import error:', loadErr);
+      }
+      try {
+        if (typeof renderAll === 'function') renderAll();
+      } catch (renderErr) {
+        console.warn('[LM] renderAll post-import error:', renderErr);
+      }
       showToast('✅ Import complete! All data restored.', 'success');
     }
 
-    /* ── CRITICAL: Persist newly imported data to Supabase Cloud ── */
+    /* 21. CRITICAL: Persist newly imported data to Supabase Cloud */
     if (window.LM_CloudSync && source !== 'CloudSync') {
       try {
         await window.LM_CloudSync.save();
@@ -2953,13 +3107,19 @@ async function fullImportJSONText(txt, source = "Unknown"){
         console.warn('[LM] Cloud sync after import failed:', syncErr);
       }
     }
+
     if (window.LM_Bus) {
-      window.LM_Bus.emit('lm:data:changed');
-      window.LM_Bus.emit('lm:import:complete');
+      try {
+        window.LM_Bus.emit('lm:data:changed');
+        window.LM_Bus.emit('lm:import:complete');
+      } catch(e) {}
     }
+
+    return true;
   } catch(err) {
-    console.error('[LM] Import failed:', err);
+    console.error('[LM] Critical import error:', err);
     showToast('❌ Import failed: ' + err.message, 'error');
+    return false;
   }
 }
 
@@ -2971,7 +3131,7 @@ async function clearAllStores(){
     'note_attachments','note_versions','emi_loans','net_worth_snapshots',
     'allocation_targets','sip_plan','essentials_settings','credit_cards',
     'savings_goals','subscriptions','fd_rd','tx_templates','dashboard_config',
-    'recurringTransactions'
+    'recurringTransactions','vehicles','receipt_attachments'
   ];
 
   for (const s of stores){
@@ -3089,7 +3249,9 @@ function packSnapshot(metaExtra = {}) {
     fd_rd:         state.fd_rd || [],
     tx_templates:  state.tx_templates || [],
     dashboard_config: state.dashboard_config || {},
-    credit_cards: state.credit_cards || []
+    credit_cards: state.credit_cards || [],
+    vehicles: state.vehicles || [],
+    receipt_attachments: state.receipt_attachments || []
   };
 }
 
@@ -3100,15 +3262,33 @@ function validateSnapshot(payload) {
 
   /* Strict format (auto-backup / packSnapshot) */
   if (payload._type === 'LedgerMateBackup') {
-    return typeof payload._schema === 'number' &&
-           Array.isArray(payload.transactions);
+    return typeof payload._schema === 'number';
   }
 
-  /* Loose format (FinalJson / AdminPanel export / user manual export) */
-  return Array.isArray(payload.transactions) ||
-         Array.isArray(payload.budgets)      ||
-         Array.isArray(payload.savings)      ||
-         Array.isArray(payload.investments);
+  /* Loose format (FinalJson / AdminPanel export / user manual export / partial backups) */
+  return Boolean(
+    Array.isArray(payload.transactions)        ||
+    Array.isArray(payload.budgets)             ||
+    Array.isArray(payload.savings)             ||
+    Array.isArray(payload.investments)         ||
+    Array.isArray(payload.loans)               ||
+    Array.isArray(payload.reminders)           ||
+    Array.isArray(payload.vehicles)            ||
+    Array.isArray(payload.credit_cards)        ||
+    Array.isArray(payload.notes)               ||
+    Array.isArray(payload.credentials)         ||
+    Array.isArray(payload.trips)               ||
+    Array.isArray(payload.bill_splits)         ||
+    Array.isArray(payload.emi_loans)           ||
+    Array.isArray(payload.subscriptions)       ||
+    Array.isArray(payload.savings_goals)       ||
+    Array.isArray(payload.fd_rd)               ||
+    Array.isArray(payload.receipt_attachments) ||
+    (payload.study_data && typeof payload.study_data === 'object') ||
+    (payload.stock_portfolio_data && typeof payload.stock_portfolio_data === 'object') ||
+    (payload.appSettings && typeof payload.appSettings === 'object') ||
+    (payload.meta && typeof payload.meta === 'object')
+  );
 }
  
 // Upserts by `id` when present; otherwise appends. Never clears stores.
@@ -3232,6 +3412,86 @@ async function mergeRestore(payload) {
   }
   if (payload.gold_data) {
     try { localStorage.setItem(`lm_u_${currentUid}_gold_data`, JSON.stringify(payload.gold_data)); } catch(e){}
+  }
+
+  /* ── Restore Vehicles & Maintenance Data ─────────── */
+  await upsertList('vehicles', payload.vehicles || []);
+  if (Array.isArray(payload.vehicles) && window.LM_VehicleService && typeof window.LM_VehicleService.importData === 'function') {
+    try {
+      await window.LM_VehicleService.importData(payload.vehicles);
+    } catch(e) {
+      console.warn('[LM] Error merging vehicles data:', e);
+    }
+  }
+
+  /* ── Restore Bill Splits ──────────────────────────── */
+  if (Array.isArray(payload.bill_splits)) {
+    try {
+      if (window.LM_BillSplitter && typeof window.LM_BillSplitter.importData === 'function') {
+        window.LM_BillSplitter.importData(payload.bill_splits);
+      } else {
+        if (currentUid) localStorage.setItem(`lm_u_${currentUid}_bill_splits_v1`, JSON.stringify(payload.bill_splits));
+        localStorage.setItem('lm_bill_splits_v1', JSON.stringify(payload.bill_splits));
+      }
+    } catch(e) {
+      console.warn('[LM] Error merging bill splits:', e);
+    }
+  }
+
+  /* ── Restore Receipt Attachments ──────────────────── */
+  await upsertList('receipt_attachments', payload.receipt_attachments || []);
+
+  /* ── Restore Study Hub Data ───────────────────────── */
+  if (payload.study_data && typeof payload.study_data === 'object') {
+    try {
+      if (payload.study_data.custom_workspace) {
+        localStorage.setItem('lm_study_custom_workspace_v2', JSON.stringify(payload.study_data.custom_workspace));
+      }
+      if (payload.study_data.user_prefs) {
+        localStorage.setItem('lm_study_user_prefs_v2', JSON.stringify(payload.study_data.user_prefs));
+      }
+      if (payload.study_data.tombstones) {
+        localStorage.setItem('lm_study_deleted_tombstones_v2', JSON.stringify(payload.study_data.tombstones));
+      }
+      if (payload.study_data.progress) {
+        localStorage.setItem('study_progress_v1', JSON.stringify(payload.study_data.progress));
+      }
+      if (payload.study_data.streak) {
+        localStorage.setItem('prep_streak_v1', JSON.stringify(payload.study_data.streak));
+      }
+      if (payload.study_data.quiz_history) {
+        localStorage.setItem('lm_quiz_history_v1', JSON.stringify(payload.study_data.quiz_history));
+      }
+      if (payload.study_data.srs_cards) {
+        localStorage.setItem('study_srs_cards_v1', JSON.stringify(payload.study_data.srs_cards));
+      }
+      if (payload.study_data.timer_logs) {
+        localStorage.setItem('study_timer_logs', JSON.stringify(payload.study_data.timer_logs));
+      }
+    } catch(e) {
+      console.warn('[LM] Error merging study data:', e);
+    }
+  }
+
+  /* ── Restore User Feedback ────────────────────────── */
+  if (payload.user_feedback && typeof payload.user_feedback === 'object') {
+    try {
+      if (Array.isArray(payload.user_feedback.items)) {
+        localStorage.setItem('lm_local_feedback_v1', JSON.stringify(payload.user_feedback.items));
+      }
+      if (Array.isArray(payload.user_feedback.comments)) {
+        localStorage.setItem('lm_local_feedback_comments_v1', JSON.stringify(payload.user_feedback.comments));
+      }
+    } catch(e) {
+      console.warn('[LM] Error merging user feedback:', e);
+    }
+  }
+
+  /* ── Restore Activity Logs ────────────────────────── */
+  if (Array.isArray(payload.activity_logs) && payload.activity_logs.length > 0) {
+    try {
+      localStorage.setItem('lm_activity_log', JSON.stringify(payload.activity_logs));
+    } catch(e) {}
   }
 
   /* ── Refresh in-memory state ─────────────────────────── */
@@ -4075,6 +4335,14 @@ async function FinalJson(){
         return state.credit_cards || [];
       } catch(e) { return state.credit_cards || []; }
     })(),
+    vehicles: (function(){
+      try {
+        if (window.LM_VehicleService && typeof window.LM_VehicleService.exportData === 'function') {
+          return window.LM_VehicleService.exportData();
+        }
+        return state.vehicles || [];
+      } catch(e) { return state.vehicles || []; }
+    })(),
     category_rules: (function(){
       try {
         if (window.LM_CategoryRules && typeof window.LM_CategoryRules.getRules === 'function') {
@@ -4104,6 +4372,66 @@ async function FinalJson(){
         var gd = localStorage.getItem('lm_u_' + userId + '_gold_data') || localStorage.getItem('lm_gold_data');
         return gd ? JSON.parse(gd) : null;
       } catch(e) { return null; }
+    })(),
+    bill_splits: (function(){
+      try {
+        if (window.LM_BillSplitter && typeof window.LM_BillSplitter.exportData === 'function') {
+          return window.LM_BillSplitter.exportData();
+        }
+        var raw = (userId ? localStorage.getItem('lm_u_' + userId + '_bill_splits_v1') : null) || localStorage.getItem('lm_bill_splits_v1');
+        return raw ? JSON.parse(raw) : [];
+      } catch(e) { return []; }
+    })(),
+    receipt_attachments: (function(){
+      try {
+        if (Array.isArray(state.receipt_attachments) && state.receipt_attachments.length > 0) return state.receipt_attachments;
+        if (window.state && Array.isArray(window.state.receipt_attachments) && window.state.receipt_attachments.length > 0) return window.state.receipt_attachments;
+        return state.receipt_attachments || [];
+      } catch(e) { return []; }
+    })(),
+    study_data: (function(){
+      try {
+        var customWs = localStorage.getItem('lm_study_custom_workspace_v2');
+        var userPrefs = localStorage.getItem('lm_study_user_prefs_v2');
+        var tombstones = localStorage.getItem('lm_study_deleted_tombstones_v2');
+        var progress = localStorage.getItem('study_progress_v1');
+        var streak = localStorage.getItem('prep_streak_v1');
+        var quizHist = localStorage.getItem('lm_quiz_history_v1');
+        var srsCards = localStorage.getItem('study_srs_cards_v1');
+        var timerLogs = localStorage.getItem('study_timer_logs');
+
+        if (!customWs && !progress && !streak && !quizHist && !srsCards && !timerLogs) {
+          return null;
+        }
+
+        return {
+          custom_workspace: customWs ? JSON.parse(customWs) : null,
+          user_prefs: userPrefs ? JSON.parse(userPrefs) : null,
+          tombstones: tombstones ? JSON.parse(tombstones) : null,
+          progress: progress ? JSON.parse(progress) : null,
+          streak: streak ? JSON.parse(streak) : null,
+          quiz_history: quizHist ? JSON.parse(quizHist) : null,
+          srs_cards: srsCards ? JSON.parse(srsCards) : null,
+          timer_logs: timerLogs ? JSON.parse(timerLogs) : null
+        };
+      } catch(e) { return null; }
+    })(),
+    user_feedback: (function(){
+      try {
+        var fb = localStorage.getItem('lm_local_feedback_v1');
+        var com = localStorage.getItem('lm_local_feedback_comments_v1');
+        if (!fb && !com) return null;
+        return {
+          items: fb ? JSON.parse(fb) : [],
+          comments: com ? JSON.parse(com) : []
+        };
+      } catch(e) { return null; }
+    })(),
+    activity_logs: (function(){
+      try {
+        var raw = localStorage.getItem('lm_activity_log');
+        return raw ? JSON.parse(raw) : [];
+      } catch(e) { return []; }
     })(),
     meta: {
       exportedAt   : new Date().toISOString(),
@@ -4702,6 +5030,7 @@ setTimeout(() => {
   try { renderNWSparkline(); } catch (e) { console.warn('[LM] NW sparkline:', e); }
   try { renderMoMWidget(); } catch (e) { console.warn('[LM] renderMoMWidget:', e); }
   try { renderDashboardCreditCardReminders(); } catch (e) { console.warn('[LM] cc reminders widget:', e); }
+  try { renderDashboardVehicleAlerts(); } catch (e) { console.warn('[LM] vehicle widget:', e); }
   try {
     if (typeof renderWealthDashboard === 'function') renderWealthDashboard();
     else renderDashboardWealthWidget();
@@ -5156,6 +5485,18 @@ function renderDashboardCreditCardReminders() {
   }
 }
 window.renderDashboardCreditCardReminders = renderDashboardCreditCardReminders;
+
+// ── Dashboard Vehicle Maintenance Alerts Widget ──────────────
+function renderDashboardVehicleAlerts() {
+  if (window.LM_VehicleUI && typeof window.LM_VehicleUI.renderDashboardWidget === 'function') {
+    try {
+      window.LM_VehicleUI.renderDashboardWidget();
+    } catch (e) {
+      console.warn('[LM] renderDashboardVehicleAlerts error:', e);
+    }
+  }
+}
+window.renderDashboardVehicleAlerts = renderDashboardVehicleAlerts;
 
 // ── Dashboard Wealth Summary Widget ──────────────────────────
 function renderDashboardWealthWidget() {

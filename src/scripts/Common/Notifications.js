@@ -57,6 +57,8 @@
         if (typeFilter !== 'all') {
           if (typeFilter === 'credit card') {
             if ((r.tag || '').toLowerCase() !== 'credit card' && !r.cardId && !(r.id && String(r.id).startsWith('rem_cc_'))) return false;
+          } else if (typeFilter === 'vehicle') {
+            if ((r.tag || '').toLowerCase() !== 'vehicle' && !r.vehicleId && !(r.id && String(r.id).startsWith('rem_veh_'))) return false;
           } else if (!(r.tag || 'reminder').toLowerCase().includes(typeFilter)) {
             return false;
           }
@@ -87,6 +89,7 @@
 
       const dateStr = r.dueDate ? `${r.dueDate}${r.time ? ' ' + r.time : ''}` : '';
       const cardId = r.cardId || (r.id && String(r.id).startsWith('rem_cc_') ? String(r.id).replace('rem_cc_', '') : null);
+      const isVehicleRem = r.vehicleId || (r.id && String(r.id).startsWith('rem_veh_'));
 
       return `
         <div class="nr-item ${r.completed ? 'nr-done' : ''}" style="--accent:${accentColor}">
@@ -108,6 +111,9 @@
             <div class="nr-actions">
               ${cardId && !r.completed ? `
                 <button class="nr-btn payCcBillBtn" data-card-id="${cardId}" style="background:var(--teal);color:#fff;border-color:var(--teal);font-weight:600;" title="Pay Credit Card Bill">💳 Pay Bill</button>
+              ` : ''}
+              ${isVehicleRem && !r.completed ? `
+                <button class="nr-btn viewVehBtn" onclick="showPage('vehicles'); if(typeof closeNotificationsModal==='function') closeNotificationsModal();" style="background:#0284c7;color:#fff;border-color:#0284c7;font-weight:600;" title="View Vehicle Maintenance">🏍️ View Vehicle</button>
               ` : ''}
               <button class="nr-btn markDone ${r.completed ? 'active' : ''}" data-id="${r.id}" title="${r.completed ? 'Mark pending' : 'Mark done'}">
                 ${r.completed ? '↩ Undo' : '✓ Done'}

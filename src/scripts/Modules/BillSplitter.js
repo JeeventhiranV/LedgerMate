@@ -67,9 +67,15 @@
     return settlements;
   }
 
+  function getStorageKey() {
+    var uid = window.LM_Auth?.getCurrentUserId?.();
+    return uid && uid !== 'default' && uid !== 'guest' ? `lm_u_${uid}_bill_splits_v1` : STORAGE_KEY;
+  }
+
   function getSavedGroups() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const uKey = getStorageKey();
+      const raw = localStorage.getItem(uKey) || localStorage.getItem(STORAGE_KEY);
       return raw ? JSON.parse(raw) : [];
     } catch (e) {
       return [];
@@ -78,7 +84,11 @@
 
   function saveGroups(groups) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
+      const uKey = getStorageKey();
+      localStorage.setItem(uKey, JSON.stringify(groups));
+      if (uKey !== STORAGE_KEY) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
+      }
     } catch (e) {}
   }
 
@@ -244,7 +254,15 @@
 
   window.LM_BillSplitter = {
     simplifyDebts,
-    openBillSplitterModal
+    openBillSplitterModal,
+    exportData: getSavedGroups,
+    importData: function (groups) {
+      if (Array.isArray(groups)) {
+        saveGroups(groups);
+        return true;
+      }
+      return false;
+    }
   };
 
   console.log('[LM] BillSplitter module initialized (Optimal graph debt simplification ready).');

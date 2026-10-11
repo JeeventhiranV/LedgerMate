@@ -28,7 +28,9 @@
     'emi_loans', 'net_worth_snapshots', 'allocation_targets', 'sip_plan',
     'essentials_settings', 'savings_goals',   /* user-specific config & goals */
     'subscriptions',                           /* subscription tracker */
-    'fd_rd', 'tx_templates', 'credit_cards'    /* FD/RD + transaction templates + credit cards */
+    'fd_rd', 'tx_templates', 'credit_cards',   /* FD/RD + transaction templates + credit cards */
+    'vehicles',                                /* Bike & vehicle tracking */
+    'receipt_attachments'                      /* Offline receipts vault cache */
   ]);
 
   /* Stores shared between all users (categories, etc.) */

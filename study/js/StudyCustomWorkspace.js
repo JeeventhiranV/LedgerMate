@@ -21,7 +21,64 @@
 
   var STORAGE_KEY    = 'lm_study_custom_workspace_v2';
   var PREFS_KEY      = 'lm_study_user_prefs_v2';
+  var TOMBSTONES_KEY = 'lm_study_deleted_tombstones_v2';
   var STORAGE_BUCKET = 'study-materials';
+
+  var _tombstones = {
+    domains: [],
+    categories: [],
+    topics: [],
+    materials: []
+  };
+
+  function _loadTombstones() {
+    try {
+      var raw = localStorage.getItem(TOMBSTONES_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          _tombstones.domains = Array.isArray(parsed.domains) ? parsed.domains : [];
+          _tombstones.categories = Array.isArray(parsed.categories) ? parsed.categories : [];
+          _tombstones.topics = Array.isArray(parsed.topics) ? parsed.topics : [];
+          _tombstones.materials = Array.isArray(parsed.materials) ? parsed.materials : [];
+        }
+      }
+    } catch (e) {}
+  }
+
+  function _saveTombstones() {
+    try {
+      localStorage.setItem(TOMBSTONES_KEY, JSON.stringify(_tombstones));
+    } catch (e) {}
+  }
+
+  function _addTombstone(type, ids) {
+    if (!ids || !ids.length) return;
+    if (!_tombstones[type]) _tombstones[type] = [];
+    var set = new Set(_tombstones[type]);
+    ids.forEach(function (id) { if (id) set.add(String(id)); });
+    _tombstones[type] = Array.from(set);
+    _saveTombstones();
+  }
+
+  function _isTombstoned(type, id) {
+    if (!id || !_tombstones[type]) return false;
+    return _tombstones[type].indexOf(String(id)) !== -1;
+  }
+
+  function _syncTombstonesToSupabase(uid) {
+    if (!uid || typeof _supabase === 'undefined' || !_supabase) return Promise.resolve();
+    return _supabase.from('study_user_preferences').upsert({
+      user_id: uid,
+      widget_order: {
+        tombstones: _tombstones,
+        active_widgets: _state.prefs.active_widgets || []
+      },
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' }).catch(function (e) {
+      console.warn('[StudyWorkspace] sync tombstones error:', e);
+    });
+  }
 
   var _state = {
     domains: [],
@@ -426,13 +483,14 @@
 
   function _loadLocal() {
     try {
+      _loadTombstones();
       var raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         var parsed = JSON.parse(raw);
-        _state.domains = parsed.domains || [];
-        _state.categories = parsed.categories || [];
-        _state.topics = parsed.topics || [];
-        _state.materials = parsed.materials || [];
+        _state.domains = (parsed.domains || []).filter(function (d) { return d && !_isTombstoned('domains', d.id); });
+        _state.categories = (parsed.categories || []).filter(function (c) { return c && !_isTombstoned('categories', c.id); });
+        _state.topics = (parsed.topics || []).filter(function (t) { return t && !_isTombstoned('topics', t.id); });
+        _state.materials = (parsed.materials || []).filter(function (m) { return m && !_isTombstoned('materials', m.id); });
         _state.goals = parsed.goals || [];
         _state.timeLogs = parsed.timeLogs || [];
       }
@@ -553,65 +611,118 @@
         .then(function (r) { return (r && r.data) || null; }).catch(function (e) { return null; });
 
       return Promise.all([pDomains, pCats, pTopics, pMats, pGoals, pLogs, pPrefs]).then(function (results) {
-        var remoteDomains = results[0];
-        var remoteCats    = results[1];
-        var remoteTopics  = results[2];
-        var remoteMats    = results[3];
-        var remoteGoals   = results[4];
-        var remoteLogs    = results[5];
-        var remotePrefs   = results[6];
+        var remoteDomains = results[0] || [];
+        var remoteCats    = results[1] || [];
+        var remoteTopics  = results[2] || [];
+        var remoteMats    = results[3] || [];
+        var remoteGoals   = results[4] || [];
+        var remoteLogs    = results[5] || [];
+        var remotePrefs   = results[6] || null;
+
+        // Ingest any shared remote tombstones from study_user_preferences
+        if (remotePrefs && remotePrefs.widget_order && typeof remotePrefs.widget_order === 'object') {
+          var rTomb = remotePrefs.widget_order.tombstones;
+          if (rTomb && typeof rTomb === 'object') {
+            if (Array.isArray(rTomb.domains)) _addTombstone('domains', rTomb.domains);
+            if (Array.isArray(rTomb.categories)) _addTombstone('categories', rTomb.categories);
+            if (Array.isArray(rTomb.topics)) _addTombstone('topics', rTomb.topics);
+            if (Array.isArray(rTomb.materials)) _addTombstone('materials', rTomb.materials);
+          }
+        }
+
+        // Purge any remote items that were deleted and tombstoned
+        var validRemoteDomains = remoteDomains.filter(function (d) { return d && !_isTombstoned('domains', d.id); });
+        var validRemoteCats    = remoteCats.filter(function (c) { return c && !_isTombstoned('categories', c.id); });
+        var validRemoteTopics  = remoteTopics.filter(function (t) { return t && !_isTombstoned('topics', t.id); });
+        var validRemoteMats    = remoteMats.filter(function (m) { return m && !_isTombstoned('materials', m.id); });
 
         // 1. Domains: Combine remote and any local unsynced domains
         var remoteDomMap = {};
-        remoteDomains.forEach(function (d) { remoteDomMap[d.id] = d; });
+        validRemoteDomains.forEach(function (d) {
+          d._synced = true;
+          d._isNewLocal = false;
+          remoteDomMap[d.id] = d;
+        });
         var pushDomains = [];
         _state.domains.forEach(function (localD) {
           if (!_isValidUUID(localD.id)) return;
+          if (_isTombstoned('domains', localD.id)) return;
           if (!remoteDomMap[localD.id]) {
+            if (localD._synced && !localD._isNewLocal) {
+              _addTombstone('domains', [localD.id]);
+              return;
+            }
             var sanitized = _sanitizeDomain(localD, uid);
             if (sanitized) pushDomains.push(sanitized);
           }
         });
-        _state.domains = remoteDomains.concat(pushDomains);
+        _state.domains = validRemoteDomains.concat(pushDomains);
 
         // 2. Categories
         var remoteCatMap = {};
-        remoteCats.forEach(function (c) { remoteCatMap[c.id] = c; });
+        validRemoteCats.forEach(function (c) {
+          c._synced = true;
+          c._isNewLocal = false;
+          remoteCatMap[c.id] = c;
+        });
         var pushCats = [];
         _state.categories.forEach(function (localC) {
           if (!_isValidUUID(localC.id)) return;
+          if (_isTombstoned('categories', localC.id)) return;
           if (!remoteCatMap[localC.id]) {
+            if (localC._synced && !localC._isNewLocal) {
+              _addTombstone('categories', [localC.id]);
+              return;
+            }
             var sanitized = _sanitizeCategory(localC, uid);
             if (sanitized) pushCats.push(sanitized);
           }
         });
-        _state.categories = remoteCats.concat(pushCats);
+        _state.categories = validRemoteCats.concat(pushCats);
 
         // 3. Topics
         var remoteTopicMap = {};
-        remoteTopics.forEach(function (t) { remoteTopicMap[t.id] = t; });
+        validRemoteTopics.forEach(function (t) {
+          t._synced = true;
+          t._isNewLocal = false;
+          remoteTopicMap[t.id] = t;
+        });
         var pushTopics = [];
         _state.topics.forEach(function (localT) {
           if (!_isValidUUID(localT.id)) return;
+          if (_isTombstoned('topics', localT.id)) return;
           if (!remoteTopicMap[localT.id]) {
+            if (localT._synced && !localT._isNewLocal) {
+              _addTombstone('topics', [localT.id]);
+              return;
+            }
             var sanitized = _sanitizeTopic(localT, uid);
             if (sanitized) pushTopics.push(sanitized);
           }
         });
-        _state.topics = remoteTopics.concat(pushTopics);
+        _state.topics = validRemoteTopics.concat(pushTopics);
 
         // 4. Materials
         var remoteMatMap = {};
-        remoteMats.forEach(function (m) { remoteMatMap[m.id] = m; });
+        validRemoteMats.forEach(function (m) {
+          m._synced = true;
+          m._isNewLocal = false;
+          remoteMatMap[m.id] = m;
+        });
         var pushMats = [];
         _state.materials.forEach(function (localM) {
           if (!_isValidUUID(localM.id)) return;
+          if (_isTombstoned('materials', localM.id)) return;
           if (!remoteMatMap[localM.id]) {
+            if (localM._synced && !localM._isNewLocal) {
+              _addTombstone('materials', [localM.id]);
+              return;
+            }
             var sanitized = _sanitizeMaterial(localM, uid);
             if (sanitized) pushMats.push(sanitized);
           }
         });
-        _state.materials = remoteMats.concat(pushMats);
+        _state.materials = validRemoteMats.concat(pushMats);
 
         // 5. Goals
         var remoteGoalMap = {};
@@ -1283,7 +1394,7 @@
               <div style="display:flex;gap:6px;align-items:center;">
                 <button class="ws-btn-secondary" style="font-size:10.5px;padding:3px 7px;" onclick="window.StudyWorkspace.cycleTopicStatus('${t.id}')">Cycle Status</button>
                 <button class="ws-btn-secondary" style="font-size:10.5px;padding:3px 7px;" onclick="window.StudyWorkspace.openTopicExplorer('${t.id}')">Open ↗</button>
-                <button class="ws-btn-danger" style="font-size:10.5px;padding:3px 7px;" onclick="window.StudyWorkspace.deleteTopic('${t.id}')">🗑️</button>
+                <button class="ws-btn-danger" style="font-size:10.5px;padding:3px 7px;" onclick="window.StudyWorkspace.confirmDeleteTopic('${t.id}')">🗑️</button>
               </div>
             </div>
           `;
@@ -1299,7 +1410,7 @@
               </div>
               <div style="display:flex;gap:6px;">
                 <button class="ws-btn-secondary" style="font-size:11px;padding:3px 8px;" onclick="window.StudyWorkspace.openAddTopicModal('${cat.id}')">+ Add Topic</button>
-                <button class="ws-btn-danger" style="font-size:11px;padding:3px 8px;" onclick="window.StudyWorkspace.deleteCategory('${cat.id}')">🗑️</button>
+                <button class="ws-btn-danger" style="font-size:11px;padding:3px 8px;" onclick="window.StudyWorkspace.confirmDeleteCategory('${cat.id}')">🗑️</button>
               </div>
             </div>
             <div class="studio-tree-topics-list">
@@ -2346,32 +2457,64 @@
     var domTitle = dom ? dom.title : 'Section';
 
     var domCats = _state.categories.filter(function (c) { return c.domain_id === domainId; });
-    var catIds = new Set(domCats.map(function (c) { return c.id; }));
-    var domTopics = _state.topics.filter(function (t) { return catIds.has(t.category_id); });
-    var topIds = new Set(domTopics.map(function (t) { return t.id; }));
-    var domMats = _state.materials.filter(function (m) { return topIds.has(m.topic_id); });
+    var catIds = Array.from(new Set(domCats.map(function (c) { return c.id; })));
+    var domTopics = _state.topics.filter(function (t) { return catIds.indexOf(t.category_id) !== -1; });
+    var topIds = Array.from(new Set(domTopics.map(function (t) { return t.id; })));
+    var domMats = _state.materials.filter(function (m) { return topIds.indexOf(m.topic_id) !== -1; });
+    var matIds = Array.from(new Set(domMats.map(function (m) { return m.id; })));
 
+    // 1. Record Tombstones immediately to prevent resurrection during sync
+    _addTombstone('domains', [domainId]);
+    _addTombstone('categories', catIds);
+    _addTombstone('topics', topIds);
+    _addTombstone('materials', matIds);
+
+    // 2. Remove files from Supabase Storage bucket
     var storagePaths = domMats.map(function (m) { return m.storage_path; }).filter(Boolean);
     if (storagePaths.length > 0 && typeof _supabase !== 'undefined' && _supabase?.storage) {
       _supabase.storage.from(STORAGE_BUCKET).remove(storagePaths).catch(function () {});
     }
 
+    // 3. Supabase deletion in child-to-parent order
     _getUid().then(function (uid) {
       if (uid && typeof _supabase !== 'undefined' && _supabase) {
-        _supabase.from('study_custom_domains').delete().eq('id', domainId)
-          .catch(function (err) { console.error('[StudyWorkspace] deleteDomain error:', err); });
-        _supabase.from('study_time_logs').delete().eq('domain_id', domainId)
-          .catch(function (err) { console.error('[StudyWorkspace] deleteDomain logs error:', err); });
+        var p = Promise.resolve();
+        if (matIds.length > 0) {
+          p = p.then(function () {
+            return _supabase.from('study_materials').delete().in('id', matIds).eq('user_id', uid);
+          }).catch(function (err) { console.warn('[StudyWorkspace] delete mats error:', err); });
+        }
+        if (topIds.length > 0) {
+          p = p.then(function () {
+            return _supabase.from('study_custom_topics').delete().in('id', topIds).eq('user_id', uid);
+          }).catch(function (err) { console.warn('[StudyWorkspace] delete topics error:', err); });
+        }
+        if (catIds.length > 0) {
+          p = p.then(function () {
+            return _supabase.from('study_custom_categories').delete().in('id', catIds).eq('user_id', uid);
+          }).catch(function (err) { console.warn('[StudyWorkspace] delete cats error:', err); });
+        }
+        p = p.then(function () {
+          return _supabase.from('study_time_logs').delete().eq('domain_id', domainId).eq('user_id', uid);
+        }).catch(function (err) { console.warn('[StudyWorkspace] delete logs error:', err); });
+        p = p.then(function () {
+          return _supabase.from('study_custom_domains').delete().eq('id', domainId).eq('user_id', uid);
+        }).catch(function (err) { console.error('[StudyWorkspace] deleteDomain error:', err); });
+
+        p.finally(function () {
+          _syncTombstonesToSupabase(uid);
+        });
       }
     });
 
+    // 4. Update In-Memory State
     _state.domains = _state.domains.filter(function (d) { return d.id !== domainId; });
     _state.categories = _state.categories.filter(function (c) { return c.domain_id !== domainId; });
-    _state.topics = _state.topics.filter(function (t) { return !catIds.has(t.category_id); });
-    _state.materials = _state.materials.filter(function (m) { return !topIds.has(m.topic_id); });
-    _state.timeLogs = _state.timeLogs.filter(function (l) { return l.domain_id !== domainId && !topIds.has(l.topic_id); });
+    _state.topics = _state.topics.filter(function (t) { return catIds.indexOf(t.category_id) === -1; });
+    _state.materials = _state.materials.filter(function (m) { return topIds.indexOf(m.topic_id) === -1; });
+    _state.timeLogs = _state.timeLogs.filter(function (l) { return l.domain_id !== domainId && topIds.indexOf(l.topic_id) === -1; });
 
-    if (_state.prefs.last_active_topic && (_state.prefs.last_active_topic.domainId === domainId || topIds.has(_state.prefs.last_active_topic.topicId))) {
+    if (_state.prefs.last_active_topic && (_state.prefs.last_active_topic.domainId === domainId || topIds.indexOf(_state.prefs.last_active_topic.topicId) !== -1)) {
       clearLastActiveTopic();
     }
 
@@ -2389,45 +2532,161 @@
 
     renderAllWidgets();
     renderActiveStudioTab();
+
+    try {
+      window.dispatchEvent(new CustomEvent('lm_study_workspace_updated', { detail: { action: 'delete_domain', domainId: domainId } }));
+      document.dispatchEvent(new CustomEvent('studyWorkspaceSyncDone'));
+    } catch (e) {}
+  }
+
+  function confirmDeleteCategory(categoryId) {
+    var cat = _state.categories.find(function (c) { return c.id === categoryId; });
+    if (!cat) return;
+
+    var existing = document.getElementById('deleteConfirmModal');
+    if (existing) existing.remove();
+
+    var cTopics = _state.topics.filter(function (t) { return t.category_id === categoryId; });
+    var tIds = Array.from(new Set(cTopics.map(function (t) { return t.id; })));
+    var cMats = _state.materials.filter(function (m) { return tIds.indexOf(m.topic_id) !== -1; });
+
+    var modal = document.createElement('div');
+    modal.id = 'deleteConfirmModal';
+    modal.className = 'ws-modal-overlay';
+    modal.innerHTML = `
+      <div class="ws-modal-dialog" style="max-width:480px;">
+        <div class="ws-modal-header">
+          <div class="ws-modal-title" style="color:#fb7185;">
+            <span>⚠️</span> Delete Module
+          </div>
+          <button class="ws-modal-close" onclick="document.getElementById('deleteConfirmModal')?.remove()">✕</button>
+        </div>
+        <div class="ws-modal-body">
+          <div class="danger-warning-box">
+            <div class="danger-warning-title">Delete Module "${_esc(cat.title)}"?</div>
+            This will permanently remove this module, its <strong>${cTopics.length}</strong> topics, and <strong>${cMats.length}</strong> attached materials.
+          </div>
+        </div>
+        <div class="ws-modal-footer">
+          <button class="ws-btn-danger-solid" onclick="window.StudyWorkspace.deleteCategory('${categoryId}')">
+            🗑️ Yes, Delete Module
+          </button>
+          <button class="ws-btn-secondary" onclick="document.getElementById('deleteConfirmModal')?.remove()">
+            Cancel
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
   }
 
   function deleteCategory(categoryId) {
     var cat = _state.categories.find(function (c) { return c.id === categoryId; });
     if (!cat) return;
-    if (!confirm('Delete module "' + cat.title + '" and its topics/materials?')) return;
 
     var cTopics = _state.topics.filter(function (t) { return t.category_id === categoryId; });
-    var tIds = new Set(cTopics.map(function (t) { return t.id; }));
-    var cMats = _state.materials.filter(function (m) { return tIds.has(m.topic_id); });
-    var storagePaths = cMats.map(function (m) { return m.storage_path; }).filter(Boolean);
+    var tIds = Array.from(new Set(cTopics.map(function (t) { return t.id; })));
+    var cMats = _state.materials.filter(function (m) { return tIds.indexOf(m.topic_id) !== -1; });
+    var matIds = Array.from(new Set(cMats.map(function (m) { return m.id; })));
 
+    _addTombstone('categories', [categoryId]);
+    _addTombstone('topics', tIds);
+    _addTombstone('materials', matIds);
+
+    var storagePaths = cMats.map(function (m) { return m.storage_path; }).filter(Boolean);
     if (storagePaths.length > 0 && typeof _supabase !== 'undefined' && _supabase?.storage) {
       _supabase.storage.from(STORAGE_BUCKET).remove(storagePaths).catch(function () {});
     }
 
     _getUid().then(function (uid) {
       if (uid && typeof _supabase !== 'undefined' && _supabase) {
-        _supabase.from('study_custom_categories').delete().eq('id', categoryId)
-          .catch(function (err) { console.error('[StudyWorkspace] deleteCategory error:', err); });
+        var p = Promise.resolve();
+        if (matIds.length > 0) {
+          p = p.then(function () {
+            return _supabase.from('study_materials').delete().in('id', matIds).eq('user_id', uid);
+          }).catch(function () {});
+        }
+        if (tIds.length > 0) {
+          p = p.then(function () {
+            return _supabase.from('study_custom_topics').delete().in('id', tIds).eq('user_id', uid);
+          }).catch(function () {});
+        }
+        p = p.then(function () {
+          return _supabase.from('study_custom_categories').delete().eq('id', categoryId).eq('user_id', uid);
+        }).catch(function (err) { console.error('[StudyWorkspace] deleteCategory error:', err); });
+
+        p.finally(function () {
+          _syncTombstonesToSupabase(uid);
+        });
       }
     });
 
     _state.categories = _state.categories.filter(function (c) { return c.id !== categoryId; });
     _state.topics = _state.topics.filter(function (t) { return t.category_id !== categoryId; });
-    _state.materials = _state.materials.filter(function (m) { return !tIds.has(m.topic_id); });
+    _state.materials = _state.materials.filter(function (m) { return tIds.indexOf(m.topic_id) === -1; });
 
     _saveLocal();
+    document.getElementById('deleteConfirmModal')?.remove();
+
     if (window.LMToast) window.LMToast.show('🗑️ Module deleted');
     renderAllWidgets();
     renderActiveStudioTab();
+
+    try {
+      window.dispatchEvent(new CustomEvent('lm_study_workspace_updated', { detail: { action: 'delete_category', categoryId: categoryId } }));
+      document.dispatchEvent(new CustomEvent('studyWorkspaceSyncDone'));
+    } catch (e) {}
+  }
+
+  function confirmDeleteTopic(topicId) {
+    var t = _state.topics.find(function (x) { return x.id === topicId; });
+    if (!t) return;
+
+    var existing = document.getElementById('deleteConfirmModal');
+    if (existing) existing.remove();
+
+    var mats = _state.materials.filter(function (m) { return m.topic_id === topicId; });
+
+    var modal = document.createElement('div');
+    modal.id = 'deleteConfirmModal';
+    modal.className = 'ws-modal-overlay';
+    modal.innerHTML = `
+      <div class="ws-modal-dialog" style="max-width:480px;">
+        <div class="ws-modal-header">
+          <div class="ws-modal-title" style="color:#fb7185;">
+            <span>⚠️</span> Delete Topic
+          </div>
+          <button class="ws-modal-close" onclick="document.getElementById('deleteConfirmModal')?.remove()">✕</button>
+        </div>
+        <div class="ws-modal-body">
+          <div class="danger-warning-box">
+            <div class="danger-warning-title">Delete Topic "${_esc(t.title)}"?</div>
+            This will permanently remove this topic and its <strong>${mats.length}</strong> attached materials and notes.
+          </div>
+        </div>
+        <div class="ws-modal-footer">
+          <button class="ws-btn-danger-solid" onclick="window.StudyWorkspace.deleteTopic('${topicId}')">
+            🗑️ Yes, Delete Topic
+          </button>
+          <button class="ws-btn-secondary" onclick="document.getElementById('deleteConfirmModal')?.remove()">
+            Cancel
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
   }
 
   function deleteTopic(topicId) {
     var t = _state.topics.find(function (x) { return x.id === topicId; });
     if (!t) return;
-    if (!confirm('Are you sure you want to delete topic "' + t.title + '" and its attached materials?')) return;
 
     var mats = _state.materials.filter(function (m) { return m.topic_id === topicId; });
+    var matIds = Array.from(new Set(mats.map(function (m) { return m.id; })));
+
+    _addTombstone('topics', [topicId]);
+    _addTombstone('materials', matIds);
+
     var storagePaths = mats.map(function (m) { return m.storage_path; }).filter(Boolean);
     if (storagePaths.length > 0 && typeof _supabase !== 'undefined' && _supabase?.storage) {
       _supabase.storage.from(STORAGE_BUCKET).remove(storagePaths).catch(function () {});
@@ -2435,10 +2694,19 @@
 
     _getUid().then(function (uid) {
       if (uid && typeof _supabase !== 'undefined' && _supabase) {
-        _supabase.from('study_custom_topics').delete().eq('id', topicId)
-          .catch(function (err) { console.error('[StudyWorkspace] deleteTopic error:', err); });
-        _supabase.from('study_materials').delete().eq('topic_id', topicId)
-          .catch(function (err) { console.error('[StudyWorkspace] deleteTopic materials error:', err); });
+        var p = Promise.resolve();
+        if (matIds.length > 0) {
+          p = p.then(function () {
+            return _supabase.from('study_materials').delete().in('id', matIds).eq('user_id', uid);
+          }).catch(function () {});
+        }
+        p = p.then(function () {
+          return _supabase.from('study_custom_topics').delete().eq('id', topicId).eq('user_id', uid);
+        }).catch(function (err) { console.error('[StudyWorkspace] deleteTopic error:', err); });
+
+        p.finally(function () {
+          _syncTombstonesToSupabase(uid);
+        });
       }
     });
 
@@ -2450,15 +2718,23 @@
 
     _saveLocal();
     document.getElementById('topicExplorerModal')?.remove();
+    document.getElementById('deleteConfirmModal')?.remove();
 
     if (window.LMToast) window.LMToast.show('🗑️ Topic deleted');
     renderAllWidgets();
     renderActiveStudioTab();
+
+    try {
+      window.dispatchEvent(new CustomEvent('lm_study_workspace_updated', { detail: { action: 'delete_topic', topicId: topicId } }));
+      document.dispatchEvent(new CustomEvent('studyWorkspaceSyncDone'));
+    } catch (e) {}
   }
 
   function deleteMaterial(materialId) {
     var mat = _state.materials.find(function (m) { return m.id === materialId; });
     if (!mat) return;
+
+    _addTombstone('materials', [materialId]);
 
     if (mat.storage_path && typeof _supabase !== 'undefined' && _supabase?.storage) {
       _supabase.storage.from(STORAGE_BUCKET).remove([mat.storage_path]).catch(function () {});
@@ -2466,8 +2742,9 @@
 
     _getUid().then(function (uid) {
       if (uid && typeof _supabase !== 'undefined' && _supabase) {
-        _supabase.from('study_materials').delete().eq('id', materialId)
+        _supabase.from('study_materials').delete().eq('id', materialId).eq('user_id', uid)
           .catch(function (err) { console.error('[StudyWorkspace] deleteMaterial error:', err); });
+        _syncTombstonesToSupabase(uid);
       }
     });
 
@@ -2478,7 +2755,13 @@
     if (mat.topic_id) openTopicExplorer(mat.topic_id);
     renderAllWidgets();
     renderActiveStudioTab();
+
+    try {
+      window.dispatchEvent(new CustomEvent('lm_study_workspace_updated', { detail: { action: 'delete_material', materialId: materialId } }));
+      document.dispatchEvent(new CustomEvent('studyWorkspaceSyncDone'));
+    } catch (e) {}
   }
+
 
   // ── 12. WIDGET CUSTOMIZER CONTROLS ─────────────────────────────────────────
   function _isWidgetVisible(widgetKey) {
@@ -3263,7 +3546,7 @@
               ${_state.canCustomize ? `
                 <div class="ws-module-actions" onclick="event.stopPropagation()">
                   <button class="ws-btn-secondary" style="font-size:11px;padding:3px 8px;" onclick="window.StudyWorkspace.openAddTopicModal('${cat.id}')">+ Add Topic</button>
-                  <button class="ws-btn-danger" style="font-size:11px;padding:3px 8px;" onclick="window.StudyWorkspace.deleteCategory('${cat.id}')" title="Delete Module">🗑️</button>
+                  <button class="ws-btn-danger" style="font-size:11px;padding:3px 8px;" onclick="window.StudyWorkspace.confirmDeleteCategory('${cat.id}')" title="Delete Module">🗑️</button>
                 </div>
               ` : ''}
             </div>
@@ -3420,6 +3703,9 @@
     updateTopicNotes: updateTopicNotes,
     confirmDeleteDomain: confirmDeleteDomain,
     deleteDomain: deleteDomain,
+    confirmDeleteCategory: confirmDeleteCategory,
+    deleteCategory: deleteCategory,
+    confirmDeleteTopic: confirmDeleteTopic,
     deleteTopic: deleteTopic,
     deleteMaterial: deleteMaterial,
     handleSectionSearch: handleSectionSearch,

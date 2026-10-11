@@ -67,6 +67,28 @@
       renderAll();
     });
 
+    window.addEventListener('lm_study_workspace_updated', function (e) {
+      var detail = (e && e.detail) || {};
+      var st = window.StudyWorkspace ? window.StudyWorkspace.getState() : null;
+      if (detail.action === 'delete_topic' && _currentTopicId === detail.topicId) {
+        if (st && st.topics && st.topics.length > 0) {
+          _currentTopicId = st.topics[0].id;
+        } else {
+          _currentTopicId = null;
+        }
+      } else if (detail.action === 'delete_category' || detail.action === 'delete_domain') {
+        if (st && st.topics) {
+          if (!st.topics.some(function (t) { return t.id === _currentTopicId; })) {
+            _currentTopicId = st.topics.length > 0 ? st.topics[0].id : null;
+          }
+        }
+      }
+      if (_activePreviewMaterialId && detail.action === 'delete_material' && _activePreviewMaterialId === detail.materialId) {
+        _activePreviewMaterialId = null;
+      }
+      renderAll();
+    });
+
     if (window.StudyWorkspace && typeof window.StudyWorkspace.syncFromSupabase === 'function') {
       window.StudyWorkspace.syncFromSupabase().then(function () {
         if (!_currentTopicId) {
@@ -673,27 +695,53 @@
   }
 
   function deleteMaterial(materialId) {
-    if (!confirm('Delete this material attachment from workspace & cloud storage?')) return;
-    if (window.StudyWorkspace && window.StudyWorkspace.deleteMaterial) {
-      window.StudyWorkspace.deleteMaterial(materialId);
-      if (_activePreviewMaterialId === materialId) _activePreviewMaterialId = null;
-      renderMainWorkspace();
-      renderSidebar();
-    }
+    var existing = document.getElementById('deleteMatConfirmModal');
+    if (existing) existing.remove();
+
+    var modal = document.createElement('div');
+    modal.id = 'deleteMatConfirmModal';
+    modal.className = 'ws-modal-overlay';
+    modal.innerHTML = `
+      <div class="ws-modal-dialog" style="max-width:420px;">
+        <div class="ws-modal-header">
+          <div class="ws-modal-title" style="color:#fb7185;">
+            <span>⚠️</span> Delete Material
+          </div>
+          <button class="ws-modal-close" onclick="document.getElementById('deleteMatConfirmModal')?.remove()">✕</button>
+        </div>
+        <div class="ws-modal-body">
+          <div class="danger-warning-box">
+            Delete this material attachment from workspace & cloud storage?
+          </div>
+        </div>
+        <div class="ws-modal-footer">
+          <button class="ws-btn-danger-solid" id="btnConfirmDeleteMat">
+            🗑️ Yes, Delete
+          </button>
+          <button class="ws-btn-secondary" onclick="document.getElementById('deleteMatConfirmModal')?.remove()">
+            Cancel
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    document.getElementById('btnConfirmDeleteMat').onclick = function () {
+      modal.remove();
+      if (window.StudyWorkspace && window.StudyWorkspace.deleteMaterial) {
+        window.StudyWorkspace.deleteMaterial(materialId);
+        if (_activePreviewMaterialId === materialId) _activePreviewMaterialId = null;
+        renderMainWorkspace();
+        renderSidebar();
+      }
+    };
   }
 
   function deleteCurrentTopic(topicId) {
-    if (!confirm('Are you sure you want to delete this topic and all its attached files?')) return;
-    if (window.StudyWorkspace && window.StudyWorkspace.deleteTopic) {
+    if (window.StudyWorkspace && window.StudyWorkspace.confirmDeleteTopic) {
+      window.StudyWorkspace.confirmDeleteTopic(topicId);
+    } else if (window.StudyWorkspace && window.StudyWorkspace.deleteTopic) {
       window.StudyWorkspace.deleteTopic(topicId);
-      if (window.LMToast) window.LMToast.show('🗑️ Topic deleted');
-      var state = window.StudyWorkspace.getState();
-      if (state.topics && state.topics.length > 0) {
-        _currentTopicId = state.topics[0].id;
-        renderAll();
-      } else {
-        window.location.href = 'index.html';
-      }
     }
   }
 
