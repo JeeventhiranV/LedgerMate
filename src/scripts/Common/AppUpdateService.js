@@ -242,7 +242,30 @@
       return null;
     })();
 
-    const allSettled = await Promise.allSettled([...versionJsonPromises, ghReleasePromise]);
+    // 3. Concurrently fetch directly via Android Native Bridge (bypasses browser CORS & redirects)
+    const nativeBridgePromise = (async () => {
+      try {
+        if (isNativeAndroid() && typeof window.AndroidBridge.fetchLatestReleaseMeta === 'function') {
+          const raw = window.AndroidBridge.fetchLatestReleaseMeta();
+          if (raw && typeof raw === 'string') {
+            const data = JSON.parse(raw);
+            if (data && (typeof data.apkVersionCode !== 'undefined' || typeof data.versionCode !== 'undefined')) {
+              const code = Number(data.apkVersionCode || data.versionCode || (data.apkVersionName && data.apkVersionName.split('.').pop()) || 0);
+              return {
+                ...data,
+                apkVersionCode: code,
+                apkVersionName: data.apkVersionName || (code > 0 ? `1.0.${code}` : (data.version || '1.0.0')),
+                apkDownloadUrl: data.apkDownloadUrl || 'https://github.com/JeeventhiranV/LedgerMate/releases/download/latest/app-release.apk',
+                sourceUrl: 'android-native-bridge'
+              };
+            }
+          }
+        }
+      } catch (e) {}
+      return null;
+    })();
+
+    const allSettled = await Promise.allSettled([...versionJsonPromises, ghReleasePromise, nativeBridgePromise]);
     for (const settled of allSettled) {
       if (settled.status === 'fulfilled' && settled.value) {
         results.push(settled.value);
@@ -256,7 +279,7 @@
     // versionCode than what is published in GitHub Releases is phantom (e.g. from an unbuilt web commit).
     let eligibleCandidates = results;
     if (isNativeAndroid()) {
-      const releaseCandidate = results.find(r => r.sourceUrl === 'github-api' || (typeof r.sourceUrl === 'string' && r.sourceUrl.includes('/releases/download/latest/version.json')));
+      const releaseCandidate = results.find(r => r.sourceUrl === 'android-native-bridge' || r.sourceUrl === 'github-api' || (typeof r.sourceUrl === 'string' && r.sourceUrl.includes('/releases/download/latest/version.json')));
       if (releaseCandidate && Number(releaseCandidate.apkVersionCode || 0) > 0) {
         const maxReleaseCode = Number(releaseCandidate.apkVersionCode);
         // Discard any phantom candidate claiming a versionCode higher than what exists in GitHub Releases

@@ -1287,6 +1287,61 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
+        public String fetchLatestReleaseMeta() {
+            try {
+                URL url = new URL("https://github.com/JeeventhiranV/LedgerMate/releases/download/latest/version.json");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setInstanceFollowRedirects(true);
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+                conn.setRequestProperty("User-Agent", "LedgerMate-Android/" + getInstalledVersionCode());
+
+                int code = conn.getResponseCode();
+                int redirects = 0;
+                while ((code == 301 || code == 302 || code == 307 || code == 308) && redirects < 5) {
+                    String newUrl = conn.getHeaderField("Location");
+                    if (newUrl == null || newUrl.isEmpty()) break;
+                    conn.disconnect();
+                    url = new URL(newUrl);
+                    conn = (HttpURLConnection) url.openConnection();
+                    conn.setInstanceFollowRedirects(true);
+                    conn.setConnectTimeout(5000);
+                    conn.setReadTimeout(5000);
+                    conn.setRequestProperty("User-Agent", "LedgerMate-Android/" + getInstalledVersionCode());
+                    code = conn.getResponseCode();
+                    redirects++;
+                }
+
+                if (code == 200) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        sb.append(line);
+                    }
+                    reader.close();
+                    conn.disconnect();
+                    return sb.toString();
+                }
+                conn.disconnect();
+            } catch (Exception ignored) {}
+            return null;
+        }
+
+        @JavascriptInterface
+        public void fetchLatestReleaseMetaAsync(String callbackId) {
+            executorService.execute(() -> {
+                String meta = fetchLatestReleaseMeta();
+                if (meta != null && !meta.isEmpty()) {
+                    returnToJs(callbackId, meta);
+                } else {
+                    sendError(callbackId, "Failed to fetch release metadata");
+                }
+            });
+        }
+
+        @JavascriptInterface
         public void downloadAndInstallApk(String apkUrl, String callbackId) {
             executorService.execute(() -> {
                 HttpURLConnection conn = null;

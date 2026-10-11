@@ -2,9 +2,9 @@
   "version": "lm-v20261011.local",
   "commit": "local",
   "build_date": "20261011",
-  "timestamp": 1791738293708,
-  "apkVersionCode": 354,
-  "apkVersionName": "1.0.354",
+  "timestamp": 1791739926446,
+  "apkVersionCode": 356,
+  "apkVersionName": "1.0.356",
   "apkDownloadUrl": "https://github.com/JeeventhiranV/LedgerMate/releases/download/latest/app-release.apk",
   "releaseNotes": "Feature updates, performance enhancements, UI improvements, and bug fixes."
 }
