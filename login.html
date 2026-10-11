@@ -4,181 +4,826 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <script>(function(){try{var k=['ledgerMate_theme','prep_theme','sr_theme','dsa_theme','ql_theme','react_prep_theme','theme'];for(var i=0;i<k.length;i++){var t=localStorage.getItem(k[i]);if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);break;}}}catch(e){}})();</script>
-<title>LedgerMate Study Login</title>
+<title>LedgerMate · Secure Gateway</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="./auth/supabase-config.js"></script>
 <style>
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg:      #0a0c12;
-  --surface: #111420;
-  --card:    #151922;
-  --border:  #1f2535;
-  --border-h:#2d3650;
-  --text:    #e8eaf6;
-  --text2:   #7c87a8;
-  --text3:   #454d6a;
-  --blue:    #4f8ef7;
-  --purple:  #8b5cf6;
-  --teal:    #00d4b4;
-  --rose:    #f43f5e;
-  --shadow:  0 24px 60px rgba(0,0,0,.7);
-}
-[data-theme="light"] {
-  --bg:      #f0f2fa;
-  --surface: #ffffff;
-  --card:    #ffffff;
-  --border:  #e2e6f3;
-  --border-h:#c8cfeb;
-  --text:    #1a1e35;
-  --text2:   #5260a0;
-  --text3:   #9099c2;
-  --shadow:  0 12px 40px rgba(0,0,0,.12);
+  --bg: #070913;
+  --bg-dots: rgba(255, 255, 255, 0.04);
+  --surface: #0e1222;
+  --surface-glass: rgba(14, 18, 34, 0.78);
+  --card: #13182b;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.16);
+  --text: #f3f5fc;
+  --text-muted: #828ea8;
+  --text-dim: #4b556f;
+  --teal: #00d4b4;
+  --teal-glow: rgba(0, 212, 180, 0.25);
+  --purple: #8b5cf6;
+  --purple-glow: rgba(139, 92, 246, 0.25);
+  --blue: #3b82f6;
+  --rose: #f43f5e;
+  --amber: #f59e0b;
+  --accent: #00d4b4;
+  --accent-glow: rgba(0, 212, 180, 0.25);
+  --accent-gradient: linear-gradient(135deg, #00d4b4, #3b82f6);
+  --shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
-html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+[data-theme="light"] {
+  --bg: #f4f6fb;
+  --bg-dots: rgba(0, 0, 0, 0.03);
+  --surface: #ffffff;
+  --surface-glass: rgba(255, 255, 255, 0.88);
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --border-hover: #cbd5e1;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --shadow: 0 20px 50px -12px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+html, body {
+  min-height: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
 
 body {
-  display: flex; align-items: center; justify-content: center;
-  min-height: 100vh; padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px 16px;
   background-image:
-    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(79,142,247,.07), transparent),
-    radial-gradient(ellipse 60% 50% at 80% 90%, rgba(139,92,246,.07), transparent);
+    radial-gradient(circle at 10% 20%, rgba(0, 212, 180, 0.07) 0%, transparent 45%),
+    radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.05) 0%, transparent 60%);
+  background-attachment: fixed;
 }
 
-.theme-btn {
-  position: fixed; top: 16px; right: 16px;
-  width: 36px; height: 36px;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 10px; cursor: pointer; font-size: 16px;
-  display: flex; align-items: center; justify-content: center;
-  transition: border-color .2s; z-index: 10;
+/* ── Floating Controls ── */
+.top-nav {
+  position: fixed;
+  top: 18px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 100;
 }
-.theme-btn:hover { border-color: var(--border-h); }
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  background: var(--surface-glass);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.icon-btn:hover {
+  color: var(--text);
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+}
+
+/* ── Main Layout Wrapper ── */
+.login-container {
+  width: 100%;
+  max-width: 1060px;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: 40px;
+  margin: auto;
+  z-index: 10;
+}
+
+@media (min-width: 960px) {
+  .login-container {
+    grid-template-columns: 1.15fr 0.95fr;
+    gap: 60px;
+    padding: 20px 0;
+  }
+}
+
+/* ── Left Hero Branding Showcase ── */
+.brand-hero {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px;
+}
+
+@media (min-width: 960px) {
+  .brand-hero {
+    display: flex;
+  }
+}
+
+.hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(0, 212, 180, 0.08);
+  border: 1px solid rgba(0, 212, 180, 0.25);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--teal);
+  margin-bottom: 24px;
+  width: fit-content;
+  box-shadow: 0 0 20px rgba(0, 212, 180, 0.15);
+}
+.hero-pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 8px var(--teal);
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+.hero-title {
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.8px;
+  margin-bottom: 14px;
+  color: var(--text);
+}
+.hero-title .brand-gradient {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-desc {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin-bottom: 34px;
+  max-width: 480px;
+}
+
+/* Feature Showcase Grid */
+.hero-features {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 34px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  transition: all 0.25s ease;
+}
+.feature-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateX(4px);
+}
+
+.feature-icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(0, 212, 180, 0.1);
+  border: 1px solid rgba(0, 212, 180, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.feature-icon-wrap.purple {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.2);
+}
+.feature-icon-wrap.blue {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.feature-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.feature-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.hero-security-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Right Auth Card ── */
+.auth-card-wrap {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+}
 
 .card {
-  width: 100%; max-width: 400px;
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: 20px; box-shadow: var(--shadow); overflow: hidden;
+  background: var(--surface-glass);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* ── App Switcher ── */
-.app-switcher {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 1px; background: var(--border); border-bottom: 1px solid var(--border);
+/* ── Segmented App Switcher ── */
+.app-switcher-bar {
+  padding: 14px 18px 0;
+  background: rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid var(--border);
 }
-.app-switch {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 13px 10px; background: var(--surface); border: none; cursor: pointer;
-  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
-  color: var(--text2); transition: background .2s, color .2s;
+.segmented-control {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  gap: 4px;
+  position: relative;
 }
-.app-switch:hover { background: var(--card); color: var(--text); }
-.app-switch.active-ledger { background: var(--card); color: var(--teal); font-weight: 600; box-shadow: inset 0 -2px 0 var(--teal); }
-.app-switch.active-study  { background: var(--card); color: var(--purple); font-weight: 600; box-shadow: inset 0 -2px 0 var(--purple); }
-.app-switch-icon { width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
-.icon-l { background: linear-gradient(135deg, #00d4b4, #4f8ef7); }
-.icon-s { background: linear-gradient(135deg, #8b5cf6, #4f8ef7); }
+[data-theme="light"] .segmented-control {
+  background: #edf2f7;
+}
 
-/* ── Header ── */
-.card-header { padding: 28px 28px 20px; text-align: center; border-bottom: 1px solid var(--border); }
-.app-logo { width: 56px; height: 56px; border-radius: 16px; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; transition: background .3s; }
-.logo-ledger { background: linear-gradient(135deg, #00d4b4, #4f8ef7); box-shadow: 0 8px 24px rgba(0,212,180,.3); }
-.logo-study  { background: linear-gradient(135deg, #8b5cf6, #4f8ef7); box-shadow: 0 8px 24px rgba(139,92,246,.3); }
-.app-name { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -.3px; }
-.app-name.ledger { color: var(--teal); }
-.app-name.study  { color: var(--purple); }
-.app-tagline { font-size: 12px; color: var(--text3); margin-top: 4px; }
+.segment-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  z-index: 2;
+}
+.segment-btn:hover {
+  color: var(--text);
+}
+.segment-btn.active {
+  color: #fff;
+  background: var(--card);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+[data-theme="light"] .segment-btn.active {
+  color: #0f172a;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.segment-btn.active-ledger {
+  color: var(--teal) !important;
+}
+.segment-btn.active-study {
+  color: var(--purple) !important;
+}
 
-/* ── Body ── */
-.card-body { padding: 24px 28px 28px; }
+/* ── Card Header Branding ── */
+.card-header {
+  padding: 24px 26px 16px;
+  text-align: center;
+}
 
-.mode-tabs { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 3px; gap: 3px; margin-bottom: 22px; }
-.mode-tab { flex: 1; padding: 8px; border: none; background: transparent; border-radius: 7px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; color: var(--text3); cursor: pointer; transition: all .18s; }
-.mode-tab.active { background: var(--card); color: var(--text); box-shadow: 0 1px 6px rgba(0,0,0,.25); }
+.logo-badge {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+.logo-badge::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 21px;
+  background: inherit;
+  filter: blur(12px);
+  opacity: 0.45;
+  z-index: -1;
+}
+.logo-ledger {
+  background: linear-gradient(135deg, #00d4b4, #3b82f6);
+}
+.logo-study {
+  background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+}
 
-.section { display: none; }
-.section.active { display: block; }
+.app-name-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.app-name-title.ledger { color: var(--teal); }
+.app-name-title.study { color: var(--purple); }
 
-.field { margin-bottom: 16px; }
-.field-label { display: block; font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 7px; }
-.field-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; font-size: 14px; color: var(--text); font-family: 'Inter', sans-serif; outline: none; transition: border-color .2s, box-shadow .2s; }
-.field-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(79,142,247,.12); }
-.field-input::placeholder { color: var(--text3); }
-.field-input.area { min-height: 70px; resize: vertical; }
+.app-tagline-text {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
 
-.pw-wrap { position: relative; }
-.pw-wrap .field-input { padding-right: 44px; }
-.pw-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 15px; color: var(--text3); padding: 4px; line-height: 1; }
-.pw-toggle:hover { color: var(--text2); }
+/* ── Mode Pill Tabs (Sign In / Request Access) ── */
+.card-body {
+  padding: 16px 26px 26px;
+}
 
-.forgot-row { text-align: right; margin: -6px 0 16px; }
-.btn-link { background: none; border: none; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px; color: var(--blue); text-decoration: underline; text-underline-offset: 2px; }
-.btn-link:hover { color: var(--purple); }
+.mode-pill-tabs {
+  display: flex;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 22px;
+  gap: 3px;
+}
+[data-theme="light"] .mode-pill-tabs {
+  background: #f1f5f9;
+}
+.mode-pill {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-align: center;
+}
+.mode-pill:hover {
+  color: var(--text);
+}
+.mode-pill.active {
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+[data-theme="light"] .mode-pill.active {
+  background: #ffffff;
+  color: #0f172a;
+}
 
-.btn-primary { width: 100%; padding: 12px; border: none; border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: #fff; cursor: pointer; transition: opacity .2s, transform .1s; }
-.btn-primary:hover    { opacity: .9; }
-.btn-primary:active   { transform: scale(.98); }
-.btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
-.btn-ledger { background: linear-gradient(135deg, #00d4b4, #4f8ef7); }
-.btn-study  { background: linear-gradient(135deg, #8b5cf6, #4f8ef7); }
+/* ── Form Controls & Floating Labels ── */
+.section {
+  display: none;
+  animation: fadeInSection 0.25s ease-out;
+}
+.section.active {
+  display: block;
+}
 
-.divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--text3); font-size: 12px; }
-.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+@keyframes fadeInSection {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-.btn-google { width: 100%; padding: 11px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; color: var(--text2); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: border-color .2s, background .2s, color .2s; }
-.btn-google:hover { border-color: var(--border-h); background: var(--card); color: var(--text); }
-.btn-google svg { width: 17px; height: 17px; flex-shrink: 0; }
+.field {
+  margin-bottom: 16px;
+}
 
-.msg { border-radius: 9px; padding: 10px 13px; font-size: 13px; line-height: 1.5; margin-bottom: 14px; display: none; }
-.msg.error   { background: rgba(244,63,94,.08);  border: 1px solid rgba(244,63,94,.2);  color: #f87171; }
-.msg.success { background: rgba(0,212,180,.08);  border: 1px solid rgba(0,212,180,.2);  color: var(--teal); }
-.msg.warning { background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.25); color: #fbbf24; }
-.msg.show    { display: block; }
+.field-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 7px;
+  letter-spacing: 0.3px;
+}
 
-.note-box { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--blue); border-radius: 10px; padding: 12px 14px; font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 18px; }
-.note-box strong { color: var(--text); }
-.field-optional { color: var(--text3); font-weight: 400; }
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
 
-.card-footer { padding: 14px 28px; text-align: center; font-size: 11px; color: var(--text3); border-top: 1px solid var(--border); background: var(--surface); }
+.input-icon {
+  position: absolute;
+  left: 14px;
+  width: 17px;
+  height: 17px;
+  color: var(--text-dim);
+  pointer-events: none;
+  transition: color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.field-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px 12px 42px;
+  font-size: 14px;
+  color: var(--text);
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-theme="light"] .field-input {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.field-input:focus {
+  border-color: var(--accent);
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 3.5px var(--accent-glow);
+}
+.field-input:focus ~ .input-icon {
+  color: var(--accent);
+}
+.field-input::placeholder {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+.field-input.area {
+  min-height: 80px;
+  padding-left: 14px;
+  resize: vertical;
+}
+
+/* Browser autofill override to preserve dark mode */
+.field-input:-webkit-autofill,
+.field-input:-webkit-autofill:hover, 
+.field-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text) !important;
+  -webkit-box-shadow: 0 0 0px 1000px #0e1322 inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Password Toggle */
+.pw-toggle-btn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 6px;
+  transition: color 0.2s ease;
+}
+.pw-toggle-btn:hover {
+  color: var(--text);
+}
+
+.forgot-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin: -4px 0 18px;
+}
+.btn-link {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--blue);
+  transition: opacity 0.2s ease;
+}
+.btn-link:hover {
+  opacity: 0.85;
+  text-decoration: underline;
+}
+
+/* ── Primary Action Buttons ── */
+.btn-primary {
+  width: 100%;
+  padding: 13px 18px;
+  border: none;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.32);
+}
+.btn-primary:active {
+  transform: translateY(1px);
+}
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
+
+.btn-ledger {
+  background: linear-gradient(135deg, #00d4b4, #3b82f6);
+}
+.btn-study {
+  background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+}
+
+/* Biometric Quick Button (Android APK) */
+.btn-biometric {
+  display: none;
+  width: 100%;
+  padding: 11px 16px;
+  margin-top: 10px;
+  background: rgba(0, 212, 180, 0.08);
+  border: 1px solid rgba(0, 212, 180, 0.28);
+  border-radius: 12px;
+  color: var(--teal);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+.btn-biometric:hover {
+  background: rgba(0, 212, 180, 0.14);
+  border-color: var(--teal);
+}
+
+/* Google OAuth Button */
+.divider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: var(--text-dim);
+  font-size: 11.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.divider-row::before, .divider-row::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.btn-google {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+[data-theme="light"] .btn-google {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+.btn-google:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+}
+.btn-google svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* ── Feedback Messages & Shake ── */
+.msg-alert {
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  display: none;
+  align-items: flex-start;
+  gap: 10px;
+  animation: fadeInSection 0.2s ease-out;
+}
+.msg-alert.show {
+  display: flex;
+}
+.msg-alert.error {
+  background: rgba(244, 63, 94, 0.09);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: #fb7185;
+}
+.msg-alert.success {
+  background: rgba(0, 212, 180, 0.09);
+  border: 1px solid rgba(0, 212, 180, 0.3);
+  color: var(--teal);
+}
+.msg-alert.warning {
+  background: rgba(245, 158, 11, 0.09);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+}
+.msg-alert.info {
+  background: rgba(59, 130, 246, 0.09);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+}
+
+@keyframes shakeCard {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+.shake {
+  animation: shakeCard 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* Spinner */
+.lm-spinner {
+  width: 17px;
+  height: 17px;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+/* ── Card Footer ── */
+.card-footer {
+  padding: 13px 24px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  border-top: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
 
 /* ── Animated Page Loader ── */
-.lm-page-loader { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999999; display: flex; align-items: center; justify-content: center; background: #070913; opacity: 1; visibility: visible; transition: opacity .45s cubic-bezier(.16,1,.3,1), transform .45s cubic-bezier(.16,1,.3,1), visibility .45s cubic-bezier(.16,1,.3,1); pointer-events: all; user-select: none; overflow: hidden; font-family: 'Inter', sans-serif; }
+.lm-page-loader {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  z-index: 9999999; display: flex; align-items: center; justify-content: center;
+  background: #070913; opacity: 1; visibility: visible;
+  transition: opacity .45s cubic-bezier(.16,1,.3,1), transform .45s cubic-bezier(.16,1,.3,1), visibility .45s cubic-bezier(.16,1,.3,1);
+  pointer-events: all; user-select: none; overflow: hidden;
+}
 [data-theme="light"] .lm-page-loader { background: #f4f6fb; }
-.lm-page-loader.lm-loader-hidden { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; transform: scale(1.04); }
-.lm-loader-backdrop { position: absolute; inset: 0; background: radial-gradient(circle at 50% 45%, rgba(0,212,180,.1) 0%, rgba(79,142,247,.07) 35%, rgba(139,92,246,.05) 60%, transparent 80%); pointer-events: none; animation: lmLoaderAuraPulse 3.5s ease-in-out infinite alternate; }
-[data-theme="light"] .lm-loader-backdrop { background: radial-gradient(circle at 50% 45%, rgba(0,212,180,.14) 0%, rgba(79,142,247,.09) 35%, rgba(139,92,246,.06) 60%, transparent 80%); }
-.lm-loader-content { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; max-width: 90vw; animation: lmLoaderFloat 3s ease-in-out infinite alternate; }
-.lm-loader-orb-wrap { position: relative; width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; margin-bottom: 22px; }
-.lm-loader-glow-ring { position: absolute; inset: -12px; border-radius: 50%; background: radial-gradient(circle, rgba(0,212,180,.35) 0%, rgba(79,142,247,.25) 50%, transparent 70%); filter: blur(14px); animation: lmLoaderGlowPulse 2.2s ease-in-out infinite alternate; }
-.lm-loader-spin-ring { position: absolute; inset: 0; border-radius: 50%; padding: 2.5px; background: linear-gradient(135deg, #00d4b4, #4f8ef7, #8b5cf6, #00d4b4); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: lmLoaderSpin 1.8s cubic-bezier(.68,-.55,.27,1.55) infinite; box-shadow: 0 0 20px rgba(0,212,180,.3); }
-.lm-loader-spin-ring-inner { position: absolute; inset: 6px; border-radius: 50%; border: 1.5px dashed rgba(79,142,247,.4); animation: lmLoaderSpinReverse 5s linear infinite; }
-.lm-loader-badge { width: 64px; height: 64px; border-radius: 20px; background: rgba(18,24,43,.85); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 30px rgba(0,0,0,.4), inset 0 1px 1px rgba(255,255,255,.2); z-index: 2; }
-[data-theme="light"] .lm-loader-badge { background: rgba(255,255,255,.9); border-color: rgba(0,0,0,.08); box-shadow: 0 12px 30px rgba(0,0,0,.08), inset 0 1px 1px rgba(255,255,255,.8); }
-.lm-loader-icon { font-size: 30px; line-height: 1; display: inline-block; animation: lmLoaderIconBounce 2s ease-in-out infinite alternate; filter: drop-shadow(0 4px 10px rgba(0,212,180,.3)); }
+.lm-page-loader.lm-loader-hidden {
+  opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; transform: scale(1.04);
+}
+.lm-loader-backdrop {
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 45%, rgba(0,212,180,.1) 0%, rgba(79,142,247,.07) 35%, rgba(139,92,246,.05) 60%, transparent 80%);
+  animation: lmLoaderAuraPulse 3.5s ease-in-out infinite alternate;
+}
+.lm-loader-content {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 24px; max-width: 90vw; animation: lmLoaderFloat 3s ease-in-out infinite alternate;
+}
+.lm-loader-orb-wrap {
+  position: relative; width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; margin-bottom: 22px;
+}
+.lm-loader-glow-ring {
+  position: absolute; inset: -12px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,212,180,.35) 0%, rgba(79,142,247,.25) 50%, transparent 70%);
+  filter: blur(14px); animation: lmLoaderGlowPulse 2.2s ease-in-out infinite alternate;
+}
+.lm-loader-spin-ring {
+  position: absolute; inset: 0; border-radius: 50%; padding: 2.5px;
+  background: linear-gradient(135deg, #00d4b4, #4f8ef7, #8b5cf6, #00d4b4);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: lmLoaderSpin 1.8s cubic-bezier(.68,-.55,.27,1.55) infinite;
+}
+.lm-loader-spin-ring-inner {
+  position: absolute; inset: 6px; border-radius: 50%; border: 1.5px dashed rgba(79,142,247,.4);
+  animation: lmLoaderSpinReverse 5s linear infinite;
+}
+.lm-loader-badge {
+  width: 64px; height: 64px; border-radius: 20px; background: rgba(18,24,43,.85);
+  border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(16px);
+  display: flex; align-items: center; justify-content: center; z-index: 2;
+}
+[data-theme="light"] .lm-loader-badge { background: rgba(255,255,255,.9); border-color: rgba(0,0,0,.08); }
+.lm-loader-icon { font-size: 30px; line-height: 1; display: inline-block; }
 .lm-loader-brand { margin-bottom: 20px; }
-.lm-loader-title { font-size: 20px; font-weight: 700; letter-spacing: -.3px; color: #f1f4fd; background: linear-gradient(135deg, #ffffff 30%, #00d4b4 70%, #4f8ef7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 5px; }
-[data-theme="light"] .lm-loader-title { color: #0f172a; background: linear-gradient(135deg, #0f172a 30%, #0d9488 70%, #2563eb 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.lm-loader-title {
+  font-size: 20px; font-weight: 700; color: #f1f4fd;
+  background: linear-gradient(135deg, #ffffff 30%, #00d4b4 70%, #4f8ef7 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 5px;
+}
 .lm-loader-subtitle { font-size: 13px; font-weight: 500; color: #7b88aa; display: flex; align-items: center; justify-content: center; gap: 2px; }
-[data-theme="light"] .lm-loader-subtitle { color: #64748b; }
 .lm-loader-dots span { display: inline-block; animation: lmLoaderDots 1.4s infinite ease-in-out both; color: #00d4b4; font-weight: 700; }
 .lm-loader-dots span:nth-child(1) { animation-delay: 0s; }
 .lm-loader-dots span:nth-child(2) { animation-delay: .2s; }
 .lm-loader-dots span:nth-child(3) { animation-delay: .4s; }
-.lm-loader-bar-wrap { width: 170px; height: 4px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; position: relative; box-shadow: inset 0 1px 2px rgba(0,0,0,.3); }
-[data-theme="light"] .lm-loader-bar-wrap { background: rgba(0,0,0,.08); }
-.lm-loader-bar { position: absolute; top: 0; bottom: 0; width: 50%; border-radius: 99px; background: linear-gradient(90deg, #00d4b4, #4f8ef7, #8b5cf6); animation: lmLoaderBarSlide 1.5s cubic-bezier(.4,0,.2,1) infinite; box-shadow: 0 0 12px rgba(0,212,180,.6); }
+.lm-loader-bar-wrap { width: 170px; height: 4px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; position: relative; }
+.lm-loader-bar { position: absolute; top: 0; bottom: 0; width: 50%; border-radius: 99px; background: linear-gradient(90deg, #00d4b4, #4f8ef7, #8b5cf6); animation: lmLoaderBarSlide 1.5s cubic-bezier(.4,0,.2,1) infinite; }
 @keyframes lmLoaderSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 @keyframes lmLoaderSpinReverse { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
 @keyframes lmLoaderGlowPulse { 0% { transform: scale(.85); opacity: .4; } 100% { transform: scale(1.15); opacity: .85; } }
 @keyframes lmLoaderAuraPulse { 0% { opacity: .5; } 100% { opacity: 1; } }
 @keyframes lmLoaderFloat { 0% { transform: translateY(0px); } 100% { transform: translateY(-4px); } }
-@keyframes lmLoaderIconBounce { 0% { transform: scale(.95); } 100% { transform: scale(1.06); } }
 @keyframes lmLoaderDots { 0%,80%,100% { opacity: .2; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
 @keyframes lmLoaderBarSlide { 0% { left: -50%; width: 30%; } 50% { left: 25%; width: 60%; } 100% { left: 100%; width: 30%; } }
+@keyframes pulseDot { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.3); opacity: 0.6; } }
+.note-box {
+  background: rgba(0, 212, 180, 0.08);
+  border: 1px solid rgba(0, 212, 180, 0.22);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+.note-box strong { color: var(--text); }
+.field-optional {
+  font-weight: 400;
+  color: var(--text-dim);
+  font-size: 11px;
+  margin-left: 4px;
+}
 </style>
 </head>
 <body>
@@ -186,10 +831,8 @@ body {
 <!-- ─── ANIMATED PAGE LOADER (Bank-Grade Startup Experience) ──────────────── -->
 <div id="lmPageLoader" class="lm-page-loader" aria-hidden="false">
   <div class="lm-loader-backdrop"></div>
-  <div class="lm-loader-grid-bg"></div>
   <div class="lm-loader-content">
     <div class="lm-loader-orb-wrap">
-      <div class="lm-loader-ping-ring"></div>
       <div class="lm-loader-glow-ring"></div>
       <div class="lm-loader-spin-ring"></div>
       <div class="lm-loader-spin-ring-inner"></div>
@@ -198,127 +841,261 @@ body {
       </div>
     </div>
     <div class="lm-loader-brand">
-      <div class="lm-loader-title" id="lmLoaderTitle">Ledger<span class="lm-loader-title-mate">Mate</span></div>
-      <div class="lm-loader-pill">
-        <span class="lm-loader-pill-dot"></span>
-        <span>Secure Financial Intelligence Vault</span>
-      </div>
+      <div class="lm-loader-title" id="lmLoaderTitle">LedgerMate</div>
       <div class="lm-loader-subtitle">Loading secure session<span class="lm-loader-dots"><span>.</span><span>.</span><span>.</span></span></div>
     </div>
     <div class="lm-loader-bar-wrap">
       <div class="lm-loader-bar"></div>
     </div>
-    <div class="lm-loader-security-footer">
-      <span class="lm-loader-sec-icon">🔒</span>
-      <span>Zero-Knowledge Architecture · Offline First</span>
-    </div>
   </div>
 </div>
 
-<button class="theme-btn" id="themeBtn" title="Toggle theme">🌙</button>
+<!-- Floating Controls -->
+<div class="top-nav">
+  <button class="icon-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">
+    <span id="themeIcon">🌙</span>
+  </button>
+</div>
 
-<div class="card">
-
-  <div class="app-switcher">
-    <button class="app-switch" id="switchLedger">
-      <span class="app-switch-icon icon-l">📒</span> LedgerMate
-    </button>
-    <button class="app-switch" id="switchStudy">
-      <span class="app-switch-icon icon-s">📚</span> Study Resources
-    </button>
-  </div>
-
-  <div class="card-header">
-    <div class="app-logo logo-ledger" id="appLogo">📒</div>
-    <div class="app-name ledger" id="appName">LedgerMate</div>
-    <div class="app-tagline" id="appTagline">Personal Finance · Cloud Sync</div>
-  </div>
-
-  <div class="card-body">
-
-    <div class="mode-tabs">
-      <button class="mode-tab active" id="tabSignin">Sign In</button>
-      <button class="mode-tab" id="tabRequest">Request Access</button>
+<!-- Main Dual-Column Container -->
+<main class="login-container">
+  <!-- Left Brand Hero (Desktop & Tablet) -->
+  <aside class="brand-hero">
+    <div class="hero-pill" id="heroPill">
+      <span class="hero-pill-dot"></span>
+      <span id="heroPillText">Enterprise-Grade Personal Security</span>
     </div>
+    <h1 class="hero-title" id="heroTitle">
+      Master Your Wealth with <span class="brand-gradient" id="heroGradientText">LedgerMate</span>
+    </h1>
+    <p class="hero-desc" id="heroDesc">
+      A private, zero-knowledge financial workspace to manage bank accounts, credit cards, investments, vehicle records, and daily budgets with end-to-end security.
+    </p>
 
-    <!-- Sign In -->
-    <div class="section active" id="sectionSignin">
-      <div class="msg" id="signinMsg"></div>
-      <div class="field">
-        <label class="field-label" for="email">Email</label>
-        <input class="field-input" type="email" id="email" placeholder="you@example.com" autocomplete="email"/>
-      </div>
-      <div class="field">
-        <label class="field-label" for="password">Password</label>
-        <div class="pw-wrap">
-          <input class="field-input" type="password" id="password" placeholder="Your password" autocomplete="current-password"/>
-          <button type="button" class="pw-toggle" id="pwToggle">👁</button>
+    <div class="hero-features" id="heroFeatures">
+      <div class="feature-item">
+        <div class="feature-icon-wrap">💎</div>
+        <div>
+          <div class="feature-title" id="featTitle1">Comprehensive Asset Intelligence</div>
+          <div class="feature-sub" id="featSub1">Track accounts, loans, credit reminders, and vehicle expenses all in one place.</div>
         </div>
       </div>
-      <div class="forgot-row">
-        <button class="btn-link" id="forgotBtn">Forgot password?</button>
+      <div class="feature-item">
+        <div class="feature-icon-wrap purple">🛡️</div>
+        <div>
+          <div class="feature-title" id="featTitle2">Zero-Knowledge Data Vault</div>
+          <div class="feature-sub" id="featSub2">Client-side encryption with compressed offline backups and automatic versioning.</div>
+        </div>
       </div>
-      <button class="btn-primary btn-ledger" id="signinBtn">Sign In →</button>
-      <div class="divider">or</div>
-      <button class="btn-google" id="googleBtn">
-        <svg viewBox="0 0 24 24">
-          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      <div class="feature-item">
+        <div class="feature-icon-wrap blue">⚡</div>
+        <div>
+          <div class="feature-title" id="featTitle3">Multi-Factor &amp; Biometric Security</div>
+          <div class="feature-sub" id="featSub3">Hardened with Microsoft Authenticator TOTP and Android biometric authentication.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-security-badge">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+      <span>AES-GCM / Argon2 · Offline First · Supabase Synchronized</span>
+    </div>
+  </aside>
+
+  <!-- Right Auth Card -->
+  <div class="auth-card-wrap">
+    <div class="card" id="mainAuthCard">
+      <!-- App Switcher Segment -->
+      <div class="app-switcher-bar">
+        <div class="segmented-control" role="tablist">
+          <button type="button" class="segment-btn active active-ledger" id="switchLedger" role="tab" aria-selected="true">
+            <span>📒</span> LedgerMate
+          </button>
+          <button type="button" class="segment-btn" id="switchStudy" role="tab" aria-selected="false">
+            <span>📚</span> Study Resources
+          </button>
+        </div>
+      </div>
+
+      <!-- Card Header -->
+      <header class="card-header">
+        <div class="logo-badge logo-ledger" id="appLogo">📒</div>
+        <div class="app-name-title ledger" id="appName">LedgerMate</div>
+        <div class="app-tagline-text" id="appTagline">Personal Finance · Cloud Sync</div>
+      </header>
+
+      <div class="card-body">
+        <!-- Mode Tabs (Sign In / Request Access) -->
+        <div class="mode-pill-tabs" role="tablist">
+          <button type="button" class="mode-pill active" id="tabSignin" role="tab" aria-selected="true">Sign In</button>
+          <button type="button" class="mode-pill" id="tabRequest" role="tab" aria-selected="false">Request Access</button>
+        </div>
+
+        <!-- Section 1: Sign In -->
+        <div class="section active" id="sectionSignin">
+          <div class="msg-alert" id="signinMsg"></div>
+
+          <div class="field">
+            <label class="field-label" for="email">Email Address</label>
+            <div class="input-wrap">
+              <span class="input-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+              </span>
+              <input class="field-input" type="email" id="email" placeholder="name@domain.com" autocomplete="email" required/>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="password">Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </span>
+              <input class="field-input" type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required/>
+              <button type="button" class="pw-toggle-btn" id="pwToggle" title="Toggle password visibility" aria-label="Toggle password visibility">
+                <span id="pwToggleIcon">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div class="forgot-row">
+            <button type="button" class="btn-link" id="forgotBtn">Forgot password?</button>
+          </div>
+
+          <button type="button" class="btn-primary btn-ledger" id="signinBtn">
+            <span>Sign In</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+
+          <!-- Android APK Native Biometric Quick Unlock (Visible when supported) -->
+          <button type="button" class="btn-biometric" id="bioQuickLoginBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4"></path>
+              <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"></path>
+              <path d="M8.65 22A8 8 0 0 1 9 12a3 3 0 0 1 3-3"></path>
+              <path d="M14 21.6A11 11 0 0 0 16 12a4 4 0 0 0-.82-2.5"></path>
+              <path d="M19 19a14.2 14.2 0 0 0 1-7 8 8 0 0 0-1.6-4.9"></path>
+              <path d="M12 12a1 1 0 1 0 1 1"></path>
+            </svg>
+            <span>Biometric Quick Unlock</span>
+          </button>
+
+          <div class="divider-row">or</div>
+
+          <button type="button" class="btn-google" id="googleBtn">
+            <svg viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+        </div>
+
+        <!-- Section 2: Request Access -->
+        <div class="section" id="sectionRequest">
+          <div class="note-box">
+            <strong>Access is by invitation only.</strong><br>
+            Submit your details — the administrator will review and grant access.
+          </div>
+          <div class="msg-alert" id="reqMsg"></div>
+
+          <div class="field">
+            <label class="field-label" for="reqName">Full Name</label>
+            <div class="input-wrap">
+              <span class="input-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </span>
+              <input class="field-input" type="text" id="reqName" placeholder="Your full name" required/>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="reqEmail">Email Address</label>
+            <div class="input-wrap">
+              <span class="input-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+              </span>
+              <input class="field-input" type="email" id="reqEmail" placeholder="name@domain.com" required/>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="reqNote">Access Reason <span class="field-optional">(optional)</span></label>
+            <textarea class="field-input area" id="reqNote" placeholder="Brief note explaining your intended usage..."></textarea>
+          </div>
+
+          <button type="button" class="btn-primary btn-ledger" id="reqBtn">
+            <span>Submit Request</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Section 3: MFA Authenticator (Microsoft Authenticator / TOTP) -->
+        <div class="section" id="sectionMfa">
+          <div style="text-align:center;margin-bottom:18px;">
+            <div style="width:54px;height:54px;border-radius:16px;background:rgba(0,212,180,0.12);border:1px solid rgba(0,212,180,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:24px;box-shadow:0 8px 20px rgba(0,212,180,0.2);">🔐</div>
+            <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Two-Factor Authentication</div>
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.5;">Enter the 6-digit verification code from <strong>Microsoft Authenticator</strong> on your mobile device.</div>
+          </div>
+
+          <div class="msg-alert" id="mfaMsg"></div>
+
+          <div class="field">
+            <label class="field-label" for="mfaCode" style="text-align:center;">6-Digit Security Code</label>
+            <input class="field-input" type="text" id="mfaCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" autocomplete="one-time-code" style="text-align:center;letter-spacing:8px;font-size:22px;font-weight:700;font-family:monospace;padding:12px 14px;"/>
+          </div>
+
+          <button type="button" class="btn-primary btn-ledger" id="mfaVerifyBtn" style="margin-bottom:12px;">
+            <span>Verify Code</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </button>
+          <button type="button" class="btn-link" id="mfaCancelBtn" style="display:block;margin:0 auto;font-size:13px;">← Back to Sign In</button>
+        </div>
+
+      </div>
+
+      <!-- Card Footer -->
+      <footer class="card-footer">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
         </svg>
-        Continue with Google
-      </button>
+        <span>End-to-End Encrypted · Cloud Sync &amp; Local Vault</span>
+      </footer>
     </div>
-
-    <!-- Request Access -->
-    <div class="section" id="sectionRequest">
-      <div class="note-box">
-        <strong>Access is by invitation only.</strong><br>
-        Submit your details — the admin will review and send an invite if approved.
-      </div>
-      <div class="msg" id="reqMsg"></div>
-      <div class="field">
-        <label class="field-label" for="reqName">Full Name</label>
-        <input class="field-input" type="text" id="reqName" placeholder="Your name"/>
-      </div>
-      <div class="field">
-        <label class="field-label" for="reqEmail">Email</label>
-        <input class="field-input" type="email" id="reqEmail" placeholder="you@example.com"/>
-      </div>
-      <div class="field">
-        <label class="field-label" for="reqNote">Reason <span class="field-optional">(optional)</span></label>
-        <textarea class="field-input area" id="reqNote" placeholder="Brief note…"></textarea>
-      </div>
-      <button class="btn-primary btn-ledger" id="reqBtn">Submit Request</button>
-    </div>
-
-    <!-- ── MFA Authenticator Challenge (Microsoft Authenticator / TOTP) ── -->
-    <div class="section" id="sectionMfa">
-      <div style="text-align:center;margin-bottom:18px;">
-        <div style="width:52px;height:52px;border-radius:14px;background:rgba(0,212,180,0.12);border:1px solid rgba(0,212,180,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:24px;">🔐</div>
-        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Two-Factor Authentication</div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.4;">Enter the 6-digit code from <strong>Microsoft Authenticator</strong> on your mobile device.</div>
-      </div>
-
-      <div class="msg" id="mfaMsg"></div>
-
-      <div class="field">
-        <label class="field-label" for="mfaCode">6-Digit Security Code</label>
-        <input class="field-input" type="text" id="mfaCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" autocomplete="one-time-code" style="text-align:center;letter-spacing:6px;font-size:20px;font-weight:700;font-family:monospace;"/>
-      </div>
-
-      <button class="btn-primary btn-ledger" id="mfaVerifyBtn" style="margin-bottom:12px;">Verify Code →</button>
-      <button type="button" class="btn-link" id="mfaCancelBtn" style="display:block;margin:0 auto;font-size:13px;">← Back to Sign In</button>
-    </div>
-
   </div>
-
-  <div class="card-footer">
-    🔒 All data encrypted &amp; synced to cloud
-  </div>
-
-</div>
+</main>
 
 <script>
 (function () {
@@ -330,6 +1107,14 @@ body {
     ledger: {
       icon: '📒', logoClass: 'logo-ledger', nameClass: 'ledger',
       name: 'LedgerMate', tagline: 'Personal Finance · Cloud Sync', btnClass: 'btn-ledger',
+      accent: '#00d4b4', accentGlow: 'rgba(0, 212, 180, 0.25)',
+      accentGradient: 'linear-gradient(135deg, #00d4b4, #3b82f6)',
+      heroPill: 'Enterprise-Grade Personal Security',
+      heroTitle: 'Master Your Wealth with ',
+      heroBrand: 'LedgerMate',
+      heroDesc: 'A private, zero-knowledge financial workspace to manage bank accounts, credit cards, investments, vehicle records, and daily budgets with end-to-end security.',
+      featTitle1: 'Comprehensive Asset Intelligence',
+      featSub1: 'Track accounts, loans, credit reminders, and vehicle expenses all in one place.',
       redirectUrl: function () {
         return window.location.href.split('/').slice(0, -1).join('/') + '/index.html';
       }
@@ -337,6 +1122,14 @@ body {
     study: {
       icon: '📚', logoClass: 'logo-study', nameClass: 'study',
       name: 'Study Resources', tagline: 'Prep Materials & Progress Tracking', btnClass: 'btn-study',
+      accent: '#8b5cf6', accentGlow: 'rgba(139, 92, 246, 0.25)',
+      accentGradient: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
+      heroPill: 'Knowledge Management & Mastery',
+      heroTitle: 'Accelerate Your Learning with ',
+      heroBrand: 'Study Resources',
+      heroDesc: 'An intelligent prep library and topic checklist for deep work, technical revision, algorithmic interview practice, and milestones.',
+      featTitle1: 'Structured Curriculum & Progress',
+      featSub1: 'Track core topics, problems solved, review intervals, and study analytics.',
       redirectUrl: function () {
         return window.location.href.split('/').slice(0, -1).join('/') + '/study/index.html';
       }
@@ -344,6 +1137,10 @@ body {
   };
 
   var _app = 'ledger';
+
+  var BTN_SIGNIN_HTML = '<span>Sign In</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
+  var BTN_REQ_HTML    = '<span>Submit Request</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
+  var BTN_MFA_HTML    = '<span>Verify Code</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
 
   function _dismissLoader() {
     var l = document.getElementById('lmPageLoader');
@@ -358,22 +1155,60 @@ body {
   function selectApp(key) {
     _app = key;
     var cfg = APPS[key] || APPS.ledger;
-    var btnLedger = document.getElementById('switchLedger');
-    var btnStudy = document.getElementById('switchStudy');
-    if (btnLedger) btnLedger.className = 'app-switch' + (key === 'ledger' ? ' active-ledger' : '');
-    if (btnStudy) btnStudy.className  = 'app-switch' + (key === 'study'  ? ' active-study'  : '');
     
+    // Update theme accent CSS variables
+    var root = document.documentElement;
+    root.style.setProperty('--accent', cfg.accent);
+    root.style.setProperty('--accent-glow', cfg.accentGlow);
+    root.style.setProperty('--accent-gradient', cfg.accentGradient);
+
+    // Segmented app buttons
+    var btnLedger = document.getElementById('switchLedger');
+    var btnStudy  = document.getElementById('switchStudy');
+    if (btnLedger) {
+      btnLedger.className = 'segment-btn' + (key === 'ledger' ? ' active active-ledger' : '');
+      btnLedger.setAttribute('aria-selected', key === 'ledger' ? 'true' : 'false');
+    }
+    if (btnStudy) {
+      btnStudy.className  = 'segment-btn' + (key === 'study'  ? ' active active-study'  : '');
+      btnStudy.setAttribute('aria-selected', key === 'study' ? 'true' : 'false');
+    }
+    
+    // Card header branding
     var logo = document.getElementById('appLogo');
-    if (logo) { logo.textContent = cfg.icon; logo.className = 'app-logo ' + cfg.logoClass; }
+    if (logo) { logo.textContent = cfg.icon; logo.className = 'logo-badge ' + cfg.logoClass; }
     var name = document.getElementById('appName');
-    if (name) { name.textContent = cfg.name; name.className = 'app-name ' + cfg.nameClass; }
+    if (name) { name.textContent = cfg.name; name.className = 'app-name-title ' + cfg.nameClass; }
     var tagline = document.getElementById('appTagline');
     if (tagline) tagline.textContent = cfg.tagline;
+
+    // Action buttons accent styling
     var signinBtn = document.getElementById('signinBtn');
     if (signinBtn) signinBtn.className = 'btn-primary ' + cfg.btnClass;
     var reqBtn = document.getElementById('reqBtn');
     if (reqBtn) reqBtn.className = 'btn-primary ' + cfg.btnClass;
+    var mfaVerifyBtn = document.getElementById('mfaVerifyBtn');
+    if (mfaVerifyBtn) mfaVerifyBtn.className = 'btn-primary ' + cfg.btnClass;
 
+    // Brand Hero elements
+    var heroPillText = document.getElementById('heroPillText');
+    if (heroPillText) heroPillText.textContent = cfg.heroPill;
+    var heroTitle = document.getElementById('heroTitle');
+    var heroGradientText = document.getElementById('heroGradientText');
+    if (heroTitle && heroGradientText) {
+      if (heroTitle.childNodes && heroTitle.childNodes.length > 0) {
+        heroTitle.childNodes[0].nodeValue = cfg.heroTitle;
+      }
+      heroGradientText.textContent = cfg.heroBrand;
+    }
+    var heroDesc = document.getElementById('heroDesc');
+    if (heroDesc) heroDesc.textContent = cfg.heroDesc;
+    var featTitle1 = document.getElementById('featTitle1');
+    if (featTitle1) featTitle1.textContent = cfg.featTitle1;
+    var featSub1 = document.getElementById('featSub1');
+    if (featSub1) featSub1.textContent = cfg.featSub1;
+
+    // Startup loader branding sync
     var lIcon = document.getElementById('lmLoaderIcon');
     if (lIcon) lIcon.textContent = cfg.icon;
     var lTitle = document.getElementById('lmLoaderTitle');
@@ -383,34 +1218,61 @@ body {
   function setTab(tab) {
     var s = tab === 'signin';
     var tSign = document.getElementById('tabSignin');
-    var tReq = document.getElementById('tabRequest');
+    var tReq  = document.getElementById('tabRequest');
     var sSign = document.getElementById('sectionSignin');
-    var sReq = document.getElementById('sectionRequest');
-    if (tSign) tSign.className = 'mode-tab' + (s  ? ' active' : '');
-    if (tReq) tReq.className  = 'mode-tab' + (!s ? ' active' : '');
+    var sReq  = document.getElementById('sectionRequest');
+    if (tSign) {
+      tSign.className = 'mode-pill' + (s  ? ' active' : '');
+      tSign.setAttribute('aria-selected', s ? 'true' : 'false');
+    }
+    if (tReq) {
+      tReq.className  = 'mode-pill' + (!s ? ' active' : '');
+      tReq.setAttribute('aria-selected', !s ? 'true' : 'false');
+    }
     if (sSign) sSign.className = 'section'  + (s  ? ' active' : '');
     if (sReq) sReq.className  = 'section'  + (!s ? ' active' : '');
   }
 
   var tabSign = document.getElementById('tabSignin');
   if (tabSign) tabSign.addEventListener('click',  function () { setTab('signin'); });
-  var tabReq = document.getElementById('tabRequest');
+  var tabReq  = document.getElementById('tabRequest');
   if (tabReq) tabReq.addEventListener('click', function () { setTab('request'); });
   var swLedger = document.getElementById('switchLedger');
   if (swLedger) swLedger.addEventListener('click', function () { selectApp('ledger'); });
-  var swStudy = document.getElementById('switchStudy');
+  var swStudy  = document.getElementById('switchStudy');
   if (swStudy) swStudy.addEventListener('click',  function () { selectApp('study');  });
 
   function showMsg(id, text, type) {
     var el = document.getElementById(id);
-    if (el) { el.textContent = text; el.className = 'msg ' + type + ' show'; }
+    if (el) {
+      var icon = type === 'error' ? '⚠️ ' : (type === 'success' ? '✅ ' : (type === 'warning' ? '⏳ ' : 'ℹ️ '));
+      el.innerHTML = '<span>' + icon + '</span><span>' + text + '</span>';
+      el.className = 'msg-alert ' + type + ' show';
+    }
+    if (type === 'error') {
+      var card = document.getElementById('mainAuthCard');
+      if (card) {
+        card.classList.remove('shake');
+        void card.offsetWidth; // force reflow
+        card.classList.add('shake');
+        setTimeout(function () { card.classList.remove('shake'); }, 450);
+      }
+    }
   }
+
   function clearMsg(id) {
     var el = document.getElementById(id);
-    if (el) { el.textContent = ''; el.className = 'msg'; }
+    if (el) { el.innerHTML = ''; el.className = 'msg-alert'; }
   }
-  function setLoading(btn, loading, label) {
-    if (btn) { btn.disabled = loading; btn.textContent = loading ? '…' : label; }
+
+  function setLoading(btn, loading, originalLabelHtml) {
+    if (!btn) return;
+    btn.disabled = loading;
+    if (loading) {
+      btn.innerHTML = '<svg class="lm-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10"></path></svg> <span>Processing…</span>';
+    } else if (originalLabelHtml) {
+      btn.innerHTML = originalLabelHtml;
+    }
   }
 
   var _params   = new URLSearchParams(window.location.search);
@@ -421,11 +1283,11 @@ body {
 
   /* Show parameter-based notification banner */
   if (_msgParam === 'pending') {
-    showMsg('signinMsg', '⏳ Account pending approval — once the admin approves you, you can sign in.', 'warning');
+    showMsg('signinMsg', 'Account pending approval — once the admin approves you, you can sign in.', 'warning');
   } else if (_msgParam === 'noprofile') {
     showMsg('signinMsg', 'Account setup incomplete. Please contact the administrator.', 'error');
   } else if (_msgParam === 'deployed') {
-    showMsg('signinMsg', '🚀 New update deployed! Please sign in again to access the latest version.', 'info');
+    showMsg('signinMsg', 'New update deployed! Please sign in again to access the latest version.', 'info');
   }
 
   /* Clean ?action, ?msg from URL bar without reloading */
@@ -449,8 +1311,8 @@ body {
       var prof = r.data;
       if (!prof || !prof.active) {
         await _supabase.auth.signOut();
-        showMsg('signinMsg', '⏳ Account pending approval — once the admin approves you, you can sign in.', 'warning');
-        setLoading(document.getElementById('signinBtn'), false, 'Sign In →');
+        showMsg('signinMsg', 'Account pending approval — once the admin approves you, you can sign in.', 'warning');
+        setLoading(document.getElementById('signinBtn'), false, BTN_SIGNIN_HTML);
         _dismissLoader();
         return;
       }
@@ -480,7 +1342,7 @@ body {
     redirect();
   }
 
-  /* ── MFA Authenticator Handler ── */
+  /* ── MFA Authenticator Handler (Microsoft Authenticator / TOTP) ── */
   var _currentMfaFactorId = null;
   var _currentMfaChallengeId = null;
 
@@ -503,8 +1365,8 @@ body {
       }
       _currentMfaChallengeId = chRes.data.id;
 
-      // Transition UI to MFA Section
-      var tabs = document.querySelector('.mode-tabs');
+      // Transition UI to MFA Section smoothly
+      var tabs = document.querySelector('.mode-pill-tabs');
       if (tabs) tabs.style.display = 'none';
       var allSec = document.querySelectorAll('.section');
       allSec.forEach(function (el) { el.classList.remove('active'); });
@@ -530,7 +1392,7 @@ body {
         showMsg('mfaMsg', 'Please enter the complete 6-digit code.', 'error');
         return;
       }
-      setLoading(this, true, 'Verifying…');
+      setLoading(this, true, BTN_MFA_HTML);
 
       try {
         var verifyRes = await _supabase.auth.mfa.verify({
@@ -541,7 +1403,7 @@ body {
 
         if (verifyRes.error) {
           showMsg('mfaMsg', verifyRes.error.message || 'Incorrect 6-digit code. Please check Microsoft Authenticator.', 'error');
-          setLoading(this, false, 'Verify Code →');
+          setLoading(this, false, BTN_MFA_HTML);
           return;
         }
 
@@ -554,7 +1416,7 @@ body {
         }
       } catch (e) {
         showMsg('mfaMsg', e.message || 'Verification failed.', 'error');
-        setLoading(this, false, 'Verify Code →');
+        setLoading(this, false, BTN_MFA_HTML);
       }
     });
   }
@@ -564,15 +1426,22 @@ body {
     mfaCancelBtn.addEventListener('click', async function () {
       try { await _supabase.auth.signOut(); } catch (e) {}
       localStorage.removeItem('lm_session');
-      var tabs = document.querySelector('.mode-tabs');
+      var tabs = document.querySelector('.mode-pill-tabs');
       if (tabs) tabs.style.display = 'flex';
       setTab('signin');
-      setLoading(document.getElementById('signinBtn'), false, 'Sign In →');
+      setLoading(document.getElementById('signinBtn'), false, BTN_SIGNIN_HTML);
     });
   }
 
   var mfaCodeInp = document.getElementById('mfaCode');
   if (mfaCodeInp) {
+    mfaCodeInp.addEventListener('input', function () {
+      var val = this.value.replace(/[^0-9]/g, '');
+      this.value = val;
+      if (val.length === 6) {
+        document.getElementById('mfaVerifyBtn')?.click();
+      }
+    });
     mfaCodeInp.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') document.getElementById('mfaVerifyBtn')?.click();
     });
@@ -621,23 +1490,35 @@ body {
   }
   setTimeout(_dismissLoader, 2000);
 
+  /* Password Visibility Toggle with Crisp SVG Icon */
   var pwToggle = document.getElementById('pwToggle');
   if (pwToggle) {
     pwToggle.addEventListener('click', function () {
-      var inp = document.getElementById('password'), isText = inp.type === 'text';
-      inp.type = isText ? 'password' : 'text'; this.textContent = isText ? '👁' : '🙈';
+      var inp = document.getElementById('password');
+      if (!inp) return;
+      var isText = inp.type === 'text';
+      inp.type = isText ? 'password' : 'text';
+      var iconSpan = document.getElementById('pwToggleIcon') || this;
+      if (isText) {
+        iconSpan.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+        this.setAttribute('title', 'Show password');
+      } else {
+        iconSpan.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+        this.setAttribute('title', 'Hide password');
+      }
     });
   }
 
+  /* Sign In Submission */
   var signinBtn = document.getElementById('signinBtn');
   if (signinBtn) {
     signinBtn.addEventListener('click', async function () {
       clearMsg('signinMsg');
       var email = (document.getElementById('email')?.value || '').trim();
       var pass  = document.getElementById('password')?.value || '';
-      if (!email) { showMsg('signinMsg', 'Please enter your email.', 'error'); return; }
+      if (!email) { showMsg('signinMsg', 'Please enter your email address.', 'error'); return; }
       if (!pass)  { showMsg('signinMsg', 'Please enter your password.', 'error'); return; }
-      setLoading(this, true, 'Sign In →');
+      setLoading(this, true, BTN_SIGNIN_HTML);
 
       if (hasSupabase) {
         var res = await _supabase.auth.signInWithPassword({ email: email, password: pass });
@@ -649,7 +1530,7 @@ body {
             m = '⚠️ This password was found in a public data breach. Please choose a secure, unique password.';
           }
           showMsg('signinMsg', m, 'error');
-          setLoading(this, false, 'Sign In →');
+          setLoading(this, false, BTN_SIGNIN_HTML);
           return;
         }
 
@@ -657,7 +1538,7 @@ body {
         try {
           var aalRes = await _supabase.auth.mfa.getAuthenticatorAssuranceLevel();
           if (aalRes && aalRes.data && aalRes.data.nextLevel === 'aal2' && aalRes.data.currentLevel === 'aal1') {
-            setLoading(this, false, 'Sign In →');
+            setLoading(this, false, BTN_SIGNIN_HTML);
             await handleMfaChallenge();
             return;
           }
@@ -700,6 +1581,7 @@ body {
     }
   });
 
+  /* Google OAuth */
   var googleBtn = document.getElementById('googleBtn');
   if (googleBtn) {
     googleBtn.addEventListener('click', async function () {
@@ -742,6 +1624,7 @@ body {
     });
   }
 
+  /* Forgot Password */
   var forgotBtn = document.getElementById('forgotBtn');
   if (forgotBtn) {
     forgotBtn.addEventListener('click', async function () {
@@ -760,6 +1643,7 @@ body {
     });
   }
 
+  /* Request Access Submission */
   var reqBtn = document.getElementById('reqBtn');
   if (reqBtn) {
     reqBtn.addEventListener('click', async function () {
@@ -769,8 +1653,8 @@ body {
       var note  = (document.getElementById('reqNote')?.value || '').trim();
       if (!name)  { showMsg('reqMsg', 'Please enter your name.', 'error'); return; }
       if (!email) { showMsg('reqMsg', 'Please enter your email.', 'error'); return; }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showMsg('reqMsg', 'Please enter a valid email.', 'error'); return; }
-      setLoading(this, true, 'Submit Request');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showMsg('reqMsg', 'Please enter a valid email address.', 'error'); return; }
+      setLoading(this, true, BTN_REQ_HTML);
       
       if (hasSupabase) {
         var res = await _supabase.from('access_requests').insert({ name: name, email: email, message: note || null, status: 'pending', app: _app });
@@ -780,29 +1664,101 @@ body {
           showMsg('reqMsg', err, 'error');
         } else {
           var reqOkMsg = _app === 'study'
-            ? '✅ Study access request submitted! The admin will review and grant study access if approved.'
-            : '✅ Request submitted! Admin will review and send an invite if approved.';
+            ? 'Study access request submitted! The admin will review and grant access.'
+            : 'Request submitted! Admin will review and send an invite if approved.';
           showMsg('reqMsg', reqOkMsg, 'success');
           document.getElementById('reqName').value = document.getElementById('reqEmail').value = document.getElementById('reqNote').value = '';
         }
       } else {
-        showMsg('reqMsg', '✅ Request registered! (Running in Local Mode)', 'success');
+        showMsg('reqMsg', 'Request registered! (Running in Local Mode)', 'success');
         document.getElementById('reqName').value = document.getElementById('reqEmail').value = document.getElementById('reqNote').value = '';
       }
-      setLoading(this, false, 'Submit Request');
+      setLoading(this, false, BTN_REQ_HTML);
     });
+  }
+
+  /* Android Native Biometric Integration (APK Bridge) */
+  function initNativeBiometrics() {
+    var bioBtn = document.getElementById('bioQuickLoginBtn');
+    if (!bioBtn) return;
+
+    var hasBridge = typeof window.AndroidBridge !== 'undefined' && window.AndroidBridge;
+    var canBio = false;
+    try {
+      if (hasBridge && typeof window.AndroidBridge.canAuthenticateBiometrics === 'function') {
+        canBio = window.AndroidBridge.canAuthenticateBiometrics();
+      }
+    } catch (e) {
+      canBio = false;
+    }
+
+    if (canBio) {
+      bioBtn.style.display = 'flex';
+      bioBtn.addEventListener('click', function () {
+        try {
+          var appName = (APPS[_app] && APPS[_app].name) || 'LedgerMate';
+          window.AndroidBridge.authenticateBiometrics('Unlock ' + appName, 'Authenticate using fingerprint or face unlock');
+        } catch (e) {
+          showMsg('signinMsg', 'Biometric prompt error: ' + (e.message || e), 'error');
+        }
+      });
+
+      window.onBiometricResult = function (success, err) {
+        if (success) {
+          var savedSession = localStorage.getItem('lm_session');
+          if (savedSession) {
+            try {
+              var sess = JSON.parse(savedSession);
+              if (sess && sess.userId) {
+                redirect();
+                return;
+              }
+            } catch (e) {}
+          }
+          if (hasSupabase) {
+            _supabase.auth.getSession().then(function (r) {
+              if (r && r.data && r.data.session) {
+                redirect();
+              } else {
+                showMsg('signinMsg', 'Biometrics verified. Please enter your password once to re-link session.', 'info');
+              }
+            });
+          } else {
+            redirect();
+          }
+        } else {
+          if (err && err !== 'User cancelled') {
+            showMsg('signinMsg', 'Biometric authentication failed: ' + err, 'error');
+          }
+        }
+      };
+    } else {
+      bioBtn.style.display = 'none';
+    }
+  }
+  initNativeBiometrics();
+
+  /* Theme Switcher Engine with Crisp SVG Moon / Sun Icons */
+  function updateThemeIcon(t) {
+    var tIcon = document.getElementById('themeIcon');
+    if (!tIcon) return;
+    if (t === 'light') {
+      tIcon.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
+    } else {
+      tIcon.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+    }
   }
 
   var theme = localStorage.getItem('lm_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', theme);
+  updateThemeIcon(theme);
   var themeBtn = document.getElementById('themeBtn');
   if (themeBtn) {
-    themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
     themeBtn.addEventListener('click', function () {
       var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       document.documentElement.setAttribute('data-theme', next);
       localStorage.setItem('lm_theme', next);
-      this.textContent = next === 'dark' ? '🌙' : '☀️';
+      updateThemeIcon(next);
     });
   }
 
