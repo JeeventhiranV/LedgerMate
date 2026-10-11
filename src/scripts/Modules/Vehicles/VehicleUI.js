@@ -140,6 +140,9 @@
                         <span style="color:#0033cc;font-size:8px;margin-right:4px;">IND</span>${_esc(activeVehicle.regNumber)}
                       </span>
                     ` : ''}
+                    <button class="btn-secondary" style="font-size:11px;padding:3px 9px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;" onclick="window.LM_VehicleUI.openAddEditVehicleModal('${activeVehicle.id}')" title="Edit Vehicle Details">
+                      ✏️ Edit
+                    </button>
                   </div>
                   <div style="font-size:12.5px;color:var(--text3,#94a3b8);margin-top:3px;">
                     ${_esc(activeVehicle.brand || '')} ${_esc(activeVehicle.model || '')} ${activeVehicle.year ? '· ' + activeVehicle.year : ''} ${activeVehicle.engineCC ? '· ' + activeVehicle.engineCC + 'cc' : ''}
@@ -172,11 +175,11 @@
               <button class="btn-secondary" style="font-size:12px;padding:6px 14px;border-radius:10px;" onclick="window.LM_VehicleUI.openLogFuelModal('${activeVehicle.id}')">
                 ⛽ Add Fuel Fill
               </button>
-              <button class="btn-secondary" style="font-size:12px;padding:6px 14px;border-radius:10px;" onclick="window.LM_VehicleUI.openAddEditVehicleModal('${activeVehicle.id}')">
-                ⚙️ Vehicle Settings
+              <button class="btn-secondary" style="font-size:12px;padding:6px 14px;border-radius:10px;" onclick="window.LM_VehicleUI.openAddEditVehicleModal('${activeVehicle.id}')" title="Edit vehicle details, specs & intervals">
+                ✏️ Edit Vehicle Details
               </button>
-              <button class="btn-danger" style="font-size:12px;padding:6px 12px;border-radius:10px;margin-left:auto;" onclick="window.LM_VehicleUI.openDeleteConfirmModal('${activeVehicle.id}')" title="Delete Vehicle">
-                🗑️
+              <button class="btn-danger" style="font-size:12px;padding:6px 12px;border-radius:10px;margin-left:auto;display:inline-flex;align-items:center;gap:4px;" onclick="window.LM_VehicleUI.openDeleteConfirmModal('${activeVehicle.id}')" title="Delete Vehicle">
+                🗑️ Delete
               </button>
             </div>
           </div>
@@ -266,19 +269,19 @@
             </div>
 
             <!-- 4. PUC & TYRE PRESSURE CARD -->
-            <div class="card" style="background:rgba(15,23,42,0.65);border:1px solid ${pucInfo.isExpired ? '#f43f5e' : (pucInfo.isExpiringSoon ? '#fbbf24' : 'var(--border,#334155)')};border-radius:16px;padding:16px;">
+            <div class="card" style="background:rgba(15,23,42,0.65);border:1px solid ${pucInfo.hasPuc && pucInfo.isExpired ? '#f43f5e' : (pucInfo.hasPuc && pucInfo.isExpiringSoon ? '#fbbf24' : 'var(--border,#334155)')};border-radius:16px;padding:16px;">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                 <div style="display:flex;align-items:center;gap:8px;">
                   <span style="font-size:20px;">💨</span>
                   <strong style="font-size:14px;color:var(--text,#fff);">PUC &amp; Tyre Specs</strong>
                 </div>
-                <span class="v-badge ${!pucInfo.hasPuc ? 'v-badge-neutral' : (pucInfo.isExpired ? 'v-badge-danger' : 'v-badge-success')}">
-                  ${!pucInfo.hasPuc ? 'NO PUC' : (pucInfo.isExpired ? '🚨 PUC EXPIRED' : '✅ PUC OK')}
+                <span class="v-badge ${!pucInfo.hasPuc ? 'v-badge-neutral' : (pucInfo.isExpired ? 'v-badge-danger' : (pucInfo.isExpiringSoon ? 'v-badge-warning' : 'v-badge-success'))}">
+                  ${!pucInfo.hasPuc ? (activeVehicle.fuelType === 'electric' ? '⚡ EV EXEMPT' : 'OPTIONAL') : (pucInfo.isExpired ? '🚨 PUC EXPIRED' : (pucInfo.isExpiringSoon ? '⏳ DUE SOON' : '✅ PUC OK'))}
                 </span>
               </div>
 
               <div style="font-size:12px;color:var(--text3,#94a3b8);line-height:1.6;margin-top:6px;">
-                <div>PUC Expiry: <strong style="color:var(--text,#fff);">${pucInfo.hasPuc ? pucInfo.expiryDate : 'Not set'}</strong></div>
+                <div>PUC Expiry: <strong style="color:var(--text,#fff);">${pucInfo.hasPuc ? pucInfo.expiryDate : (activeVehicle.fuelType === 'electric' ? 'Not Required (EV)' : 'Not set (Optional)')}</strong></div>
                 <div style="margin-top:6px;display:flex;gap:12px;">
                   <div style="background:rgba(255,255,255,0.05);padding:4px 8px;border-radius:8px;">
                     <span style="font-size:10px;display:block;">Front Tyre</span>
@@ -843,8 +846,9 @@
                     <input type="text" id="vInsPolicyNo" class="loan-input" value="${_esc(v?.insurance?.policyNumber || '')}" placeholder="e.g. POL-123456" />
                   </div>
                   <div>
-                    <label class="loan-form-label">PUC Expiry Date</label>
+                    <label class="loan-form-label">PUC Expiry Date (Optional)</label>
                     <input type="date" id="vPucExpiry" class="loan-input" value="${v?.puc?.expiryDate || ''}" />
+                    <span style="font-size:11px;color:var(--text3,#94a3b8);display:block;margin-top:3px;">Leave blank if you don't have one or for EV</span>
                   </div>
                 </div>
               </div>
@@ -1356,7 +1360,7 @@
         if (srv && (srv.isOverdue || srv.isDueSoon)) {
           urgentAlerts.push({ v: v, type: 'srv', label: 'Service ' + (srv.isOverdue ? 'Overdue' : 'Due Soon'), desc: (srv.kmRemaining <= 0 ? 'Past target' : srv.kmRemaining + ' km left'), isOverdue: srv.isOverdue });
         }
-        if (puc && (puc.isExpired || puc.isExpiringSoon)) {
+        if (puc && puc.hasPuc && (puc.isExpired || puc.isExpiringSoon)) {
           urgentAlerts.push({ v: v, type: 'puc', label: 'PUC ' + (puc.isExpired ? 'Expired' : 'Expiring Soon'), desc: (puc.isExpired ? 'Expired' : puc.daysRemaining + ' days left'), isOverdue: puc.isExpired });
         }
       });
