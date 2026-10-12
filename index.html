@@ -246,6 +246,9 @@
       <button class="sidebar-nav-item" onclick="showPage('debt-payoff')" data-module="debt-payoff">
         <span class="nav-icon">⚡</span> <span class="nav-label">Debt Payoff</span>
       </button>
+      <button class="sidebar-nav-item" onclick="showPage('business')" id="openBusinessHub" data-module="business">
+        <span class="nav-icon">🏢</span> <span class="nav-label">Business Hub</span>
+      </button>
     </div>
 
     <!-- ── WEALTH & GOALS ────────────────────────────────── -->
@@ -1119,6 +1122,11 @@
         <!-- rendered by LM_VehicleUI.render() in VehicleUI.js -->
       </div>
 
+      <!-- ─── BUSINESS HUB MANAGEMENT PAGE ────────────── -->
+      <div id="page-business" style="display:none;">
+        <!-- rendered by LM_BusinessUI.init() in BusinessUI.js -->
+      </div>
+
     </div><!-- /pageContent -->
   </main>
 </div>
@@ -1539,6 +1547,13 @@ function showPage(page) {
         }
       } catch (e) { console.warn('[LM] Vehicles page error:', e); }
     }
+    if (page === 'business') {
+      try {
+        if (window.LM_BusinessUI && typeof window.LM_BusinessUI.init === 'function') {
+          window.LM_BusinessUI.init();
+        }
+      } catch (e) { console.warn('[LM] Business Hub error:', e); }
+    }
     if (page === 'savings-goals') {
       try { renderSavingsGoals(); } catch (e) { console.warn('[LM] Savings goals error:', e); }
     }
@@ -1729,6 +1744,9 @@ function setGreeting() {
   <!-- Bike & Vehicle Tracking Module -->
   <script src="./src/scripts/Modules/Vehicles/VehicleService.js"></script>
   <script src="./src/scripts/Modules/Vehicles/VehicleUI.js"></script>
+  <!-- Business Hub Module (Credits, Debits, Charges & Party Khata) -->
+  <script src="./src/scripts/Modules/Business/BusinessService.js"></script>
+  <script src="./src/scripts/Modules/Business/BusinessUI.js"></script>
   <!-- Next-Gen Bank Grade Enhancements: E2EE Master Crypto, WebP Vault, AI OCR, Bill Split, FIRE Simulator -->
   <script src="./src/scripts/Auth/MasterCrypto.js"></script>
   <script src="./src/scripts/Modules/ReceiptVault.js"></script>

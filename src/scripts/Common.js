@@ -147,7 +147,7 @@ let db = null;
 async function openDB() {
     return new Promise((resolve, reject) => {
         const DB_NAME    = "ledgermate_db";
-        const DB_VERSION = 19;
+        const DB_VERSION = 20;
 
         const req = indexedDB.open(DB_NAME, DB_VERSION);
 
@@ -222,6 +222,8 @@ async function openDB() {
             ensureStore("credit_cards",        { keyPath: "id" }, ["profile", "statement_day", "due_day"]);
             ensureStore("vehicles",            { keyPath: "id" }, ["profile", "regNumber", "type"]);
             ensureStore("receipt_attachments", { keyPath: "id" }, ["userId", "transactionId", "profile"]);
+            ensureStore("businesses",          { keyPath: "id" }, ["profile", "name", "category"]);
+            ensureStore("business_transactions", { keyPath: "id" }, ["profile", "businessId", "type", "date", "partyName", "paymentStatus"]);
             console.log("✅ DB schema upgrade complete");
         };
     });
@@ -3454,6 +3456,8 @@ function validateSnapshot(payload) {
     Array.isArray(payload.reminders)           ||
     Array.isArray(payload.vehicles)            ||
     Array.isArray(payload.credit_cards)        ||
+    Array.isArray(payload.businesses)          ||
+    Array.isArray(payload.business_transactions) ||
     Array.isArray(payload.notes)               ||
     Array.isArray(payload.credentials)         ||
     Array.isArray(payload.trips)               ||
@@ -3600,6 +3604,17 @@ async function mergeRestore(payload) {
       await window.LM_VehicleService.importData(payload.vehicles);
     } catch(e) {
       console.warn('[LM] Error merging vehicles data:', e);
+    }
+  }
+
+  /* ── Restore Business Hub Data ─────────────────────── */
+  await upsertList('businesses', payload.businesses || []);
+  await upsertList('business_transactions', payload.business_transactions || []);
+  if (window.LM_BusinessService && typeof window.LM_BusinessService.importData === 'function') {
+    try {
+      await window.LM_BusinessService.importData(payload.businesses || [], payload.business_transactions || []);
+    } catch(e) {
+      console.warn('[LM] Error merging business data:', e);
     }
   }
 
@@ -4547,6 +4562,22 @@ async function FinalJson(){
         }
         return state.vehicles || [];
       } catch(e) { return state.vehicles || []; }
+    })(),
+    businesses: (function(){
+      try {
+        if (window.LM_BusinessService && typeof window.LM_BusinessService.exportBusinesses === 'function') {
+          return window.LM_BusinessService.exportBusinesses();
+        }
+        return state.businesses || [];
+      } catch(e) { return state.businesses || []; }
+    })(),
+    business_transactions: (function(){
+      try {
+        if (window.LM_BusinessService && typeof window.LM_BusinessService.exportTransactions === 'function') {
+          return window.LM_BusinessService.exportTransactions();
+        }
+        return state.business_transactions || [];
+      } catch(e) { return state.business_transactions || []; }
     })(),
     category_rules: (function(){
       try {
