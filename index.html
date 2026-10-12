@@ -1905,20 +1905,31 @@ function setGreeting() {
       if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
       let cloudSuccess = true;
       try {
-        let syncedFromCloud = false;
-        if (typeof window.LM_CloudSync.checkAndSyncBackground === 'function') {
-          const res = await window.LM_CloudSync.checkAndSyncBackground();
-          if (res && res.synced) {
-            syncedFromCloud = true;
+        if (window.LM_CloudSync && typeof window.LM_CloudSync.syncBidirectional === 'function') {
+          const res = await window.LM_CloudSync.syncBidirectional({ forcePull: true });
+          if (res && res.pulled) {
             if (typeof window.showToast === 'function') {
               window.showToast('☁️ Cloud sync: Latest data downloaded from cloud!', 'success');
             }
+          } else if (res && res.pushed) {
+            if (typeof window.showToast === 'function') {
+              window.showToast('☁️ Cloud sync: Local changes saved to cloud!', 'success');
+            }
+          } else {
+            if (typeof window.showToast === 'function') {
+              window.showToast('☁️ Cloud sync: All data is up to date!', 'info');
+            }
           }
-        }
-        if (!syncedFromCloud) {
-          await window.LM_CloudSync.save();
-          if (typeof window.showToast === 'function') {
-            window.showToast('☁️ Cloud sync completed', 'success');
+        } else if (window.LM_CloudSync && typeof window.LM_CloudSync.checkAndSyncBackground === 'function') {
+          const res = await window.LM_CloudSync.checkAndSyncBackground({ force: true });
+          if (res && res.synced) {
+            if (typeof window.showToast === 'function') {
+              window.showToast('☁️ Cloud sync: Latest data downloaded from cloud!', 'success');
+            }
+          } else {
+            if (typeof window.showToast === 'function') {
+              window.showToast('☁️ Cloud sync: All data is up to date!', 'info');
+            }
           }
         }
         if (window.LM_BusinessUI && typeof window.LM_BusinessUI.render === 'function') {

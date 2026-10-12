@@ -916,7 +916,11 @@
       } else {
         const btn = document.getElementById('bpmSyncAction');
         if (btn) btn.textContent = 'Syncing...';
-        if (typeof window.LM_manualSync === 'function') {
+        if (typeof window.LM_handleTopbarSyncClick === 'function') {
+          await window.LM_handleTopbarSyncClick();
+        } else if (window.LM_CloudSync && typeof window.LM_CloudSync.syncBidirectional === 'function') {
+          await window.LM_CloudSync.syncBidirectional({ forcePull: true });
+        } else if (typeof window.LM_manualSync === 'function') {
           await window.LM_manualSync();
         } else if (window.LM_CloudSync && typeof window.LM_CloudSync.save === 'function') {
           await window.LM_CloudSync.save();

@@ -86,6 +86,9 @@
       /* Admins see all records */
       if (isAdminSession()) return all;
 
+      /* Guest or default profiles see all records (offline-first backward compatibility) */
+      if (!profileId || profileId === 'default' || profileId === 'guest') return all;
+
       /* Users see their own records + legacy/default/guest records + matching username/email */
       return all.filter(r => {
         if (!r) return false;
@@ -110,9 +113,14 @@
         }
       }
       const result = await _origPut(storeName, obj);
-      /* Notify CloudSync that data changed so it queues a debounced save */
+      /* Notify CloudSync that data changed so it queues a debounced save (suppressed during cloud import) */
       if (USER_DATA_STORES.has(storeName) && window.LM_Bus) {
-        LM_Bus.emit('lm:data:changed', { store: storeName });
+        const isImp = (window.LM_CloudSync && typeof window.LM_CloudSync.isImporting === 'function')
+          ? window.LM_CloudSync.isImporting()
+          : false;
+        if (!isImp) {
+          LM_Bus.emit('lm:data:changed', { store: storeName });
+        }
       }
       return result;
     };
@@ -123,7 +131,12 @@
       window.del = async function patchedDel(storeName, key) {
         const result = await _origDel(storeName, key);
         if (USER_DATA_STORES.has(storeName) && window.LM_Bus) {
-          LM_Bus.emit('lm:data:changed', { store: storeName, action: 'delete', key: key });
+          const isImp = (window.LM_CloudSync && typeof window.LM_CloudSync.isImporting === 'function')
+            ? window.LM_CloudSync.isImporting()
+            : false;
+          if (!isImp) {
+            LM_Bus.emit('lm:data:changed', { store: storeName, action: 'delete', key: key });
+          }
         }
         return result;
       };
