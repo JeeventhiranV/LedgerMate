@@ -148,6 +148,8 @@
             { user_id: uid, data: dataToSave, updated_at: nowIso },
             { onConflict: 'user_id' }
           )
+          .select('updated_at')
+          .single()
           .then(function (r) {
             if (r.error) {
               console.warn('[CloudSync] save error:', r.error.message);
@@ -155,12 +157,14 @@
               if (window.LM_Bus) LM_Bus.emit('lm:cloud:failed', { message: 'Cloud sync failed — check connection' });
             } else {
               console.log('[CloudSync] ✅ saved to cloud (Gzip compressed ~95%)');
+              var actualIso = (r.data && r.data.updated_at) ? String(r.data.updated_at) : nowIso;
+              var actualMs = new Date(actualIso).getTime();
               try {
-                localStorage.setItem('lm_last_cloud_sync_time', String(Date.now()));
-                localStorage.setItem('lm_last_synced_remote_updated_at', nowIso);
+                localStorage.setItem('lm_last_cloud_sync_time', String(actualMs));
+                localStorage.setItem('lm_last_synced_remote_updated_at', actualIso);
                 localStorage.setItem('lm_last_synced_rev', rev);
               } catch (e) {}
-              if (window.LM_Bus) LM_Bus.emit('lm:cloud:saved', { updatedAt: nowIso, rev: rev });
+              if (window.LM_Bus) LM_Bus.emit('lm:cloud:saved', { updatedAt: actualIso, rev: rev });
             }
           });
       });
@@ -259,10 +263,16 @@
             return { synced: false, reason: 'no-remote-data' };
           }
           var remoteUpdatedAtStr = String(r.data.updated_at);
-          var lastSyncedRemote = localStorage.getItem('lm_last_synced_remote_updated_at');
+          var remoteMs = new Date(remoteUpdatedAtStr).getTime();
+          var lastSyncedMs = Number(localStorage.getItem('lm_last_cloud_sync_time') || 0);
+          var lastSyncedRemote = localStorage.getItem('lm_last_synced_remote_updated_at') || '';
+          if (isNaN(lastSyncedMs) || lastSyncedMs === 0) {
+            if (lastSyncedRemote) lastSyncedMs = new Date(lastSyncedRemote).getTime();
+          }
 
-          // Remote has changed if its updated_at differs from our last loaded/saved remote timestamp
-          var hasNewRemoteData = force || !lastSyncedRemote || (remoteUpdatedAtStr !== lastSyncedRemote);
+          // Timestamps match if parsed milliseconds are equal within 1000ms
+          var isSameTimestamp = !isNaN(remoteMs) && !isNaN(lastSyncedMs) && Math.abs(remoteMs - lastSyncedMs) < 1000;
+          var hasNewRemoteData = force || (!isSameTimestamp && remoteMs > lastSyncedMs) || (!lastSyncedRemote && !lastSyncedMs);
 
           if (hasNewRemoteData) {
             console.log('[CloudSync] ☁️ Newer remote cloud state detected (' + remoteUpdatedAtStr + '). Performing sync...');
@@ -467,26 +477,32 @@
               { event: '*', schema: 'public', table: TABLE, filter: 'user_id=eq.' + uid },
               function (payload) {
                 if (_saving || _isImporting || isOfflineMode()) return;
+                var evIso = payload && payload.new && payload.new.updated_at ? String(payload.new.updated_at) : '';
+                var evMs = evIso ? new Date(evIso).getTime() : 0;
+                var lastSyncedMs = Number(localStorage.getItem('lm_last_cloud_sync_time') || 0);
+                if (evMs && lastSyncedMs && Math.abs(evMs - lastSyncedMs) < 1000) {
+                  // Echo of this client's own save — ignore silently
+                  return;
+                }
                 console.log('[CloudSync] ⚡ Realtime update received from cloud:', payload);
                 if (window.LM_Bus) {
                   LM_Bus.emit('lm:cloud:remote-update', payload);
                 }
                 if (typeof showToast === 'function') {
-                  showToast('☁️ Cloud data updated from another session. Refreshing...', 'info');
+                  showToast('☁️ Synced updates from another device', 'info');
                 }
-                load().then(function(ok) {
+                load().then(async function(ok) {
                   if (ok) {
                     if (typeof window.loadAllFromDB === 'function') {
-                      window.loadAllFromDB().then(function() {
-                        if (typeof window.renderAll === 'function') window.renderAll();
-                        if (window.LM_BusinessUI && typeof window.LM_BusinessUI.render === 'function') {
-                          try { window.LM_BusinessUI.render(); } catch(e){}
-                        }
-                        if (window.LM_Bus) LM_Bus.emit('lm:cloud:synced');
-                      });
-                    } else if (typeof window.LM_StartApp === 'function') {
-                      window.LM_StartApp();
+                      try { await window.loadAllFromDB(); } catch(e){}
                     }
+                    if (typeof window.renderAll === 'function') {
+                      try { window.renderAll(); } catch(e){}
+                    }
+                    if (window.LM_BusinessUI && typeof window.LM_BusinessUI.render === 'function') {
+                      try { window.LM_BusinessUI.render(); } catch(e){}
+                    }
+                    if (window.LM_Bus) LM_Bus.emit('lm:cloud:synced');
                   }
                 });
               }

@@ -495,6 +495,7 @@ if (dd.length) {
   const fh = settingsAll.find(x => x.key === `${userId}_dataFolderHandle` || x.key === 'dataFolderHandle');
   if (fh) state.dataFolderHandle = fh.value;
 }
+if (typeof window !== 'undefined') window.loadAllFromDB = loadAllFromDB;
 function autoSortDropdowns(data) {
   // Check if the object exists
   if (!data || typeof data !== 'object') return data;
@@ -1765,6 +1766,7 @@ function renderAll(){
   if (_renderAllTimer) { clearTimeout(_renderAllTimer); }
   _renderAllTimer = setTimeout(_doRenderAll, 60);
 }
+if (typeof window !== 'undefined') window.renderAll = renderAll;
 function _doRenderAll(){
   _renderAllTimer = null;
   renderDropdowns();
@@ -3303,7 +3305,7 @@ async function fullImportJSONText(txt, source = "Unknown"){
     }
 
     /* 20. Refresh in-memory state & re-render */
-    if (source !== "Drive"){
+    if (source !== "Drive" && source !== "CloudSync"){
       try {
         await loadAllFromDB();
       } catch (loadErr) {
@@ -3315,10 +3317,21 @@ async function fullImportJSONText(txt, source = "Unknown"){
         console.warn('[LM] renderAll post-import error:', renderErr);
       }
       showToast('✅ Import complete! All data restored.', 'success');
+    } else {
+      try {
+        await loadAllFromDB();
+      } catch (loadErr) {
+        console.warn('[LM] loadAllFromDB post-sync error:', loadErr);
+      }
+      try {
+        if (typeof renderAll === 'function') renderAll();
+      } catch (renderErr) {
+        console.warn('[LM] renderAll post-sync error:', renderErr);
+      }
     }
 
     /* 21. CRITICAL: Persist newly imported data to Supabase Cloud */
-    if (window.LM_CloudSync && source !== 'CloudSync') {
+    if (window.LM_CloudSync && source !== 'CloudSync' && source !== 'Drive') {
       try {
         await window.LM_CloudSync.save();
         console.log('[LM] Imported data synced to Supabase cloud successfully');
@@ -3329,8 +3342,10 @@ async function fullImportJSONText(txt, source = "Unknown"){
 
     if (window.LM_Bus) {
       try {
-        window.LM_Bus.emit('lm:data:changed');
-        window.LM_Bus.emit('lm:import:complete');
+        if (source !== 'CloudSync') {
+          window.LM_Bus.emit('lm:data:changed');
+        }
+        window.LM_Bus.emit('lm:import:complete', { source });
       } catch(e) {}
     }
 
@@ -3747,14 +3762,14 @@ async function mergeRestore(payload) {
   if (db) await loadAllFromDB();
 
   /* ── Persist to CloudSync if available ───────────────── */
-  if (window.LM_CloudSync) {
+  if (window.LM_CloudSync && (!window.LM_CloudSync.isImporting || !window.LM_CloudSync.isImporting())) {
     try {
       await window.LM_CloudSync.save();
     } catch(e) {
       console.warn('[LM] Cloud sync after mergeRestore failed:', e);
     }
   }
-  if (window.LM_Bus) {
+  if (window.LM_Bus && (!window.LM_CloudSync || !window.LM_CloudSync.isImporting || !window.LM_CloudSync.isImporting())) {
     window.LM_Bus.emit('lm:data:changed');
   }
 }

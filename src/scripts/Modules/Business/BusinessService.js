@@ -846,7 +846,12 @@
         state.business_transactions = _transactions;
       }
 
-      if (window.LM_Bus) window.LM_Bus.emit('lm:data:changed', { source: 'business_restore' });
+      if (window.LM_Bus) {
+        window.LM_Bus.emit('lm:business:imported', { businessesCount: bCount, transactionsCount: tCount });
+        if (!window.LM_CloudSync || !window.LM_CloudSync.isImporting || !window.LM_CloudSync.isImporting()) {
+          window.LM_Bus.emit('lm:data:changed', { source: 'business_restore' });
+        }
+      }
       return { businessesCount: bCount, transactionsCount: tCount };
     }
   };

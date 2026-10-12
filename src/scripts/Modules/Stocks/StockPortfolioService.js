@@ -729,7 +729,9 @@
       saveLocalData();
       if (window.LM_Bus) {
         window.LM_Bus.emit('lm:stocks:changed');
-        window.LM_Bus.emit('lm:data:changed');
+        if (!window.LM_CloudSync || !window.LM_CloudSync.isImporting || !window.LM_CloudSync.isImporting()) {
+          window.LM_Bus.emit('lm:data:changed');
+        }
       }
       return true;
     }

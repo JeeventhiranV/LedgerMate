@@ -807,7 +807,7 @@
       try {
         await this.syncReminders();
       } catch (e) {}
-      if (window.LM_Bus) {
+      if (window.LM_Bus && (!window.LM_CloudSync || !window.LM_CloudSync.isImporting || !window.LM_CloudSync.isImporting())) {
         window.LM_Bus.emit('lm:data:changed', { store: 'credit_cards' });
       }
     }
