@@ -63,6 +63,12 @@ if ('serviceWorker' in navigator) {
   </div>
   <div class="topbar-right">
     <div class="topbar-utils">
+      <!-- ⏱️ Focus Timer Status Chip -->
+      <button class="st-chip" id="stTimerChip" onclick="document.getElementById('stFab')?.click()" title="Toggle Study Focus Timer" aria-label="Study Focus Timer">
+        <span class="st-chip-dot"></span>
+        <span class="st-chip-time" id="stTimerChipTime">00:00:00</span>
+      </button>
+
       <!-- 💰 Module Switcher: LedgerMate Finance -->
       <a href="../index.html" class="topbar-switch-btn finance-switch" title="Switch to LedgerMate Finance" aria-label="Switch to LedgerMate Finance" onclick="try{localStorage.setItem('lm_last_page','main');}catch(e){}">
         <span class="switch-icon">💰</span>
@@ -288,23 +294,19 @@ if ('serviceWorker' in navigator) {
   <div class="hero-glow-1"></div>
   <div class="hero-glow-2"></div>
   <div class="hero-content fade-up">
-    <div class="hero-eyebrow"><span></span> Interview Preparation Library</div>
+    <div class="hero-eyebrow"><span></span> Interview Preparation Command Center</div>
     <h1 id="heroTitle">Study Resources Hub</h1>
     <div class="hero-streak" id="heroStreak" style="display:none">🔥 <span id="streakVal">0</span>-day streak · <span id="longestVal">0</span> best</div>
-    <p class="hero-sub">Your complete interview preparation toolkit — DSA, Java, System Design, and more. Built for engineers targeting Product Companies, FAANG, MNCs, and Startups.</p>
+    <p class="hero-sub">Your complete interview preparation toolkit — DSA, Java Systems, React Engineering, and Behavioral Mastery built for high-impact engineers.</p>
 
-    <!-- Overall progress bar -->
-    <div class="overall-bar-wrap" id="overallBarWrap" style="opacity:0;transition:opacity .4s">
-      <div class="overall-bar-label">
-        <span>Overall Progress</span>
-        <strong id="overallPctLabel">0%</strong>
-      </div>
-      <div class="overall-bar">
-        <div class="overall-bar-done" id="overallBarDone" style="width:0%"></div>
-        <div class="overall-bar-ip" id="overallBarIp" style="width:0%"></div>
-      </div>
+    <!-- Omnibar Search -->
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search resources, topics, tags (Ctrl+K)…" autocomplete="off" aria-label="Search resources"/>
+      <kbd class="search-kbd">Ctrl+K</kbd>
     </div>
 
+    <!-- Quick Stats Bar -->
     <div class="hero-stats">
       <div class="stat-pill"><div class="stat-num" id="statDone">0</div><div class="stat-lbl">Questions Done</div></div>
       <div class="stat-pill" id="statInProgressPill" style="display:none;border-color:rgba(245,158,11,.35)"><div class="stat-num" id="statInProgress" style="background:linear-gradient(135deg,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">0</div><div class="stat-lbl">In Progress</div></div>
@@ -312,10 +314,11 @@ if ('serviceWorker' in navigator) {
       <div class="stat-pill"><div class="stat-num" id="statQ">538</div><div class="stat-lbl">Questions</div></div>
     </div>
 
-    <!-- Real-time Practice Target & Difficulty Distribution Matrix -->
-    <div class="hero-tracker-matrix">
-      <!-- Daily Practice Goal Card -->
-      <div class="daily-target-card">
+    <!-- ═══ EXECUTIVE PRACTICE COCKPIT (DUAL-CARD HARMONY) ═══ -->
+    <div class="exec-cockpit-grid">
+      <!-- Card 1: Daily Target & Weekly Milestone -->
+      <div class="exec-cockpit-card daily-target-card">
+        <!-- Daily Practice Goal Section -->
         <div class="dtc-header">
           <div class="dtc-title-row">
             <span class="dtc-icon">🎯</span>
@@ -339,12 +342,37 @@ if ('serviceWorker' in navigator) {
           </div>
           <div class="dtc-status" id="dailyTargetStatus">🚀 Complete 3 questions today to maintain your momentum!</div>
         </div>
+
+        <!-- Integrated Weekly Goal Milestone Sub-Row -->
+        <div class="exec-cockpit-weekly-sub weekly-goal-wrap" style="padding:0;max-width:none;margin-top:14px;border-top:1px dashed var(--border);padding-top:12px;">
+          <div class="weekly-goal-inner" style="background:transparent;border:none;padding:0;gap:12px;">
+            <div class="weekly-goal-left">
+              <div class="weekly-goal-label">Weekly Milestone</div>
+              <div class="weekly-goal-nums">
+                <span class="wg-done" id="wkDone">0</span><span class="wg-sep">/</span><span class="wg-goal" id="wkGoal" title="Click to edit weekly goal">20</span>
+              </div>
+            </div>
+            <div class="weekly-goal-prog">
+              <div class="wg-bar-header">
+                <span>Week Target</span><span class="wg-bar-pct" id="wkPct">0%</span>
+              </div>
+              <div class="wg-bar"><div class="wg-bar-fill" id="wkBar" style="width:0%"></div></div>
+            </div>
+            <div class="weekly-goal-days" id="wkDays">
+              <div class="wg-day">M</div><div class="wg-day">T</div><div class="wg-day">W</div>
+              <div class="wg-day">T</div><div class="wg-day">F</div><div class="wg-day">S</div><div class="wg-day">S</div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Difficulty Breakdown Card (LeetCode / NeetCode style) -->
-      <div class="diff-matrix-card">
+      <!-- Card 2: Difficulty Breakdown & Curriculum Gauge -->
+      <div class="exec-cockpit-card diff-matrix-card">
         <div class="dmc-header">
-          <span class="dmc-title">Difficulty Distribution</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:16px;">📊</span>
+            <span class="dmc-title">Difficulty Distribution</span>
+          </div>
           <span class="dmc-total" id="dmcTotalDone">0 / 538 Solved</span>
         </div>
         <div class="dmc-rows">
@@ -379,27 +407,221 @@ if ('serviceWorker' in navigator) {
             <div class="dmc-val"><strong id="dmcHardDone">0</strong><span class="dmc-max">/118</span></div>
           </div>
         </div>
+
+        <!-- Overall progress bar inside Card 2 -->
+        <div class="overall-bar-wrap" id="overallBarWrap" style="opacity:0;transition:opacity .4s;margin:14px 0 0;border-top:1px dashed var(--border);padding-top:12px;">
+          <div class="overall-bar-label">
+            <span>Curriculum Completion</span>
+            <strong id="overallPctLabel">0%</strong>
+          </div>
+          <div class="overall-bar">
+            <div class="overall-bar-done" id="overallBarDone" style="width:0%"></div>
+            <div class="overall-bar-ip" id="overallBarIp" style="width:0%"></div>
+          </div>
+        </div>
       </div>
-    </div>
-
-    <!-- Resume where you left off (populated by JS after DB load) -->
-    <div id="resumeChip"></div>
-
-    <div class="search-wrap">
-      <span class="search-icon">🔍</span>
-      <input type="text" id="searchInput" placeholder="Search resources, topics, tags…" autocomplete="off" aria-label="Search resources"/>
-      <kbd class="search-kbd">Ctrl+K</kbd>
     </div>
 
   </div>
 </div>
 
+<!-- ═══ TACTILE STUDY COMMAND DOCK (1-TAP HIGH-VELOCITY LAUNCHERS) ═══ -->
+<div class="study-command-dock-wrap">
+  <div class="study-command-dock" id="studyCommandDock">
+    <button class="cmd-dock-btn" onclick="window.StudyQuiz?.showModal()" title="Start Practice Quiz Sprint">
+      <div class="cmd-dock-ico" style="--cd-glow:rgba(6,214,160,0.25);background:rgba(6,214,160,0.12);color:#06d6a0;">🎯</div>
+      <div class="cmd-dock-info">
+        <span class="cmd-dock-title">Practice Quiz</span>
+        <span class="cmd-dock-sub">Topic Sprint</span>
+      </div>
+    </button>
+    <button class="cmd-dock-btn" onclick="window.StudySRS?.showModal()" title="Spaced Repetition Flashcards">
+      <div class="cmd-dock-ico" style="--cd-glow:rgba(139,92,246,0.25);background:rgba(139,92,246,0.12);color:#8b5cf6;">🧠</div>
+      <div class="cmd-dock-info">
+        <span class="cmd-dock-title">SRS Flashcards</span>
+        <span class="cmd-dock-sub">Recall Memory</span>
+      </div>
+    </button>
+    <button class="cmd-dock-btn" onclick="window.StudyCodeRunner?.showModal()" title="Java &amp; JS Algorithm Playground">
+      <div class="cmd-dock-ico" style="--cd-glow:rgba(245,158,11,0.25);background:rgba(245,158,11,0.12);color:#f59e0b;">💻</div>
+      <div class="cmd-dock-info">
+        <span class="cmd-dock-title">Code Runner</span>
+        <span class="cmd-dock-sub">DSA Playground</span>
+      </div>
+    </button>
+    <button class="cmd-dock-btn" onclick="window.AIInterviewHelper?.showModal()" title="AI Mock Interview Assistant">
+      <div class="cmd-dock-ico" style="--cd-glow:rgba(236,72,153,0.25);background:rgba(236,72,153,0.12);color:#ec4899;">🤖</div>
+      <div class="cmd-dock-info">
+        <span class="cmd-dock-title">AI Mock Coach</span>
+        <span class="cmd-dock-sub">Interview Assistant</span>
+      </div>
+    </button>
+    <button class="cmd-dock-btn" onclick="window.LiveStudyRoom?.openLiveStudyRoomModal()" title="Live Peer Study Room">
+      <div class="cmd-dock-ico" style="--cd-glow:rgba(79,142,247,0.25);background:rgba(79,142,247,0.12);color:#4f8ef7;">🏛️</div>
+      <div class="cmd-dock-info">
+        <span class="cmd-dock-title">Live Study Room</span>
+        <span class="cmd-dock-sub">Peer Sprint</span>
+      </div>
+    </button>
+    <button class="cmd-dock-btn" onclick="document.getElementById('stFab')?.click()" title="Toggle Study Focus Timer">
+      <div class="cmd-dock-ico" style="--cd-glow:rgba(34,211,238,0.25);background:rgba(34,211,238,0.12);color:#22d3ee;">⏱️</div>
+      <div class="cmd-dock-info">
+        <span class="cmd-dock-title">Focus Timer</span>
+        <span class="cmd-dock-sub" id="cmdDockTimerSub">Pomodoro &amp; Track</span>
+      </div>
+    </button>
+    <button class="cmd-dock-btn" onclick="window.StudyWorkspace?.openStudio('sections')" title="Create Custom Learning Tracks">
+      <div class="cmd-dock-ico" style="--cd-glow:rgba(168,85,247,0.25);background:rgba(168,85,247,0.12);color:#a855f7;">⚙️</div>
+      <div class="cmd-dock-info">
+        <span class="cmd-dock-title">Studio Hub</span>
+        <span class="cmd-dock-sub">Custom Tracks</span>
+      </div>
+    </button>
+    <button class="cmd-dock-btn" onclick="window.StudyWorkspace?.openQuickUploadModal()" title="Upload Notes, Docs &amp; Code">
+      <div class="cmd-dock-ico" style="--cd-glow:rgba(16,185,129,0.25);background:rgba(16,185,129,0.12);color:#10b981;">📤</div>
+      <div class="cmd-dock-info">
+        <span class="cmd-dock-title">Upload Vault</span>
+        <span class="cmd-dock-sub">Notes &amp; Materials</span>
+      </div>
+    </button>
+  </div>
+</div>
+
 <!-- ═══ RESUME LEARNING HERO BANNER ═══ -->
 <div id="resumeHeroContainer"></div>
+<div id="resumeChip" style="max-width:1200px;margin:0 auto 16px;padding:0 24px;"></div>
 
 <!-- ═══ FOCUS POMODORO & LEARNING GOALS WIDGETS ═══ -->
 <div id="pomodoroWidgetContainer" style="max-width:1200px;margin:0 auto;padding:0 24px;"></div>
 <div id="goalsWidgetContainer" style="max-width:1200px;margin:0 auto;padding:0 24px;"></div>
+
+<!-- ═══ IN-PAGE WORKSPACE CUSTOMIZATION STUDIO ═══ -->
+<section class="ws-studio-section" id="workspaceCustomizationStudio">
+  <div class="ws-studio-card">
+    <div class="ws-studio-header">
+      <div class="ws-studio-title-wrap">
+        <div class="ws-studio-icon-badge">⚙️</div>
+        <div>
+          <h2 class="ws-studio-title">Workspace Customization Studio</h2>
+          <div class="ws-studio-subtitle">Build custom tracks, manage modules &amp; topics, upload files to Supabase, track material progress, and configure widgets</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openQuickUploadModal()" style="font-size:12px;padding:6px 14px;background:linear-gradient(135deg,#4f8ef7,#8b5cf6);">
+          <span>📤</span> Upload to Supabase
+        </button>
+        <button class="btn-resume-dismiss" onclick="window.StudyWorkspace?.toggleStudioView(false)" title="Close Studio" style="padding:6px 12px;font-size:12.5px;font-weight:600;">
+          ✕ Close Studio
+        </button>
+      </div>
+    </div>
+
+    <!-- Studio Tab Navigation Bar -->
+    <div class="ws-studio-tabs-bar" id="studioTabsBar">
+      <button class="studio-tab-btn active" data-tab="sections" onclick="window.StudyWorkspace?.switchStudioTab('sections')">
+        <span>🌐</span> Custom Sections &amp; Tracks
+      </button>
+      <button class="studio-tab-btn" data-tab="vault" onclick="window.StudyWorkspace?.switchStudioTab('vault')">
+        <span>📁</span> Cloud Materials &amp; File Vault
+      </button>
+      <button class="studio-tab-btn" data-tab="hierarchy" onclick="window.StudyWorkspace?.switchStudioTab('hierarchy')">
+        <span>🧩</span> Modules &amp; Topics Manager
+      </button>
+      <button class="studio-tab-btn" data-tab="widgets" onclick="window.StudyWorkspace?.switchStudioTab('widgets')">
+        <span>📊</span> Dashboard Widgets
+      </button>
+      <button class="studio-tab-btn" data-tab="blueprints" onclick="window.StudyWorkspace?.switchStudioTab('blueprints')">
+        <span>📦</span> Blueprints &amp; Roadmaps
+      </button>
+      <button class="studio-tab-btn" data-tab="goals" onclick="window.StudyWorkspace?.switchStudioTab('goals')">
+        <span>🎯</span> Goals &amp; Milestones
+      </button>
+    </div>
+
+    <!-- Studio Tab Panes -->
+    <div class="studio-tab-pane active" id="studioPane-sections"></div>
+    <div class="studio-tab-pane" id="studioPane-vault"></div>
+    <div class="studio-tab-pane" id="studioPane-hierarchy"></div>
+    <div class="studio-tab-pane" id="studioPane-widgets"></div>
+    <div class="studio-tab-pane" id="studioPane-blueprints"></div>
+    <div class="studio-tab-pane" id="studioPane-goals"></div>
+  </div>
+</section>
+
+<!-- WORKSPACE COMMAND BAR & STATUS LEGEND -->
+<div class="workspace-command-center" id="workspaceControlsBar">
+  <div class="wcc-actions">
+    <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openStudio('sections')" title="Open In-Page Studio to Add/Manage Custom Sections">
+      <span>➕</span> Add Language / Section
+    </button>
+    <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openStudio('vault')" title="Upload PDF, Notes, Docs or Code to Cloud Storage" style="background:linear-gradient(135deg,#4f8ef7,#8b5cf6);">
+      <span>📤</span> Upload Material
+    </button>
+    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openStudio('blueprints')" title="Import Ready-to-Learn Roadmaps">
+      <span>📦</span> Import Roadmap
+    </button>
+    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openStudio('goals')" title="Create Target Date &amp; Milestones">
+      <span>🎯</span> Set Goal
+    </button>
+    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.toggleStudioView(true)" title="Open Full In-Page Workspace Customizer Studio" style="border-color:var(--blue,#4f8ef7);color:var(--blue,#4f8ef7);background:rgba(79,142,247,0.08);">
+      <span>⚙️</span> In-Page Studio
+    </button>
+  </div>
+  <div class="wcc-legend">
+    <span class="st-badge st-pending">⚪ Pending</span>
+    <span class="st-badge st-inprogress">⏳ In Progress</span>
+    <span class="st-badge st-completed">✅ Completed</span>
+    <span class="st-badge st-onhold">⏸️ On Hold</span>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <span class="filter-label">Domain:</span>
+  <div class="filter-chips" id="filterChips">
+    <button class="chip active" data-filter="all">🌐 All Domains</button>
+    <button class="chip chip-custom" data-filter="custom">✨ Custom Tracks</button>
+    <button class="chip" data-filter="java">☕ Java Ecosystem</button>
+    <button class="chip" data-filter="frontend">⚛️ React &amp; Frontend</button>
+    <button class="chip" data-filter="dsa">🧠 DSA &amp; Algorithms</button>
+    <button class="chip" data-filter="hr">🤝 HR &amp; Management</button>
+    <button class="chip" data-filter="tools">🎯 Trackers &amp; Tools</button>
+    <button class="chip" data-filter="done">Has Progress</button>
+    <button class="chip" data-filter="inprogress" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.4);color:#f59e0b">⏳ In Progress</button>
+    <button class="chip chip-st-wip" data-filter="st-wip">🚧 WIP</button>
+    <button class="chip chip-st-completed" data-filter="st-completed">✅ Completed</button>
+    <button class="chip gold" data-filter="fav">⭐ Favorites</button>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="section" id="resources">
+  <div class="section-header">
+    <div class="section-title">Preparation Modules &amp; Resources</div>
+    <span class="section-count" id="availCount">10</span>
+    <div class="section-line"></div>
+  </div>
+  <div id="noResults" class="no-results">
+    <div class="no-results-icon">🔍</div>
+    <div class="no-results-text">No resources match your search or filter.</div>
+  </div>
+  
+  <!-- 1. CUSTOM LEARNING TRACKS & CREATED TOPICS (RENDERED AT TOP) -->
+  <div id="customSectionsWrap"></div>
+
+  <!-- 2. STATIC PREPARATION MODULES & DOMAINS (RENDERED BELOW CUSTOM TRACKS) -->
+  <div id="languageSectionsWrap"></div>
+
+</div>
+
+<!-- DUE FOR REVIEW -->
+<div class="due-section" id="dueSection" style="display:none">
+  <div class="due-header">
+    <div class="due-title">📅 Due for Review</div>
+    <div class="due-sub" id="dueSub"></div>
+  </div>
+  <div class="due-list" id="dueList"></div>
+</div>
 
 <!-- ═══ DASHBOARD & ANALYTICS PANEL (COLLAPSIBLE) ═══ -->
 <div class="dash-panel" id="dashAnalyticsPanel">
@@ -506,157 +728,6 @@ if ('serviceWorker' in navigator) {
   </div>
 </div>
 <!-- ═══ END DASHBOARD ═══ -->
-
-<!-- DUE FOR REVIEW -->
-<div class="due-section" id="dueSection" style="display:none">
-  <div class="due-header">
-    <div class="due-title">📅 Due for Review</div>
-    <div class="due-sub" id="dueSub"></div>
-  </div>
-  <div class="due-list" id="dueList"></div>
-</div>
-
-<!-- WEEKLY STUDY GOAL -->
-<div class="weekly-goal-wrap">
-  <div class="weekly-goal-inner">
-    <div class="weekly-goal-left">
-      <div class="weekly-goal-label">This Week</div>
-      <div class="weekly-goal-nums">
-        <span class="wg-done" id="wkDone">0</span><span class="wg-sep">/</span><span class="wg-goal" id="wkGoal">20</span>
-      </div>
-      <div class="weekly-goal-suffix">questions solved</div>
-    </div>
-    <div class="weekly-goal-prog">
-      <div class="wg-bar-header">
-        <span>Weekly Goal</span><span class="wg-bar-pct" id="wkPct">0%</span>
-      </div>
-      <div class="wg-bar"><div class="wg-bar-fill" id="wkBar" style="width:0%"></div></div>
-    </div>
-    <div class="weekly-goal-days" id="wkDays">
-      <div class="wg-day">M</div><div class="wg-day">T</div><div class="wg-day">W</div>
-      <div class="wg-day">T</div><div class="wg-day">F</div><div class="wg-day">S</div><div class="wg-day">S</div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ IN-PAGE WORKSPACE CUSTOMIZATION STUDIO ═══ -->
-<section class="ws-studio-section" id="workspaceCustomizationStudio">
-  <div class="ws-studio-card">
-    <div class="ws-studio-header">
-      <div class="ws-studio-title-wrap">
-        <div class="ws-studio-icon-badge">⚙️</div>
-        <div>
-          <h2 class="ws-studio-title">Workspace Customization Studio</h2>
-          <div class="ws-studio-subtitle">Build custom tracks, manage modules &amp; topics, upload files to Supabase, track material progress, and configure widgets</div>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openQuickUploadModal()" style="font-size:12px;padding:6px 14px;background:linear-gradient(135deg,#4f8ef7,#8b5cf6);">
-          <span>📤</span> Upload to Supabase
-        </button>
-        <button class="btn-resume-dismiss" onclick="window.StudyWorkspace?.toggleStudioView(false)" title="Close Studio" style="padding:6px 12px;font-size:12.5px;font-weight:600;">
-          ✕ Close Studio
-        </button>
-      </div>
-    </div>
-
-    <!-- Studio Tab Navigation Bar -->
-    <div class="ws-studio-tabs-bar" id="studioTabsBar">
-      <button class="studio-tab-btn active" data-tab="sections" onclick="window.StudyWorkspace?.switchStudioTab('sections')">
-        <span>🌐</span> Custom Sections &amp; Tracks
-      </button>
-      <button class="studio-tab-btn" data-tab="vault" onclick="window.StudyWorkspace?.switchStudioTab('vault')">
-        <span>📁</span> Cloud Materials &amp; File Vault
-      </button>
-      <button class="studio-tab-btn" data-tab="hierarchy" onclick="window.StudyWorkspace?.switchStudioTab('hierarchy')">
-        <span>🧩</span> Modules &amp; Topics Manager
-      </button>
-      <button class="studio-tab-btn" data-tab="widgets" onclick="window.StudyWorkspace?.switchStudioTab('widgets')">
-        <span>📊</span> Dashboard Widgets
-      </button>
-      <button class="studio-tab-btn" data-tab="blueprints" onclick="window.StudyWorkspace?.switchStudioTab('blueprints')">
-        <span>📦</span> Blueprints &amp; Roadmaps
-      </button>
-      <button class="studio-tab-btn" data-tab="goals" onclick="window.StudyWorkspace?.switchStudioTab('goals')">
-        <span>🎯</span> Goals &amp; Milestones
-      </button>
-    </div>
-
-    <!-- Studio Tab Panes -->
-    <div class="studio-tab-pane active" id="studioPane-sections"></div>
-    <div class="studio-tab-pane" id="studioPane-vault"></div>
-    <div class="studio-tab-pane" id="studioPane-hierarchy"></div>
-    <div class="studio-tab-pane" id="studioPane-widgets"></div>
-    <div class="studio-tab-pane" id="studioPane-blueprints"></div>
-    <div class="studio-tab-pane" id="studioPane-goals"></div>
-  </div>
-</section>
-
-<!-- WORKSPACE COMMAND CENTER & 4-STATE STATUS BAR -->
-<div class="workspace-command-center" id="workspaceControlsBar">
-  <div class="wcc-actions">
-    <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openStudio('sections')" title="Open In-Page Studio to Add/Manage Custom Sections">
-      <span>➕</span> Add Language / Section
-    </button>
-    <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openStudio('vault')" title="Upload PDF, Notes, Docs or Code to Cloud Storage" style="background:linear-gradient(135deg,#4f8ef7,#8b5cf6);">
-      <span>📤</span> Upload Material
-    </button>
-    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openStudio('blueprints')" title="Import Ready-to-Learn Roadmaps">
-      <span>📦</span> Import Roadmap
-    </button>
-    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openStudio('goals')" title="Create Target Date &amp; Milestones">
-      <span>🎯</span> Set Goal
-    </button>
-    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.toggleStudioView(true)" title="Open Full In-Page Workspace Customizer Studio" style="border-color:var(--blue,#4f8ef7);color:var(--blue,#4f8ef7);background:rgba(79,142,247,0.08);">
-      <span>⚙️</span> In-Page Customizer Studio
-    </button>
-  </div>
-  <div class="wcc-legend">
-    <span class="st-badge st-pending">⚪ Pending</span>
-    <span class="st-badge st-inprogress">⏳ In Progress</span>
-    <span class="st-badge st-completed">✅ Completed</span>
-    <span class="st-badge st-onhold">⏸️ On Hold</span>
-  </div>
-</div>
-
-<!-- FILTER BAR -->
-<div class="filter-bar">
-  <span class="filter-label">Domain:</span>
-  <div class="filter-chips" id="filterChips">
-    <button class="chip active" data-filter="all">🌐 All Domains</button>
-    <button class="chip chip-custom" data-filter="custom">✨ Custom Tracks</button>
-    <button class="chip" data-filter="java">☕ Java Ecosystem</button>
-    <button class="chip" data-filter="frontend">⚛️ React &amp; Frontend</button>
-    <button class="chip" data-filter="dsa">🧠 DSA &amp; Algorithms</button>
-    <button class="chip" data-filter="hr">🤝 HR &amp; Management</button>
-    <button class="chip" data-filter="tools">🎯 Trackers &amp; Tools</button>
-    <button class="chip" data-filter="done">Has Progress</button>
-    <button class="chip" data-filter="inprogress" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.4);color:#f59e0b">⏳ In Progress</button>
-    <button class="chip chip-st-wip" data-filter="st-wip">🚧 WIP</button>
-    <button class="chip chip-st-completed" data-filter="st-completed">✅ Completed</button>
-    <button class="chip gold" data-filter="fav">⭐ Favorites</button>
-  </div>
-</div>
-
-<!-- MAIN CONTENT -->
-<div class="section" id="resources">
-  <div class="section-header">
-    <div class="section-title">Preparation Modules &amp; Resources</div>
-    <span class="section-count" id="availCount">10</span>
-    <div class="section-line"></div>
-  </div>
-  <div id="noResults" class="no-results">
-    <div class="no-results-icon">🔍</div>
-    <div class="no-results-text">No resources match your search or filter.</div>
-  </div>
-  
-  <!-- 1. CUSTOM LEARNING TRACKS & CREATED TOPICS (RENDERED AT TOP) -->
-  <div id="customSectionsWrap"></div>
-
-  <!-- 2. STATIC PREPARATION MODULES & DOMAINS (RENDERED BELOW CUSTOM TRACKS) -->
-  <div id="languageSectionsWrap"></div>
-
-</div>
 
 <!-- ══════════════════════════════════════════════════════════════
      INTERVIEW COUNTDOWN MODAL
@@ -2140,6 +2211,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function _refresh(st) {
     if (clock)   clock.textContent = st.display || '00:00:00';
+    var chip = document.getElementById('stTimerChip');
+    var chipTime = document.getElementById('stTimerChipTime');
+    var dockSub = document.getElementById('cmdDockTimerSub');
+    if (chip) chip.classList.toggle('running', !!st.running);
+    if (chipTime) chipTime.textContent = st.display || '00:00:00';
+    if (dockSub) dockSub.textContent = st.running ? (st.topic ? st.topic + ' · ' : '') + (st.display || 'Running') : 'Pomodoro & Track';
+
     if (fabLive) {
       fabLive.textContent = (st.running && st.topic ? st.topic + ' · ' : '') + (st.display || '00:00:00');
       fabLive.classList.toggle('hidden', !st.running);
