@@ -1891,9 +1891,24 @@ function setGreeting() {
       _syncBusy = true;
       if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
       try {
-        await window.LM_CloudSync.save();
-        if (typeof window.showToast === 'function') {
-          window.showToast('☁️ Cloud sync completed', 'success');
+        let syncedFromCloud = false;
+        if (typeof window.LM_CloudSync.checkAndSyncBackground === 'function') {
+          const res = await window.LM_CloudSync.checkAndSyncBackground();
+          if (res && res.synced) {
+            syncedFromCloud = true;
+            if (typeof window.showToast === 'function') {
+              window.showToast('☁️ Cloud sync: Latest data downloaded from cloud!', 'success');
+            }
+          }
+        }
+        if (!syncedFromCloud) {
+          await window.LM_CloudSync.save();
+          if (typeof window.showToast === 'function') {
+            window.showToast('☁️ Cloud sync completed', 'success');
+          }
+        }
+        if (window.LM_BusinessUI && typeof window.LM_BusinessUI.render === 'function') {
+          try { window.LM_BusinessUI.render(); } catch(e){}
         }
       } catch (e) {
         console.warn('[LM] Topbar cloud sync error:', e);

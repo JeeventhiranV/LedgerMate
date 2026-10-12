@@ -30,7 +30,9 @@
     'subscriptions',                           /* subscription tracker */
     'fd_rd', 'tx_templates', 'credit_cards',   /* FD/RD + transaction templates + credit cards */
     'vehicles',                                /* Bike & vehicle tracking */
-    'receipt_attachments'                      /* Offline receipts vault cache */
+    'receipt_attachments',                     /* Offline receipts vault cache */
+    'businesses',                              /* Business Hub profiles */
+    'business_transactions'                    /* Business Hub ledger */
   ]);
 
   /* Stores shared between all users (categories, etc.) */

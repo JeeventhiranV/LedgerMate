@@ -140,20 +140,27 @@
 
     getBusinesses: function () {
       var uid = _getProfileId();
+      if ((!_businesses || _businesses.length === 0) && typeof state === 'object' && Array.isArray(state.businesses) && state.businesses.length > 0) {
+        _businesses = state.businesses.slice();
+      }
       return _businesses.filter(function (b) { return !b.profile || b.profile === uid; });
     },
 
     getBusinessById: function (id) {
       if (!id) return null;
-      return _businesses.find(function (b) { return b.id === id; }) || null;
+      var list = this.getBusinesses();
+      return list.find(function (b) { return b.id === id; }) || null;
     },
 
     getActiveBusinessId: function () {
       var uid = _getProfileId();
-      var saved = localStorage.getItem('lm_u_' + uid + '_active_biz_id');
-      if (saved && this.getBusinessById(saved)) return saved;
       var list = this.getBusinesses();
-      if (list.length > 0) return list[0].id;
+      var saved = localStorage.getItem('lm_u_' + uid + '_active_biz_id');
+      if (saved && list.some(function(b){ return b.id === saved; })) return saved;
+      if (list.length > 0) {
+        var def = list.find(function(b){ return b.isDefault; });
+        return def ? def.id : list[0].id;
+      }
       return null;
     },
 
@@ -213,6 +220,10 @@
         }
       }
 
+      if (window.LM_CloudSync && typeof window.LM_CloudSync.queueSave === 'function') {
+        window.LM_CloudSync.queueSave(1000);
+      }
+
       if (window.LM_Bus) window.LM_Bus.emit('lm:data:changed', { source: 'businesses', businessId: id });
       return biz;
     },
@@ -246,6 +257,10 @@
         try { await window.deleteRecord('businesses', id); } catch (e) {}
       }
 
+      if (window.LM_CloudSync && typeof window.LM_CloudSync.queueSave === 'function') {
+        window.LM_CloudSync.queueSave(1000);
+      }
+
       if (window.LM_Bus) window.LM_Bus.emit('lm:data:changed', { source: 'businesses', action: 'delete', businessId: id });
       return true;
     },
@@ -256,6 +271,9 @@
       var uid = _getProfileId();
       var list = _transactions.filter(function (t) { return !t.profile || t.profile === uid; });
 
+      if (typeof filters === 'string') {
+        filters = { businessId: filters };
+      }
       filters = filters || {};
       if (filters.businessId && filters.businessId !== 'all') {
         list = list.filter(function (t) { return t.businessId === filters.businessId; });
@@ -266,7 +284,7 @@
       if (filters.paymentStatus && filters.paymentStatus !== 'all') {
         list = list.filter(function (t) { return t.paymentStatus === filters.paymentStatus; });
       }
-      if (filters.partyName) {
+      if (filters.partyName && typeof filters.partyName === 'string') {
         var pSearch = filters.partyName.toLowerCase().trim();
         list = list.filter(function (t) { return (t.partyName || '').toLowerCase().includes(pSearch); });
       }
@@ -279,7 +297,7 @@
       if (filters.dateTo) {
         list = list.filter(function (t) { return t.date <= filters.dateTo; });
       }
-      if (filters.search) {
+      if (filters.search && typeof filters.search === 'string') {
         var q = filters.search.toLowerCase().trim();
         list = list.filter(function (t) {
           return (t.partyName || '').toLowerCase().includes(q) ||
@@ -374,6 +392,10 @@
         }
       }
 
+      if (window.LM_CloudSync && typeof window.LM_CloudSync.queueSave === 'function') {
+        window.LM_CloudSync.queueSave(1000);
+      }
+
       if (window.LM_Bus) window.LM_Bus.emit('lm:data:changed', { source: 'business_transactions', txId: id });
       return tx;
     },
@@ -388,6 +410,10 @@
 
       if (typeof window.deleteRecord === 'function' && window.db) {
         try { await window.deleteRecord('business_transactions', id); } catch (e) {}
+      }
+
+      if (window.LM_CloudSync && typeof window.LM_CloudSync.queueSave === 'function') {
+        window.LM_CloudSync.queueSave(1000);
       }
 
       if (window.LM_Bus) window.LM_Bus.emit('lm:data:changed', { source: 'business_transactions', action: 'delete', txId: id });
@@ -675,12 +701,20 @@
     // ── BACKUP EXPORT & IMPORT HOOKS ───────────────────────
 
     exportBusinesses: function () {
-      return this.getBusinesses();
+      var list = this.getBusinesses();
+      if ((!list || list.length === 0) && typeof state === 'object' && Array.isArray(state.businesses) && state.businesses.length > 0) {
+        return state.businesses;
+      }
+      return list || [];
     },
 
     exportTransactions: function () {
       var uid = _getProfileId();
-      return _transactions.filter(function (t) { return !t.profile || t.profile === uid; });
+      var list = _transactions.filter(function (t) { return !t.profile || t.profile === uid; });
+      if ((!list || list.length === 0) && typeof state === 'object' && Array.isArray(state.business_transactions) && state.business_transactions.length > 0) {
+        return state.business_transactions;
+      }
+      return list || [];
     },
 
     exportData: function () {
@@ -703,7 +737,18 @@
       var bCount = 0;
       var tCount = 0;
 
-      if (Array.isArray(bList)) {
+      if (Array.isArray(bList) && bList.length > 0) {
+        // If local state only had an untouched default starter "Primary Enterprise", remove it so mobile's real business shines
+        var dummyIdx = _businesses.findIndex(function (x) {
+          return x.name === 'Primary Enterprise' && (!x.regNumber && !x.address && !x.email && !x.phone);
+        });
+        if (dummyIdx !== -1 && bList.some(function (b) { return b.name !== 'Primary Enterprise' || b.id !== _businesses[dummyIdx].id; })) {
+          var removedDummy = _businesses.splice(dummyIdx, 1)[0];
+          if (typeof window.del === 'function' && window.db && removedDummy && removedDummy.id) {
+            try { await window.del('businesses', removedDummy.id); } catch (e) {}
+          }
+        }
+
         for (var i = 0; i < bList.length; i++) {
           var b = bList[i];
           if (!b.profile) b.profile = uid;
@@ -715,12 +760,30 @@
             try { await window.put('businesses', b); } catch (e) {}
           }
         }
+
+        // Seamlessly activate the user's imported business
+        var curActive = this.getActiveBusinessId();
+        if (!curActive || !_businesses.some(function(b){ return b.id === curActive; })) {
+          this.setActiveBusinessId(bList[0].id);
+        }
       }
 
       if (Array.isArray(tList)) {
         for (var j = 0; j < tList.length; j++) {
           var t = tList[j];
           if (!t.profile) t.profile = uid;
+          if (t.grossAmount == null && t.amount != null) t.grossAmount = Number(t.amount) || 0;
+          if (t.netAmount == null && t.amount != null) {
+            var rawGross = Number(t.grossAmount != null ? t.grossAmount : t.amount) || 0;
+            var rawCharge = Number(t.chargeAmount != null ? t.chargeAmount : t.charges) || 0;
+            if (t.type === 'credit') {
+              t.netAmount = rawCharge > 0 ? _round2(rawGross - rawCharge) : rawGross;
+            } else if (t.type === 'debit') {
+              t.netAmount = rawCharge > 0 ? _round2(rawGross + rawCharge) : rawGross;
+            } else {
+              t.netAmount = rawGross;
+            }
+          }
           var exT = _transactions.findIndex(function (x) { return x.id === t.id; });
           if (exT !== -1) _transactions[exT] = t;
           else _transactions.push(t);

@@ -206,7 +206,8 @@
     'net_worth_snapshots','allocation_targets','sip_plan',
     'essentials_settings','savings_goals','subscriptions',
     'fd_rd','tx_templates','users','dropdowns',
-    'credit_cards','dashboard_config','recurringTransactions'
+    'credit_cards','dashboard_config','recurringTransactions',
+    'vehicles','receipt_attachments','businesses','business_transactions'
   ];
 
   // Clear all user-data stores so cloud import is always a full replace
@@ -388,9 +389,21 @@
                 if (typeof showToast === 'function') {
                   showToast('☁️ Cloud data updated from another session. Refreshing...', 'info');
                 }
-                if (!_dirty && typeof window.LM_StartApp === 'function') {
+                if (!_dirty) {
                   load().then(function(ok) {
-                    if (ok && typeof window.renderAll === 'function') window.renderAll();
+                    if (ok) {
+                      if (typeof window.loadAllFromDB === 'function') {
+                        window.loadAllFromDB().then(function() {
+                          if (typeof window.renderAll === 'function') window.renderAll();
+                          if (window.LM_BusinessUI && typeof window.LM_BusinessUI.render === 'function') {
+                            try { window.LM_BusinessUI.render(); } catch(e){}
+                          }
+                          if (window.LM_Bus) LM_Bus.emit('lm:cloud:synced');
+                        });
+                      } else if (typeof window.LM_StartApp === 'function') {
+                        window.LM_StartApp();
+                      }
+                    }
                   });
                 }
               }

@@ -310,6 +310,8 @@ let state = {
   credit_cards: [],
   vehicles: [],
   receipt_attachments: [],
+  businesses: [],
+  business_transactions: [],
   timeRange: 30,
   customRange: { start: '', end: '' }
 };
@@ -470,6 +472,23 @@ if (dd.length) {
     state.receipt_attachments = await getAll('receipt_attachments');
   } else {
     state.receipt_attachments = [];
+  }
+  if (db && db.objectStoreNames.contains('businesses')) {
+    state.businesses = await getAll('businesses');
+  } else {
+    state.businesses = [];
+  }
+  if (db && db.objectStoreNames.contains('business_transactions')) {
+    state.business_transactions = await getAll('business_transactions');
+  } else {
+    state.business_transactions = [];
+  }
+  if (window.LM_BusinessService && typeof window.LM_BusinessService.init === 'function') {
+    try {
+      await window.LM_BusinessService.init();
+    } catch(e) {
+      console.warn('[LM] BusinessService init in loadAllFromDB error:', e);
+    }
   }
 
   // restore folder handle if present
@@ -3132,6 +3151,25 @@ async function fullImportJSONText(txt, source = "Unknown"){
       } catch (e) { console.warn('[LM] Error importing receipt attachments:', e); }
     }
 
+    /* 10b. Business Hub & Transactions with Service Hook */
+    if (Array.isArray(data.businesses)) {
+      try {
+        await safePutList('businesses', data.businesses);
+      } catch (e) { console.warn('[LM] Error importing businesses:', e); }
+    }
+    if (Array.isArray(data.business_transactions)) {
+      try {
+        await safePutList('business_transactions', data.business_transactions);
+      } catch (e) { console.warn('[LM] Error importing business transactions:', e); }
+    }
+    if (window.LM_BusinessService && typeof window.LM_BusinessService.importData === 'function') {
+      try {
+        await window.LM_BusinessService.importData(data.businesses || [], data.business_transactions || []);
+      } catch(e) {
+        console.warn('[LM] Error hydrating BusinessService from imported payload:', e);
+      }
+    }
+
     const currentUid = window.LM_Auth?.getCurrentUserId?.() || 'default';
 
     /* 11. Bill Splitter with Module Hook */
@@ -3312,7 +3350,8 @@ async function clearAllStores(){
     'note_attachments','note_versions','emi_loans','net_worth_snapshots',
     'allocation_targets','sip_plan','essentials_settings','credit_cards',
     'savings_goals','subscriptions','fd_rd','tx_templates','dashboard_config',
-    'recurringTransactions','vehicles','receipt_attachments'
+    'recurringTransactions','vehicles','receipt_attachments',
+    'businesses','business_transactions'
   ];
 
   for (const s of stores){
@@ -3432,7 +3471,23 @@ function packSnapshot(metaExtra = {}) {
     dashboard_config: state.dashboard_config || {},
     credit_cards: state.credit_cards || [],
     vehicles: state.vehicles || [],
-    receipt_attachments: state.receipt_attachments || []
+    receipt_attachments: state.receipt_attachments || [],
+    businesses: (function(){
+      try {
+        if (window.LM_BusinessService && typeof window.LM_BusinessService.exportBusinesses === 'function') {
+          return window.LM_BusinessService.exportBusinesses();
+        }
+        return state.businesses || [];
+      } catch(e) { return state.businesses || []; }
+    })(),
+    business_transactions: (function(){
+      try {
+        if (window.LM_BusinessService && typeof window.LM_BusinessService.exportTransactions === 'function') {
+          return window.LM_BusinessService.exportTransactions();
+        }
+        return state.business_transactions || [];
+      } catch(e) { return state.business_transactions || []; }
+    })()
   };
 }
 
@@ -4776,6 +4831,15 @@ window.LM_StartApp = async function LM_StartApp() {
           await window.LM_VehicleService.init();
         } catch (e) {
           console.warn('[LM] VehicleService auto-init error:', e);
+        }
+      }
+
+      /* ── Initialize Business Hub Service in background ── */
+      if (window.LM_BusinessService) {
+        try {
+          await window.LM_BusinessService.init();
+        } catch (e) {
+          console.warn('[LM] BusinessService auto-init error:', e);
         }
       }
 

@@ -19,6 +19,7 @@
   var _statusFilter = 'all';  // 'all', 'paid', 'pending', 'overdue'
   var _dateFilter = 'month';  // 'month', 'last_month', 'quarter', 'year', 'all'
   var _searchQuery = '';
+  var _busSubscribed = false;
 
   function _esc(s) {
     if (s == null) return '';
@@ -75,9 +76,42 @@
      * Initialize UI and render page
      */
     init: async function () {
+      var self = this;
       var service = _getService();
       if (service && typeof service.init === 'function') {
         await service.init();
+      }
+      if (!_busSubscribed && window.LM_Bus) {
+        _busSubscribed = true;
+        window.LM_Bus.on('lm:data:changed', function (ev) {
+          if (!ev || ev.source === 'businesses' || ev.source === 'business_transactions' || ev.source === 'business_restore' || ev.store === 'businesses' || ev.store === 'business_transactions') {
+            var el = document.getElementById('page-business');
+            if (el && el.style.display !== 'none') {
+              self.render();
+            }
+          }
+        });
+        window.LM_Bus.on('lm:cloud:synced', function () {
+          if (service && typeof service.init === 'function') {
+            service.init().then(function () {
+              var el = document.getElementById('page-business');
+              if (el && el.style.display !== 'none') self.render();
+            });
+          }
+        });
+        window.LM_Bus.on('lm:import:complete', function () {
+          if (service && typeof service.init === 'function') {
+            service.init().then(function () {
+              var el = document.getElementById('page-business');
+              if (el && el.style.display !== 'none') self.render();
+            });
+          }
+        });
+        window.LM_Bus.on('lm:business:active_changed', function (ev) {
+          if (ev && ev.businessId) _activeBusinessId = ev.businessId;
+          var el = document.getElementById('page-business');
+          if (el && el.style.display !== 'none') self.render();
+        });
       }
       this.render();
     },
