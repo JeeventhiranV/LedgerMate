@@ -1870,6 +1870,7 @@ function setGreeting() {
       if (!window.LM_LocalBackup) return;
       _syncBusy = true;
       if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+      let offlineSuccess = true;
       try {
         const info = await window.LM_LocalBackup.getFolderInfo();
         if (!info.configured) {
@@ -1881,15 +1882,28 @@ function setGreeting() {
           await window.LM_LocalBackup.performBackup({ force: true, silent: false });
         }
       } catch (e) {
+        offlineSuccess = false;
         console.warn('[LM] Topbar offline backup error:', e);
+        if (typeof window.showToast === 'function') {
+          window.showToast('❌ Backup failed: ' + (e?.message || 'Error'), 'error');
+        }
       }
       _syncBusy = false;
-      if (btn) { btn.textContent = '✅'; btn.disabled = false; }
+      if (btn) { btn.textContent = offlineSuccess ? '✅' : '❌'; btn.disabled = false; }
       setTimeout(() => { window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton(); }, 1800);
     } else {
       if (!window.LM_CloudSync) return;
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        if (typeof window.showToast === 'function') {
+          window.showToast('⚠️ No internet connection — changes are safe locally', 'warning');
+        }
+        if (btn) { btn.textContent = '⚠️'; }
+        setTimeout(() => { window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton(); }, 1800);
+        return;
+      }
       _syncBusy = true;
       if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+      let cloudSuccess = true;
       try {
         let syncedFromCloud = false;
         if (typeof window.LM_CloudSync.checkAndSyncBackground === 'function') {
@@ -1911,10 +1925,14 @@ function setGreeting() {
           try { window.LM_BusinessUI.render(); } catch(e){}
         }
       } catch (e) {
+        cloudSuccess = false;
         console.warn('[LM] Topbar cloud sync error:', e);
+        if (typeof window.showToast === 'function') {
+          window.showToast('❌ Cloud sync failed: ' + (e?.message || 'Network error'), 'error');
+        }
       }
       _syncBusy = false;
-      if (btn) { btn.textContent = '✅'; btn.disabled = false; }
+      if (btn) { btn.textContent = cloudSuccess ? '✅' : '❌'; btn.disabled = false; }
       setTimeout(() => { window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton(); }, 1800);
     }
   };
