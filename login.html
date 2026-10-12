@@ -65,7 +65,8 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 24px 16px;
+  min-height: 100dvh;
+  padding: clamp(10px, 2vh, 22px) 16px;
   background-image:
     radial-gradient(circle at 10% 20%, rgba(0, 212, 180, 0.07) 0%, transparent 45%),
     radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 45%),
@@ -76,8 +77,8 @@ body {
 /* ── Floating Controls ── */
 .top-nav {
   position: fixed;
-  top: 18px;
-  right: 20px;
+  top: 16px;
+  right: 18px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -85,13 +86,13 @@ body {
 }
 
 .icon-btn {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   background: var(--surface-glass);
   border: 1px solid var(--border);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-radius: 12px;
+  border-radius: 11px;
   color: var(--text-muted);
   display: flex;
   align-items: center;
@@ -105,24 +106,34 @@ body {
   border-color: var(--border-hover);
   transform: translateY(-1px);
 }
+@media (max-width: 600px) {
+  .top-nav {
+    top: 12px;
+    right: 12px;
+  }
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+}
 
 /* ── Main Layout Wrapper ── */
 .login-container {
   width: 100%;
-  max-width: 1060px;
+  max-width: 1040px;
   display: grid;
   grid-template-columns: 1fr;
   align-items: center;
-  gap: 40px;
+  gap: 28px;
   margin: auto;
   z-index: 10;
 }
 
 @media (min-width: 960px) {
   .login-container {
-    grid-template-columns: 1.15fr 0.95fr;
-    gap: 60px;
-    padding: 20px 0;
+    grid-template-columns: 1.12fr 0.95fr;
+    gap: clamp(32px, 4.5vw, 56px);
+    padding: 0;
   }
 }
 
@@ -131,7 +142,7 @@ body {
   display: none;
   flex-direction: column;
   justify-content: center;
-  padding: 20px;
+  padding: 8px 12px;
 }
 
 @media (min-width: 960px) {
@@ -143,17 +154,17 @@ body {
 .hero-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
+  gap: 7px;
+  padding: 4px 11px;
   background: rgba(0, 212, 180, 0.08);
   border: 1px solid rgba(0, 212, 180, 0.25);
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--teal);
-  margin-bottom: 24px;
+  margin-bottom: 12px;
   width: fit-content;
-  box-shadow: 0 0 20px rgba(0, 212, 180, 0.15);
+  box-shadow: 0 0 16px rgba(0, 212, 180, 0.12);
 }
 .hero-pill-dot {
   width: 7px;
@@ -165,11 +176,11 @@ body {
 }
 
 .hero-title {
-  font-size: 38px;
+  font-size: clamp(26px, 2.5vw, 33px);
   font-weight: 800;
   line-height: 1.2;
-  letter-spacing: -0.8px;
-  margin-bottom: 14px;
+  letter-spacing: -0.6px;
+  margin-bottom: 8px;
   color: var(--text);
 }
 .hero-title .brand-gradient {
@@ -179,47 +190,47 @@ body {
 }
 
 .hero-desc {
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--text-muted);
-  margin-bottom: 34px;
-  max-width: 480px;
+  margin-bottom: 18px;
+  max-width: 460px;
 }
 
 /* Feature Showcase Grid */
 .hero-features {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-bottom: 34px;
+  gap: 8px;
+  margin-bottom: 18px;
 }
 
 .feature-item {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
-  padding: 12px 16px;
+  gap: 11px;
+  padding: 8px 12px;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 14px;
+  border-radius: 11px;
   transition: all 0.25s ease;
 }
 .feature-item:hover {
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(255, 255, 255, 0.1);
-  transform: translateX(4px);
+  transform: translateX(3px);
 }
 
 .feature-icon-wrap {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   background: rgba(0, 212, 180, 0.1);
   border: 1px solid rgba(0, 212, 180, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 15px;
   flex-shrink: 0;
 }
 .feature-icon-wrap.purple {
@@ -232,31 +243,31 @@ body {
 }
 
 .feature-title {
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--text);
   margin-bottom: 2px;
 }
 .feature-sub {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 .hero-security-badge {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 12px;
+  gap: 9px;
+  font-size: 11px;
   color: var(--text-dim);
-  padding-top: 10px;
+  padding-top: 8px;
   border-top: 1px solid var(--border);
 }
 
 /* ── Right Auth Card ── */
 .auth-card-wrap {
   width: 100%;
-  max-width: 440px;
+  max-width: 410px;
   margin: 0 auto;
 }
 
@@ -265,7 +276,7 @@ body {
   border: 1px solid var(--border);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
-  border-radius: 24px;
+  border-radius: 18px;
   box-shadow: var(--shadow);
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -273,7 +284,7 @@ body {
 
 /* ── Segmented App Switcher ── */
 .app-switcher-bar {
-  padding: 14px 18px 0;
+  padding: 8px 12px 0;
   background: rgba(0, 0, 0, 0.15);
   border-bottom: 1px solid var(--border);
 }
@@ -281,10 +292,10 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   background: rgba(0, 0, 0, 0.25);
-  padding: 4px;
-  border-radius: 12px;
+  padding: 3px;
+  border-radius: 10px;
   border: 1px solid var(--border);
-  gap: 4px;
+  gap: 3px;
   position: relative;
 }
 [data-theme="light"] .segmented-control {
@@ -295,15 +306,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 9px 12px;
+  gap: 6px;
+  padding: 6px 10px;
   border: none;
   background: transparent;
   color: var(--text-muted);
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: 11.5px;
   font-weight: 600;
-  border-radius: 9px;
+  border-radius: 7px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
@@ -331,20 +342,20 @@ body {
 
 /* ── Card Header Branding ── */
 .card-header {
-  padding: 24px 26px 16px;
+  padding: 14px 18px 8px;
   text-align: center;
 }
 
 .logo-badge {
-  width: 58px;
-  height: 58px;
-  border-radius: 18px;
-  margin: 0 auto 14px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  margin: 0 auto 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  font-size: 22px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
@@ -352,10 +363,10 @@ body {
   content: '';
   position: absolute;
   inset: -3px;
-  border-radius: 21px;
+  border-radius: 17px;
   background: inherit;
-  filter: blur(12px);
-  opacity: 0.45;
+  filter: blur(10px);
+  opacity: 0.4;
   z-index: -1;
 }
 .logo-ledger {
@@ -366,47 +377,47 @@ body {
 }
 
 .app-name-title {
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 700;
-  letter-spacing: -0.4px;
+  letter-spacing: -0.3px;
   color: var(--text);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 .app-name-title.ledger { color: var(--teal); }
 .app-name-title.study { color: var(--purple); }
 
 .app-tagline-text {
-  font-size: 12.5px;
+  font-size: 11px;
   color: var(--text-muted);
 }
 
 /* ── Mode Pill Tabs (Sign In / Request Access) ── */
 .card-body {
-  padding: 16px 26px 26px;
+  padding: 10px 18px 16px;
 }
 
 .mode-pill-tabs {
   display: flex;
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 3px;
-  margin-bottom: 22px;
-  gap: 3px;
+  border-radius: 8px;
+  padding: 2.5px;
+  margin-bottom: 12px;
+  gap: 2.5px;
 }
 [data-theme="light"] .mode-pill-tabs {
   background: #f1f5f9;
 }
 .mode-pill {
   flex: 1;
-  padding: 8px 12px;
+  padding: 5px 8px;
   border: none;
   background: transparent;
   color: var(--text-muted);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.18s ease;
   text-align: center;
@@ -439,16 +450,16 @@ body {
 }
 
 .field {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .field-label {
   display: block;
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 600;
   color: var(--text-muted);
-  margin-bottom: 7px;
-  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+  letter-spacing: 0.2px;
 }
 
 .input-wrap {
@@ -459,9 +470,9 @@ body {
 
 .input-icon {
   position: absolute;
-  left: 14px;
-  width: 17px;
-  height: 17px;
+  left: 11px;
+  width: 14px;
+  height: 14px;
   color: var(--text-dim);
   pointer-events: none;
   transition: color 0.2s ease;
@@ -474,9 +485,9 @@ body {
   width: 100%;
   background: rgba(0, 0, 0, 0.22);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px 14px 12px 42px;
-  font-size: 14px;
+  border-radius: 9px;
+  padding: 9px 11px 9px 34px;
+  font-size: 13px;
   color: var(--text);
   font-family: inherit;
   outline: none;
@@ -490,7 +501,7 @@ body {
 .field-input:focus {
   border-color: var(--accent);
   background: rgba(0, 0, 0, 0.3);
-  box-shadow: 0 0 0 3.5px var(--accent-glow);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 .field-input:focus ~ .input-icon {
   color: var(--accent);
@@ -500,8 +511,8 @@ body {
   font-weight: 400;
 }
 .field-input.area {
-  min-height: 80px;
-  padding-left: 14px;
+  min-height: 56px;
+  padding-left: 11px;
   resize: vertical;
 }
 
@@ -517,7 +528,7 @@ body {
 /* Password Toggle */
 .pw-toggle-btn {
   position: absolute;
-  right: 12px;
+  right: 9px;
   background: none;
   border: none;
   cursor: pointer;
@@ -525,8 +536,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
-  border-radius: 6px;
+  padding: 4px;
+  border-radius: 5px;
   transition: color 0.2s ease;
 }
 .pw-toggle-btn:hover {
@@ -537,14 +548,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  margin: -4px 0 18px;
+  margin: -2px 0 10px;
 }
 .btn-link {
   background: none;
   border: none;
   cursor: pointer;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: var(--blue);
   transition: opacity 0.2s ease;
@@ -557,27 +568,27 @@ body {
 /* ── Primary Action Buttons ── */
 .btn-primary {
   width: 100%;
-  padding: 13px 18px;
+  padding: 10px 14px;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #fff;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 7px;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
   position: relative;
   overflow: hidden;
 }
 .btn-primary:hover {
   transform: translateY(-1px);
   filter: brightness(1.06);
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
 }
 .btn-primary:active {
   transform: translateY(1px);
@@ -600,19 +611,19 @@ body {
 .btn-biometric {
   display: none;
   width: 100%;
-  padding: 11px 16px;
-  margin-top: 10px;
+  padding: 8px 12px;
+  margin-top: 7px;
   background: rgba(0, 212, 180, 0.08);
   border: 1px solid rgba(0, 212, 180, 0.28);
-  border-radius: 12px;
+  border-radius: 9px;
   color: var(--teal);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   transition: all 0.2s ease;
 }
 .btn-biometric:hover {
@@ -624,10 +635,10 @@ body {
 .divider-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin: 18px 0;
+  gap: 9px;
+  margin: 10px 0;
   color: var(--text-dim);
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -641,19 +652,19 @@ body {
 
 .btn-google {
   width: 100%;
-  padding: 12px 16px;
+  padding: 9px 12px;
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   font-family: inherit;
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--text);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   transition: all 0.2s ease;
 }
 [data-theme="light"] .btn-google {
@@ -666,21 +677,21 @@ body {
   transform: translateY(-1px);
 }
 .btn-google svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
 }
 
 /* ── Feedback Messages & Shake ── */
 .msg-alert {
-  border-radius: 12px;
-  padding: 11px 14px;
-  font-size: 12.5px;
-  line-height: 1.5;
-  margin-bottom: 16px;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  margin-bottom: 12px;
   display: none;
   align-items: flex-start;
-  gap: 10px;
+  gap: 8px;
   animation: fadeInSection 0.2s ease-out;
 }
 .msg-alert.show {
@@ -728,9 +739,9 @@ body {
 
 /* ── Card Footer ── */
 .card-footer {
-  padding: 13px 24px;
+  padding: 10px 18px;
   text-align: center;
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--text-dim);
   border-top: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.15);
@@ -738,6 +749,56 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
+}
+
+/* ── Compact rules for short screens (< 760px viewport height on desktop) ── */
+@media (min-width: 960px) and (max-height: 760px) {
+  body {
+    padding: 8px 16px;
+  }
+  .hero-desc {
+    margin-bottom: 14px;
+  }
+  .hero-features {
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .feature-item {
+    padding: 7px 11px;
+  }
+  .feature-icon-wrap {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
+  .card-header {
+    padding: 12px 18px 8px;
+  }
+  .logo-badge {
+    width: 42px;
+    height: 42px;
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+  .card-body {
+    padding: 10px 18px 14px;
+  }
+  .mode-pill-tabs {
+    margin-bottom: 10px;
+  }
+  .field {
+    margin-bottom: 8px;
+  }
+  .field-input {
+    padding: 8px 10px 8px 34px;
+    font-size: 13px;
+  }
+  .divider-row {
+    margin: 9px 0;
+  }
+  .btn-primary, .btn-google {
+    padding: 9px 14px;
+  }
 }
 
 /* ── Animated Page Loader ── */
@@ -810,12 +871,12 @@ body {
 .note-box {
   background: rgba(0, 212, 180, 0.08);
   border: 1px solid rgba(0, 212, 180, 0.22);
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-size: 12px;
-  line-height: 1.5;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 11.5px;
+  line-height: 1.45;
   color: var(--text-muted);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 .note-box strong { color: var(--text); }
 .field-optional {
@@ -1060,27 +1121,27 @@ body {
 
         <!-- Section 3: MFA Authenticator (Microsoft Authenticator / TOTP) -->
         <div class="section" id="sectionMfa">
-          <div style="text-align:center;margin-bottom:18px;">
-            <div style="width:54px;height:54px;border-radius:16px;background:rgba(0,212,180,0.12);border:1px solid rgba(0,212,180,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:24px;box-shadow:0 8px 20px rgba(0,212,180,0.2);">🔐</div>
-            <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Two-Factor Authentication</div>
-            <div style="font-size:12px;color:var(--text-muted);line-height:1.5;">Enter the 6-digit verification code from <strong>Microsoft Authenticator</strong> on your mobile device.</div>
+          <div style="text-align:center;margin-bottom:12px;">
+            <div style="width:46px;height:46px;border-radius:14px;background:rgba(0,212,180,0.12);border:1px solid rgba(0,212,180,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:20px;box-shadow:0 6px 16px rgba(0,212,180,0.18);">🔐</div>
+            <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px;">Two-Factor Authentication</div>
+            <div style="font-size:11.5px;color:var(--text-muted);line-height:1.45;">Enter the 6-digit verification code from <strong>Microsoft Authenticator</strong> on your mobile device.</div>
           </div>
 
           <div class="msg-alert" id="mfaMsg"></div>
 
           <div class="field">
             <label class="field-label" for="mfaCode" style="text-align:center;">6-Digit Security Code</label>
-            <input class="field-input" type="text" id="mfaCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" autocomplete="one-time-code" style="text-align:center;letter-spacing:8px;font-size:22px;font-weight:700;font-family:monospace;padding:12px 14px;"/>
+            <input class="field-input" type="text" id="mfaCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" autocomplete="one-time-code" style="text-align:center;letter-spacing:6px;font-size:20px;font-weight:700;font-family:monospace;padding:9px 12px;"/>
           </div>
 
-          <button type="button" class="btn-primary btn-ledger" id="mfaVerifyBtn" style="margin-bottom:12px;">
+          <button type="button" class="btn-primary btn-ledger" id="mfaVerifyBtn" style="margin-bottom:10px;">
             <span>Verify Code</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
               <polyline points="22 4 12 14.01 9 11.01"></polyline>
             </svg>
           </button>
-          <button type="button" class="btn-link" id="mfaCancelBtn" style="display:block;margin:0 auto;font-size:13px;">← Back to Sign In</button>
+          <button type="button" class="btn-link" id="mfaCancelBtn" style="display:block;margin:0 auto;font-size:12px;">← Back to Sign In</button>
         </div>
 
       </div>
