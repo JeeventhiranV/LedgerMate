@@ -41,25 +41,39 @@
     return window.LM_BusinessService;
   }
 
+  function _formatLocalDate(d) {
+    if (!d) return '';
+    var dt = (d instanceof Date) ? d : new Date(d);
+    if (isNaN(dt.getTime())) return '';
+    var yr = dt.getFullYear();
+    var mo = String(dt.getMonth() + 1).padStart(2, '0');
+    var da = String(dt.getDate()).padStart(2, '0');
+    return yr + '-' + mo + '-' + da;
+  }
+
+  function _getTodayLocalDate() {
+    return _formatLocalDate(new Date());
+  }
+
   function _getDateRange(filterKey) {
     var now = new Date();
     var yr = now.getFullYear();
     var mo = now.getMonth();
 
     if (filterKey === 'month') {
-      var dFrom = new Date(yr, mo, 1).toISOString().split('T')[0];
-      var dTo = new Date(yr, mo + 1, 0).toISOString().split('T')[0];
+      var dFrom = _formatLocalDate(new Date(yr, mo, 1));
+      var dTo = _formatLocalDate(new Date(yr, mo + 1, 0));
       return { dateFrom: dFrom, dateTo: dTo, label: 'This Month' };
     }
     if (filterKey === 'last_month') {
-      var lmFrom = new Date(yr, mo - 1, 1).toISOString().split('T')[0];
-      var lmTo = new Date(yr, mo, 0).toISOString().split('T')[0];
+      var lmFrom = _formatLocalDate(new Date(yr, mo - 1, 1));
+      var lmTo = _formatLocalDate(new Date(yr, mo, 0));
       return { dateFrom: lmFrom, dateTo: lmTo, label: 'Last Month' };
     }
     if (filterKey === 'quarter') {
       var qStartMo = Math.floor(mo / 3) * 3;
-      var qFrom = new Date(yr, qStartMo, 1).toISOString().split('T')[0];
-      var qTo = new Date(yr, qStartMo + 3, 0).toISOString().split('T')[0];
+      var qFrom = _formatLocalDate(new Date(yr, qStartMo, 1));
+      var qTo = _formatLocalDate(new Date(yr, qStartMo + 3, 0));
       return { dateFrom: qFrom, dateTo: qTo, label: 'This Quarter' };
     }
     if (filterKey === 'year') {
@@ -755,14 +769,20 @@
       var current = service.getBusinessById(bizId);
       if (!current) return;
 
-      current.name = document.getElementById('setBizName')?.value || current.name;
-      current.regNumber = document.getElementById('setBizReg')?.value || '';
-      current.currencySymbol = document.getElementById('setBizCurr')?.value || '₹';
+      var name = (document.getElementById('setBizName')?.value || '').trim();
+      if (!name) {
+        if (typeof showToast === 'function') showToast('⚠️ Business name cannot be empty', 'warning');
+        return;
+      }
+
+      current.name = name;
+      current.regNumber = (document.getElementById('setBizReg')?.value || '').trim();
+      current.currencySymbol = (document.getElementById('setBizCurr')?.value || '₹').trim() || '₹';
       current.bankDetails = {
-        bankName: document.getElementById('setBizBank')?.value || '',
-        accountNumber: document.getElementById('setBizAcc')?.value || '',
-        ifsc: document.getElementById('setBizIfsc')?.value || '',
-        upiId: document.getElementById('setBizUpi')?.value || ''
+        bankName: (document.getElementById('setBizBank')?.value || '').trim(),
+        accountNumber: (document.getElementById('setBizAcc')?.value || '').trim(),
+        ifsc: (document.getElementById('setBizIfsc')?.value || '').trim(),
+        upiId: (document.getElementById('setBizUpi')?.value || '').trim()
       };
 
       await service.saveBusiness(current);
@@ -801,6 +821,14 @@
 
     openTxModal: function (txId, prefillType) {
       var service = _getService();
+      if (!service) return;
+      var businesses = service.getBusinesses();
+      if (!businesses || businesses.length === 0) {
+        if (typeof showToast === 'function') showToast('🏢 Please create a business profile first!', 'info');
+        this.openBusinessModal();
+        return;
+      }
+
       var tx = txId ? service.getTransactionById(txId) : null;
       var type = tx ? tx.type : (prefillType || 'credit');
 
@@ -808,7 +836,7 @@
       if (existingModal) existingModal.remove();
 
       var categories = service.DEFAULT_CATEGORIES[type] || [];
-      var businesses = service.getBusinesses();
+      var targetBizId = tx ? tx.businessId : (_activeBusinessId === 'all' ? businesses[0].id : (_activeBusinessId || businesses[0].id));
 
       var modalHtml = `
         <div id="bizTxModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;">
@@ -844,7 +872,7 @@
                   <label style="display:block;font-size:11px;font-weight:600;color:var(--text3,#94a3b8);margin-bottom:4px;">Business Entity</label>
                   <select id="txBizId" style="width:100%;background:rgba(0,0,0,0.25);color:var(--text,#f8fafc);border:1px solid var(--border,rgba(255,255,255,0.1));border-radius:8px;padding:8px 12px;font-size:12.5px;">
                     ` + businesses.map(function (b) {
-                      var sel = (tx && tx.businessId === b.id) || (!tx && b.id === _activeBusinessId);
+                      var sel = b.id === targetBizId;
                       return '<option value="' + b.id + '"' + (sel ? ' selected' : '') + '>' + (b.icon || '🏢') + ' ' + _esc(b.name) + '</option>';
                     }).join('') + `
                   </select>
@@ -880,7 +908,7 @@
 
                 <div>
                   <label style="display:block;font-size:11px;font-weight:600;color:var(--text3,#94a3b8);margin-bottom:4px;">Date</label>
-                  <input type="date" id="txDate" value="` + (tx ? tx.date : new Date().toISOString().split('T')[0]) + `" required
+                  <input type="date" id="txDate" value="` + (tx ? tx.date : _getTodayLocalDate()) + `" required
                     style="width:100%;background:rgba(0,0,0,0.25);color:var(--text,#f8fafc);border:1px solid var(--border,rgba(255,255,255,0.1));border-radius:8px;padding:8px 12px;font-size:12.5px;" />
                 </div>
 
@@ -974,17 +1002,34 @@
       if (!service) return;
 
       var type = document.getElementById('txModalType')?.value || 'credit';
-      var amount = parseFloat(document.getElementById('txAmount')?.value) || 0;
-      var charge = parseFloat(document.getElementById('txCharge')?.value) || 0;
-      var partyName = document.getElementById('txPartyName')?.value || 'General';
+      var rawAmount = document.getElementById('txAmount')?.value;
+      var amount = parseFloat(rawAmount);
+      var rawCharge = document.getElementById('txCharge')?.value;
+      var charge = rawCharge ? parseFloat(rawCharge) : 0;
+      var partyName = (document.getElementById('txPartyName')?.value || 'General').trim();
       var category = document.getElementById('txCategory')?.value || 'Other';
-      var date = document.getElementById('txDate')?.value;
+      var date = document.getElementById('txDate')?.value || _getTodayLocalDate();
       var status = document.getElementById('txStatus')?.value || 'paid';
-      var invoice = document.getElementById('txInvoice')?.value || '';
+      var invoice = (document.getElementById('txInvoice')?.value || '').trim();
       var dueDate = document.getElementById('txDueDate')?.value || '';
       var paymentMode = document.getElementById('txPaymentMode')?.value || 'Bank Transfer';
-      var notes = document.getElementById('txNotes')?.value || '';
+      var notes = (document.getElementById('txNotes')?.value || '').trim();
       var bizId = document.getElementById('txBizId')?.value || service.getActiveBusinessId();
+
+      if (isNaN(amount) || amount <= 0) {
+        if (typeof showToast === 'function') showToast('⚠️ Please enter a valid positive amount (> 0)', 'warning');
+        return;
+      }
+      if (isNaN(charge) || charge < 0) {
+        charge = 0;
+      }
+      if (!partyName) {
+        partyName = 'General';
+      }
+      if (!bizId) {
+        if (typeof showToast === 'function') showToast('⚠️ Please select or create a business profile first', 'warning');
+        return;
+      }
 
       var data = {
         id: txId || undefined,
@@ -1068,10 +1113,14 @@
       var service = _getService();
       if (!service) return;
 
-      var name = document.getElementById('modalBizName')?.value || 'New Business';
-      var icon = document.getElementById('modalBizIcon')?.value || '🏢';
-      var curr = document.getElementById('modalBizCurr')?.value || '₹';
-      var reg = document.getElementById('modalBizReg')?.value || '';
+      var name = (document.getElementById('modalBizName')?.value || '').trim();
+      if (!name) {
+        if (typeof showToast === 'function') showToast('⚠️ Please enter a business name', 'warning');
+        return;
+      }
+      var icon = (document.getElementById('modalBizIcon')?.value || '🏢').trim() || '🏢';
+      var curr = (document.getElementById('modalBizCurr')?.value || '₹').trim() || '₹';
+      var reg = (document.getElementById('modalBizReg')?.value || '').trim();
 
       var saved = await service.saveBusiness({
         id: bizId || undefined,

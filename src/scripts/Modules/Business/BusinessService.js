@@ -21,6 +21,33 @@
     return window.LM_Auth?.getCurrentUserId?.() || 'default';
   }
 
+  function _matchesProfile(record) {
+    if (!record) return false;
+    var uid = _getProfileId();
+    if (window.LM_Auth?.isAdmin?.()) return true;
+    if (!record.profile || record.profile === 'default' || record.profile === 'guest') return true;
+    if (!uid || uid === 'default' || uid === 'guest') return true;
+    if (record.profile === uid) return true;
+    var user = window.LM_Auth?.getCurrentUser?.();
+    if (user?.username && record.profile === user.username) return true;
+    if (user?.email && record.profile === user.email) return true;
+    return false;
+  }
+
+  function _formatLocalDate(d) {
+    if (!d) return '';
+    var dt = (d instanceof Date) ? d : new Date(d);
+    if (isNaN(dt.getTime())) return '';
+    var yr = dt.getFullYear();
+    var mo = String(dt.getMonth() + 1).padStart(2, '0');
+    var da = String(dt.getDate()).padStart(2, '0');
+    return yr + '-' + mo + '-' + da;
+  }
+
+  function _getTodayLocalDate() {
+    return _formatLocalDate(new Date());
+  }
+
   function _generateId(prefix) {
     return (prefix || 'biz') + '_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
   }
@@ -70,65 +97,50 @@
      * Initialize service from IndexedDB or state cache
      */
     init: async function () {
-      var uid = _getProfileId();
       try {
-        if (typeof window.getAll === 'function' && window.db) {
+        if (typeof window.getAll === 'function') {
           var bLoaded = await window.getAll('businesses');
           var tLoaded = await window.getAll('business_transactions');
 
           if (Array.isArray(bLoaded)) {
-            _businesses = bLoaded.filter(function (b) { return !b.profile || b.profile === uid; });
+            _businesses = bLoaded.filter(_matchesProfile);
             if (typeof state === 'object') state.businesses = _businesses;
           }
           if (Array.isArray(tLoaded)) {
-            _transactions = tLoaded.filter(function (t) { return !t.profile || t.profile === uid; });
+            _transactions = tLoaded.filter(_matchesProfile);
             if (typeof state === 'object') state.business_transactions = _transactions;
-          }
-        } else {
-          if (typeof state === 'object') {
-            if (Array.isArray(state.businesses)) _businesses = state.businesses;
-            if (Array.isArray(state.business_transactions)) _transactions = state.business_transactions;
           }
         }
       } catch (err) {
         console.warn('[BusinessService] init error, falling back to state/cache:', err);
-        if (typeof state === 'object') {
-          if (Array.isArray(state.businesses)) _businesses = state.businesses;
-          if (Array.isArray(state.business_transactions)) _transactions = state.business_transactions;
-        }
       }
 
-      // If user has no business entity yet, establish a clean default starter entity
-      if (_businesses.length === 0) {
+      if ((!_businesses || _businesses.length === 0) && typeof state === 'object' && Array.isArray(state.businesses) && state.businesses.length > 0) {
+        _businesses = state.businesses.filter(_matchesProfile);
+      }
+      if ((!_transactions || _transactions.length === 0) && typeof state === 'object' && Array.isArray(state.business_transactions) && state.business_transactions.length > 0) {
+        _transactions = state.business_transactions.filter(_matchesProfile);
+      }
+
+      // Auto-seed default business if brand new user has no entities
+      if (!_businesses || _businesses.length === 0) {
         var defaultBiz = {
-          id: _generateId('biz'),
-          profile: uid,
+          id: 'biz_primary_' + Date.now(),
           name: 'Primary Enterprise',
-          tagline: 'Main Business Account',
-          regNumber: '',
-          category: 'freelance',
-          currency: 'INR',
+          category: 'General Business',
           currencySymbol: '₹',
           color: '#00d4b4',
           icon: '🏢',
-          bankDetails: {
-            bankName: '',
-            accountNumber: '',
-            ifsc: '',
-            upiId: '',
-            holderName: ''
-          },
-          address: '',
-          email: '',
-          phone: '',
           isDefault: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          profile: _getProfileId(),
+          createdAt: new Date().toISOString()
         };
-        _businesses.push(defaultBiz);
-        if (typeof state === 'object') state.businesses = _businesses;
-        if (typeof window.put === 'function' && window.db) {
+        _businesses = [defaultBiz];
+        if (typeof window.put === 'function') {
           try { await window.put('businesses', defaultBiz); } catch (e) {}
+        }
+        if (typeof state === 'object') {
+          state.businesses = _businesses;
         }
       }
 
@@ -139,11 +151,10 @@
     // ── BUSINESS ENTITY MANAGEMENT ──────────────────────────
 
     getBusinesses: function () {
-      var uid = _getProfileId();
       if ((!_businesses || _businesses.length === 0) && typeof state === 'object' && Array.isArray(state.businesses) && state.businesses.length > 0) {
-        _businesses = state.businesses.slice();
+        _businesses = state.businesses.filter(_matchesProfile);
       }
-      return _businesses.filter(function (b) { return !b.profile || b.profile === uid; });
+      return _businesses.filter(_matchesProfile);
     },
 
     getBusinessById: function (id) {
@@ -178,28 +189,30 @@
       var id = bizData.id || _generateId('biz');
       var existing = isNew ? null : this.getBusinessById(id);
 
+      var bDetails = bizData.bankDetails || existing?.bankDetails || {};
+
       var biz = {
         id: id,
-        profile: uid,
-        name: String(bizData.name || 'My Business').trim(),
-        tagline: String(bizData.tagline || '').trim(),
-        regNumber: String(bizData.regNumber || '').toUpperCase().trim(),
-        category: bizData.category || 'freelance',
-        currency: bizData.currency || 'INR',
-        currencySymbol: bizData.currencySymbol || (bizData.currency === 'USD' ? '$' : (bizData.currency === 'EUR' ? '€' : '₹')),
-        color: bizData.color || '#00d4b4',
-        icon: bizData.icon || '🏢',
+        profile: existing?.profile || uid || 'default',
+        name: String(bizData.name !== undefined ? bizData.name : (existing?.name || 'My Business')).trim(),
+        tagline: String(bizData.tagline !== undefined ? bizData.tagline : (existing?.tagline || '')).trim(),
+        regNumber: String(bizData.regNumber !== undefined ? bizData.regNumber : (existing?.regNumber || '')).toUpperCase().trim(),
+        category: bizData.category || existing?.category || 'freelance',
+        currency: bizData.currency || existing?.currency || 'INR',
+        currencySymbol: bizData.currencySymbol || existing?.currencySymbol || (bizData.currency === 'USD' ? '$' : (bizData.currency === 'EUR' ? '€' : '₹')),
+        color: bizData.color || existing?.color || '#00d4b4',
+        icon: bizData.icon || existing?.icon || '🏢',
         bankDetails: {
-          bankName: String(bizData.bankDetails?.bankName || '').trim(),
-          accountNumber: String(bizData.bankDetails?.accountNumber || '').trim(),
-          ifsc: String(bizData.bankDetails?.ifsc || '').toUpperCase().trim(),
-          upiId: String(bizData.bankDetails?.upiId || '').trim(),
-          holderName: String(bizData.bankDetails?.holderName || '').trim()
+          bankName: String(bDetails.bankName !== undefined ? bDetails.bankName : '').trim(),
+          accountNumber: String(bDetails.accountNumber !== undefined ? bDetails.accountNumber : '').trim(),
+          ifsc: String(bDetails.ifsc !== undefined ? bDetails.ifsc : '').toUpperCase().trim(),
+          upiId: String(bDetails.upiId !== undefined ? bDetails.upiId : '').trim(),
+          holderName: String(bDetails.holderName !== undefined ? bDetails.holderName : '').trim()
         },
-        address: String(bizData.address || '').trim(),
-        email: String(bizData.email || '').trim(),
-        phone: String(bizData.phone || '').trim(),
-        isDefault: !!bizData.isDefault,
+        address: String(bizData.address !== undefined ? bizData.address : (existing?.address || '')).trim(),
+        email: String(bizData.email !== undefined ? bizData.email : (existing?.email || '')).trim(),
+        phone: String(bizData.phone !== undefined ? bizData.phone : (existing?.phone || '')).trim(),
+        isDefault: bizData.isDefault !== undefined ? !!bizData.isDefault : (existing ? !!existing.isDefault : (_businesses.length === 0)),
         createdAt: existing?.createdAt || nowIso,
         updatedAt: nowIso
       };
@@ -214,7 +227,7 @@
 
       if (typeof state === 'object') state.businesses = _businesses;
 
-      if (typeof window.put === 'function' && window.db) {
+      if (typeof window.put === 'function') {
         try { await window.put('businesses', biz); } catch (e) {
           console.error('[BusinessService] saveBusiness DB error:', e);
         }
@@ -239,8 +252,13 @@
       for (var i = 0; i < _transactions.length; i++) {
         var tx = _transactions[i];
         if (tx.businessId === id) {
-          if (typeof window.deleteRecord === 'function' && window.db) {
-            try { await window.deleteRecord('business_transactions', tx.id); } catch (e) {}
+          if (typeof window.del === 'function') {
+            try { await window.del('business_transactions', tx.id); } catch (e) {}
+          } else if (window.db) {
+            try {
+              var t = window.db.transaction('business_transactions', 'readwrite');
+              t.objectStore('business_transactions').delete(tx.id);
+            } catch (e) {}
           }
         } else {
           remainingTxs.push(tx);
@@ -253,8 +271,13 @@
         state.business_transactions = _transactions;
       }
 
-      if (typeof window.deleteRecord === 'function' && window.db) {
-        try { await window.deleteRecord('businesses', id); } catch (e) {}
+      if (typeof window.del === 'function') {
+        try { await window.del('businesses', id); } catch (e) {}
+      } else if (window.db) {
+        try {
+          var tb = window.db.transaction('businesses', 'readwrite');
+          tb.objectStore('businesses').delete(id);
+        } catch (e) {}
       }
 
       if (window.LM_CloudSync && typeof window.LM_CloudSync.queueSave === 'function') {
@@ -268,8 +291,10 @@
     // ── TRANSACTIONS (CREDITS, DEBITS, CHARGES) ────────────
 
     getTransactions: function (filters) {
-      var uid = _getProfileId();
-      var list = _transactions.filter(function (t) { return !t.profile || t.profile === uid; });
+      if ((!_transactions || _transactions.length === 0) && typeof state === 'object' && Array.isArray(state.business_transactions) && state.business_transactions.length > 0) {
+        _transactions = state.business_transactions.filter(_matchesProfile);
+      }
+      var list = _transactions.filter(_matchesProfile);
 
       if (typeof filters === 'string') {
         filters = { businessId: filters };
@@ -282,7 +307,14 @@
         list = list.filter(function (t) { return t.type === filters.type; });
       }
       if (filters.paymentStatus && filters.paymentStatus !== 'all') {
-        list = list.filter(function (t) { return t.paymentStatus === filters.paymentStatus; });
+        if (filters.paymentStatus === 'overdue') {
+          var today = _getTodayLocalDate();
+          list = list.filter(function (t) {
+            return t.paymentStatus !== 'paid' && t.dueDate && t.dueDate < today;
+          });
+        } else {
+          list = list.filter(function (t) { return t.paymentStatus === filters.paymentStatus; });
+        }
       }
       if (filters.partyName && typeof filters.partyName === 'string') {
         var pSearch = filters.partyName.toLowerCase().trim();
@@ -303,7 +335,8 @@
           return (t.partyName || '').toLowerCase().includes(q) ||
                  (t.category || '').toLowerCase().includes(q) ||
                  (t.invoiceNumber || '').toLowerCase().includes(q) ||
-                 (t.notes || '').toLowerCase().includes(q);
+                 (t.notes || '').toLowerCase().includes(q) ||
+                 (t.description || '').toLowerCase().includes(q);
         });
       }
 
@@ -316,7 +349,10 @@
 
     getTransactionById: function (id) {
       if (!id) return null;
-      return _transactions.find(function (t) { return t.id === id; }) || null;
+      if ((!_transactions || _transactions.length === 0) && typeof state === 'object' && Array.isArray(state.business_transactions)) {
+        _transactions = state.business_transactions.filter(_matchesProfile);
+      }
+      return _transactions.find(function (t) { return t.id === id && _matchesProfile(t); }) || null;
     },
 
     saveTransaction: async function (txData) {
@@ -327,30 +363,37 @@
       var id = txData.id || _generateId('btx');
       var existing = isNew ? null : this.getTransactionById(id);
 
-      var type = txData.type || 'credit'; // 'credit' | 'debit' | 'charge'
-      var rawAmount = Number(txData.amount) || 0;
-      var rawGross = Number(txData.grossAmount != null ? txData.grossAmount : rawAmount) || rawAmount;
-      var rawCharge = Number(txData.chargeAmount != null ? txData.chargeAmount : txData.charges) || 0;
-      var taxRate = Number(txData.taxRate) || 0;
-      var taxAmount = Number(txData.taxAmount) || (taxRate > 0 ? _round2((rawGross * taxRate) / 100) : 0);
+      var type = txData.type || existing?.type || 'credit'; // 'credit' | 'debit' | 'charge'
+      var rawAmount = Math.abs(Number(txData.amount != null ? txData.amount : existing?.amount) || 0);
+      if (rawAmount <= 0) {
+        console.warn('[BusinessService] saveTransaction: amount must be positive, received:', txData.amount);
+        return null;
+      }
+      var rawGross = Math.abs(Number(txData.grossAmount != null ? txData.grossAmount : (existing?.grossAmount || rawAmount)) || rawAmount);
+      var rawCharge = Math.max(0, Number(txData.chargeAmount != null ? txData.chargeAmount : (txData.charges != null ? txData.charges : (existing?.chargeAmount || 0))) || 0);
+      var taxRate = Math.max(0, Number(txData.taxRate != null ? txData.taxRate : (existing?.taxRate || 0)) || 0);
+      var taxAmount = Number(txData.taxAmount != null ? txData.taxAmount : (existing?.taxAmount != null ? existing.taxAmount : (taxRate > 0 ? _round2((rawGross * taxRate) / 100) : 0))) || 0;
 
-      var netAmount = rawAmount;
+      var netAmount = rawGross;
       if (type === 'credit') {
         netAmount = rawCharge > 0 ? _round2(rawGross - rawCharge) : rawGross;
       } else if (type === 'debit') {
         netAmount = rawCharge > 0 ? _round2(rawGross + rawCharge) : rawGross;
       }
 
-      var status = txData.paymentStatus || 'paid';
-      var paidAmt = Number(txData.paidAmount);
+      var status = txData.paymentStatus || existing?.paymentStatus || 'paid';
+      var paidAmt = Number(txData.paidAmount != null ? txData.paidAmount : existing?.paidAmount);
       if (isNaN(paidAmt)) {
         paidAmt = status === 'paid' ? rawGross : (status === 'partial' ? _round2(rawGross / 2) : 0);
       }
 
+      var defaultBizId = this.getActiveBusinessId() || (this.getBusinesses()[0]?.id) || '';
+      var bId = txData.businessId || existing?.businessId || defaultBizId;
+
       var tx = {
         id: id,
-        profile: uid,
-        businessId: txData.businessId || this.getActiveBusinessId() || '',
+        profile: existing?.profile || uid || 'default',
+        businessId: bId,
         type: type,
         amount: _round2(rawAmount),
         netAmount: _round2(netAmount),
@@ -359,19 +402,19 @@
         charges: _round2(rawCharge),
         taxRate: taxRate,
         taxAmount: _round2(taxAmount),
-        date: txData.date || nowIso.split('T')[0],
-        dueDate: txData.dueDate || '',
-        partyName: String(txData.partyName || 'General').trim(),
-        partyPhone: String(txData.partyPhone || '').trim(),
-        partyType: txData.partyType || (type === 'credit' ? 'customer' : (type === 'debit' ? 'vendor' : 'platform')),
-        category: String(txData.category || (type === 'credit' ? 'Other Revenue' : (type === 'debit' ? 'Operating Expense' : 'Bank Charge'))).trim(),
+        date: txData.date || existing?.date || _getTodayLocalDate(),
+        dueDate: txData.dueDate !== undefined ? txData.dueDate : (existing?.dueDate || ''),
+        partyName: String(txData.partyName !== undefined ? txData.partyName : (existing?.partyName || 'General')).trim() || 'General',
+        partyPhone: String(txData.partyPhone !== undefined ? txData.partyPhone : (existing?.partyPhone || '')).trim(),
+        partyType: txData.partyType || existing?.partyType || (type === 'credit' ? 'customer' : (type === 'debit' ? 'vendor' : 'platform')),
+        category: String(txData.category !== undefined ? txData.category : (existing?.category || (type === 'credit' ? 'Other Revenue' : (type === 'debit' ? 'Operating Expense' : 'Bank Charge')))).trim(),
         paymentStatus: status,
         paidAmount: _round2(paidAmt),
-        invoiceNumber: String(txData.invoiceNumber || '').trim(),
-        paymentMode: txData.paymentMode || 'Bank Transfer',
-        notes: String(txData.notes || txData.description || '').trim(),
-        description: String(txData.description || txData.notes || '').trim(),
-        attachment: String(txData.attachment || '').trim(),
+        invoiceNumber: String(txData.invoiceNumber !== undefined ? txData.invoiceNumber : (existing?.invoiceNumber || '')).trim(),
+        paymentMode: txData.paymentMode || existing?.paymentMode || 'Bank Transfer',
+        notes: String(txData.notes !== undefined ? txData.notes : (existing?.notes || txData.description || existing?.description || '')).trim(),
+        description: String(txData.description !== undefined ? txData.description : (existing?.description || txData.notes || existing?.notes || '')).trim(),
+        attachment: String(txData.attachment !== undefined ? txData.attachment : (existing?.attachment || '')).trim(),
         createdAt: existing?.createdAt || nowIso,
         updatedAt: nowIso
       };
@@ -386,7 +429,7 @@
 
       if (typeof state === 'object') state.business_transactions = _transactions;
 
-      if (typeof window.put === 'function' && window.db) {
+      if (typeof window.put === 'function') {
         try { await window.put('business_transactions', tx); } catch (e) {
           console.error('[BusinessService] saveTransaction DB error:', e);
         }
@@ -408,8 +451,13 @@
 
       if (typeof state === 'object') state.business_transactions = _transactions;
 
-      if (typeof window.deleteRecord === 'function' && window.db) {
-        try { await window.deleteRecord('business_transactions', id); } catch (e) {}
+      if (typeof window.del === 'function') {
+        try { await window.del('business_transactions', id); } catch (e) {}
+      } else if (window.db) {
+        try {
+          var t = window.db.transaction('business_transactions', 'readwrite');
+          t.objectStore('business_transactions').delete(id);
+        } catch (e) {}
       }
 
       if (window.LM_CloudSync && typeof window.LM_CloudSync.queueSave === 'function') {
@@ -450,7 +498,7 @@
       var totalCharges = 0;
       var totalTaxes = 0;
 
-      var todayStr = new Date().toISOString().split('T')[0];
+      var todayStr = _getTodayLocalDate();
       var overdueReceivablesCount = 0;
       var overdueReceivablesAmount = 0;
       var overduePayablesCount = 0;
@@ -709,10 +757,9 @@
     },
 
     exportTransactions: function () {
-      var uid = _getProfileId();
-      var list = _transactions.filter(function (t) { return !t.profile || t.profile === uid; });
+      var list = this.getTransactions();
       if ((!list || list.length === 0) && typeof state === 'object' && Array.isArray(state.business_transactions) && state.business_transactions.length > 0) {
-        return state.business_transactions;
+        return state.business_transactions.filter(_matchesProfile);
       }
       return list || [];
     },
@@ -744,7 +791,7 @@
         });
         if (dummyIdx !== -1 && bList.some(function (b) { return b.name !== 'Primary Enterprise' || b.id !== _businesses[dummyIdx].id; })) {
           var removedDummy = _businesses.splice(dummyIdx, 1)[0];
-          if (typeof window.del === 'function' && window.db && removedDummy && removedDummy.id) {
+          if (typeof window.del === 'function' && removedDummy && removedDummy.id) {
             try { await window.del('businesses', removedDummy.id); } catch (e) {}
           }
         }
@@ -756,7 +803,7 @@
           if (exB !== -1) _businesses[exB] = b;
           else _businesses.push(b);
           bCount++;
-          if (typeof window.put === 'function' && window.db) {
+          if (typeof window.put === 'function') {
             try { await window.put('businesses', b); } catch (e) {}
           }
         }
@@ -788,7 +835,7 @@
           if (exT !== -1) _transactions[exT] = t;
           else _transactions.push(t);
           tCount++;
-          if (typeof window.put === 'function' && window.db) {
+          if (typeof window.put === 'function') {
             try { await window.put('business_transactions', t); } catch (e) {}
           }
         }
