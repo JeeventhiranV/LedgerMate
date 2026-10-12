@@ -361,6 +361,13 @@
       var minDue = _round2(data.min_due || Math.round(due * 0.05));
       var avail = _round2(data.available_limit !== undefined ? data.available_limit : (limit - due));
 
+      var perksList = [];
+      if (Array.isArray(data.perks)) {
+        perksList = data.perks;
+      } else if (typeof data.perks === 'string' && data.perks.trim()) {
+        perksList = data.perks.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+      }
+
       var newCard = {
         id: data.id || _generateId(),
         profile: _getProfileId(),
@@ -376,6 +383,16 @@
         due_day: parseInt(data.due_day, 10) || 5,
         color_theme: data.color_theme || 'theme-midnight',
         notes: (data.notes || '').trim(),
+        cvv: (data.cvv || '').trim(),
+        contactless_enabled: data.contactless_enabled !== false,
+        international_enabled: !!data.international_enabled,
+        lounge_total: parseInt(data.lounge_total, 10) || 0,
+        lounge_used: parseInt(data.lounge_used, 10) || 0,
+        milestone_target: _round2(data.milestone_target || 0),
+        milestone_spent: _round2(data.milestone_spent || 0),
+        milestone_reward: (data.milestone_reward || '').trim(),
+        perks: perksList,
+        payment_history: Array.isArray(data.payment_history) ? data.payment_history : [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -422,11 +439,22 @@
       var minDue = data.min_due !== undefined ? _round2(data.min_due) : existing.min_due;
       var avail = data.available_limit !== undefined ? _round2(data.available_limit) : (limit - due);
 
+      var perksList = existing.perks || [];
+      if (data.perks !== undefined) {
+        if (Array.isArray(data.perks)) {
+          perksList = data.perks;
+        } else if (typeof data.perks === 'string') {
+          perksList = data.perks.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        }
+      }
+
       var updated = Object.assign({}, existing, data, {
         credit_limit: limit,
         current_due: due,
         min_due: minDue,
         available_limit: avail,
+        perks: perksList,
+        payment_history: Array.isArray(data.payment_history) ? data.payment_history : (existing.payment_history || []),
         updated_at: new Date().toISOString()
       });
 
@@ -515,10 +543,22 @@
       var newAvail = _round2(Number(card.credit_limit || 0) - newDue);
       var newMinDue = newDue <= 0 ? 0 : Math.min(newDue, _round2(newDue * 0.05));
 
+      var history = Array.isArray(card.payment_history) ? card.payment_history.slice() : [];
+      history.unshift({
+        id: 'pay_' + Date.now(),
+        date: paymentDate,
+        amount: amount,
+        accountId: accountId,
+        remainingDue: newDue,
+        timestamp: new Date().toISOString()
+      });
+      if (history.length > 20) history = history.slice(0, 20);
+
       await this.updateCard(card.id, {
         current_due: newDue,
         available_limit: newAvail,
-        min_due: newMinDue
+        min_due: newMinDue,
+        payment_history: history
       });
 
       // Optionally record an expense or bill payment transaction
@@ -561,6 +601,131 @@
       }
 
       return { success: true, remainingDue: newDue, card: this.getCardById(cardId) };
+    },
+
+    /**
+     * Log an airport lounge visit on a credit card
+     */
+    logLoungeVisit: async function (cardId) {
+      var card = this.getCardById(cardId);
+      if (!card) return null;
+      var total = parseInt(card.lounge_total, 10) || 0;
+      var used = parseInt(card.lounge_used, 10) || 0;
+      if (total > 0 && used >= total) {
+        if (typeof showToast === 'function') showToast('⚠️ All ' + total + ' lounge visits already used for ' + card.card_name, 'warning');
+        return card;
+      }
+      var newUsed = used + 1;
+      await this.updateCard(cardId, { lounge_used: newUsed });
+      if (typeof showToast === 'function') {
+        showToast('✈️ Lounge visit logged! (' + newUsed + '/' + (total || '∞') + ' used)', 'success');
+      }
+      return this.getCardById(cardId);
+    },
+
+    /**
+     * Reset lounge visits (e.g. at start of new quarter or year)
+     */
+    resetLoungeVisits: async function (cardId) {
+      var card = this.getCardById(cardId);
+      if (!card) return null;
+      await this.updateCard(cardId, { lounge_used: 0 });
+      if (typeof showToast === 'function') showToast('🔄 Lounge visits reset to 0 for ' + card.card_name, 'info');
+      return this.getCardById(cardId);
+    },
+
+    /**
+     * Update milestone progress
+     */
+    updateMilestoneProgress: async function (cardId, addedAmount) {
+      var card = this.getCardById(cardId);
+      if (!card) return null;
+      var spent = _round2(Number(card.milestone_spent || 0) + Number(addedAmount || 0));
+      await this.updateCard(cardId, { milestone_spent: spent });
+      return this.getCardById(cardId);
+    },
+
+    /**
+     * Get payment history for card
+     */
+    getCardPaymentHistory: function (cardId) {
+      var card = this.getCardById(cardId);
+      return (card && Array.isArray(card.payment_history)) ? card.payment_history : [];
+    },
+
+    /**
+     * Find related transactions recorded in LedgerMate for this card
+     */
+    getCardTransactions: function (cardId) {
+      var card = this.getCardById(cardId);
+      if (!card) return [];
+      var txs = (typeof state === 'object' && Array.isArray(state.transactions)) ? state.transactions : [];
+      var last4 = card.last_4_digits || '';
+      var cardName = (card.card_name || '').toLowerCase();
+      var bankName = (card.bank_name || '').toLowerCase();
+
+      return txs.filter(function (t) {
+        if (!t) return false;
+        var note = (t.note || '').toLowerCase();
+        var account = (t.account || '').toLowerCase();
+        if (last4 && (note.includes(last4) || account.includes(last4))) return true;
+        if (cardName && (note.includes(cardName) || account.includes(cardName))) return true;
+        if (t.cardId && String(t.cardId) === String(cardId)) return true;
+        return false;
+      }).sort(function (a, b) {
+        return (b.date || '').localeCompare(a.date || '');
+      });
+    },
+
+    /**
+     * Real-time Spend Simulator: simulates spend and projects utilization, health, and grace impact
+     */
+    simulateSpend: function (cardId, spendAmount, category) {
+      var card = this.getCardById(cardId);
+      if (!card) return null;
+      var amt = Number(spendAmount) || 0;
+      var summary = this.getSummary();
+
+      var curDue = Number(card.current_due || 0);
+      var limit = Math.max(1, Number(card.credit_limit || 1));
+      var newDue = curDue + amt;
+      var curUtil = Math.round((curDue / limit) * 1000) / 10;
+      var newUtil = Math.round((newDue / limit) * 1000) / 10;
+
+      var newTotalDue = summary.totalCurrentDue + amt;
+      var totalLimit = Math.max(1, summary.totalLimit);
+      var curPortUtil = summary.utilizationPct;
+      var newPortUtil = Math.round((newTotalDue / totalLimit) * 1000) / 10;
+
+      var graceDays = 30;
+      var rewardMultiplier = 1.0;
+      var perkDesc = 'Standard Rewards';
+      if (window.LM_CardOptimizer) {
+        graceDays = window.LM_CardOptimizer.calculateRemainingGraceDays(card.statement_day, card.due_day);
+        var rEval = window.LM_CardOptimizer.evaluateCardCategoryReward(card, category || 'Shopping');
+        rewardMultiplier = rEval.multiplier;
+        perkDesc = rEval.perkDesc;
+      }
+
+      var healthStatus = newPortUtil < 10 ? 'Excellent' : newPortUtil <= 30 ? 'Optimal' : newPortUtil <= 50 ? 'Caution' : 'Critical';
+      var healthColor = newPortUtil <= 30 ? 'var(--emerald)' : newPortUtil <= 50 ? 'var(--gold)' : 'var(--rose)';
+
+      return {
+        card: card,
+        spendAmount: amt,
+        category: category || 'Shopping',
+        currentCardUtil: curUtil,
+        newCardUtil: newUtil,
+        currentPortfolioUtil: curPortUtil,
+        newPortfolioUtil: newPortUtil,
+        graceDays: graceDays,
+        rewardMultiplier: rewardMultiplier,
+        perkDesc: perkDesc,
+        projectedCashback: _round2(amt * (rewardMultiplier * 0.01)),
+        healthStatus: healthStatus,
+        healthColor: healthColor,
+        isOverLimit: newDue > limit
+      };
     },
 
     /**

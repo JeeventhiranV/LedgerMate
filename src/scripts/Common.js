@@ -8712,32 +8712,62 @@ window.LM_triggerConfetti = function(originX, originY) {
  * 4. Credit Cards 3D Interactive Cursor-Tracking Physics & Holographic Glare
  */
 window.LM_attachCardPhysics = function() {
-  const cards = document.querySelectorAll('.cc-card-art');
+  const cards = document.querySelectorAll('.cc-card-art, .cc-flipper-target');
   cards.forEach(card => {
     if (card._hasPhysicsAttached) return;
     card._hasPhysicsAttached = true;
 
-    card.addEventListener('mousemove', e => {
+    function applyTilt(clientX, clientY) {
       const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
       
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
       
       const rotateX = ((y - centerY) / centerY) * -12;
-      const rotateY = ((x - centerX) / centerX) * 14;
+      let rotateY = ((x - centerX) / centerX) * 14;
 
-      card.style.transform = `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale3d(1.03, 1.03, 1.03)`;
+      const isFlipped = card.closest('.cc-flip-container')?.classList.contains('flipped') || card.classList.contains('is-flipped');
+      if (isFlipped) {
+        rotateY += 180;
+      }
+
+      card.style.transform = `perspective(1200px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale3d(1.025, 1.025, 1.025)`;
       card.style.setProperty('--glare-x', `${(x / rect.width) * 100}%`);
       card.style.setProperty('--glare-y', `${(y / rect.height) * 100}%`);
-      card.style.setProperty('--glare-opacity', '0.45');
+      card.style.setProperty('--glare-opacity', '0.55');
+    }
+
+    function resetTilt() {
+      const isFlipped = card.closest('.cc-flip-container')?.classList.contains('flipped') || card.classList.contains('is-flipped');
+      card.style.transform = isFlipped ? 'perspective(1200px) rotateX(0deg) rotateY(180deg) scale3d(1, 1, 1)' : 'perspective(1200px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+      card.style.setProperty('--glare-opacity', '0');
+    }
+
+    // Pointer / Mouse events
+    card.addEventListener('mousemove', e => {
+      applyTilt(e.clientX, e.clientY);
     });
 
     card.addEventListener('mouseleave', () => {
-      card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
-      card.style.setProperty('--glare-opacity', '0');
+      resetTilt();
     });
+
+    // Touch events for mobile tactile sensation
+    card.addEventListener('touchmove', e => {
+      if (e.touches && e.touches[0]) {
+        applyTilt(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: true });
+
+    card.addEventListener('touchend', () => {
+      resetTilt();
+    }, { passive: true });
+
+    card.addEventListener('touchcancel', () => {
+      resetTilt();
+    }, { passive: true });
   });
 };
 
