@@ -4179,5 +4179,518 @@ body.privacy-mode [data-amount]:active {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
+/* ══════════════════════════════════════════════════════════════
+   NEXT-LEVEL FINTECH DASHBOARD UI SUITE
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─── 1. Executive Master Financial Hero Card ────────────────── */
+.dash-hero-card {
+  position: relative;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(15, 22, 42, 0.85), rgba(20, 27, 56, 0.7));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.5), 0 0 24px -8px rgba(0, 240, 255, 0.08);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  overflow: hidden;
+  margin-bottom: 14px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.dash-hero-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.6), rgba(99, 102, 241, 0.6), transparent);
+  pointer-events: none;
+}
+.dash-hero-glass-mesh {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 15% 20%, rgba(0, 240, 255, 0.07) 0%, transparent 40%),
+    radial-gradient(circle at 85% 70%, rgba(99, 102, 241, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 50% 100%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+}
+.dash-hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 20px 22px;
+}
+.dash-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.dash-hero-badge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dash-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  color: var(--teal);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.dash-growth-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-m);
+}
+.dash-growth-pill.up {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--emerald);
+}
+.dash-growth-pill.down {
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: var(--rose);
+}
+.dash-growth-pill.neutral {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  color: var(--text-3);
+}
+
+.dash-hero-switch-wrap {
+  display: flex;
+  align-items: center;
+}
+.dash-hero-segmented-pill {
+  display: inline-flex;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
+  padding: 3px;
+  gap: 2px;
+}
+.dash-hero-pill-btn {
+  background: transparent;
+  border: none;
+  border-radius: 99px;
+  padding: 4px 12px;
+  color: var(--text-3);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: var(--font-b);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+.dash-hero-pill-btn:hover:not(.active) {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+.dash-hero-pill-btn.active {
+  background: linear-gradient(135deg, var(--teal), #00a896);
+  color: #070914;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 240, 255, 0.35);
+}
+
+.dash-hero-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16px 0 18px 0;
+  gap: 16px;
+}
+.dash-hero-val-block {
+  min-width: 0;
+}
+.dash-hero-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.dash-hero-val {
+  font-family: var(--font-m);
+  font-size: clamp(26px, 4.5vw, 38px);
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  line-height: 1.15;
+  color: var(--teal);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 16px rgba(0, 240, 255, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dash-hero-sub {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 4px;
+}
+.dash-hero-sparkline-wrap {
+  width: 150px;
+  height: 55px;
+  flex-shrink: 0;
+  position: relative;
+}
+.dash-hero-sparkline-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.dash-hero-telemetry {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+.dash-telem-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-width: 0;
+}
+.dash-telem-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+.dash-telem-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.dash-telem-data {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.dash-telem-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dash-telem-val {
+  font-family: var(--font-m);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-theme="light"] .dash-hero-card {
+  background: linear-gradient(135deg, #ffffff, #f8fafc);
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 16px 36px -10px rgba(15, 23, 42, 0.08);
+}
+[data-theme="light"] .dash-hero-telemetry {
+  background: rgba(15, 23, 42, 0.03);
+  border-color: rgba(15, 23, 42, 0.06);
+}
+[data-theme="light"] .dash-telem-item {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.05);
+}
+[data-theme="light"] .dash-hero-segmented-pill {
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+/* ─── 2. Tactile Quick Actions Standout ────────────────────── */
+.dash-action-btn.primary-action.expense {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.18), rgba(244, 63, 94, 0.06)) !important;
+  border-color: rgba(244, 63, 94, 0.35) !important;
+  color: #ff5b7a !important;
+  box-shadow: 0 3px 12px rgba(244, 63, 94, 0.15) !important;
+}
+.dash-action-btn.primary-action.expense:hover {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.28), rgba(244, 63, 94, 0.12)) !important;
+  border-color: rgba(244, 63, 94, 0.6) !important;
+  box-shadow: 0 6px 18px rgba(244, 63, 94, 0.25) !important;
+}
+.dash-action-btn.primary-action.income {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(16, 185, 129, 0.06)) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+  color: #10b981 !important;
+  box-shadow: 0 3px 12px rgba(16, 185, 129, 0.15) !important;
+}
+.dash-action-btn.primary-action.income:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.28), rgba(16, 185, 129, 0.12)) !important;
+  border-color: rgba(16, 185, 129, 0.6) !important;
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.25) !important;
+}
+.dash-badge-micro {
+  font-size: 8.5px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, var(--teal), var(--emerald));
+  color: #070914;
+  letter-spacing: 0.3px;
+  line-height: 1.1;
+}
+
+/* ─── 3. Telemetry KPI Micro-Bars ───────────────────────────── */
+.kpi-micro-track {
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.kpi-micro-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ─── 4. Chart Mode Pills ──────────────────────────────────── */
+.chart-mode-pills {
+  display: inline-flex;
+  gap: 3px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+}
+.chart-mode-pill {
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-b);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.chart-mode-pill:hover:not(.active) {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+}
+.chart-mode-pill.active {
+  background: var(--surface-card);
+  color: var(--teal);
+  font-weight: 700;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* ─── 5. Doughnut Interactive Center Info ──────────────────── */
+.doughnut-center-info {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  text-align: center;
+  z-index: 2;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.doughnut-center-val {
+  font-family: var(--font-m);
+  font-size: clamp(16px, 2.2vw, 22px);
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.doughnut-center-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+  max-width: 110px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── 6. Neo-Banking Account Summary Tiles ─────────────────── */
+.acc-tile-card {
+  background: var(--surface-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s, box-shadow 0.2s;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.acc-tile-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 240, 255, 0.4);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.35), 0 0 12px rgba(0, 240, 255, 0.15);
+}
+.acc-tile-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.acc-tile-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.acc-tile-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: rgba(0, 240, 255, 0.12);
+  color: var(--teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.acc-tile-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.acc-tile-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-3);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.acc-tile-bal {
+  font-family: var(--font-m);
+  font-size: clamp(16px, 2vw, 20px);
+  font-weight: 800;
+  color: var(--teal);
+  font-variant-numeric: tabular-nums;
+  margin: 4px 0 6px 0;
+}
+.acc-tile-bar-wrap {
+  width: 100%;
+  height: 3px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.acc-tile-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal), var(--emerald));
+  border-radius: 2px;
+  transition: width 0.8s ease;
+}
+.acc-tile-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ─── 7. Mobile Viewport Refinements ───────────────────────── */
+@media (max-width: 640px) {
+  #page-dashboard {
+    padding-bottom: 90px !important;
+  }
+  .dash-hero-content {
+    padding: 14px 14px;
+  }
+  .dash-hero-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 12px 0 14px 0;
+  }
+  .dash-hero-sparkline-wrap {
+    width: 100%;
+    height: 48px;
+  }
+  .dash-hero-telemetry {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    padding: 8px;
+  }
+  .dash-telem-item {
+    padding: 5px 6px;
+  }
+  .dash-telem-label {
+    font-size: 9.5px;
+  }
+  .dash-telem-val {
+    font-size: 12px;
+  }
+  .dash-hero-val {
+    font-size: 26px;
+  }
+}
+
+@media (max-width: 360px) {
+  .dash-hero-telemetry {
+    grid-template-columns: 1fr;
+  }
+  .kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 
 

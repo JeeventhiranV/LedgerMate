@@ -1747,6 +1747,7 @@ function renderAll(){
 function _doRenderAll(){
   _renderAllTimer = null;
   renderDropdowns();
+  try { renderHeroCard(); } catch(e) { console.warn('[LM] renderHeroCard error:', e); }
   renderKPIs();
   renderCharts();
   refreshRecentList();
@@ -1786,24 +1787,177 @@ function renderCharts(){
   renderBudgetChart();
 }
 
+window.LM_setCashflowMode = function(mode) {
+  state.cashflowMode = mode;
+  const btnBal = document.getElementById('btnCfBalance');
+  const btnInOut = document.getElementById('btnCfInOut');
+  if (btnBal) btnBal.classList.toggle('active', mode === 'balance');
+  if (btnInOut) btnInOut.classList.toggle('active', mode === 'inout');
+  renderCashflow();
+};
+
 function renderCashflow(){
-  const days = 90;
-  const labels = [];
-  const data = [];
-  let running = 0;
-  for (let i=days-1;i>=0;i--){
-    const d = new Date(); d.setDate(d.getDate()-i);
-    labels.push(d.toLocaleDateString('en-IN',{month:'short',day:'numeric'}));
-    const dayTx = state.transactions.filter(t=> new Date(t.date).toDateString()===d.toDateString());
-    dayTx.forEach(t=> running += (t.type==='in'?Number(t.amount):-Number(t.amount)));
-    data.push(running);
+  const mode = state.cashflowMode || 'balance';
+  const ctx = document.getElementById('cashflowChart')?.getContext('2d');
+  if (!ctx) return;
+
+  if (cashflowChart instanceof Chart) {
+    cashflowChart.destroy();
+    cashflowChart = null;
   }
-  const ctx = document.getElementById('cashflowChart').getContext('2d');
-  if (cashflowChart instanceof Chart) cashflowChart.destroy();
-  cashflowChart = new Chart(ctx, {
-    type:'line', data:{labels, datasets:[{label:'Balance', data, borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,0.08)', tension:0.3, fill:true}]},
-    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}}
-  });
+
+  if (mode === 'inout') {
+    // 30 days Inflow vs Outflow grouped bars
+    const days = 30;
+    const labels = [];
+    const incomes = [];
+    const expenses = [];
+
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      labels.push(d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }));
+      const dayTx = (state.transactions || []).filter(t => t && t.date && new Date(t.date).toDateString() === d.toDateString());
+      let dayIn = 0;
+      let dayOut = 0;
+      dayTx.forEach(t => {
+        if (t.type === 'in' || t.type === 'income') dayIn += Number(t.amount || 0);
+        else if (t.type === 'out' || t.type === 'expense') dayOut += Number(t.amount || 0);
+      });
+      incomes.push(dayIn);
+      expenses.push(dayOut);
+    }
+
+    cashflowChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Inflow',
+            data: incomes,
+            backgroundColor: 'rgba(16, 185, 129, 0.85)',
+            borderRadius: 4,
+            maxBarThickness: 10
+          },
+          {
+            label: 'Outflow',
+            data: expenses,
+            backgroundColor: 'rgba(244, 63, 94, 0.85)',
+            borderRadius: 4,
+            maxBarThickness: 10
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            align: 'end',
+            labels: {
+              boxWidth: 8,
+              padding: 8,
+              color: 'rgba(232, 234, 246, 0.75)',
+              font: { size: 10.5, family: 'Inter, sans-serif' }
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(13, 17, 40, 0.95)',
+            titleColor: '#00d4b4',
+            bodyColor: '#e8eaf6',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+            padding: 8,
+            cornerRadius: 8,
+            callbacks: {
+              label: c => ` ${c.dataset.label}: ${typeof fmtINR === 'function' ? fmtINR(c.raw) : ('₹' + c.raw.toLocaleString('en-IN'))}`
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: 'rgba(232, 234, 246, 0.6)', font: { size: 10 }, maxTicksLimit: 10 } },
+          y: {
+            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+            ticks: {
+              color: 'rgba(232, 234, 246, 0.6)',
+              font: { size: 10 },
+              callback: v => typeof fmtINR === 'function' ? fmtINR(v) : ('₹' + v)
+            }
+          }
+        }
+      }
+    });
+
+  } else {
+    // 90 days running balance curve
+    const days = 90;
+    const labels = [];
+    const data = [];
+    let running = 0;
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      labels.push(d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }));
+      const dayTx = (state.transactions || []).filter(t => t && t.date && new Date(t.date).toDateString() === d.toDateString());
+      dayTx.forEach(t => running += ((t.type === 'in' || t.type === 'income') ? Number(t.amount || 0) : -Number(t.amount || 0)));
+      data.push(running);
+    }
+
+    const grad = ctx.createLinearGradient(0, 0, 0, 240);
+    grad.addColorStop(0, 'rgba(0, 212, 180, 0.22)');
+    grad.addColorStop(1, 'rgba(0, 212, 180, 0.0)');
+
+    cashflowChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Net Balance',
+          data,
+          borderColor: '#00d4b4',
+          borderWidth: 2.2,
+          backgroundColor: grad,
+          tension: 0.35,
+          fill: true,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: '#00d4b4',
+          pointHoverBorderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(13, 17, 40, 0.95)',
+            titleColor: '#00d4b4',
+            bodyColor: '#e8eaf6',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+            padding: 8,
+            cornerRadius: 8,
+            callbacks: {
+              label: c => ` Balance: ${typeof fmtINR === 'function' ? fmtINR(c.raw) : ('₹' + c.raw.toLocaleString('en-IN'))}`
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: 'rgba(232, 234, 246, 0.6)', font: { size: 10 }, maxTicksLimit: 12 } },
+          y: {
+            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+            ticks: {
+              color: 'rgba(232, 234, 246, 0.6)',
+              font: { size: 10 },
+              callback: v => typeof fmtINR === 'function' ? fmtINR(v) : ('₹' + v)
+            }
+          }
+        }
+      }
+    });
+  }
 } 
 
  function renderBudgetChart(){
@@ -4245,31 +4399,56 @@ function renderAccountSummaries() {
     return;
   }
 
+  const totalPositive = Math.max(1, accounts.reduce((s, a) => s + Math.max(0, Number(summaries[a].balance || 0)), 0));
+
+  function getAccountMeta(accName) {
+    const n = (accName || '').toLowerCase();
+    if (n.includes('hdfc')) return { icon: '🏛️', type: 'Bank' };
+    if (n.includes('sbi')) return { icon: '🏦', type: 'Bank' };
+    if (n.includes('icici')) return { icon: '🏛️', type: 'Bank' };
+    if (n.includes('axis')) return { icon: '🏦', type: 'Bank' };
+    if (n.includes('kotak')) return { icon: '🏛️', type: 'Bank' };
+    if (n.includes('cash') || n.includes('wallet') || n.includes('paytm')) return { icon: '💵', type: 'Cash' };
+    if (n.includes('credit') || n.includes('card')) return { icon: '💳', type: 'Card' };
+    if (n.includes('zerodha') || n.includes('groww') || n.includes('demat') || n.includes('stock')) return { icon: '📈', type: 'Demat' };
+    return { icon: '💼', type: 'Account' };
+  }
+
   for (const account of accounts) {
     const summary = summaries[account];
+    const { icon, type } = getAccountMeta(account);
+    const balance = Number(summary.balance || 0);
+    const sharePct = Math.min(100, Math.max(0, Math.round((Math.max(0, balance) / totalPositive) * 100)));
+    const safeAccount = (typeof escapeHTML === 'function' ? escapeHTML(account) : account).replace(/'/g, "\\'");
 
     const card = document.createElement('div');
-    card.className = 'kpi-card teal';
-    card.style.cursor = 'pointer';
+    card.className = 'acc-tile-card';
     card.title = `View all transactions for ${account}`;
     card.onclick = () => window.LM_filterTxByAccount(account);
 
     card.innerHTML = `
-      <div class="kpi-icon teal">💼</div>
-
-      <div class="kpi-label">${typeof escapeHTML === 'function' ? escapeHTML(account) : account}</div>
-
-      <div class="kpi-value acc-bal" data-amount="${summary.balance}">
-        ${fmtINR(summary.balance)}
+      <div class="acc-tile-top">
+        <div class="acc-tile-info">
+          <div class="acc-tile-icon">${icon}</div>
+          <div class="acc-tile-name">${typeof escapeHTML === 'function' ? escapeHTML(account) : account}</div>
+        </div>
+        <span class="acc-tile-badge">${type}</span>
       </div>
 
-      <div class="kpi-sub" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-        <span class="chip income" onclick="event.stopPropagation(); window.LM_filterTxByAccountAndType('${account}', 'in')" style="cursor:pointer;" title="View credits for ${account}">
-          + <span class="acc-bal" data-amount="${summary.income}">${fmtINR(summary.income)}</span>
-        </span>
+      <div class="acc-tile-bal acc-bal" data-amount="${balance}" style="color:${balance >= 0 ? 'var(--teal)' : 'var(--rose)'};">
+        ${typeof fmtINR === 'function' ? fmtINR(balance) : ('₹' + balance.toLocaleString('en-IN'))}
+      </div>
 
-        <span class="chip expense" onclick="event.stopPropagation(); window.LM_filterTxByAccountAndType('${account}', 'out')" style="cursor:pointer;" title="View debits for ${account}">
-          - <span class="acc-bal" data-amount="${summary.expense}">${fmtINR(summary.expense)}</span>
+      <div class="acc-tile-bar-wrap" title="${sharePct}% of liquid assets">
+        <div class="acc-tile-bar-fill" style="width:${sharePct}%;"></div>
+      </div>
+
+      <div class="acc-tile-chips">
+        <span class="chip income" onclick="event.stopPropagation(); window.LM_filterTxByAccountAndType('${safeAccount}', 'in')" style="cursor:pointer; padding:3px 8px; font-size:11px;" title="View credits for ${account}">
+          + <span class="acc-bal" data-amount="${summary.income}">${typeof fmtINR === 'function' ? fmtINR(summary.income) : ('₹' + summary.income)}</span>
+        </span>
+        <span class="chip expense" onclick="event.stopPropagation(); window.LM_filterTxByAccountAndType('${safeAccount}', 'out')" style="cursor:pointer; padding:3px 8px; font-size:11px;" title="View debits for ${account}">
+          - <span class="acc-bal" data-amount="${summary.expense}">${typeof fmtINR === 'function' ? fmtINR(summary.expense) : ('₹' + summary.expense)}</span>
         </span>
       </div>
     `;
@@ -4877,6 +5056,196 @@ window.LM_isClosedOrMatured = function(inv) {
   };
 }
 
+/* ============================================================
+   👑 EXECUTIVE MASTER FINANCIAL HERO CARD & TELEMETRY
+   ============================================================ */
+let _heroSparkChart = null;
+
+window.LM_setHeroMode = function(mode) {
+  state.heroBalanceMode = mode;
+  try { localStorage.setItem('lm_hero_balance_mode', mode); } catch (e) {}
+  const btnNw = document.getElementById('btnHeroNetWorth');
+  const btnLiq = document.getElementById('btnHeroLiquid');
+  if (btnNw) btnNw.classList.toggle('active', mode === 'net_worth');
+  if (btnLiq) btnLiq.classList.toggle('active', mode === 'liquid');
+  renderHeroCard();
+};
+
+function renderHeroSparkline() {
+  const canvas = document.getElementById('dashHeroSparklineCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (_heroSparkChart instanceof Chart) {
+    _heroSparkChart.destroy();
+    _heroSparkChart = null;
+  }
+
+  // 14 days mini trend
+  const days = 14;
+  const values = [];
+  let running = 0;
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const dayTx = (state.transactions || []).filter(t => t && t.date && new Date(t.date).toDateString() === d.toDateString());
+    dayTx.forEach(t => running += ((t.type === 'in' || t.type === 'income') ? Number(t.amount || 0) : -Number(t.amount || 0)));
+    values.push(running);
+  }
+
+  const isPositive = (values[values.length - 1] || 0) >= (values[0] || 0);
+  const strokeColor = isPositive ? '#00d4b4' : '#f43f5e';
+  const fillColor = isPositive ? 'rgba(0, 212, 180, 0.12)' : 'rgba(244, 63, 94, 0.12)';
+
+  _heroSparkChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: values.map((_, i) => i),
+      datasets: [{
+        data: values,
+        borderColor: strokeColor,
+        borderWidth: 2,
+        backgroundColor: fillColor,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: { x: { display: false }, y: { display: false } },
+      animation: { duration: 400 }
+    }
+  });
+}
+
+function renderHeroCard() {
+  const heroCard = document.getElementById('dashHeroCard');
+  if (!heroCard) return;
+
+  let mode = state.heroBalanceMode;
+  if (!mode) {
+    try { mode = localStorage.getItem('lm_hero_balance_mode'); } catch (e) {}
+    mode = mode || 'net_worth';
+    state.heroBalanceMode = mode;
+  }
+
+  // Sync mode buttons
+  const btnNw = document.getElementById('btnHeroNetWorth');
+  const btnLiq = document.getElementById('btnHeroLiquid');
+  if (btnNw) btnNw.classList.toggle('active', mode === 'net_worth');
+  if (btnLiq) btnLiq.classList.toggle('active', mode === 'liquid');
+
+  // 1. Calculate Liquid Balances
+  const summaries = typeof getAccountSummaries === 'function' ? getAccountSummaries() : {};
+  let liquidBalance = 0;
+  Object.values(summaries).forEach(acc => {
+    liquidBalance += Number(acc.balance || 0);
+  });
+
+  // 2. Calculate Stock Valuation
+  let stockAssets = 0;
+  if (window.LM_StockPortfolioService && typeof window.LM_StockPortfolioService.getPortfolioSummary === 'function') {
+    try {
+      const summary = window.LM_StockPortfolioService.getPortfolioSummary();
+      stockAssets = Number(summary?.totalCurrentValue) || 0;
+    } catch(e) {}
+  }
+
+  // 3. Calculate Wealth & Other Investments
+  const investments = state.investments || [];
+  const activeInvestments = investments.filter(a => {
+    if (typeof window.LM_isClosedOrMatured === 'function') return !window.LM_isClosedOrMatured(a);
+    if (typeof isAssetClosedOrMatured === 'function') return !isAssetClosedOrMatured(a);
+    if (a.status === 'closed' || a.status === 'matured' || a.isClosed || a.closed) return false;
+    return true;
+  });
+  const wealthAssets = activeInvestments.reduce((s, a) => {
+    const qty    = parseFloat(a.qty || a.stockQty || 0) || 0;
+    const buyP   = parseFloat(a.buyPrice || a.avgCost || a.stockBuyPrice || 0) || 0;
+    const curP   = parseFloat(a.currentPrice || a.ltp || a.stockCurrentPrice || buyP) || 0;
+    const t      = (a.type || '').toUpperCase();
+    const simple = ['GOLD','SILVER','PHYSICAL','COMMODITY','STOCK'];
+    if (simple.includes(t)) return s + qty * (curP || buyP);
+    return s + (parseFloat(a.principal || a.currentValue || a.amount || 0) || 0);
+  }, 0);
+
+  // 4. Calculate Liabilities
+  const emiLoans = state.emi_loans || [];
+  const liabsVal = emiLoans.reduce((s, l) => s + (parseFloat(l.outstanding) || 0), 0);
+
+  // 5. Total Net Worth
+  const netWorth = liquidBalance + stockAssets + wealthAssets - liabsVal;
+
+  // 6. Month-over-Month Delta
+  const now = new Date();
+  const curMonth = now.toISOString().slice(0, 7);
+  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonth = prevDate.toISOString().slice(0, 7);
+
+  const curTx = (state.transactions || []).filter(t => (t.date || '').startsWith(curMonth));
+  const prevTx = (state.transactions || []).filter(t => (t.date || '').startsWith(prevMonth));
+
+  const curNet = curTx.reduce((s, t) => s + (t.type === 'in' || t.type === 'income' ? Number(t.amount || 0) : -Number(t.amount || 0)), 0);
+  const prevNet = prevTx.reduce((s, t) => s + (t.type === 'in' || t.type === 'income' ? Number(t.amount || 0) : -Number(t.amount || 0)), 0);
+
+  const delta = curNet - prevNet;
+  const pct = prevNet !== 0 ? ((delta / Math.abs(prevNet)) * 100).toFixed(1) : (curNet > 0 ? '+100' : '0.0');
+
+  // Update Growth Pill
+  const pillEl = document.getElementById('dashHeroGrowthPill');
+  const iconEl = document.getElementById('dashHeroGrowthIcon');
+  const txtEl = document.getElementById('dashHeroGrowthText');
+  if (pillEl && txtEl) {
+    pillEl.className = 'dash-growth-pill ' + (delta >= 0 ? 'up' : 'down');
+    if (iconEl) iconEl.textContent = delta >= 0 ? '▲' : '▼';
+    txtEl.textContent = `${delta >= 0 ? '+' : ''}${typeof fmtINR === 'function' ? fmtINR(Math.abs(delta)) : ('₹' + Math.abs(delta))} (${pct}%) MoM`;
+  }
+
+  // Update Hero Value & Label
+  const lblEl = document.getElementById('dashHeroLabel');
+  const valEl = document.getElementById('dashHeroValue');
+  const subEl = document.getElementById('dashHeroSub');
+  const targetVal = mode === 'liquid' ? liquidBalance : netWorth;
+
+  if (lblEl) lblEl.textContent = mode === 'liquid' ? 'LIQUID OPERATING BALANCE' : 'TOTAL NET WORTH';
+  if (valEl) {
+    valEl.dataset.amount = targetVal;
+    valEl.style.color = targetVal >= 0 ? 'var(--teal)' : 'var(--rose)';
+    if (typeof window.LM_animateValue === 'function') {
+      const curParsed = parseFloat(valEl.dataset.curVal || '0');
+      window.LM_animateValue(valEl, curParsed, targetVal, 600, true);
+      valEl.dataset.curVal = targetVal;
+    } else {
+      valEl.textContent = typeof fmtINR === 'function' ? fmtINR(targetVal) : ('₹' + targetVal);
+    }
+  }
+
+  if (subEl) {
+    if (mode === 'liquid') {
+      const accCount = Object.keys(summaries).length;
+      subEl.textContent = `Liquid assets across ${accCount} accounts and cash reserves`;
+    } else {
+      const totalAssets = liquidBalance + stockAssets + wealthAssets;
+      subEl.innerHTML = `Assets (${typeof fmtINR === 'function' ? fmtINR(totalAssets) : ('₹' + totalAssets)}) − Debt (${typeof fmtINR === 'function' ? fmtINR(liabsVal) : ('₹' + liabsVal)})`;
+    }
+  }
+
+  // Update Telemetry strip
+  const telemLiq = document.getElementById('dashTelemLiquid');
+  const telemStk = document.getElementById('dashTelemStocks');
+  const telemAst = document.getElementById('dashTelemAssets');
+  const telemLiab = document.getElementById('dashTelemLiabs');
+
+  if (telemLiq) { telemLiq.textContent = typeof fmtINR === 'function' ? fmtINR(liquidBalance) : ('₹' + liquidBalance); telemLiq.dataset.amount = liquidBalance; }
+  if (telemStk) { telemStk.textContent = typeof fmtINR === 'function' ? fmtINR(stockAssets) : ('₹' + stockAssets); telemStk.dataset.amount = stockAssets; }
+  if (telemAst) { telemAst.textContent = typeof fmtINR === 'function' ? fmtINR(wealthAssets) : ('₹' + wealthAssets); telemAst.dataset.amount = wealthAssets; }
+  if (telemLiab) { telemLiab.textContent = typeof fmtINR === 'function' ? fmtINR(liabsVal) : ('₹' + liabsVal); telemLiab.dataset.amount = liabsVal; }
+
+  // Render inline sparkline
+  try { renderHeroSparkline(); } catch (e) { console.warn('[LM] renderHeroSparkline error:', e); }
+}
+
 /* =========================
    RENDER KPI (ULTRA-COMPACT & INTERACTIVE)
    ========================= */
@@ -4898,17 +5267,24 @@ function kpiCard(title, value, sub, type, valueColor, onclickAttr) {
   let liveBadge = '';
   let glowClass = '';
   let textGlowClass = '';
+  let microBar = '';
 
   if (isGreen) {
     liveArrow = `<span class="live-arrow-stream" title="Live inflow / Gain"></span>`;
     liveBadge = `<span class="live-pulse-badge"><span class="live-radar-dot"></span> LIVE</span>`;
     glowClass = 'live-glow-green';
     textGlowClass = 'live-glow-text-green';
+    microBar = `<div class="kpi-micro-track"><div class="kpi-micro-bar" style="width:75%; background:linear-gradient(90deg, var(--emerald), var(--teal));"></div></div>`;
   } else if (isRed) {
     liveArrow = `<span class="live-arrow-stream-down" title="Live outflow / Loss"></span>`;
     liveBadge = `<span class="live-pulse-badge-red"><span class="live-radar-dot-red"></span> LIVE</span>`;
     glowClass = 'live-glow-red';
     textGlowClass = 'live-glow-text-red';
+    microBar = `<div class="kpi-micro-track"><div class="kpi-micro-bar" style="width:65%; background:linear-gradient(90deg, var(--rose), #ef4444);"></div></div>`;
+  } else if (cls === 'violet') {
+    microBar = `<div class="kpi-micro-track"><div class="kpi-micro-bar" style="width:80%; background:linear-gradient(90deg, var(--violet), #a855f7);"></div></div>`;
+  } else {
+    microBar = `<div class="kpi-micro-track"><div class="kpi-micro-bar" style="width:100%; background:linear-gradient(90deg, var(--teal), var(--emerald));"></div></div>`;
   }
 
   return `
@@ -4926,6 +5302,7 @@ function kpiCard(title, value, sub, type, valueColor, onclickAttr) {
         ${liveArrow}<span>${value}</span>
       </div>
       <div class="kpi-sub">${sub}</div>
+      ${microBar}
     </div>
   `;
 }
@@ -4946,6 +5323,7 @@ function getKpiIcon(title) {
    ========================= */
 
 function renderKPIs() {
+  try { renderHeroCard(); } catch (e) { console.warn('[LM] renderHeroCard error:', e); }
   const k = calculateKPIs();
   const row = document.getElementById("kpiCards");
   if (!row) return;
@@ -5677,6 +6055,19 @@ function renderHealthScore() {
   const C = 2 * Math.PI * R;
   const offset = C - (h.score / 100) * C;
 
+  let tipText = '';
+  if (h.savingsPts < 20) {
+    tipText = '💡 Tip: Boost savings rate above 20% to reach an Excellent financial health tier.';
+  } else if (h.debtPts < 18) {
+    tipText = '💡 Tip: Pay down outstanding loans or credit debt to significantly enhance debt-to-income score.';
+  } else if (h.emergencyPts < 18) {
+    tipText = '💡 Tip: Build an emergency buffer covering 3–6 months of basic expenses for total peace of mind.';
+  } else if (h.budgetPts < 16) {
+    tipText = '💡 Tip: Keep spending strictly within monthly category budgets to protect your cash reserves.';
+  } else {
+    tipText = '🎉 Excellent habits! Your savings rate, low liabilities, and budget adherence are at peak levels.';
+  }
+
   wrap.innerHTML = `
     <div class="chart-card" style="padding:20px;">
       <div class="chart-card-title" style="margin-bottom:16px;">
@@ -5690,21 +6081,24 @@ function renderHealthScore() {
             <circle cx="65" cy="65" r="${R}" fill="none" stroke="var(--bg3)" stroke-width="10"/>
             <circle cx="65" cy="65" r="${R}" fill="none" stroke="${h.color}" stroke-width="10"
               stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}"
-              stroke-linecap="round" style="transition:stroke-dashoffset 1s ease;"/>
+              stroke-linecap="round" style="transition:stroke-dashoffset 1s ease; filter:drop-shadow(0 0 6px ${h.color});"/>
           </svg>
           <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
             <div style="font-family:var(--font-m);font-size:30px;font-weight:700;color:${h.color};">${h.score}</div>
-            <div style="font-size:11px;color:var(--text-3);">${h.grade}</div>
+            <div style="font-size:11px;color:var(--text-3);font-weight:600;">${h.grade}</div>
           </div>
         </div>
 
         <div style="flex:1;min-width:180px;">
           ${_healthBar('Savings Rate', h.savingsPts, 30, h.savingsRate + '%')}
-          ${_healthBar('Debt-to-Income', h.debtPts, 25, h.totalDebt > 0 ? fmtINR(h.totalDebt) + ' debt' : 'Debt-free')}
-          ${_healthBar('Emergency Fund', h.emergencyPts, 25, h.totalSavings > 0 ? fmtINR(h.totalSavings) + ' saved' : 'No savings')}
+          ${_healthBar('Debt-to-Income', h.debtPts, 25, h.totalDebt > 0 ? (typeof fmtINR === 'function' ? fmtINR(h.totalDebt) : h.totalDebt) + ' debt' : 'Debt-free')}
+          ${_healthBar('Emergency Fund', h.emergencyPts, 25, h.totalSavings > 0 ? (typeof fmtINR === 'function' ? fmtINR(h.totalSavings) : h.totalSavings) + ' saved' : 'No savings')}
           ${_healthBar('Budget Adherence', h.budgetPts, 20, h.budgetPts >= 16 ? 'On Track' : h.budgetPts >= 10 ? 'Moderate' : 'Over Budget')}
         </div>
 
+      </div>
+      <div style="margin-top:14px;padding:9px 12px;background:rgba(0,0,0,0.22);border:1px solid var(--border);border-radius:10px;font-size:11.5px;color:var(--text-2);display:flex;align-items:center;gap:6px;">
+        <span>${tipText}</span>
       </div>
     </div>`;
 }

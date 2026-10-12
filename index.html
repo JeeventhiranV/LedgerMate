@@ -511,19 +511,92 @@
           </div>
         </div>  
 
+        <!-- 👑 EXECUTIVE MASTER FINANCIAL HERO CARD -->
+        <div id="dashHeroCard" class="dash-hero-card fade-up fade-up-1">
+          <div class="dash-hero-glass-mesh"></div>
+          <div class="dash-hero-content">
+            <div class="dash-hero-top">
+              <div class="dash-hero-badge-wrap">
+                <span class="dash-hero-badge">
+                  <span class="live-radar-dot"></span>
+                  <span id="dashHeroBadgeText">EXECUTIVE OVERVIEW</span>
+                </span>
+                <span id="dashHeroGrowthPill" class="dash-growth-pill up">
+                  <span class="growth-icon" id="dashHeroGrowthIcon">▲</span>
+                  <span id="dashHeroGrowthText">+0.0% this month</span>
+                </span>
+              </div>
+              <div class="dash-hero-switch-wrap">
+                <div class="dash-hero-segmented-pill" id="dashHeroModeToggle">
+                  <button type="button" class="dash-hero-pill-btn active" id="btnHeroNetWorth" onclick="window.LM_setHeroMode('net_worth')">Net Worth</button>
+                  <button type="button" class="dash-hero-pill-btn" id="btnHeroLiquid" onclick="window.LM_setHeroMode('liquid')">Liquid Cash</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="dash-hero-main">
+              <div class="dash-hero-val-block">
+                <div class="dash-hero-label" id="dashHeroLabel">TOTAL NET WORTH</div>
+                <div class="dash-hero-val kpi-value acc-bal" id="dashHeroValue" data-amount="0">
+                  ₹0
+                </div>
+                <div class="dash-hero-sub" id="dashHeroSub">
+                  Assets (Investments &amp; Stocks) minus Liabilities (Loans)
+                </div>
+              </div>
+              <div class="dash-hero-sparkline-wrap" id="dashHeroSparklineWrap">
+                <canvas id="dashHeroSparklineCanvas"></canvas>
+              </div>
+            </div>
+
+            <!-- Mini Telemetry Strip -->
+            <div class="dash-hero-telemetry" id="dashHeroTelemetry">
+              <div class="dash-telem-item" onclick="window.LM_filterTxByType('ALL')" title="View All Liquid Balances">
+                <span class="dash-telem-icon">💼</span>
+                <div class="dash-telem-data">
+                  <span class="dash-telem-label">Liquid Cash</span>
+                  <span class="dash-telem-val acc-bal" id="dashTelemLiquid">₹0</span>
+                </div>
+              </div>
+              <div class="dash-telem-item" onclick="showPage('stocks')" title="View Stock Portfolio">
+                <span class="dash-telem-icon">📈</span>
+                <div class="dash-telem-data">
+                  <span class="dash-telem-label">Stocks</span>
+                  <span class="dash-telem-val acc-bal" id="dashTelemStocks">₹0</span>
+                </div>
+              </div>
+              <div class="dash-telem-item" onclick="showPage('wealth')" title="View Wealth &amp; Assets">
+                <span class="dash-telem-icon">💎</span>
+                <div class="dash-telem-data">
+                  <span class="dash-telem-label">Assets &amp; Gold</span>
+                  <span class="dash-telem-val acc-bal" id="dashTelemAssets">₹0</span>
+                </div>
+              </div>
+              <div class="dash-telem-item" onclick="showPage('loans')" title="View Liabilities &amp; EMIs">
+                <span class="dash-telem-icon">📉</span>
+                <div class="dash-telem-data">
+                  <span class="dash-telem-label">Liabilities</span>
+                  <span class="dash-telem-val acc-bal" id="dashTelemLiabs">₹0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ⚡ DASHBOARD QUICK ACTION SPEED DIAL -->
         <div class="dash-quick-actions-wrap fade-up fade-up-2">
-          <button class="dash-action-btn" onclick="openAddTransactionModal({type:'out'})" title="Log an expense">
+          <button class="dash-action-btn primary-action expense" onclick="openAddTransactionModal({type:'out'})" title="Log an expense">
             <span class="dash-action-icon expense">💸</span>
             <span class="dash-action-label">Expense</span>
           </button>
-          <button class="dash-action-btn" onclick="openAddTransactionModal({type:'in'})" title="Record income">
+          <button class="dash-action-btn primary-action income" onclick="openAddTransactionModal({type:'in'})" title="Record income">
             <span class="dash-action-icon income">💰</span>
             <span class="dash-action-label">Income</span>
           </button>
           <button class="dash-action-btn" onclick="window.LM_ReceiptOCR?.openReceiptScannerModal()" title="Scan bill or receipt with AI OCR">
             <span class="dash-action-icon" style="background:rgba(16,185,129,0.15);color:#10b981;">📸</span>
             <span class="dash-action-label">Scan AI</span>
+            <span class="dash-badge-micro">AI</span>
           </button>
           <button class="dash-action-btn" onclick="window.LM_BillSplitter?.openBillSplitterModal()" title="Split shared expenses with friends & UPI">
             <span class="dash-action-icon" style="background:rgba(79,142,247,0.15);color:#4f8ef7;">👥</span>
@@ -589,56 +662,58 @@
           <div id="accountSummaries" class="kpi-grid"></div>
         </div>
 
-        
         <!-- CHARTS GRID -->
         <div class="charts-grid fade-up fade-up-4">
           <div class="chart-card">
-            <div class="chart-card-title">
-              <span style="color:var(--teal)">●</span> Net Cashflow
+            <div class="chart-card-title" style="justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <span style="display:flex;align-items:center;gap:6px;">
+                <span style="color:var(--teal)">●</span> Net Cashflow
+              </span>
+              <div class="chart-mode-pills" id="cashflowModeToggle">
+                <button type="button" class="chart-mode-pill active" id="btnCfBalance" onclick="window.LM_setCashflowMode('balance')">Balance Trend</button>
+                <button type="button" class="chart-mode-pill" id="btnCfInOut" onclick="window.LM_setCashflowMode('inout')">Inflow vs Outflow</button>
+              </div>
             </div>
-            <div class="chart-wrap">
+            <div class="chart-wrap" style="position:relative; height:240px;">
               <canvas id="cashflowChart"></canvas>
             </div>
           </div>
-                    <div class="chart-card">
 
+          <div class="chart-card">
             <!-- HEADER -->
-            <div class="chart-card-title" style="justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
-              
+            <div class="chart-card-title" style="justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
               <!-- Title -->
               <span>
                 <span style="color:var(--rose)">●</span> By Category
               </span>
 
-              <!-- FILTERS (NEW UI STYLE) -->
+              <!-- FILTERS -->
               <div class="flex gap-2 flex-wrap">
-
-                <!-- Time Filter -->
                 <select id="timeFilter" class="form-input text-xs">
                   <option value="thisMonth">This Month</option>
                   <option value="lastMonth">Last Month</option>
                   <option value="custom">Custom</option>
                 </select>
 
-                <!-- Type Filter -->
-                <select id="typeFilter" class="form-input text-xs"  >
+                <select id="typeFilter" class="form-input text-xs">
                   <option value="out">Expenses</option>
                   <option value="in">Income</option>
                   <option value="all">Both</option>
                 </select>
 
-                <!-- Custom Dates -->
                 <input type="date" id="startDate" class="form-input text-xs hidden" />
                 <input type="date" id="endDate" class="form-input text-xs hidden" />
-
               </div>
             </div>
 
-            <!-- CHART -->
-            <div class="chart-wrap">
-             <canvas id="categoryDoughnut" class="w-full h-full"></canvas>
+            <!-- CHART WITH INTERACTIVE CENTER READOUT -->
+            <div class="chart-wrap" style="position:relative; height:240px; display:flex; align-items:center; justify-content:center;">
+              <canvas id="categoryDoughnut" class="w-full h-full"></canvas>
+              <div class="doughnut-center-info" id="doughnutCenterInfo">
+                <div class="doughnut-center-val acc-bal" id="doughnutCenterVal">₹0</div>
+                <div class="doughnut-center-lbl" id="doughnutCenterLbl">Total Spend</div>
+              </div>
             </div>
-
           </div>
         </div>
 
