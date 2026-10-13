@@ -35,6 +35,9 @@
 <script src="js/AIInterviewHelper.js"></script>
 <script src="js/StudyQuizEngine.js"></script>
 <script src="js/LiveStudyRoom.js"></script>
+<script src="js/StudySearchIndex.js"></script>
+<script src="js/StudySpotlight.js"></script>
+<script src="js/StudyZenMode.js"></script>
 <script src="js/pwa-push.js"></script>
 <script src="../src/scripts/pwa-install.js"></script>
 <script>
@@ -289,445 +292,550 @@ if ('serviceWorker' in navigator) {
   <button onclick="document.getElementById('noAccessBanner').classList.remove('show')" aria-label="Dismiss">✕</button>
 </div>
 
-<!-- HERO -->
-<div class="hero">
-  <div class="hero-glow-1"></div>
-  <div class="hero-glow-2"></div>
-  <div class="hero-content fade-up">
-    <div class="hero-eyebrow"><span></span> Interview Preparation Command Center</div>
-    <h1 id="heroTitle">Study Resources Hub</h1>
-    <div class="hero-streak" id="heroStreak" style="display:none">🔥 <span id="streakVal">0</span>-day streak · <span id="longestVal">0</span> best</div>
-    <p class="hero-sub">Your complete interview preparation toolkit — DSA, Java Systems, React Engineering, and Behavioral Mastery built for high-impact engineers.</p>
-
-    <!-- Omnibar Search -->
-    <div class="search-wrap">
-      <span class="search-icon">🔍</span>
-      <input type="text" id="searchInput" placeholder="Search resources, topics, tags (Ctrl+K)…" autocomplete="off" aria-label="Search resources"/>
-      <kbd class="search-kbd">Ctrl+K</kbd>
-    </div>
-
-    <!-- Quick Stats Bar -->
-    <div class="hero-stats">
-      <div class="stat-pill"><div class="stat-num" id="statDone">0</div><div class="stat-lbl">Questions Done</div></div>
-      <div class="stat-pill" id="statInProgressPill" style="display:none;border-color:rgba(245,158,11,.35)"><div class="stat-num" id="statInProgress" style="background:linear-gradient(135deg,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">0</div><div class="stat-lbl">In Progress</div></div>
-      <div class="stat-pill"><div class="stat-num" id="statTotal">7</div><div class="stat-lbl">Resources</div></div>
-      <div class="stat-pill"><div class="stat-num" id="statQ">538</div><div class="stat-lbl">Questions</div></div>
-    </div>
-
-    <!-- ═══ EXECUTIVE PRACTICE COCKPIT (DUAL-CARD HARMONY) ═══ -->
-    <div class="exec-cockpit-grid">
-      <!-- Card 1: Daily Target & Weekly Milestone -->
-      <div class="exec-cockpit-card daily-target-card">
-        <!-- Daily Practice Goal Section -->
-        <div class="dtc-header">
-          <div class="dtc-title-row">
-            <span class="dtc-icon">🎯</span>
-            <span class="dtc-title">Daily Practice Target</span>
-          </div>
-          <div class="dtc-selector">
-            <button class="dtc-btn active" data-target="3" onclick="setDailyTarget(3)">3 Qs</button>
-            <button class="dtc-btn" data-target="5" onclick="setDailyTarget(5)">5 Qs</button>
-            <button class="dtc-btn" data-target="10" onclick="setDailyTarget(10)">10 Qs</button>
-          </div>
-        </div>
-        <div class="dtc-body">
-          <div class="dtc-count-wrap">
-            <span class="dtc-count" id="dailyTargetDone">0</span>
-            <span class="dtc-divider">/</span>
-            <span class="dtc-goal" id="dailyTargetGoal">3</span>
-            <span class="dtc-unit">completed today</span>
-          </div>
-          <div class="dtc-progress-bar">
-            <div class="dtc-progress-fill" id="dailyTargetFill" style="width:0%"></div>
-          </div>
-          <div class="dtc-status" id="dailyTargetStatus">🚀 Complete 3 questions today to maintain your momentum!</div>
-        </div>
-
-        <!-- Integrated Weekly Goal Milestone Sub-Row -->
-        <div class="exec-cockpit-weekly-sub weekly-goal-wrap" style="padding:0;max-width:none;margin-top:14px;border-top:1px dashed var(--border);padding-top:12px;">
-          <div class="weekly-goal-inner" style="background:transparent;border:none;padding:0;gap:12px;">
-            <div class="weekly-goal-left">
-              <div class="weekly-goal-label">Weekly Milestone</div>
-              <div class="weekly-goal-nums">
-                <span class="wg-done" id="wkDone">0</span><span class="wg-sep">/</span><span class="wg-goal" id="wkGoal" title="Click to edit weekly goal">20</span>
-              </div>
-            </div>
-            <div class="weekly-goal-prog">
-              <div class="wg-bar-header">
-                <span>Week Target</span><span class="wg-bar-pct" id="wkPct">0%</span>
-              </div>
-              <div class="wg-bar"><div class="wg-bar-fill" id="wkBar" style="width:0%"></div></div>
-            </div>
-            <div class="weekly-goal-days" id="wkDays">
-              <div class="wg-day">M</div><div class="wg-day">T</div><div class="wg-day">W</div>
-              <div class="wg-day">T</div><div class="wg-day">F</div><div class="wg-day">S</div><div class="wg-day">S</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Card 2: Difficulty Breakdown & Curriculum Gauge -->
-      <div class="exec-cockpit-card diff-matrix-card">
-        <div class="dmc-header">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span style="font-size:16px;">📊</span>
-            <span class="dmc-title">Difficulty Distribution</span>
-          </div>
-          <span class="dmc-total" id="dmcTotalDone">0 / 538 Solved</span>
-        </div>
-        <div class="dmc-rows">
-          <div class="dmc-row easy">
-            <div class="dmc-label">
-              <span class="dmc-dot"></span>
-              <span>Easy</span>
-            </div>
-            <div class="dmc-bar-wrap">
-              <div class="dmc-bar-fill" id="dmcEasyFill" style="width:0%"></div>
-            </div>
-            <div class="dmc-val"><strong id="dmcEasyDone">0</strong><span class="dmc-max">/190</span></div>
-          </div>
-          <div class="dmc-row med">
-            <div class="dmc-label">
-              <span class="dmc-dot"></span>
-              <span>Medium</span>
-            </div>
-            <div class="dmc-bar-wrap">
-              <div class="dmc-bar-fill" id="dmcMedFill" style="width:0%"></div>
-            </div>
-            <div class="dmc-val"><strong id="dmcMedDone">0</strong><span class="dmc-max">/230</span></div>
-          </div>
-          <div class="dmc-row hard">
-            <div class="dmc-label">
-              <span class="dmc-dot"></span>
-              <span>Hard</span>
-            </div>
-            <div class="dmc-bar-wrap">
-              <div class="dmc-bar-fill" id="dmcHardFill" style="width:0%"></div>
-            </div>
-            <div class="dmc-val"><strong id="dmcHardDone">0</strong><span class="dmc-max">/118</span></div>
-          </div>
-        </div>
-
-        <!-- Overall progress bar inside Card 2 -->
-        <div class="overall-bar-wrap" id="overallBarWrap" style="opacity:0;transition:opacity .4s;margin:14px 0 0;border-top:1px dashed var(--border);padding-top:12px;">
-          <div class="overall-bar-label">
-            <span>Curriculum Completion</span>
-            <strong id="overallPctLabel">0%</strong>
-          </div>
-          <div class="overall-bar">
-            <div class="overall-bar-done" id="overallBarDone" style="width:0%"></div>
-            <div class="overall-bar-ip" id="overallBarIp" style="width:0%"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- ═══ TACTILE STUDY COMMAND DOCK (1-TAP HIGH-VELOCITY LAUNCHERS) ═══ -->
-<div class="study-command-dock-wrap">
-  <div class="study-command-dock" id="studyCommandDock">
-    <button class="cmd-dock-btn" onclick="window.StudyQuiz?.showModal()" title="Start Practice Quiz Sprint">
-      <div class="cmd-dock-ico" style="--cd-glow:rgba(6,214,160,0.25);background:rgba(6,214,160,0.12);color:#06d6a0;">🎯</div>
-      <div class="cmd-dock-info">
-        <span class="cmd-dock-title">Practice Quiz</span>
-        <span class="cmd-dock-sub">Topic Sprint</span>
-      </div>
+<!-- ═══ MODERN SEGMENTED HUB TABS (DESKTOP) ═══ -->
+<div class="study-segmented-wrap">
+  <div class="study-segmented-tabs" role="tablist" aria-label="Study Hub Navigation">
+    <button class="study-tab-btn active" data-tab="overview" onclick="switchStudyHubTab('overview')" role="tab">
+      <span class="st-tab-icon">📚</span>
+      <span>Overview &amp; Tracks</span>
     </button>
-    <button class="cmd-dock-btn" onclick="window.StudySRS?.showModal()" title="Spaced Repetition Flashcards">
-      <div class="cmd-dock-ico" style="--cd-glow:rgba(139,92,246,0.25);background:rgba(139,92,246,0.12);color:#8b5cf6;">🧠</div>
-      <div class="cmd-dock-info">
-        <span class="cmd-dock-title">SRS Flashcards</span>
-        <span class="cmd-dock-sub">Recall Memory</span>
-      </div>
+    <button class="study-tab-btn" data-tab="practice" onclick="switchStudyHubTab('practice')" role="tab">
+      <span class="st-tab-icon">⚡</span>
+      <span>Interactive Practice</span>
     </button>
-    <button class="cmd-dock-btn" onclick="window.StudyCodeRunner?.showModal()" title="Java &amp; JS Algorithm Playground">
-      <div class="cmd-dock-ico" style="--cd-glow:rgba(245,158,11,0.25);background:rgba(245,158,11,0.12);color:#f59e0b;">💻</div>
-      <div class="cmd-dock-info">
-        <span class="cmd-dock-title">Code Runner</span>
-        <span class="cmd-dock-sub">DSA Playground</span>
-      </div>
+    <button class="study-tab-btn" data-tab="notes" onclick="switchStudyHubTab('notes')" role="tab">
+      <span class="st-tab-icon">🗒️</span>
+      <span>Notes &amp; Studio</span>
     </button>
-    <button class="cmd-dock-btn" onclick="window.AIInterviewHelper?.showModal()" title="AI Mock Interview Assistant">
-      <div class="cmd-dock-ico" style="--cd-glow:rgba(236,72,153,0.25);background:rgba(236,72,153,0.12);color:#ec4899;">🤖</div>
-      <div class="cmd-dock-info">
-        <span class="cmd-dock-title">AI Mock Coach</span>
-        <span class="cmd-dock-sub">Interview Assistant</span>
-      </div>
-    </button>
-    <button class="cmd-dock-btn" onclick="window.LiveStudyRoom?.openLiveStudyRoomModal()" title="Live Peer Study Room">
-      <div class="cmd-dock-ico" style="--cd-glow:rgba(79,142,247,0.25);background:rgba(79,142,247,0.12);color:#4f8ef7;">🏛️</div>
-      <div class="cmd-dock-info">
-        <span class="cmd-dock-title">Live Study Room</span>
-        <span class="cmd-dock-sub">Peer Sprint</span>
-      </div>
-    </button>
-    <button class="cmd-dock-btn" onclick="document.getElementById('stFab')?.click()" title="Toggle Study Focus Timer">
-      <div class="cmd-dock-ico" style="--cd-glow:rgba(34,211,238,0.25);background:rgba(34,211,238,0.12);color:#22d3ee;">⏱️</div>
-      <div class="cmd-dock-info">
-        <span class="cmd-dock-title">Focus Timer</span>
-        <span class="cmd-dock-sub" id="cmdDockTimerSub">Pomodoro &amp; Track</span>
-      </div>
-    </button>
-    <button class="cmd-dock-btn" onclick="window.StudyWorkspace?.openStudio('sections')" title="Create Custom Learning Tracks">
-      <div class="cmd-dock-ico" style="--cd-glow:rgba(168,85,247,0.25);background:rgba(168,85,247,0.12);color:#a855f7;">⚙️</div>
-      <div class="cmd-dock-info">
-        <span class="cmd-dock-title">Studio Hub</span>
-        <span class="cmd-dock-sub">Custom Tracks</span>
-      </div>
-    </button>
-    <button class="cmd-dock-btn" onclick="window.StudyWorkspace?.openQuickUploadModal()" title="Upload Notes, Docs &amp; Code">
-      <div class="cmd-dock-ico" style="--cd-glow:rgba(16,185,129,0.25);background:rgba(16,185,129,0.12);color:#10b981;">📤</div>
-      <div class="cmd-dock-info">
-        <span class="cmd-dock-title">Upload Vault</span>
-        <span class="cmd-dock-sub">Notes &amp; Materials</span>
-      </div>
+    <button class="study-tab-btn" data-tab="analytics" onclick="switchStudyHubTab('analytics')" role="tab">
+      <span class="st-tab-icon">📊</span>
+      <span>Analytics &amp; Goals</span>
     </button>
   </div>
 </div>
 
-<!-- ═══ RESUME LEARNING HERO BANNER ═══ -->
-<div id="resumeHeroContainer"></div>
-<div id="resumeChip" style="max-width:1200px;margin:0 auto 16px;padding:0 24px;"></div>
+<!-- ══════════════════════════════════════════════════════════════
+     TAB PANE 1: OVERVIEW & TRACKS
+══════════════════════════════════════════════════════════════ -->
+<div class="study-tab-pane active" id="studyTab-overview">
 
-<!-- ═══ FOCUS POMODORO & LEARNING GOALS WIDGETS ═══ -->
-<div id="pomodoroWidgetContainer" style="max-width:1200px;margin:0 auto;padding:0 24px;"></div>
-<div id="goalsWidgetContainer" style="max-width:1200px;margin:0 auto;padding:0 24px;"></div>
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-glow-1"></div>
+    <div class="hero-glow-2"></div>
+    <div class="hero-content fade-up">
+      <div class="hero-eyebrow"><span></span> Interview Preparation Command Center</div>
+      <h1 id="heroTitle">Study Resources Hub</h1>
+      <div class="hero-streak" id="heroStreak" style="display:none">🔥 <span id="streakVal">0</span>-day streak · <span id="longestVal">0</span> best</div>
+      <p class="hero-sub">Your complete interview preparation toolkit — DSA, Java Systems, React Engineering, and Behavioral Mastery built for high-impact engineers.</p>
 
-<!-- ═══ IN-PAGE WORKSPACE CUSTOMIZATION STUDIO ═══ -->
-<section class="ws-studio-section" id="workspaceCustomizationStudio">
-  <div class="ws-studio-card">
-    <div class="ws-studio-header">
-      <div class="ws-studio-title-wrap">
-        <div class="ws-studio-icon-badge">⚙️</div>
-        <div>
-          <h2 class="ws-studio-title">Workspace Customization Studio</h2>
-          <div class="ws-studio-subtitle">Build custom tracks, manage modules &amp; topics, upload files to Supabase, track material progress, and configure widgets</div>
+      <!-- Omnibar Search (Global Spotlight Trigger) -->
+      <div class="search-wrap" onclick="if(window.StudySpotlight) window.StudySpotlight.open();" style="cursor:pointer;">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Search resources, topics, tags (Ctrl+K)…" autocomplete="off" aria-label="Search resources" onclick="if(window.StudySpotlight) window.StudySpotlight.open();"/>
+        <kbd class="search-kbd">Ctrl+K</kbd>
+      </div>
+
+      <!-- Quick Stats Bar -->
+      <div class="hero-stats">
+        <div class="stat-pill"><div class="stat-num" id="statDone">0</div><div class="stat-lbl">Questions Done</div></div>
+        <div class="stat-pill" id="statInProgressPill" style="display:none;border-color:rgba(245,158,11,.35)"><div class="stat-num" id="statInProgress" style="background:linear-gradient(135deg,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">0</div><div class="stat-lbl">In Progress</div></div>
+        <div class="stat-pill"><div class="stat-num" id="statTotal">7</div><div class="stat-lbl">Resources</div></div>
+        <div class="stat-pill"><div class="stat-num" id="statQ">538</div><div class="stat-lbl">Questions</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ RESUME LEARNING HERO BANNER ═══ -->
+  <div id="resumeHeroContainer"></div>
+  <div id="resumeChip" style="max-width:1200px;margin:0 auto 16px;padding:0 24px;"></div>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <span class="filter-label">Domain:</span>
+    <div class="filter-chips" id="filterChips">
+      <button class="chip active" data-filter="all">🌐 All Domains</button>
+      <button class="chip chip-custom" data-filter="custom">✨ Custom Tracks</button>
+      <button class="chip" data-filter="java">☕ Java Ecosystem</button>
+      <button class="chip" data-filter="frontend">⚛️ React &amp; Frontend</button>
+      <button class="chip" data-filter="dsa">🧠 DSA &amp; Algorithms</button>
+      <button class="chip" data-filter="hr">🤝 HR &amp; Management</button>
+      <button class="chip" data-filter="tools">🎯 Trackers &amp; Tools</button>
+      <button class="chip" data-filter="done">Has Progress</button>
+      <button class="chip" data-filter="inprogress" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.4);color:#f59e0b">⏳ In Progress</button>
+      <button class="chip chip-st-wip" data-filter="st-wip">🚧 WIP</button>
+      <button class="chip chip-st-completed" data-filter="st-completed">✅ Completed</button>
+      <button class="chip gold" data-filter="fav">⭐ Favorites</button>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="section" id="resources">
+    <div class="section-header">
+      <div class="section-title">Preparation Modules &amp; Resources</div>
+      <span class="section-count" id="availCount">10</span>
+      <div class="section-line"></div>
+    </div>
+    <div id="noResults" class="no-results">
+      <div class="no-results-icon">🔍</div>
+      <div class="no-results-text">No resources match your search or filter.</div>
+    </div>
+    
+    <!-- 1. CUSTOM LEARNING TRACKS & CREATED TOPICS (RENDERED AT TOP) -->
+    <div id="customSectionsWrap"></div>
+
+    <!-- 2. STATIC PREPARATION MODULES & DOMAINS (RENDERED BELOW CUSTOM TRACKS) -->
+    <div id="languageSectionsWrap"></div>
+  </div>
+
+  <!-- DUE FOR REVIEW -->
+  <div class="due-section" id="dueSection" style="display:none">
+    <div class="due-header">
+      <div class="due-title">📅 Due for Review</div>
+      <div class="due-sub" id="dueSub"></div>
+    </div>
+    <div class="due-list" id="dueList"></div>
+  </div>
+
+</div><!-- /#studyTab-overview -->
+
+<!-- ══════════════════════════════════════════════════════════════
+     TAB PANE 2: INTERACTIVE PRACTICE
+══════════════════════════════════════════════════════════════ -->
+<div class="study-tab-pane" id="studyTab-practice">
+
+  <!-- Interactive Practice Tools Grid -->
+  <div class="practice-tools-grid">
+    <div class="practice-tool-card" onclick="window.StudyQuiz?.showModal()">
+      <div class="ptc-header">
+        <div class="ptc-icon-badge" style="background:rgba(6,214,160,0.15);color:#06d6a0;">🎯</div>
+        <div class="ptc-info">
+          <div class="ptc-title">Practice Quiz</div>
+          <div class="ptc-desc">Timed domain sprints with immediate score assessment</div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openQuickUploadModal()" style="font-size:12px;padding:6px 14px;background:linear-gradient(135deg,#4f8ef7,#8b5cf6);">
-          <span>📤</span> Upload to Supabase
+      <div class="ptc-action"><span>Launch Quiz Sprint</span> <span>↗</span></div>
+    </div>
+    <div class="practice-tool-card" onclick="window.StudySRS?.showModal()">
+      <div class="ptc-header">
+        <div class="ptc-icon-badge" style="background:rgba(139,92,246,0.15);color:#8b5cf6;">🧠</div>
+        <div class="ptc-info">
+          <div class="ptc-title">SRS Flashcards</div>
+          <div class="ptc-desc">Spaced repetition memory cards with interval recall</div>
+        </div>
+      </div>
+      <div class="ptc-action"><span>Review Deck</span> <span>↗</span></div>
+    </div>
+    <div class="practice-tool-card" onclick="window.StudyCodeRunner?.showModal()">
+      <div class="ptc-header">
+        <div class="ptc-icon-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b;">💻</div>
+        <div class="ptc-info">
+          <div class="ptc-title">Code Runner Playground</div>
+          <div class="ptc-desc">Live in-browser JavaScript &amp; DSA execution sandbox</div>
+        </div>
+      </div>
+      <div class="ptc-action"><span>Open Playground</span> <span>↗</span></div>
+    </div>
+    <div class="practice-tool-card" onclick="window.AIInterviewHelper?.showModal()">
+      <div class="ptc-header">
+        <div class="ptc-icon-badge" style="background:rgba(236,72,153,0.15);color:#ec4899;">🤖</div>
+        <div class="ptc-info">
+          <div class="ptc-title">AI Mock Coach</div>
+          <div class="ptc-desc">Interactive AI mock interview simulation with feedback</div>
+        </div>
+      </div>
+      <div class="ptc-action"><span>Start Mock Interview</span> <span>↗</span></div>
+    </div>
+    <div class="practice-tool-card" onclick="window.LiveStudyRoom?.openLiveStudyRoomModal()">
+      <div class="ptc-header">
+        <div class="ptc-icon-badge" style="background:rgba(79,142,247,0.15);color:#4f8ef7;">🏛️</div>
+        <div class="ptc-info">
+          <div class="ptc-title">Live Study Room</div>
+          <div class="ptc-desc">Join peer focus room with shared timer and accountability</div>
+        </div>
+      </div>
+      <div class="ptc-action"><span>Enter Live Room</span> <span>↗</span></div>
+    </div>
+    <div class="practice-tool-card" onclick="window.StudyZenMode?.open()">
+      <div class="ptc-header">
+        <div class="ptc-icon-badge" style="background:rgba(16,185,129,0.15);color:#10b981;">🧘</div>
+        <div class="ptc-info">
+          <div class="ptc-title">Zen Study Mode</div>
+          <div class="ptc-desc">Card-by-card distraction-free focus deck with active recall</div>
+        </div>
+      </div>
+      <div class="ptc-action"><span>Enter Zen Mode (Alt+Z)</span> <span>↗</span></div>
+    </div>
+  </div>
+
+  <!-- ═══ TACTILE STUDY COMMAND DOCK (1-TAP HIGH-VELOCITY LAUNCHERS) ═══ -->
+  <div class="study-command-dock-wrap">
+    <div class="study-command-dock" id="studyCommandDock">
+      <button class="cmd-dock-btn" onclick="window.StudyQuiz?.showModal()" title="Start Practice Quiz Sprint">
+        <div class="cmd-dock-ico" style="--cd-glow:rgba(6,214,160,0.25);background:rgba(6,214,160,0.12);color:#06d6a0;">🎯</div>
+        <div class="cmd-dock-info">
+          <span class="cmd-dock-title">Practice Quiz</span>
+          <span class="cmd-dock-sub">Topic Sprint</span>
+        </div>
+      </button>
+      <button class="cmd-dock-btn" onclick="window.StudySRS?.showModal()" title="Spaced Repetition Flashcards">
+        <div class="cmd-dock-ico" style="--cd-glow:rgba(139,92,246,0.25);background:rgba(139,92,246,0.12);color:#8b5cf6;">🧠</div>
+        <div class="cmd-dock-info">
+          <span class="cmd-dock-title">SRS Flashcards</span>
+          <span class="cmd-dock-sub">Recall Memory</span>
+        </div>
+      </button>
+      <button class="cmd-dock-btn" onclick="window.StudyCodeRunner?.showModal()" title="Java &amp; JS Algorithm Playground">
+        <div class="cmd-dock-ico" style="--cd-glow:rgba(245,158,11,0.25);background:rgba(245,158,11,0.12);color:#f59e0b;">💻</div>
+        <div class="cmd-dock-info">
+          <span class="cmd-dock-title">Code Runner</span>
+          <span class="cmd-dock-sub">DSA Playground</span>
+        </div>
+      </button>
+      <button class="cmd-dock-btn" onclick="window.AIInterviewHelper?.showModal()" title="AI Mock Interview Assistant">
+        <div class="cmd-dock-ico" style="--cd-glow:rgba(236,72,153,0.25);background:rgba(236,72,153,0.12);color:#ec4899;">🤖</div>
+        <div class="cmd-dock-info">
+          <span class="cmd-dock-title">AI Mock Coach</span>
+          <span class="cmd-dock-sub">Interview Assistant</span>
+        </div>
+      </button>
+      <button class="cmd-dock-btn" onclick="window.LiveStudyRoom?.openLiveStudyRoomModal()" title="Live Peer Study Room">
+        <div class="cmd-dock-ico" style="--cd-glow:rgba(79,142,247,0.25);background:rgba(79,142,247,0.12);color:#4f8ef7;">🏛️</div>
+        <div class="cmd-dock-info">
+          <span class="cmd-dock-title">Live Study Room</span>
+          <span class="cmd-dock-sub">Peer Sprint</span>
+        </div>
+      </button>
+      <button class="cmd-dock-btn" onclick="document.getElementById('stFab')?.click()" title="Toggle Study Focus Timer">
+        <div class="cmd-dock-ico" style="--cd-glow:rgba(34,211,238,0.25);background:rgba(34,211,238,0.12);color:#22d3ee;">⏱️</div>
+        <div class="cmd-dock-info">
+          <span class="cmd-dock-title">Focus Timer</span>
+          <span class="cmd-dock-sub" id="cmdDockTimerSub">Pomodoro &amp; Track</span>
+        </div>
+      </button>
+      <button class="cmd-dock-btn" onclick="window.StudyWorkspace?.openStudio('sections')" title="Create Custom Learning Tracks">
+        <div class="cmd-dock-ico" style="--cd-glow:rgba(168,85,247,0.25);background:rgba(168,85,247,0.12);color:#a855f7;">⚙️</div>
+        <div class="cmd-dock-info">
+          <span class="cmd-dock-title">Studio Hub</span>
+          <span class="cmd-dock-sub">Custom Tracks</span>
+        </div>
+      </button>
+      <button class="cmd-dock-btn" onclick="window.StudyWorkspace?.openQuickUploadModal()" title="Upload Notes, Docs &amp; Code">
+        <div class="cmd-dock-ico" style="--cd-glow:rgba(16,185,129,0.25);background:rgba(16,185,129,0.12);color:#10b981;">📤</div>
+        <div class="cmd-dock-info">
+          <span class="cmd-dock-title">Upload Vault</span>
+          <span class="cmd-dock-sub">Notes &amp; Materials</span>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ FOCUS POMODORO & LEARNING GOALS WIDGETS ═══ -->
+  <div id="pomodoroWidgetContainer" style="max-width:1200px;margin:0 auto;padding:0 24px;"></div>
+  <div id="goalsWidgetContainer" style="max-width:1200px;margin:0 auto;padding:0 24px;"></div>
+
+</div><!-- /#studyTab-practice -->
+
+<!-- ══════════════════════════════════════════════════════════════
+     TAB PANE 3: NOTES & STUDIO
+══════════════════════════════════════════════════════════════ -->
+<div class="study-tab-pane" id="studyTab-notes">
+
+  <!-- ═══ IN-PAGE WORKSPACE CUSTOMIZATION STUDIO ═══ -->
+  <section class="ws-studio-section" id="workspaceCustomizationStudio">
+    <div class="ws-studio-card">
+      <div class="ws-studio-header">
+        <div class="ws-studio-title-wrap">
+          <div class="ws-studio-icon-badge">⚙️</div>
+          <div>
+            <h2 class="ws-studio-title">Workspace Customization Studio</h2>
+            <div class="ws-studio-subtitle">Build custom tracks, manage modules &amp; topics, upload files to Supabase, track material progress, and configure widgets</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openQuickUploadModal()" style="font-size:12px;padding:6px 14px;background:linear-gradient(135deg,#4f8ef7,#8b5cf6);">
+            <span>📤</span> Upload to Supabase
+          </button>
+          <button class="btn-resume-dismiss" onclick="window.StudyWorkspace?.toggleStudioView(false)" title="Close Studio" style="padding:6px 12px;font-size:12.5px;font-weight:600;">
+            ✕ Close Studio
+          </button>
+        </div>
+      </div>
+
+      <!-- Studio Tab Navigation Bar -->
+      <div class="ws-studio-tabs-bar" id="studioTabsBar">
+        <button class="studio-tab-btn active" data-tab="sections" onclick="window.StudyWorkspace?.switchStudioTab('sections')">
+          <span>🌐</span> Custom Sections &amp; Tracks
         </button>
-        <button class="btn-resume-dismiss" onclick="window.StudyWorkspace?.toggleStudioView(false)" title="Close Studio" style="padding:6px 12px;font-size:12.5px;font-weight:600;">
-          ✕ Close Studio
+        <button class="studio-tab-btn" data-tab="vault" onclick="window.StudyWorkspace?.switchStudioTab('vault')">
+          <span>📁</span> Cloud Materials &amp; File Vault
+        </button>
+        <button class="studio-tab-btn" data-tab="hierarchy" onclick="window.StudyWorkspace?.switchStudioTab('hierarchy')">
+          <span>🧩</span> Modules &amp; Topics Manager
+        </button>
+        <button class="studio-tab-btn" data-tab="widgets" onclick="window.StudyWorkspace?.switchStudioTab('widgets')">
+          <span>📊</span> Dashboard Widgets
+        </button>
+        <button class="studio-tab-btn" data-tab="blueprints" onclick="window.StudyWorkspace?.switchStudioTab('blueprints')">
+          <span>📦</span> Blueprints &amp; Roadmaps
+        </button>
+        <button class="studio-tab-btn" data-tab="goals" onclick="window.StudyWorkspace?.switchStudioTab('goals')">
+          <span>🎯</span> Goals &amp; Milestones
         </button>
       </div>
-    </div>
 
-    <!-- Studio Tab Navigation Bar -->
-    <div class="ws-studio-tabs-bar" id="studioTabsBar">
-      <button class="studio-tab-btn active" data-tab="sections" onclick="window.StudyWorkspace?.switchStudioTab('sections')">
-        <span>🌐</span> Custom Sections &amp; Tracks
+      <!-- Studio Tab Panes -->
+      <div class="studio-tab-pane active" id="studioPane-sections"></div>
+      <div class="studio-tab-pane" id="studioPane-vault"></div>
+      <div class="studio-tab-pane" id="studioPane-hierarchy"></div>
+      <div class="studio-tab-pane" id="studioPane-widgets"></div>
+      <div class="studio-tab-pane" id="studioPane-blueprints"></div>
+      <div class="studio-tab-pane" id="studioPane-goals"></div>
+    </div>
+  </section>
+
+  <!-- WORKSPACE COMMAND BAR & STATUS LEGEND -->
+  <div class="workspace-command-center" id="workspaceControlsBar">
+    <div class="wcc-actions">
+      <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openStudio('sections')" title="Open In-Page Studio to Add/Manage Custom Sections">
+        <span>➕</span> Add Language / Section
       </button>
-      <button class="studio-tab-btn" data-tab="vault" onclick="window.StudyWorkspace?.switchStudioTab('vault')">
-        <span>📁</span> Cloud Materials &amp; File Vault
+      <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openStudio('vault')" title="Upload PDF, Notes, Docs or Code to Cloud Storage" style="background:linear-gradient(135deg,#4f8ef7,#8b5cf6);">
+        <span>📤</span> Upload Material
       </button>
-      <button class="studio-tab-btn" data-tab="hierarchy" onclick="window.StudyWorkspace?.switchStudioTab('hierarchy')">
-        <span>🧩</span> Modules &amp; Topics Manager
+      <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openStudio('blueprints')" title="Import Ready-to-Learn Roadmaps">
+        <span>📦</span> Import Roadmap
       </button>
-      <button class="studio-tab-btn" data-tab="widgets" onclick="window.StudyWorkspace?.switchStudioTab('widgets')">
-        <span>📊</span> Dashboard Widgets
+      <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openStudio('goals')" title="Create Target Date &amp; Milestones">
+        <span>🎯</span> Set Goal
       </button>
-      <button class="studio-tab-btn" data-tab="blueprints" onclick="window.StudyWorkspace?.switchStudioTab('blueprints')">
-        <span>📦</span> Blueprints &amp; Roadmaps
-      </button>
-      <button class="studio-tab-btn" data-tab="goals" onclick="window.StudyWorkspace?.switchStudioTab('goals')">
-        <span>🎯</span> Goals &amp; Milestones
+      <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.toggleStudioView(true)" title="Open Full In-Page Workspace Customizer Studio" style="border-color:var(--blue,#4f8ef7);color:var(--blue,#4f8ef7);background:rgba(79,142,247,0.08);">
+        <span>⚙️</span> In-Page Studio
       </button>
     </div>
-
-    <!-- Studio Tab Panes -->
-    <div class="studio-tab-pane active" id="studioPane-sections"></div>
-    <div class="studio-tab-pane" id="studioPane-vault"></div>
-    <div class="studio-tab-pane" id="studioPane-hierarchy"></div>
-    <div class="studio-tab-pane" id="studioPane-widgets"></div>
-    <div class="studio-tab-pane" id="studioPane-blueprints"></div>
-    <div class="studio-tab-pane" id="studioPane-goals"></div>
-  </div>
-</section>
-
-<!-- WORKSPACE COMMAND BAR & STATUS LEGEND -->
-<div class="workspace-command-center" id="workspaceControlsBar">
-  <div class="wcc-actions">
-    <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openStudio('sections')" title="Open In-Page Studio to Add/Manage Custom Sections">
-      <span>➕</span> Add Language / Section
-    </button>
-    <button class="ws-btn-primary" onclick="window.StudyWorkspace?.openStudio('vault')" title="Upload PDF, Notes, Docs or Code to Cloud Storage" style="background:linear-gradient(135deg,#4f8ef7,#8b5cf6);">
-      <span>📤</span> Upload Material
-    </button>
-    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openStudio('blueprints')" title="Import Ready-to-Learn Roadmaps">
-      <span>📦</span> Import Roadmap
-    </button>
-    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.openStudio('goals')" title="Create Target Date &amp; Milestones">
-      <span>🎯</span> Set Goal
-    </button>
-    <button class="ws-btn-secondary" onclick="window.StudyWorkspace?.toggleStudioView(true)" title="Open Full In-Page Workspace Customizer Studio" style="border-color:var(--blue,#4f8ef7);color:var(--blue,#4f8ef7);background:rgba(79,142,247,0.08);">
-      <span>⚙️</span> In-Page Studio
-    </button>
-  </div>
-  <div class="wcc-legend">
-    <span class="st-badge st-pending">⚪ Pending</span>
-    <span class="st-badge st-inprogress">⏳ In Progress</span>
-    <span class="st-badge st-completed">✅ Completed</span>
-    <span class="st-badge st-onhold">⏸️ On Hold</span>
-  </div>
-</div>
-
-<!-- FILTER BAR -->
-<div class="filter-bar">
-  <span class="filter-label">Domain:</span>
-  <div class="filter-chips" id="filterChips">
-    <button class="chip active" data-filter="all">🌐 All Domains</button>
-    <button class="chip chip-custom" data-filter="custom">✨ Custom Tracks</button>
-    <button class="chip" data-filter="java">☕ Java Ecosystem</button>
-    <button class="chip" data-filter="frontend">⚛️ React &amp; Frontend</button>
-    <button class="chip" data-filter="dsa">🧠 DSA &amp; Algorithms</button>
-    <button class="chip" data-filter="hr">🤝 HR &amp; Management</button>
-    <button class="chip" data-filter="tools">🎯 Trackers &amp; Tools</button>
-    <button class="chip" data-filter="done">Has Progress</button>
-    <button class="chip" data-filter="inprogress" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.4);color:#f59e0b">⏳ In Progress</button>
-    <button class="chip chip-st-wip" data-filter="st-wip">🚧 WIP</button>
-    <button class="chip chip-st-completed" data-filter="st-completed">✅ Completed</button>
-    <button class="chip gold" data-filter="fav">⭐ Favorites</button>
-  </div>
-</div>
-
-<!-- MAIN CONTENT -->
-<div class="section" id="resources">
-  <div class="section-header">
-    <div class="section-title">Preparation Modules &amp; Resources</div>
-    <span class="section-count" id="availCount">10</span>
-    <div class="section-line"></div>
-  </div>
-  <div id="noResults" class="no-results">
-    <div class="no-results-icon">🔍</div>
-    <div class="no-results-text">No resources match your search or filter.</div>
-  </div>
-  
-  <!-- 1. CUSTOM LEARNING TRACKS & CREATED TOPICS (RENDERED AT TOP) -->
-  <div id="customSectionsWrap"></div>
-
-  <!-- 2. STATIC PREPARATION MODULES & DOMAINS (RENDERED BELOW CUSTOM TRACKS) -->
-  <div id="languageSectionsWrap"></div>
-
-</div>
-
-<!-- DUE FOR REVIEW -->
-<div class="due-section" id="dueSection" style="display:none">
-  <div class="due-header">
-    <div class="due-title">📅 Due for Review</div>
-    <div class="due-sub" id="dueSub"></div>
-  </div>
-  <div class="due-list" id="dueList"></div>
-</div>
-
-<!-- ═══ DASHBOARD & ANALYTICS PANEL (COLLAPSIBLE) ═══ -->
-<div class="dash-panel" id="dashAnalyticsPanel">
-  <div class="dash-panel-toggle-hdr" onclick="toggleAnalyticsPanel()" role="button" tabindex="0" title="Click to collapse/expand analytics dashboard">
-    <div class="dash-panel-toggle-left">
-      <span class="dash-toggle-ico">📊</span>
-      <span class="dash-toggle-title">Study Analytics &amp; Progress Dashboard</span>
-      <span class="dash-toggle-badge">Live Metrics</span>
-    </div>
-    <div class="dash-toggle-btn">
-      <span id="dashToggleTxt">Collapse</span> <span id="dashToggleArrow" style="display:inline-block;transition:transform .2s;">▼</span>
+    <div class="wcc-legend">
+      <span class="st-badge st-pending">⚪ Pending</span>
+      <span class="st-badge st-inprogress">⏳ In Progress</span>
+      <span class="st-badge st-completed">✅ Completed</span>
+      <span class="st-badge st-onhold">⏸️ On Hold</span>
     </div>
   </div>
 
-  <div class="dash-panel-collapsible-body" id="dashPanelBody">
+</div><!-- /#studyTab-notes -->
 
-    <!-- MODULE PROGRESS RINGS -->
-    <div class="dash-section-title">Module Progress</div>
-    <div class="mod-grid" id="modGrid">
-      <!-- skeleton -->
-      <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
-      <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
-      <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
-      <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
-      <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
-    </div>
+<!-- ══════════════════════════════════════════════════════════════
+     TAB PANE 4: ANALYTICS & GOALS
+══════════════════════════════════════════════════════════════ -->
+<div class="study-tab-pane" id="studyTab-analytics">
 
-    <!-- RECENT ACTIVITY + ACHIEVEMENTS -->
-    <div class="dash-row">
-      <div class="dash-box">
-        <div class="dash-box-header">
-          <div class="dash-box-icon">⚡</div>
-          <div class="dash-box-title">Recent Activity</div>
-          <div class="dash-box-count" id="activityCount">—</div>
+  <!-- ═══ EXECUTIVE PRACTICE COCKPIT (DUAL-CARD HARMONY) ═══ -->
+  <div class="exec-cockpit-grid" style="margin:20px auto 24px;">
+    <!-- Card 1: Daily Target & Weekly Milestone -->
+    <div class="exec-cockpit-card daily-target-card">
+      <div class="dtc-header">
+        <div class="dtc-title-row">
+          <span class="dtc-icon">🎯</span>
+          <span class="dtc-title">Daily Practice Target</span>
         </div>
-        <div class="activity-list" id="activityList">
-          <div class="activity-empty">Loading activity…</div>
+        <div class="dtc-selector">
+          <button class="dtc-btn active" data-target="3" onclick="setDailyTarget(3)">3 Qs</button>
+          <button class="dtc-btn" data-target="5" onclick="setDailyTarget(5)">5 Qs</button>
+          <button class="dtc-btn" data-target="10" onclick="setDailyTarget(10)">10 Qs</button>
         </div>
       </div>
-      <div class="dash-box">
-        <div class="dash-box-header">
-          <div class="dash-box-icon">🏆</div>
-          <div class="dash-box-title">Achievements</div>
-          <div class="dash-box-count" id="achieveCount">—</div>
+      <div class="dtc-body">
+        <div class="dtc-count-wrap">
+          <span class="dtc-count" id="dailyTargetDone">0</span>
+          <span class="dtc-divider">/</span>
+          <span class="dtc-goal" id="dailyTargetGoal">3</span>
+          <span class="dtc-unit">completed today</span>
         </div>
-        <div class="achievement-grid" id="achievementGrid">
-          <!-- skeletons -->
-          <div class="skel" style="height:48px;border-radius:9px"></div>
-          <div class="skel" style="height:48px;border-radius:9px"></div>
-          <div class="skel" style="height:48px;border-radius:9px"></div>
-          <div class="skel" style="height:48px;border-radius:9px"></div>
-          <div class="skel" style="height:48px;border-radius:9px"></div>
-          <div class="skel" style="height:48px;border-radius:9px"></div>
-          <div class="skel" style="height:48px;border-radius:9px"></div>
-          <div class="skel" style="height:48px;border-radius:9px"></div>
+        <div class="dtc-progress-bar">
+          <div class="dtc-progress-fill" id="dailyTargetFill" style="width:0%"></div>
+        </div>
+        <div class="dtc-status" id="dailyTargetStatus">🚀 Complete 3 questions today to maintain your momentum!</div>
+      </div>
+
+      <!-- Integrated Weekly Goal Milestone Sub-Row -->
+      <div class="exec-cockpit-weekly-sub weekly-goal-wrap" style="padding:0;max-width:none;margin-top:14px;border-top:1px dashed var(--border);padding-top:12px;">
+        <div class="weekly-goal-inner" style="background:transparent;border:none;padding:0;gap:12px;">
+          <div class="weekly-goal-left">
+            <div class="weekly-goal-label">Weekly Milestone</div>
+            <div class="weekly-goal-nums">
+              <span class="wg-done" id="wkDone">0</span><span class="wg-sep">/</span><span class="wg-goal" id="wkGoal" title="Click to edit weekly goal">20</span>
+            </div>
+          </div>
+          <div class="weekly-goal-prog">
+            <div class="wg-bar-header">
+              <span>Week Target</span><span class="wg-bar-pct" id="wkPct">0%</span>
+            </div>
+            <div class="wg-bar"><div class="wg-bar-fill" id="wkBar" style="width:0%"></div></div>
+          </div>
+          <div class="weekly-goal-days" id="wkDays">
+            <div class="wg-day">M</div><div class="wg-day">T</div><div class="wg-day">W</div>
+            <div class="wg-day">T</div><div class="wg-day">F</div><div class="wg-day">S</div><div class="wg-day">S</div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- ACTIVITY HEATMAP -->
-    <div class="heatmap-wrap">
-      <div class="heatmap-header">
-        <div class="heatmap-title">Activity Heatmap</div>
-        <div class="heatmap-sub" id="heatmapSub">Last 70 days · 0 active days</div>
+    <!-- Card 2: Difficulty Breakdown & Curriculum Gauge -->
+    <div class="exec-cockpit-card diff-matrix-card">
+      <div class="dmc-header">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:16px;">📊</span>
+          <span class="dmc-title">Difficulty Distribution</span>
+        </div>
+        <span class="dmc-total" id="dmcTotalDone">0 / 538 Solved</span>
       </div>
-      <div class="heatmap-grid" id="heatmapGrid">
-        <!-- injected by JS -->
+      <div class="dmc-rows">
+        <div class="dmc-row easy">
+          <div class="dmc-label">
+            <span class="dmc-dot"></span>
+            <span>Easy</span>
+          </div>
+          <div class="dmc-bar-wrap">
+            <div class="dmc-bar-fill" id="dmcEasyFill" style="width:0%"></div>
+          </div>
+          <div class="dmc-val"><strong id="dmcEasyDone">0</strong><span class="dmc-max">/190</span></div>
+        </div>
+        <div class="dmc-row med">
+          <div class="dmc-label">
+            <span class="dmc-dot"></span>
+            <span>Medium</span>
+          </div>
+          <div class="dmc-bar-wrap">
+            <div class="dmc-bar-fill" id="dmcMedFill" style="width:0%"></div>
+          </div>
+          <div class="dmc-val"><strong id="dmcMedDone">0</strong><span class="dmc-max">/230</span></div>
+        </div>
+        <div class="dmc-row hard">
+          <div class="dmc-label">
+            <span class="dmc-dot"></span>
+            <span>Hard</span>
+          </div>
+          <div class="dmc-bar-wrap">
+            <div class="dmc-bar-fill" id="dmcHardFill" style="width:0%"></div>
+          </div>
+          <div class="dmc-val"><strong id="dmcHardDone">0</strong><span class="dmc-max">/118</span></div>
+        </div>
       </div>
-      <div class="heatmap-legend">
-        Less&nbsp;
-        <div class="heat-lc heat-0"></div>
-        <div class="heat-lc heat-1"></div>
-        <div class="heat-lc heat-2"></div>
-        <div class="heat-lc heat-3"></div>
-        <div class="heat-lc heat-4"></div>
-        &nbsp;More
+
+      <!-- Overall progress bar inside Card 2 -->
+      <div class="overall-bar-wrap" id="overallBarWrap" style="opacity:0;transition:opacity .4s;margin:14px 0 0;border-top:1px dashed var(--border);padding-top:12px;">
+        <div class="overall-bar-label">
+          <span>Curriculum Completion</span>
+          <strong id="overallPctLabel">0%</strong>
+        </div>
+        <div class="overall-bar">
+          <div class="overall-bar-done" id="overallBarDone" style="width:0%"></div>
+          <div class="overall-bar-ip" id="overallBarIp" style="width:0%"></div>
+        </div>
       </div>
     </div>
-
-    <!-- WEAK TOPICS & REVISION RECOMMENDATIONS -->
-    <div class="dash-row" style="margin-top:14px;">
-      <div class="dash-box" style="flex:1;">
-        <div class="dash-box-header">
-          <div class="dash-box-icon" style="background:rgba(245,158,11,0.15);color:#f59e0b;">⚡</div>
-          <div class="dash-box-title">Topics Needing Revision Today</div>
-          <button class="btn-notes-search" onclick="window.StudyQuiz?.showModal()" style="margin-left:auto;padding:3px 8px;font-size:11px;background:rgba(6,214,160,0.15);color:#06d6a0;border:1px solid rgba(6,214,160,0.3);border-radius:6px;cursor:pointer;">Take Quiz ↗</button>
-        </div>
-        <div id="weakTopicsList" style="padding:4px 0;">
-          <div class="activity-empty">Analyzing study progress…</div>
-        </div>
-      </div>
-      <div class="dash-box" style="flex:1;">
-        <div class="dash-box-header">
-          <div class="dash-box-icon" style="background:rgba(79,142,247,0.15);color:#4f8ef7;">📊</div>
-          <div class="dash-box-title">Recent Quiz Performance</div>
-          <button class="btn-notes-search" onclick="window.StudyQuiz?.openHistory()" style="margin-left:auto;padding:3px 8px;font-size:11px;background:none;border:1px solid var(--border,#262f45);border-radius:6px;color:var(--text2,#8896b8);cursor:pointer;">View All ↗</button>
-        </div>
-        <div id="quizHistoryList" style="padding:4px 0;">
-          <div class="activity-empty">No quiz attempts yet. Take a sprint quiz to test your recall!</div>
-        </div>
-      </div>
-    </div>
-
   </div>
-</div>
-<!-- ═══ END DASHBOARD ═══ -->
+
+  <!-- ═══ DASHBOARD & ANALYTICS PANEL ═══ -->
+  <div class="dash-panel" id="dashAnalyticsPanel">
+    <div class="dash-panel-toggle-hdr" onclick="toggleAnalyticsPanel()" role="button" tabindex="0" title="Click to collapse/expand analytics dashboard">
+      <div class="dash-panel-toggle-left">
+        <span class="dash-toggle-ico">📊</span>
+        <span class="dash-toggle-title">Study Analytics &amp; Progress Dashboard</span>
+        <span class="dash-toggle-badge">Live Metrics</span>
+      </div>
+      <div class="dash-toggle-btn">
+        <span id="dashToggleTxt">Collapse</span> <span id="dashToggleArrow" style="display:inline-block;transition:transform .2s;">▼</span>
+      </div>
+    </div>
+
+    <div class="dash-panel-collapsible-body" id="dashPanelBody">
+      <!-- MODULE PROGRESS RINGS -->
+      <div class="dash-section-title">Module Progress</div>
+      <div class="mod-grid" id="modGrid">
+        <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
+        <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
+        <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
+        <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
+        <div style="background:var(--card);border:1px solid var(--card-border);border-radius:14px;padding:16px;height:160px" class="skel"></div>
+      </div>
+
+      <!-- RECENT ACTIVITY + ACHIEVEMENTS -->
+      <div class="dash-row">
+        <div class="dash-box">
+          <div class="dash-box-header">
+            <div class="dash-box-icon">⚡</div>
+            <div class="dash-box-title">Recent Activity</div>
+            <div class="dash-box-count" id="activityCount">—</div>
+          </div>
+          <div class="activity-list" id="activityList">
+            <div class="activity-empty">Loading activity…</div>
+          </div>
+        </div>
+        <div class="dash-box">
+          <div class="dash-box-header">
+            <div class="dash-box-icon">🏆</div>
+            <div class="dash-box-title">Achievements</div>
+            <div class="dash-box-count" id="achieveCount">—</div>
+          </div>
+          <div class="achievement-grid" id="achievementGrid">
+            <div class="skel" style="height:48px;border-radius:9px"></div>
+            <div class="skel" style="height:48px;border-radius:9px"></div>
+            <div class="skel" style="height:48px;border-radius:9px"></div>
+            <div class="skel" style="height:48px;border-radius:9px"></div>
+            <div class="skel" style="height:48px;border-radius:9px"></div>
+            <div class="skel" style="height:48px;border-radius:9px"></div>
+            <div class="skel" style="height:48px;border-radius:9px"></div>
+            <div class="skel" style="height:48px;border-radius:9px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTIVITY HEATMAP -->
+      <div class="heatmap-wrap">
+        <div class="heatmap-header">
+          <div class="heatmap-title">Activity Heatmap</div>
+          <div class="heatmap-sub" id="heatmapSub">Last 70 days · 0 active days</div>
+        </div>
+        <div class="heatmap-grid" id="heatmapGrid"></div>
+        <div class="heatmap-legend">
+          Less&nbsp;
+          <div class="heat-lc heat-0"></div>
+          <div class="heat-lc heat-1"></div>
+          <div class="heat-lc heat-2"></div>
+          <div class="heat-lc heat-3"></div>
+          <div class="heat-lc heat-4"></div>
+          &nbsp;More
+        </div>
+      </div>
+
+      <!-- WEAK TOPICS & REVISION RECOMMENDATIONS -->
+      <div class="dash-row" style="margin-top:14px;">
+        <div class="dash-box" style="flex:1;">
+          <div class="dash-box-header">
+            <div class="dash-box-icon" style="background:rgba(245,158,11,0.15);color:#f59e0b;">⚡</div>
+            <div class="dash-box-title">Topics Needing Revision Today</div>
+            <button class="btn-notes-search" onclick="window.StudyQuiz?.showModal()" style="margin-left:auto;padding:3px 8px;font-size:11px;background:rgba(6,214,160,0.15);color:#06d6a0;border:1px solid rgba(6,214,160,0.3);border-radius:6px;cursor:pointer;">Take Quiz ↗</button>
+          </div>
+          <div id="weakTopicsList" style="padding:4px 0;">
+            <div class="activity-empty">Analyzing study progress…</div>
+          </div>
+        </div>
+        <div class="dash-box" style="flex:1;">
+          <div class="dash-box-header">
+            <div class="dash-box-icon" style="background:rgba(79,142,247,0.15);color:#4f8ef7;">📊</div>
+            <div class="dash-box-title">Recent Quiz Performance</div>
+            <button class="btn-notes-search" onclick="window.StudyQuiz?.openHistory()" style="margin-left:auto;padding:3px 8px;font-size:11px;background:none;border:1px solid var(--border,#262f45);border-radius:6px;color:var(--text2,#8896b8);cursor:pointer;">View All ↗</button>
+          </div>
+          <div id="quizHistoryList" style="padding:4px 0;">
+            <div class="activity-empty">No quiz attempts yet. Take a sprint quiz to test your recall!</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /#studyTab-analytics -->
 
 <!-- ══════════════════════════════════════════════════════════════
      INTERVIEW COUNTDOWN MODAL
@@ -2715,6 +2823,80 @@ document.addEventListener('keydown', function(e) {
     toggleHubDrawer(false);
   }
 });
+</script>
+
+<!-- ═══ MOBILE BOTTOM NAVIGATION DOCK ═══ -->
+<nav class="study-mobile-bnav" id="studyMobileBnav" aria-label="Study Hub Navigation">
+  <button class="sm-bnav-item active" data-tab="overview" onclick="switchStudyHubTab('overview')" aria-label="Overview &amp; Tracks">
+    <span class="sm-bnav-icon">📚</span>
+    <span class="sm-bnav-label">Overview</span>
+  </button>
+  <button class="sm-bnav-item" data-tab="practice" onclick="switchStudyHubTab('practice')" aria-label="Interactive Practice">
+    <span class="sm-bnav-icon">⚡</span>
+    <span class="sm-bnav-label">Practice</span>
+  </button>
+  <button class="sm-bnav-item" data-tab="notes" onclick="switchStudyHubTab('notes')" aria-label="Notes &amp; Studio">
+    <span class="sm-bnav-icon">🗒️</span>
+    <span class="sm-bnav-label">Studio</span>
+  </button>
+  <button class="sm-bnav-item" data-tab="analytics" onclick="switchStudyHubTab('analytics')" aria-label="Analytics &amp; Goals">
+    <span class="sm-bnav-icon">📊</span>
+    <span class="sm-bnav-label">Analytics</span>
+  </button>
+</nav>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   SEGMENTED STUDY HUB TAB SWITCHER
+══════════════════════════════════════════════════════ */
+function switchStudyHubTab(tabName) {
+  var validTabs = ['overview', 'practice', 'notes', 'analytics'];
+  if (!validTabs.includes(tabName)) tabName = 'overview';
+
+  try {
+    localStorage.setItem('study_hub_active_tab', tabName);
+  } catch (e) {}
+
+  // Update Segmented Tab Buttons (Desktop)
+  document.querySelectorAll('.study-tab-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === tabName);
+  });
+
+  // Update Mobile Bottom Nav Dock Items
+  document.querySelectorAll('.sm-bnav-item').forEach(function(item) {
+    item.classList.toggle('active', item.getAttribute('data-tab') === tabName);
+  });
+
+  // Update Tab Panes
+  document.querySelectorAll('.study-tab-pane').forEach(function(pane) {
+    var paneTab = pane.id.replace('studyTab-', '');
+    pane.classList.toggle('active', paneTab === tabName);
+  });
+
+  // Analytics Auto-Expand when visiting Analytics Tab
+  if (tabName === 'analytics') {
+    var dashBody = document.getElementById('dashPanelBody');
+    if (dashBody && (dashBody.style.display === 'none' || dashBody.classList.contains('collapsed'))) {
+      if (typeof toggleAnalyticsPanel === 'function') toggleAnalyticsPanel();
+    }
+  }
+
+  // Trigger Haptic Feedback
+  if (window.HapticFeedback && typeof window.HapticFeedback.light === 'function') {
+    window.HapticFeedback.light();
+  }
+}
+window.switchStudyHubTab = switchStudyHubTab;
+
+// Restore active tab on page load
+(function initStudyHubTab() {
+  try {
+    var savedTab = localStorage.getItem('study_hub_active_tab') || 'overview';
+    switchStudyHubTab(savedTab);
+  } catch (e) {
+    switchStudyHubTab('overview');
+  }
+})();
 </script>
 </body>
 </html>

@@ -140,7 +140,7 @@ console.log("Reversed head val:", rev.val, "next:", rev.next.val);
           <!-- Editor Pane -->
           <div style="display:flex;flex-direction:column;border-right:1px solid #262f45;background:#0d111a;min-height:160px;">
             <div style="padding:6px 14px;border-bottom:1px solid #262f45;font-size:11px;color:#8896b8;display:flex;justify-content:space-between;align-items:center;">
-              <span>JavaScript Sandbox</span>
+              <span>${(currentProblem.language || 'JavaScript').toUpperCase()} Sandbox</span>
               <button id="study-cr-reset" style="background:none;border:none;color:#4f8ef7;font-size:11px;cursor:pointer;">Reset Code</button>
             </div>
             <textarea id="study-cr-editor" style="flex:1;background:transparent;border:none;color:#e8eaf6;padding:12px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.5;outline:none;resize:none;tab-size:2;">${currentProblem.starterCode}</textarea>
@@ -168,28 +168,42 @@ console.log("Reversed head val:", rev.val, "next:", rev.next.val);
 
     document.body.appendChild(modal);
 
-    document.getElementById('study-cr-close').onclick = () => modal.remove();
+    var closeBtn = document.getElementById('study-cr-close');
+    if (closeBtn) closeBtn.onclick = () => modal.remove();
 
     var editor = document.getElementById('study-cr-editor');
     var output = document.getElementById('study-cr-output');
     var timeEl = document.getElementById('study-cr-time');
     var probSelect = document.getElementById('study-cr-prob-select');
 
-    probSelect.onchange = function () {
-      var idx = parseInt(this.value, 10);
-      showRunnerModal(idx);
-    };
+    if (probSelect) {
+      probSelect.onchange = function () {
+        var idx = parseInt(this.value, 10);
+        showRunnerModal(idx);
+      };
+    }
 
-    document.getElementById('study-cr-reset').onclick = function () {
-      editor.value = currentProblem.starterCode;
-      output.textContent = 'Code reset to starter template.';
-    };
+    var resetBtn = document.getElementById('study-cr-reset');
+    if (resetBtn) {
+      resetBtn.onclick = function () {
+        if (editor) editor.value = currentProblem.starterCode;
+        if (output) output.textContent = 'Code reset to starter template.';
+      };
+    }
 
     // Code execution runner
-    document.getElementById('study-cr-run').onclick = function () {
+    var runBtn = document.getElementById('study-cr-run');
+    if (runBtn) {
+      runBtn.onclick = function () {
       var code = editor.value;
       output.innerHTML = '';
       timeEl.textContent = '';
+
+      if (currentProblem.language && currentProblem.language !== 'javascript' && currentProblem.language !== 'js') {
+        timeEl.textContent = `ℹ️ ${currentProblem.language.toUpperCase()}`;
+        output.innerHTML = `<div style="color:#38bdf8;margin-bottom:8px;"><strong>ℹ️ ${currentProblem.language.toUpperCase()} Code Snippet</strong></div><div style="color:#8a93b5;margin-bottom:8px;">Browser runs JavaScript natively. Inspect logic or test with JavaScript code.</div><div style="color:#10b981;">Lines: ${code.split('\n').length} | Characters: ${code.length}</div>`;
+        return;
+      }
 
       var logs = [];
       var customConsole = {
@@ -225,9 +239,36 @@ console.log("Reversed head val:", rev.val, "next:", rev.next.val);
       }
     };
   }
+}
+
+  function openWithCode(opts) {
+    if (!opts) return showRunnerModal(0);
+    var title = opts.title || 'Code Playground Snippet';
+    var code = opts.code || '';
+    var language = (opts.language || 'javascript').toLowerCase();
+    var desc = opts.desc || (language === 'javascript' ? 'JavaScript interactive execution sandbox' : `Code snippet (${language.toUpperCase()})`);
+
+    var existingIdx = SAMPLE_PROBLEMS.findIndex(function (p) { return p.title === title; });
+    var customProblem = {
+      title: title,
+      difficulty: opts.difficulty || (language === 'javascript' ? 'Playground' : language.toUpperCase()),
+      desc: desc,
+      starterCode: code,
+      language: language
+    };
+
+    if (existingIdx >= 0) {
+      SAMPLE_PROBLEMS[existingIdx] = customProblem;
+      showRunnerModal(existingIdx);
+    } else {
+      SAMPLE_PROBLEMS.unshift(customProblem);
+      showRunnerModal(0);
+    }
+  }
 
   window.StudyCodeRunner = {
     showModal: showRunnerModal,
+    openWithCode: openWithCode,
     getProblems: () => SAMPLE_PROBLEMS
   };
 

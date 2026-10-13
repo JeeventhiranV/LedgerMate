@@ -283,6 +283,8 @@ pre.code-block{background:#090c12;margin:0;padding:14px 16px;overflow-x:auto;fon
 <script src="../js/StudySync.js"></script>
 <script src="../js/StudySRS.js"></script>
 <script src="../js/StudyQuizEngine.js"></script>
+<script src="../js/CodeRunner.js"></script>
+<script src="../js/StudyZenMode.js"></script>
 <script src="../js/study-features.js"></script>
 <script src="../js/community-hub.js"></script>
 </head>
@@ -328,6 +330,9 @@ pre.code-block{background:#090c12;margin:0;padding:14px 16px;overflow-x:auto;fon
       <a href="../index.html" class="back-btn"><span class="btn-back-arrow">←</span><span class="btn-back-text"> Study Hub</span></a>
     </div>
     <div class="topbar-right">
+      <button class="zen-btn" onclick="window.StudyZenMode?.open()" title="Enter Zen Study Focus Mode (Alt+Z)" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#10b981;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+        <span>🧘</span> <span>Zen Mode</span>
+      </button>
       <div class="progress-chip">
         <span>Done</span>
         <strong id="answeredCount">0</strong>/<strong id="totalCount">0</strong>

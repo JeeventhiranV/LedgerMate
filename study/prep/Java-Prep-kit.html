@@ -27,6 +27,8 @@
 <script src="../js/StudySync.js"></script>
 <script src="../js/StudySRS.js"></script>
 <script src="../js/StudyQuizEngine.js"></script>
+<script src="../js/CodeRunner.js"></script>
+<script src="../js/StudyZenMode.js"></script>
 <script src="../js/study-features.js"></script>
 <script src="../js/community-hub.js"></script>
 </head>
@@ -105,6 +107,9 @@
     </div>
     
     <div class="topbar-right">
+      <button class="zen-btn" onclick="window.StudyZenMode?.open()" title="Enter Zen Study Focus Mode (Alt+Z)" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#10b981;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+        <span>🧘</span> <span>Zen Mode</span>
+      </button>
       <div class="progress-chip" id="doneChip" title="Solved questions progress">
         <span>Done</span>
         <strong id="answeredCount">0</strong>/<strong id="totalCount">0</strong>
