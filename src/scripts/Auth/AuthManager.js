@@ -392,6 +392,7 @@
   function setAppLockEnabled(enabled, userId) {
     const uid = userId || getCurrentUserId();
     localStorage.setItem(getAppLockKey(uid), enabled ? 'true' : 'false');
+    localStorage.setItem('lm_app_lock_enabled', enabled ? 'true' : 'false');
     _syncNativeScreenSecurity();
     try {
       if (window.LM_ProfileModal && typeof window.LM_ProfileModal.refresh === 'function') {
@@ -408,6 +409,7 @@
   function setBiometricEnabled(enabled, userId) {
     const uid = userId || getCurrentUserId();
     localStorage.setItem(getBiometricKey(uid), enabled ? 'true' : 'false');
+    localStorage.setItem('lm_biometric_enabled', enabled ? 'true' : 'false');
   }
 
   function getLockTimeout(userId) {
@@ -1176,7 +1178,10 @@
       startInactivityWatcher();
       _syncNativeScreenSecurity();
 
-      if (isAppLockEnabled(cachedSession.userId)) {
+      // App Lock is strictly optional: only trigger if enabled in profile security,
+      // and skip on fresh logins (within 60s of loginAt) so standard password sign-in is seamless.
+      const isFreshLogin = cachedSession.loginAt && (Date.now() - cachedSession.loginAt < 60000);
+      if (isAppLockEnabled(cachedSession.userId) && !isFreshLogin) {
         showAppLockScreen(async () => {
           if (typeof window.LM_StartApp === 'function') {
             await window.LM_StartApp();
@@ -1278,7 +1283,8 @@
           startInactivityWatcher();
           _syncNativeScreenSecurity();
 
-          if (isAppLockEnabled(user.id)) {
+          const isFreshLogin = session.loginAt && (Date.now() - session.loginAt < 60000);
+          if (isAppLockEnabled(user.id) && !isFreshLogin) {
             showAppLockScreen(async () => {
               if (typeof window.LM_StartApp === 'function') {
                 await window.LM_StartApp();

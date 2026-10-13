@@ -361,8 +361,8 @@
             <button class="bpm-action-row" onclick="window.LM_ProfileModal.openSecurity()">
               <span class="bpm-row-icon">🛡️</span>
               <div class="bpm-row-text">
-                <div class="bpm-row-title">App Security &amp; Biometrics</div>
-                <div class="bpm-row-desc">PIN code, fingerprint unlock &amp; lock timeout</div>
+                <div class="bpm-row-title">App Security &amp; Biometrics (Optional)</div>
+                <div class="bpm-row-desc">Enable optional PIN code, fingerprint unlock &amp; lock timeout</div>
               </div>
               <span class="bpm-row-arrow">›</span>
             </button>

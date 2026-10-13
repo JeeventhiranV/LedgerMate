@@ -17,6 +17,22 @@
     'Spring Boot', 'Microservices', 'HR Prep', 'SQL / DB'
   ];
 
+  /* ── Maximum Duration Limit (10 Hours = 36,000 Seconds) ── */
+  var MAX_DURATION_SECONDS = 10 * 3600;
+
+  function _notifyAutoStop() {
+    var msg = 'Study timer reached 10-hour limit and was automatically saved. Great work!';
+    try {
+      if (typeof window.LMToast === 'function') {
+        window.LMToast(msg, 'info');
+      } else if (window.LMToast && typeof window.LMToast.show === 'function') {
+        window.LMToast.show(msg, 'info');
+      } else if (typeof window.showToast === 'function') {
+        window.showToast(msg, 'info');
+      }
+    } catch (e) {}
+  }
+
   /* ── Supabase + page helpers ──────────────────────────── */
   function _sb()   { return window._supabase || window.supabase || null; }
   function _page() { return window.location.pathname.split('/').pop() || 'index.html'; }
@@ -78,6 +94,12 @@
   function _startTick() {
     if (_tick) return;
     _tick = setInterval(function () {
+      var st = _load();
+      if (st.running && st.startedAt && _elapsed(st.startedAt) >= MAX_DURATION_SECONDS) {
+        stop(true);
+        _notifyAutoStop();
+        return;
+      }
       if (typeof _onTick === 'function') _onTick(getState());
     }, 1000);
   }
@@ -115,14 +137,15 @@
   }
 
   /* ── Public: stop ────────────────────────────────────── */
-  function stop() {
+  function stop(isAuto) {
     var st = _load();
     if (!st.running) return Promise.resolve(null);
 
     _stopTick();
     var now      = new Date().toISOString();
-    var duration = st.startedAt ? _elapsed(st.startedAt) : 0;
-    var snapshot = { sessionId: st.sessionId, startedAt: st.startedAt, endedAt: now, duration: duration, topic: st.topic };
+    var rawDur   = st.startedAt ? _elapsed(st.startedAt) : 0;
+    var duration = Math.min(rawDur, MAX_DURATION_SECONDS);
+    var snapshot = { sessionId: st.sessionId, startedAt: st.startedAt, endedAt: now, duration: duration, topic: st.topic, autoStopped: !!isAuto };
 
     _clearLS();
     if (typeof _onTick === 'function') _onTick(getState());
@@ -150,6 +173,13 @@
       return { running: false, elapsed: 0, startedAt: null, display: '00:00:00', topic: '' };
     }
     var secs = _elapsed(st.startedAt);
+    if (secs >= MAX_DURATION_SECONDS) {
+      setTimeout(function () {
+        stop(true);
+        _notifyAutoStop();
+      }, 0);
+      return { running: false, elapsed: MAX_DURATION_SECONDS, startedAt: null, display: fmt(MAX_DURATION_SECONDS), topic: st.topic || '' };
+    }
     return { running: true, elapsed: secs, startedAt: st.startedAt, display: fmt(secs), topic: st.topic || '' };
   }
 
@@ -446,25 +476,36 @@
   function onTick(fn) { _onTick = fn; }
 
   /* ── Boot: resume tick if a session was active ───────── */
+  function _initBoot() {
+    var st = _load();
+    if (st.running) {
+      if (st.startedAt && _elapsed(st.startedAt) >= MAX_DURATION_SECONDS) {
+        stop(true);
+        _notifyAutoStop();
+      } else {
+        _startTick();
+      }
+    }
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () {
-      if (_load().running) _startTick();
-    });
+    document.addEventListener('DOMContentLoaded', _initBoot);
   } else {
-    if (_load().running) _startTick();
+    _initBoot();
   }
 
   window.StudyTimer = {
-    start          : start,
-    startWithPrompt: startWithPrompt,
-    stop           : stop,
-    toggle         : toggle,
-    getState       : getState,
-    getSessions    : getSessions,
-    openPanel      : openPanel,
-    onTick         : onTick,
-    fmt            : fmt,
-    getTopics      : getTopics,
-    setTopics      : setTopics,
+    start               : start,
+    startWithPrompt     : startWithPrompt,
+    stop                : stop,
+    toggle              : toggle,
+    getState            : getState,
+    getSessions         : getSessions,
+    openPanel           : openPanel,
+    onTick              : onTick,
+    fmt                 : fmt,
+    getTopics           : getTopics,
+    setTopics           : setTopics,
+    MAX_DURATION_SECONDS: MAX_DURATION_SECONDS,
   };
 }());

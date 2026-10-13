@@ -89,6 +89,13 @@ html, body {
   border-color: var(--teal, #06d6a0) !important;
   color: var(--teal, #06d6a0) !important;
 }
+.st-chip-icon {
+  font-size: 13px !important;
+  line-height: 1 !important;
+  flex-shrink: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
 .st-chip-dot {
   width: 7px !important;
   height: 7px !important;
@@ -237,6 +244,17 @@ html, body {
     height: 32px !important;
     padding: 0 9px !important;
     font-size: 11px !important;
+  }
+  .st-fab {
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
+    right: 16px !important;
+    z-index: 1010 !important;
+  }
+  .st-timer-card {
+    bottom: calc(125px + env(safe-area-inset-bottom, 0px)) !important;
+    right: 16px !important;
+    max-width: calc(100vw - 32px) !important;
+    z-index: 1011 !important;
   }
   .progress-chip, .hdr-progress, .topbar-prog {
     height: 32px !important;
@@ -717,10 +735,15 @@ body {
   }
 
   /* Topbar study timer chip */
-  #stTimerChip {
+  #stTimerChip, .st-chip {
     height: 32px !important;
     padding: 0 8px !important;
     font-size: 11px !important;
+    gap: 5px !important;
+    flex-shrink: 0 !important;
+  }
+  .st-chip-icon {
+    font-size: 12px !important;
   }
 }
 

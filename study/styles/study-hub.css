@@ -1303,6 +1303,19 @@ a.activity-item:hover{background:rgba(255,255,255,.04)}
     padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
+  /* Study Timer FAB & Card Ergonomics (Elevated cleanly above mobile bottom dock) */
+  .st-fab {
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
+    right: 16px !important;
+    z-index: 1010 !important;
+  }
+  .st-timer-card {
+    bottom: calc(125px + env(safe-area-inset-bottom, 0px)) !important;
+    right: 16px !important;
+    max-width: calc(100vw - 32px) !important;
+    z-index: 1011 !important;
+  }
+
   .study-segmented-wrap {
     display: none; /* Mobile uses dedicated bottom dock */
   }

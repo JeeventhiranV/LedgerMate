@@ -626,7 +626,7 @@
     chip.id        = 'stTimerChip';
     chip.className = 'st-chip';
     chip.title     = 'Study Timer — click to start / stop';
-    chip.innerHTML = '<span class="st-chip-dot"></span><span class="st-chip-time">00:00:00</span>';
+    chip.innerHTML = '<span class="st-chip-icon">⏱️</span><span class="st-chip-dot"></span><span class="st-chip-time">00:00:00</span>';
 
     var chipTime = chip.querySelector('.st-chip-time');
 
