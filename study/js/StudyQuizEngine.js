@@ -249,6 +249,29 @@
 
         <!-- Body -->
         <div style="padding:22px;overflow-y:auto;flex:1;">
+          ${(function () {
+            if (window.StudyMistakeVault) {
+              var mvStats = window.StudyMistakeVault.getStats();
+              if (mvStats.activeCount > 0) {
+                return `
+                  <div style="background:linear-gradient(135deg,rgba(244,63,94,0.12),rgba(245,158,11,0.1));border:1px solid rgba(244,63,94,0.35);border-radius:12px;padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <span style="font-size:20px;">🔥</span>
+                      <div>
+                        <div style="font-size:13px;font-weight:700;color:#f43f5e;">Weak Topics & Mistake Queue</div>
+                        <div style="font-size:11px;color:var(--text2,#8896b8);">${mvStats.dueCount} due for spaced revision · ${mvStats.activeCount} active weak points</div>
+                      </div>
+                    </div>
+                    <button id="lm-quiz-mistake-sprint-btn" style="padding:6px 14px;background:linear-gradient(135deg,#f43f5e,#f59e0b);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(244,63,94,0.3);">
+                      Practice Mistakes Now ➔
+                    </button>
+                  </div>
+                `;
+              }
+            }
+            return '';
+          })()}
+
           <div style="font-size:12px;font-weight:700;color:var(--text2,#8896b8);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">1. Choose Topic</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:10px;margin-bottom:20px;">
             <div class="qz-topic-card active" data-topic="all" style="background:rgba(79,142,247,0.12);border:1px solid #4f8ef7;border-radius:12px;padding:12px;cursor:pointer;transition:all .2s;">
@@ -342,6 +365,16 @@
     document.getElementById('lm-quiz-close').addEventListener('click', function () {
       modal.style.display = 'none';
     });
+
+    var mistakeSprintBtn = document.getElementById('lm-quiz-mistake-sprint-btn');
+    if (mistakeSprintBtn) {
+      mistakeSprintBtn.addEventListener('click', function () {
+        modal.style.display = 'none';
+        if (window.StudyMistakeVault) {
+          window.StudyMistakeVault.showSprintModal();
+        }
+      });
+    }
 
     document.getElementById('lm-quiz-history-btn').addEventListener('click', function () {
       _renderHistory();
@@ -510,11 +543,21 @@
     var total = s.questions.length;
     var timeSpent = Math.round((Date.now() - s.startedAt) / 1000);
 
+    var mistakesLogged = 0;
     s.questions.forEach(function (q, idx) {
       if (s.userAnswers[idx] === q.answer) {
         correct++;
+      } else {
+        if (window.StudyMistakeVault && typeof window.StudyMistakeVault.logMistake === 'function') {
+          window.StudyMistakeVault.logMistake(s.topic, q, s.userAnswers[idx], q.answer, q.exp, 'quiz');
+          mistakesLogged++;
+        }
       }
     });
+
+    if (mistakesLogged > 0 && typeof window.LMToast !== 'undefined') {
+      window.LMToast.show(mistakesLogged + ' missed question' + (mistakesLogged > 1 ? 's' : '') + ' queued for Spaced Revision! 🧠', 'info');
+    }
 
     var pct = Math.round((correct / total) * 100);
 

@@ -171,12 +171,34 @@
       id: 'act-ai',
       type: 'action',
       category: 'actions',
-      title: 'Launch AI Mock Interview Coach',
-      sub: 'Simulate technical and behavioural interview rounds with AI assistant',
+      title: 'Launch Voice Mock Interview Coach',
+      sub: 'Simulate technical and behavioural interview rounds with voice speech recognition',
       action: function () { if (window.AIInterviewHelper) window.AIInterviewHelper.showModal(); },
-      icon: '🤖',
+      icon: '🎙️',
       badge: 'Action',
-      tags: ['ai', 'coach', 'mock', 'interview', 'assistant', 'simulation']
+      tags: ['ai', 'voice', 'coach', 'mock', 'interview', 'speech', 'simulation']
+    },
+    {
+      id: 'act-mistakes',
+      type: 'action',
+      category: 'actions',
+      title: 'Start Mistake Revision Sprint',
+      sub: 'Review queued weak-spot questions and quiz mistakes via SM-2 recall',
+      action: function () { if (window.StudyMistakeVault) window.StudyMistakeVault.showSprintModal(); },
+      icon: '🔥',
+      badge: 'Action',
+      tags: ['mistakes', 'revision', 'weak points', 'vault', 'sm2', 'review']
+    },
+    {
+      id: 'act-playlists',
+      type: 'action',
+      category: 'actions',
+      title: 'Open Company Playlists & Cheat Sheets',
+      sub: 'Manage target-company question decks and generate printable PDF cheat sheets',
+      action: function () { if (window.StudyPlaylists) window.StudyPlaylists.showPlaylistManagerModal(); },
+      icon: '📑',
+      badge: 'Action',
+      tags: ['playlists', 'cheat sheet', 'company', 'pdf', 'deck', 'print']
     },
     {
       id: 'act-timer',

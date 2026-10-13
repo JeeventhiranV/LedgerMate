@@ -23,6 +23,74 @@
   var _rotation = 0;
   var _currentOptions = null;
   var _pdfJsLoadingPromise = null;
+  var STORAGE_KEY_READING = 'study_pdf_reading_state_v1';
+
+  function getReadingStates() {
+    try {
+      if (typeof localStorage === 'undefined') return {};
+      var raw = localStorage.getItem(STORAGE_KEY_READING);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function getPdfReadingState(fileUrl) {
+    if (!fileUrl) return null;
+    var states = getReadingStates();
+    var clean = fileUrl.split('?')[0];
+    return states[clean] || states[fileUrl] || null;
+  }
+
+  function savePdfReadingProgress(fileUrl, title, pageNum, totalPages) {
+    if (!fileUrl || !pageNum || !totalPages) return;
+    try {
+      if (typeof localStorage === 'undefined') return;
+      var states = getReadingStates();
+      var clean = fileUrl.split('?')[0];
+      var pct = Math.round((pageNum / totalPages) * 100);
+      var record = {
+        fileUrl: fileUrl,
+        title: title || clean.split('/').pop().replace(/\.pdf$/i, ''),
+        lastPage: pageNum,
+        totalPages: totalPages,
+        pct: pct,
+        isCompleted: pageNum >= totalPages,
+        updatedAt: new Date().toISOString()
+      };
+      states[clean] = record;
+      localStorage.setItem(STORAGE_KEY_READING, JSON.stringify(states));
+
+      if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+        window.dispatchEvent(new CustomEvent('lm_pdf_reading_updated', {
+          detail: record
+        }));
+      }
+    } catch (e) {}
+  }
+
+  function getLastActivePdf() {
+    var states = getReadingStates();
+    var list = Object.values(states);
+    if (!list.length) return null;
+    list.sort(function (a, b) {
+      return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
+    });
+    return list[0];
+  }
+
+  function getGlobalPdfReadingStats() {
+    var states = getReadingStates();
+    var list = Object.values(states);
+    var completed = list.filter(function (s) { return s.isCompleted; });
+    var totalPagesRead = list.reduce(function (sum, s) { return sum + (s.lastPage || 1); }, 0);
+    return {
+      totalStarted: list.length,
+      totalCompleted: completed.length,
+      totalPagesRead: totalPagesRead,
+      activeCount: list.length - completed.length
+    };
+  }
 
   // ── 1. DYNAMIC PDF.JS LOADER ───────────────────────────────────────────────
   function ensurePdfJsLoaded() {
@@ -353,7 +421,8 @@
       })
       .then(function (pdfDoc) {
         _pdfDoc = pdfDoc;
-        _pageNum = 1;
+        var savedState = getPdfReadingState(url);
+        _pageNum = (savedState && savedState.lastPage && savedState.lastPage <= pdfDoc.numPages) ? savedState.lastPage : 1;
         _scale = 1.0;
 
         var countEl = document.getElementById('sfvPageCount');
@@ -445,6 +514,11 @@
     });
 
     // Update page number UI
+    _pageNum = num;
+    if (_currentOptions && _currentOptions.fileUrl && _pdfDoc) {
+      savePdfReadingProgress(_currentOptions.fileUrl, _currentOptions.title, num, _pdfDoc.numPages);
+    }
+
     var pageInput = document.getElementById('sfvPageNumInput');
     if (pageInput) pageInput.value = num;
 
@@ -879,7 +953,16 @@
     copyCode: copyCode,
     updateStatus: updateStatus,
     onSliderInput: onSliderInput,
-    onSliderChange: onSliderChange
+    onSliderChange: onSliderChange,
+    getReadingStates: getReadingStates,
+    getPdfReadingState: getPdfReadingState,
+    savePdfReadingProgress: savePdfReadingProgress,
+    getLastActivePdf: getLastActivePdf,
+    getGlobalPdfReadingStats: getGlobalPdfReadingStats
   };
+
+  if (typeof module === 'object' && module.exports) {
+    module.exports = window.StudyFileViewer;
+  }
 
 })();

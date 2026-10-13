@@ -1357,4 +1357,15 @@ a.activity-item:hover{background:rgba(255,255,255,.04)}
   }
 }
 
+/* ── VOICE MOCK INTERVIEWER & SPEECH COACH ─────────────────── */
+@keyframes vwave {
+  0% { transform: scaleY(0.3); opacity: 0.4; }
+  100% { transform: scaleY(1.3); opacity: 1; }
+}
+
+.vwave-bar {
+  transform-origin: bottom center;
+}
+
+
 

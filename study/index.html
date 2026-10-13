@@ -31,9 +31,11 @@
 <script src="js/community-hub.js"></script>
 <script src="js/StudyTimer.js"></script>
 <script src="js/StudySRS.js"></script>
+<script src="js/StudyMistakeVault.js"></script>
 <script src="js/CodeRunner.js"></script>
 <script src="js/AIInterviewHelper.js"></script>
 <script src="js/StudyQuizEngine.js"></script>
+<script src="js/StudyPlaylists.js"></script>
 <script src="js/LiveStudyRoom.js"></script>
 <script src="js/StudySearchIndex.js"></script>
 <script src="js/StudySpotlight.js"></script>
@@ -349,6 +351,8 @@ if ('serviceWorker' in navigator) {
   <!-- ═══ RESUME LEARNING HERO BANNER ═══ -->
   <div id="resumeHeroContainer"></div>
   <div id="resumeChip" style="max-width:1200px;margin:0 auto 16px;padding:0 24px;"></div>
+  <div id="mistakeQueueWidgetContainer" style="max-width:1200px;margin:0 auto 16px;padding:0 24px;"></div>
+  <div id="continueReadingWidgetContainer" style="max-width:1200px;margin:0 auto 16px;padding:0 24px;"></div>
 
   <!-- FILTER BAR -->
   <div class="filter-bar">
@@ -406,6 +410,19 @@ if ('serviceWorker' in navigator) {
 
   <!-- Interactive Practice Tools Grid -->
   <div class="practice-tools-grid">
+    <div class="practice-tool-card" onclick="window.StudyMistakeVault?.showSprintModal()" style="border-color:rgba(244,63,94,0.3);background:linear-gradient(135deg,rgba(244,63,94,0.06),rgba(245,158,11,0.04));">
+      <div class="ptc-header">
+        <div class="ptc-icon-badge" style="background:rgba(244,63,94,0.15);color:#f43f5e;">🔥</div>
+        <div class="ptc-info">
+          <div class="ptc-title" style="display:flex;align-items:center;gap:6px;">
+            <span>Mistake Revision Sprint</span>
+            <span class="mv-due-badge" style="font-size:10px;background:rgba(244,63,94,0.2);color:#f43f5e;border:1px solid rgba(244,63,94,0.35);border-radius:10px;padding:1px 6px;font-weight:700;">Queue</span>
+          </div>
+          <div class="ptc-desc">Review weak questions using SM-2 active recall interval</div>
+        </div>
+      </div>
+      <div class="ptc-action"><span style="color:#f43f5e;font-weight:700;">Start Sprint</span> <span>↗</span></div>
+    </div>
     <div class="practice-tool-card" onclick="window.StudyQuiz?.showModal()">
       <div class="ptc-header">
         <div class="ptc-icon-badge" style="background:rgba(6,214,160,0.15);color:#06d6a0;">🎯</div>
@@ -465,6 +482,16 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
       <div class="ptc-action"><span>Enter Zen Mode (Alt+Z)</span> <span>↗</span></div>
+    </div>
+    <div class="practice-tool-card" onclick="window.StudyPlaylists?.showPlaylistManagerModal()">
+      <div class="ptc-header">
+        <div class="ptc-icon-badge" style="background:rgba(244,63,94,0.15);color:#f43f5e;">📑</div>
+        <div class="ptc-info">
+          <div class="ptc-title">Company Playlists &amp; Cheat Sheets</div>
+          <div class="ptc-desc">Curate target-company decks &amp; generate printable PDF cheat sheets</div>
+        </div>
+      </div>
+      <div class="ptc-action"><span>Open Playlists</span> <span>↗</span></div>
     </div>
   </div>
 
@@ -2897,6 +2924,83 @@ window.switchStudyHubTab = switchStudyHubTab;
     switchStudyHubTab('overview');
   }
 })();
+
+// Mistake Revision Queue Widget Renderer
+function renderMistakeQueueWidget() {
+  var container = document.getElementById('mistakeQueueWidgetContainer');
+  if (!container || !window.StudyMistakeVault) return;
+  var stats = window.StudyMistakeVault.getStats();
+  if (stats.activeCount === 0 && stats.total === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(244,63,94,0.08),rgba(245,158,11,0.06));border:1px solid rgba(244,63,94,0.3);border-radius:14px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🔥</div>
+        <div>
+          <div style="font-size:13.5px;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:8px;">
+            <span>Daily Spaced Revision Queue</span>
+            <span style="font-size:10.5px;background:rgba(244,63,94,0.2);color:#f43f5e;border:1px solid rgba(244,63,94,0.4);border-radius:10px;padding:1px 7px;font-weight:700;">
+              ${stats.dueCount} Due Today
+            </span>
+          </div>
+          <div style="font-size:11.5px;color:#8896b8;margin-top:2px;">
+            ${stats.activeCount} weak concepts tracked · ${stats.masteredCount} graduated (${stats.masteryRatePct}% mastery)
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="window.StudyMistakeVault?.showSprintModal()" style="padding:8px 16px;background:linear-gradient(135deg,#f43f5e,#f59e0b);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 3px 10px rgba(244,63,94,0.35);">
+          <span>⚡</span>
+          <span>Start Revision Sprint</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+window.addEventListener('lm_mistake_vault_updated', renderMistakeQueueWidget);
+renderMistakeQueueWidget();
+if (window.StudyMistakeVault) window.StudyMistakeVault.updateHubBadge();
+
+// Continue Reading Widget Renderer
+function renderContinueReadingWidget() {
+  var container = document.getElementById('continueReadingWidgetContainer');
+  if (!container || !window.StudyFileViewer) return;
+  var lastPdf = window.StudyFileViewer.getLastActivePdf();
+  if (!lastPdf) {
+    container.innerHTML = '';
+    return;
+  }
+  var cleanTitle = String(lastPdf.title || 'PDF Document').replace(/'/g, "\\'");
+  var cleanUrl = String(lastPdf.fileUrl || '').replace(/'/g, "\\'");
+  container.innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(79,142,247,0.08),rgba(16,185,129,0.06));border:1px solid rgba(79,142,247,0.3);border-radius:14px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:rgba(79,142,247,0.15);border:1px solid rgba(79,142,247,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">📖</div>
+        <div>
+          <div style="font-size:13.5px;font-weight:700;color:#f8fafc;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span>Resume Reading: ${lastPdf.title}</span>
+            <span style="font-size:10.5px;background:rgba(79,142,247,0.2);color:#4f8ef7;border:1px solid rgba(79,142,247,0.4);border-radius:10px;padding:1px 7px;font-weight:700;">
+              Page ${lastPdf.lastPage} of ${lastPdf.totalPages} (${lastPdf.pct}%)
+            </span>
+          </div>
+          <div style="width:200px;height:4px;background:#1e293b;border-radius:4px;overflow:hidden;margin-top:6px;">
+            <div style="width:${lastPdf.pct}%;height:100%;background:linear-gradient(90deg,#4f8ef7,#10b981);border-radius:4px;"></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="window.StudyFileViewer?.open({ title: '${cleanTitle}', fileUrl: '${cleanUrl}', type: 'pdf' })" style="padding:8px 16px;background:linear-gradient(135deg,#4f8ef7,#10b981);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 3px 10px rgba(79,142,247,0.35);">
+          <span>▶</span>
+          <span>Resume Page ${lastPdf.lastPage}</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+window.addEventListener('lm_pdf_reading_updated', renderContinueReadingWidget);
+renderContinueReadingWidget();
 </script>
 </body>
 </html>

@@ -17,6 +17,8 @@
 .q-note-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:11px;color:var(--text3);transition:all .15s;margin-left:6px}
 .q-note-btn:hover{color:var(--text1);border-color:var(--text2)}
 .q-note-btn.has-note{color:#f59e0b;border-color:rgba(245,158,11,.4)}
+.q-playlist-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:11px;color:var(--text3);transition:all .15s;margin-left:6px}
+.q-playlist-btn:hover{color:var(--text1);border-color:var(--text2);background:rgba(244,63,94,0.08)}
 .q-note-area{margin-top:8px;padding:8px;background:var(--bg4);border-radius:6px;border:1px solid var(--border);display:none}
 .q-note-input{width:100%;min-height:52px;background:transparent;border:none;outline:none;color:var(--text1);font-size:12px;resize:vertical;font-family:inherit;line-height:1.5}
 </style>
@@ -26,7 +28,9 @@
 <script src="../../auth/auth-guard.js"></script>
 <script src="../js/StudySync.js"></script>
 <script src="../js/StudySRS.js"></script>
+<script src="../js/StudyMistakeVault.js"></script>
 <script src="../js/StudyQuizEngine.js"></script>
+<script src="../js/StudyPlaylists.js"></script>
 <script src="../js/CodeRunner.js"></script>
 <script src="../js/StudyZenMode.js"></script>
 <script src="../js/study-features.js"></script>
@@ -6307,6 +6311,20 @@ document.addEventListener('DOMContentLoaded', function(){
         _toggleNote(idx);
       });
       card.appendChild(nb);
+
+      // Playlist button
+      const pb = document.createElement('button');
+      pb.className = 'q-playlist-btn';
+      pb.textContent = '📑 +Playlist';
+      pb.title = 'Add to Company Playlist';
+      pb.setAttribute('aria-label', 'Add to Playlist');
+      pb.addEventListener('click', function(e){
+        e.stopPropagation();
+        if (window.StudyPlaylists) {
+          window.StudyPlaylists.showSelectorForCard(card);
+        }
+      });
+      card.appendChild(pb);
 
       // Note area
       const na = document.createElement('div');
