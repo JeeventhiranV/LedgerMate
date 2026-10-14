@@ -188,18 +188,25 @@ public class MainActivity extends AppCompatActivity {
     private void trySetLastModified(Uri fileUri, long lastModified) {
         if (lastModified <= 0 || fileUri == null) return;
 
-        // Method 1: Os.futimens via ParcelFileDescriptor (direct kernel inode mtime update)
+        // Method 1: Os.futimens via reflection on ParcelFileDescriptor (direct kernel inode mtime update if supported)
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 try (ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(fileUri, "rw")) {
                     if (pfd != null) {
-                        long sec = lastModified / 1000;
-                        long nsec = (lastModified % 1000) * 1000000;
-                        android.system.StructTimespec[] times = new android.system.StructTimespec[] {
-                            new android.system.StructTimespec(sec, nsec),
-                            new android.system.StructTimespec(sec, nsec)
-                        };
-                        android.system.Os.futimens(pfd.getFileDescriptor(), times);
+                        try {
+                            long sec = lastModified / 1000;
+                            long nsec = (lastModified % 1000) * 1000000;
+                            Class<?> osClass = Class.forName("android.system.Os");
+                            Class<?> timespecClass = Class.forName("android.system.StructTimespec");
+                            java.lang.reflect.Constructor<?> ctor = timespecClass.getConstructor(long.class, long.class);
+                            Object t1 = ctor.newInstance(sec, nsec);
+                            Object t2 = ctor.newInstance(sec, nsec);
+                            Object timesArray = java.lang.reflect.Array.newInstance(timespecClass, 2);
+                            java.lang.reflect.Array.set(timesArray, 0, t1);
+                            java.lang.reflect.Array.set(timesArray, 1, t2);
+                            java.lang.reflect.Method futimensMethod = osClass.getMethod("futimens", java.io.FileDescriptor.class, timesArray.getClass());
+                            futimensMethod.invoke(null, pfd.getFileDescriptor(), timesArray);
+                        } catch (Throwable ignored) {}
                     }
                 }
             }
@@ -243,6 +250,14 @@ public class MainActivity extends AppCompatActivity {
                         }
                         if (targetFile != null && targetFile.exists()) {
                             targetFile.setLastModified(lastModified);
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                try {
+                                    java.nio.file.Files.setLastModifiedTime(
+                                        targetFile.toPath(),
+                                        java.nio.file.attribute.FileTime.fromMillis(lastModified)
+                                    );
+                                } catch (Throwable ignored) {}
+                            }
 
                             // Method 4: Notify Android MediaStore / Gallery scanner
                             MediaScannerConnection.scanFile(this, new String[]{targetFile.getAbsolutePath()}, null, null);
