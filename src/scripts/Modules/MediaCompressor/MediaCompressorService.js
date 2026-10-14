@@ -614,69 +614,207 @@
   }
 
   // ─────────────────────────────────────────────────────────────
-  // 5. DESTINATION FOLDER DIRECTORY WRITER
+  // 5. DESTINATION FOLDER & DIRECTORY WRITER
   // ─────────────────────────────────────────────────────────────
 
+  function isNativeAndroid() {
+    return typeof window.AndroidBridge !== 'undefined' &&
+           typeof window.AndroidBridge.isNativeApp === 'function' &&
+           window.AndroidBridge.isNativeApp();
+  }
+
+  function isFolderPickerSupported() {
+    return isNativeAndroid() || typeof window.showDirectoryPicker === 'function';
+  }
+
   /**
-   * Prompts user to select a destination directory on their device
-   * using the File System Access API.
+   * Prompts user to select a destination directory on their device.
+   * Supports Android Storage Access Framework (SAF) in native app,
+   * and Web File System Access API in desktop browsers.
    * 
-   * @returns {Promise<FileSystemDirectoryHandle|null>}
+   * @returns {Promise<{ type: string, handle?: any, uri?: string, name: string }|null>}
    */
   async function chooseDestinationDirectory() {
+    // 1. Native Android Storage Access Framework (SAF)
+    if (isNativeAndroid() && typeof window.AndroidBridge.selectBackupFolder === 'function') {
+      return new Promise(function (resolve, reject) {
+        var callbackId = 'cb_mc_folder_' + Date.now();
+        window.LM_NativeBridgeCallbacks = window.LM_NativeBridgeCallbacks || {};
+        window.LM_NativeBridgeCallbacks[callbackId] = function (res) {
+          delete window.LM_NativeBridgeCallbacks[callbackId];
+          if (res && res.status === 'success' && res.uri) {
+            resolve({
+              type: 'native',
+              uri: res.uri,
+              name: res.folderName || 'Selected Device Folder'
+            });
+          } else {
+            resolve(null);
+          }
+        };
+
+        try {
+          window.AndroidBridge.selectBackupFolder(callbackId);
+          // Set safety timeout if user closes without selecting
+          setTimeout(function () {
+            if (window.LM_NativeBridgeCallbacks[callbackId]) {
+              delete window.LM_NativeBridgeCallbacks[callbackId];
+              resolve(null);
+            }
+          }, 60000);
+        } catch (e) {
+          delete window.LM_NativeBridgeCallbacks[callbackId];
+          reject(e);
+        }
+      });
+    }
+
+    // 2. Web File System Access API (Desktop Chrome, Edge, Opera)
     if (typeof window.showDirectoryPicker === 'function') {
       try {
-        var dirHandle = await window.showDirectoryPicker({
-          id: 'ledgermate_media_compressor',
-          mode: 'readwrite',
-          startIn: 'pictures'
-        });
-        return dirHandle;
+        var dirHandle;
+        try {
+          dirHandle = await window.showDirectoryPicker({
+            id: 'ledgermate_media_compressor',
+            mode: 'readwrite'
+          });
+        } catch (optErr) {
+          // If browser rejects specific options (e.g. id), fallback to standard invocation
+          dirHandle = await window.showDirectoryPicker();
+        }
+
+        if (dirHandle) {
+          return {
+            type: 'fsa',
+            handle: dirHandle,
+            name: dirHandle.name
+          };
+        }
       } catch (err) {
         if (err.name === 'AbortError') return null; // User cancelled
         throw err;
       }
     }
-    return null; // Not supported on this browser
+
+    // 3. Fallback for mobile browsers (Chrome on Android, Safari on iOS)
+    return null;
+  }
+
+  async function blobToBase64(blob) {
+    if (typeof FileReader !== 'undefined') {
+      return new Promise(function (resolve, reject) {
+        var reader = new FileReader();
+        reader.onloadend = function () {
+          var dataUrl = reader.result;
+          var base64 = dataUrl ? dataUrl.split(',')[1] : '';
+          resolve(base64 || '');
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    try {
+      var buffer = await (blob.arrayBuffer ? blob.arrayBuffer() : Promise.resolve(new ArrayBuffer(0)));
+      var bytes = new Uint8Array(buffer);
+      if (typeof Buffer !== 'undefined') {
+        return Buffer.from(bytes).toString('base64');
+      }
+      var binary = '';
+      for (var b = 0; b < bytes.length; b++) {
+        binary += String.fromCharCode(bytes[b]);
+      }
+      return typeof btoa === 'function' ? btoa(binary) : '';
+    } catch (e) {
+      return '';
+    }
   }
 
   /**
-   * Saves an array of compressed result items to a selected FileSystemDirectoryHandle.
+   * Saves an array of compressed result items to a selected directory.
    * Retains exact original names and timestamps.
    * 
-   * @param {FileSystemDirectoryHandle} dirHandle - Directory handle
+   * @param {Object} destination - Destination descriptor ({ type, handle, uri, name })
    * @param {Array<Object>} items - Array of compression result objects
    * @param {Function} [onFileSaved] - Callback (index, total, name)
    * @returns {Promise<{ savedCount: number, errors: Array }>}
    */
-  async function saveItemsToDirectory(dirHandle, items, onFileSaved) {
-    if (!dirHandle || !dirHandle.getFileHandle) {
-      throw new Error('Invalid directory handle');
+  async function saveItemsToDirectory(destination, items, onFileSaved) {
+    if (!destination) {
+      throw new Error('No destination selected');
     }
 
     var savedCount = 0;
     var errors = [];
 
-    for (var i = 0; i < items.length; i++) {
-      var item = items[i];
-      try {
-        var fileName = item.name || item.file.name;
-        var fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
-        var writable = await fileHandle.createWritable();
-        await writable.write(item.blob || item.file);
-        await writable.close();
+    // Case A: Native Android Bridge
+    if (destination.type === 'native' && window.AndroidBridge && typeof window.AndroidBridge.writeMediaFile === 'function') {
+      for (var i = 0; i < items.length; i++) {
+        var itemNative = items[i];
+        try {
+          var fName = itemNative.name || itemNative.file.name;
+          var blobNative = itemNative.blob || itemNative.file;
+          var b64 = await blobToBase64(blobNative);
+          var mType = blobNative.type || (itemNative.type === 'image' ? 'image/jpeg' : 'video/mp4');
+          var lMod = itemNative.file && itemNative.file.lastModified ? itemNative.file.lastModified : Date.now();
 
-        savedCount++;
-        if (typeof onFileSaved === 'function') {
-          onFileSaved(i + 1, items.length, fileName);
+          await new Promise(function (resolveWrite, rejectWrite) {
+            var cbId = 'cb_mc_write_' + Date.now() + '_' + i;
+            window.LM_NativeBridgeCallbacks = window.LM_NativeBridgeCallbacks || {};
+            window.LM_NativeBridgeCallbacks[cbId] = function (res) {
+              delete window.LM_NativeBridgeCallbacks[cbId];
+              if (res && res.status === 'success') {
+                resolveWrite(res);
+              } else {
+                rejectWrite(new Error((res && res.error) || 'Failed to save ' + fName));
+              }
+            };
+
+            try {
+              window.AndroidBridge.writeMediaFile(destination.uri, fName, b64, mType, lMod, cbId);
+            } catch (err) {
+              delete window.LM_NativeBridgeCallbacks[cbId];
+              rejectWrite(err);
+            }
+          });
+
+          savedCount++;
+          if (typeof onFileSaved === 'function') {
+            onFileSaved(i + 1, items.length, fName);
+          }
+        } catch (saveNativeErr) {
+          console.error('[LM MediaCompressor] Native save error for ' + itemNative.name + ':', saveNativeErr);
+          errors.push({ name: itemNative.name, error: saveNativeErr.message });
         }
-      } catch (saveErr) {
-        console.error('[LM MediaCompressor] Failed to save file ' + item.name + ':', saveErr);
-        errors.push({ name: item.name, error: saveErr.message });
       }
+      return { savedCount: savedCount, errors: errors };
     }
 
-    return { savedCount: savedCount, errors: errors };
+    // Case B: Web File System Access API
+    var dirHandle = destination.handle || destination;
+    if (dirHandle && dirHandle.getFileHandle) {
+      for (var j = 0; j < items.length; j++) {
+        var itemFsa = items[j];
+        try {
+          var name = itemFsa.name || itemFsa.file.name;
+          var fileHandle = await dirHandle.getFileHandle(name, { create: true });
+          var writable = await fileHandle.createWritable();
+          await writable.write(itemFsa.blob || itemFsa.file);
+          await writable.close();
+
+          savedCount++;
+          if (typeof onFileSaved === 'function') {
+            onFileSaved(j + 1, items.length, name);
+          }
+        } catch (saveErr) {
+          console.error('[LM MediaCompressor] Failed to save file ' + itemFsa.name + ':', saveErr);
+          errors.push({ name: itemFsa.name, error: saveErr.message });
+        }
+      }
+      return { savedCount: savedCount, errors: errors };
+    }
+
+    throw new Error('Unsupported destination writer');
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -845,7 +983,9 @@
     chooseDestinationDirectory: chooseDestinationDirectory,
     saveItemsToDirectory: saveItemsToDirectory,
     generateZipArchive: generateZipArchive,
-    triggerDownload: triggerDownload
+    triggerDownload: triggerDownload,
+    isFolderPickerSupported: isFolderPickerSupported,
+    isNativeAndroid: isNativeAndroid
   };
 
   if (typeof module !== 'undefined' && module.exports) {

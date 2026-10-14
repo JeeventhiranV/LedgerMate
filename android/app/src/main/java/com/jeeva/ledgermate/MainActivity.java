@@ -1702,6 +1702,65 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
+        public void writeMediaFile(String uriStr, String fileName, String base64Content, String mimeType, long lastModified, String callbackId) {
+            executorService.execute(() -> {
+                try {
+                    String targetUriStr = uriStr;
+                    if (targetUriStr == null || targetUriStr.isEmpty()) {
+                        SharedPreferences prefs = getSharedPreferences("ledgermate_backup_prefs", Context.MODE_PRIVATE);
+                        targetUriStr = prefs.getString("backup_folder_uri", null);
+                    }
+                    if (targetUriStr == null || targetUriStr.isEmpty()) {
+                        sendError(callbackId, "No destination folder configured on device. Please select a folder.");
+                        return;
+                    }
+
+                    Uri treeUri = Uri.parse(targetUriStr);
+                    DocumentFile dir = DocumentFile.fromTreeUri(MainActivity.this, treeUri);
+                    if (dir == null || !dir.exists() || !dir.isDirectory()) {
+                        sendError(callbackId, "Destination directory not accessible. Please re-select the folder.");
+                        return;
+                    }
+
+                    String name = (fileName != null && !fileName.isEmpty()) ? fileName : ("media_" + System.currentTimeMillis());
+                    String targetMime = (mimeType != null && !mimeType.isEmpty()) ? mimeType : "application/octet-stream";
+
+                    // Overwrite if file already exists
+                    DocumentFile existing = dir.findFile(name);
+                    if (existing != null && existing.exists()) {
+                        try { existing.delete(); } catch (Exception ignored) {}
+                    }
+
+                    DocumentFile mediaFile = dir.createFile(targetMime, name);
+                    if (mediaFile == null) {
+                        sendError(callbackId, "Could not create file '" + name + "' in selected directory.");
+                        return;
+                    }
+
+                    byte[] data = android.util.Base64.decode(base64Content, android.util.Base64.DEFAULT);
+                    try (OutputStream out = getContentResolver().openOutputStream(mediaFile.getUri())) {
+                        if (out == null) {
+                            sendError(callbackId, "Could not open stream to write media file.");
+                            return;
+                        }
+                        out.write(data);
+                        out.flush();
+                    }
+
+                    JSONObject resp = new JSONObject();
+                    resp.put("status", "success");
+                    resp.put("fileName", name);
+                    resp.put("fileUri", mediaFile.getUri().toString());
+                    resp.put("timestamp", lastModified > 0 ? lastModified : System.currentTimeMillis());
+                    returnToJs(callbackId, resp.toString());
+
+                } catch (Exception e) {
+                    sendError(callbackId, "Failed to write media file: " + (e.getMessage() != null ? e.getMessage() : e.toString()));
+                }
+            });
+        }
+
+        @JavascriptInterface
         public void pruneBackups(String uriStr, int maxDays, int maxCount, String callbackId) {
             executorService.execute(() -> {
                 try {

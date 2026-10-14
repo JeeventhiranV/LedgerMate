@@ -6,11 +6,13 @@
  *   - Drag & Drop file queue with live image & video thumbnail generation
  *   - Interactive configuration: Quality slider, Custom max dimension (1200px editable),
  *     Video presets (1080p, 720p, 480p, 360p), EXIF preservation toggle
- *   - Destination folder selector via File System Access API
+ *   - Live estimated space reduction pill during tuning
+ *   - Native Android SAF folder picker & Web File System Access API integration
+ *   - Mobile Web proactive Save Options modal (1-Click ZIP vs Direct Downloads)
  *   - Real-time progress bar with per-file status
- *   - Space reduction analytics (Total MB saved and % reduction)
- *   - Before/After interactive preview comparisons
- *   - 1-click Save to Destination, Download as ZIP, and individual file download
+ *   - Hero space reduction analytics (Total MB saved and % reduction)
+ *   - Interactive Before/After full preview comparisons
+ *   - 1-click Save to Destination, Download as ZIP, and individual file downloads
  * 
  * Exposes: window.LM_MediaCompressorUI
  * ─────────────────────────────────────────────────────────────
@@ -23,8 +25,8 @@
     currentStage: 'select', // 'select' | 'configure' | 'processing' | 'results'
     selectedFiles: [],      // Array of { file, id, name, size, type, previewUrl, width, height }
     compressedResults: [],  // Array of result objects from service
-    destinationHandle: null,
-    destinationFolderName: 'Device Downloads / Default',
+    destination: null,      // { type: 'native'|'fsa', uri?, handle?, name }
+    mobileSavePreference: 'zip', // 'zip' | 'sequential'
     options: {
       quality: 0.75,
       resizeMode: 'custom',
@@ -48,6 +50,17 @@
     var sizes = ['B', 'KB', 'MB', 'GB'];
     var i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  /**
+   * Computes estimated space reduction percentage based on settings
+   */
+  function getEstimatedSavings(quality, resizeMode, maxDim) {
+    var base = Math.round((1 - quality * 0.72) * 100);
+    if (resizeMode === 'custom' && maxDim <= 1200) {
+      base = Math.min(88, base + 14);
+    }
+    return Math.max(25, Math.min(92, base));
   }
 
   /**
@@ -102,8 +115,9 @@
           ${renderStageContent()}
         </div>
 
-        <!-- Comparison Modal Placeholder -->
+        <!-- Modals -->
         <div id="mcComparisonModal" class="mc-modal" style="display:none;"></div>
+        <div id="mcSaveOptionsModal" class="mc-modal" style="display:none;"></div>
       </div>
     `;
 
@@ -199,6 +213,8 @@
   function renderConfigureStage() {
     var hasPhotos = _state.selectedFiles.some(f => f.type === 'image');
     var hasVideos = _state.selectedFiles.some(f => f.type === 'video');
+    var canPickFolder = window.LM_MediaCompressorService.isFolderPickerSupported();
+    var estSavings = getEstimatedSavings(_state.options.quality, _state.options.resizeMode, _state.options.maxDimension);
 
     return `
       <div class="mc-config-wrap">
@@ -215,9 +231,12 @@
             <div class="card mc-config-card">
               <div class="mc-card-head">
                 <span class="mc-card-icon">📸</span>
-                <div>
+                <div style="flex:1;">
                   <h3 class="mc-card-title">Photo Compression Settings</h3>
                   <p class="mc-card-subtitle">Adjust quality and dimensions while preserving EXIF, GPS &amp; dates</p>
+                </div>
+                <div class="mc-estimate-pill" id="mcEstimatePill">
+                  ⚡ Est. Space Saved: ~${estSavings}%
                 </div>
               </div>
 
@@ -247,11 +266,11 @@
                 <div class="mc-radio-group">
                   <label class="mc-radio-label">
                     <input type="radio" name="mcResizeMode" value="custom" ${_state.options.resizeMode === 'custom' ? 'checked' : ''} id="mcResizeCustomRadio">
-                    <span>Resize to Max Dimension</span>
+                    <span>Resize to Max Dimension (Recommended)</span>
                   </label>
                   <label class="mc-radio-label">
                     <input type="radio" name="mcResizeMode" value="original" ${_state.options.resizeMode === 'original' ? 'checked' : ''} id="mcResizeOrigRadio">
-                    <span>Original Resolution (No Downsampling)</span>
+                    <span>Keep Original Resolution (No Downsampling)</span>
                   </label>
                 </div>
 
@@ -344,23 +363,47 @@
             <div class="mc-card-head">
               <span class="mc-card-icon">📁</span>
               <div>
-                <h3 class="mc-card-title">Destination Folder</h3>
-                <p class="mc-card-subtitle">Choose where compressed files with identical original names will be saved</p>
+                <h3 class="mc-card-title">Destination &amp; Save Method</h3>
+                <p class="mc-card-subtitle">Choose how and where compressed files with identical original names will be saved</p>
               </div>
             </div>
 
-            <div class="mc-dest-row">
-              <div class="mc-dest-info">
-                <span class="mc-dest-icon">📂</span>
-                <div>
-                  <div class="mc-dest-name" id="mcDestFolderLabel">${_state.destinationFolderName}</div>
-                  <div class="mc-dest-sub">Compressed files will be written with their exact original names &amp; timestamps.</div>
+            ${canPickFolder ? `
+              <!-- Supported Folder Picker Mode (Desktop Chrome / Android APK) -->
+              <div class="mc-dest-row">
+                <div class="mc-dest-info">
+                  <span class="mc-dest-icon">📂</span>
+                  <div>
+                    <div class="mc-dest-name" id="mcDestFolderLabel">
+                      ${_state.destination ? ('📁 ' + _state.destination.name) : 'Device Folder (Click Choose Folder to select)'}
+                    </div>
+                    <div class="mc-dest-sub">Files will be written directly with their exact original names &amp; timestamps.</div>
+                  </div>
                 </div>
+                <button type="button" class="btn-submit mc-btn-folder" id="mcChooseFolderBtn">
+                  ${_state.destination ? '📁 Change Folder' : '📁 Choose Destination Folder'}
+                </button>
               </div>
-              <button type="button" class="btn-submit mc-btn-folder" id="mcChooseFolderBtn">
-                📁 Choose Folder
-              </button>
-            </div>
+            ` : `
+              <!-- Mobile Web Browser Mode (Chrome / Safari / Firefox) -->
+              <div class="mc-dest-row mc-dest-mobile">
+                <div class="mc-dest-info">
+                  <span class="mc-dest-icon">📥</span>
+                  <div>
+                    <div class="mc-dest-name">Device Downloads Folder</div>
+                    <div class="mc-dest-sub">
+                      Saving via: <strong>${_state.mobileSavePreference === 'zip' ? '1-Click ZIP Archive (Recommended)' : 'Direct File Downloads'}</strong>
+                    </div>
+                  </div>
+                </div>
+                <button type="button" class="mc-btn-secondary mc-btn-options" id="mcSaveOptionsBtn">
+                  ⚙️ Save Options
+                </button>
+              </div>
+              <div class="mc-dest-note">
+                💡 <em>Mobile web browsers route downloads directly to your Downloads folder. Tap "Save Options" to customize.</em>
+              </div>
+            `}
           </div>
         </div>
 
@@ -407,6 +450,7 @@
     var totalComp = _state.compressedResults.reduce((a, b) => a + (b.compressedSize || 0), 0);
     var totalSaved = Math.max(0, totalOrig - totalComp);
     var pctSaved = totalOrig > 0 ? ((totalSaved / totalOrig) * 100).toFixed(1) : 0;
+    var hasDestinationFolder = !!_state.destination;
 
     return `
       <div class="mc-results-wrap">
@@ -432,12 +476,21 @@
 
         <!-- Global Actions -->
         <div class="mc-results-actions">
-          <button type="button" class="btn-submit mc-save-all-btn" id="mcSaveAllBtn">
-            💾 Save All to Destination Folder (${_state.compressedResults.length})
-          </button>
-          <button type="button" class="mc-btn-secondary" id="mcDownloadZipBtn">
-            📦 Download All as ZIP
-          </button>
+          ${hasDestinationFolder ? `
+            <button type="button" class="btn-submit mc-save-all-btn" id="mcSaveToFolderBtn">
+              💾 Save All to ${_state.destination.name} (${_state.compressedResults.length})
+            </button>
+            <button type="button" class="mc-btn-secondary" id="mcDownloadZipBtn">
+              📦 Download All as ZIP
+            </button>
+          ` : `
+            <button type="button" class="btn-submit mc-save-all-btn" id="mcDownloadZipBtn">
+              📦 Download All as ZIP (${_state.compressedResults.length} Files)
+            </button>
+            <button type="button" class="mc-btn-secondary" id="mcSaveSequentialBtn">
+              ⬇️ Save Files to Downloads (Sequential)
+            </button>
+          `}
           <button type="button" class="mc-btn-secondary" id="mcNewBatchBtn">
             🔄 Compress More Files
           </button>
@@ -592,12 +645,22 @@
     // Quality Slider
     var qualitySlider = container.querySelector('#mcQualitySlider');
     var qualityVal = container.querySelector('#mcQualityVal');
+    var estimatePill = container.querySelector('#mcEstimatePill');
+
+    function updateEstimate() {
+      if (estimatePill) {
+        var est = getEstimatedSavings(_state.options.quality, _state.options.resizeMode, _state.options.maxDimension);
+        estimatePill.textContent = `⚡ Est. Space Saved: ~${est}%`;
+      }
+    }
+
     if (qualitySlider && qualityVal) {
       qualitySlider.addEventListener('input', function (e) {
         var val = parseInt(e.target.value, 10);
         _state.options.quality = val / 100;
         qualityVal.textContent = val + '%';
         container.querySelectorAll('.mc-chip').forEach(c => c.classList.remove('active'));
+        updateEstimate();
       });
     }
 
@@ -610,6 +673,7 @@
         if (qualityVal) qualityVal.textContent = Math.round(q * 100) + '%';
         container.querySelectorAll('.mc-chip').forEach(c => c.classList.remove('active'));
         this.classList.add('active');
+        updateEstimate();
       });
     });
 
@@ -623,12 +687,14 @@
         if (this.checked) {
           _state.options.resizeMode = 'custom';
           if (dimWrap) dimWrap.style.display = '';
+          updateEstimate();
         }
       });
       resizeOrigRadio.addEventListener('change', function () {
         if (this.checked) {
           _state.options.resizeMode = 'original';
           if (dimWrap) dimWrap.style.display = 'none';
+          updateEstimate();
         }
       });
     }
@@ -638,6 +704,7 @@
     if (maxDimInput) {
       maxDimInput.addEventListener('input', function (e) {
         _state.options.maxDimension = parseInt(e.target.value, 10) || 1200;
+        updateEstimate();
       });
     }
 
@@ -679,18 +746,24 @@
     if (chooseFolderBtn) {
       chooseFolderBtn.addEventListener('click', async function () {
         try {
-          var handle = await window.LM_MediaCompressorService.chooseDestinationDirectory();
-          if (handle) {
-            _state.destinationHandle = handle;
-            _state.destinationFolderName = '📁 ' + handle.name;
-            var label = container.querySelector('#mcDestFolderLabel');
-            if (label) label.textContent = _state.destinationFolderName;
-            if (window.LMToast) LMToast.ok('Selected folder: ' + handle.name);
+          var dest = await window.LM_MediaCompressorService.chooseDestinationDirectory();
+          if (dest) {
+            _state.destination = dest;
+            render();
+            if (window.LMToast) LMToast.ok('Selected destination folder: ' + dest.name);
           }
         } catch (dirErr) {
           console.warn('[LM MediaCompressor] Directory selection error:', dirErr);
-          if (window.LMToast) LMToast.info('Folder picker cancelled or unsupported. Files can also be saved via direct download.');
+          if (window.LMToast) LMToast.info('Folder selection was cancelled.');
         }
+      });
+    }
+
+    // Save Options Modal Trigger (Mobile Web)
+    var saveOptionsBtn = container.querySelector('#mcSaveOptionsBtn');
+    if (saveOptionsBtn) {
+      saveOptionsBtn.addEventListener('click', function () {
+        openSaveOptionsModal();
       });
     }
 
@@ -715,9 +788,9 @@
     }
 
     // Stage 4: Results Actions
-    var saveAllBtn = container.querySelector('#mcSaveAllBtn');
-    if (saveAllBtn) {
-      saveAllBtn.addEventListener('click', async function () {
+    var saveToFolderBtn = container.querySelector('#mcSaveToFolderBtn');
+    if (saveToFolderBtn) {
+      saveToFolderBtn.addEventListener('click', async function () {
         await saveAllToDestination();
       });
     }
@@ -725,15 +798,14 @@
     var downloadZipBtn = container.querySelector('#mcDownloadZipBtn');
     if (downloadZipBtn) {
       downloadZipBtn.addEventListener('click', async function () {
-        try {
-          if (window.LMToast) LMToast.info('Building ZIP package with original timestamps...');
-          var zipBlob = await window.LM_MediaCompressorService.generateZipArchive(_state.compressedResults);
-          window.LM_MediaCompressorService.triggerDownload(zipBlob, 'LedgerMate_Compressed_Media.zip');
-          if (window.LMToast) LMToast.ok('ZIP downloaded successfully!');
-        } catch (zipErr) {
-          console.error('[LM MediaCompressor] ZIP generation failed:', zipErr);
-          if (window.LMToast) LMToast.error('Failed to generate ZIP archive: ' + zipErr.message);
-        }
+        await downloadAllAsZip();
+      });
+    }
+
+    var saveSequentialBtn = container.querySelector('#mcSaveSequentialBtn');
+    if (saveSequentialBtn) {
+      saveSequentialBtn.addEventListener('click', function () {
+        downloadAllSequentially();
       });
     }
 
@@ -761,7 +833,7 @@
       var isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mov|mkv|avi)$/i);
       var isImage = file.type.startsWith('image/') || file.name.match(/\.(jpe?g|png|webp|gif|bmp)$/i);
 
-      if (!isImage && !isVideo) continue; // Skip unsupported documents
+      if (!isImage && !isVideo) continue;
 
       var id = 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
       var previewUrl = URL.createObjectURL(file);
@@ -778,8 +850,6 @@
       };
 
       _state.selectedFiles.push(item);
-
-      // Async measure dimensions
       measureMediaDimensions(item);
     }
 
@@ -897,41 +967,155 @@
 
     var service = window.LM_MediaCompressorService;
 
-    // If destination folder not yet selected, prompt user
-    if (!_state.destinationHandle) {
+    if (_state.destination) {
+      if (window.LMToast) LMToast.info(`Writing ${items.length} files to ${_state.destination.name}...`);
       try {
-        _state.destinationHandle = await service.chooseDestinationDirectory();
-      } catch (e) {
-        console.warn('Folder selection aborted:', e);
-      }
-    }
-
-    if (_state.destinationHandle) {
-      if (window.LMToast) LMToast.info(`Writing ${items.length} files to ${_state.destinationHandle.name}...`);
-      var result = await service.saveItemsToDirectory(_state.destinationHandle, items, function (curr, total, name) {
-        if (window.LMToast && curr % 5 === 0) {
-          LMToast.info(`Saved ${curr} of ${total} files...`);
+        var result = await service.saveItemsToDirectory(_state.destination, items, function (curr, total, name) {
+          if (window.LMToast && curr % 5 === 0) {
+            LMToast.info(`Saved ${curr} of ${total} files...`);
+          }
+        });
+        if (window.LMToast) {
+          LMToast.ok(`Saved all ${result.savedCount} files directly into folder '${_state.destination.name}'!`);
         }
-      });
-      if (window.LMToast) {
-        LMToast.ok(`Saved all ${result.savedCount} files directly into folder '${_state.destinationHandle.name}'!`);
+      } catch (err) {
+        console.error('Save to directory failed:', err);
+        if (window.LMToast) LMToast.error('Failed to write to folder: ' + err.message);
       }
     } else {
-      // Fallback: batch sequential downloads or ZIP
-      if (window.LMToast) LMToast.info('Direct folder access unavailable on this browser. Downloading files individually...');
-      items.forEach((item, idx) => {
-        setTimeout(() => {
-          service.triggerDownload(item.blob || item.file, item.name);
-        }, idx * 400);
-      });
+      // Prompt user or fallback to zip
+      await downloadAllAsZip();
     }
+  }
+
+  async function downloadAllAsZip() {
+    var items = _state.compressedResults;
+    if (items.length === 0) return;
+
+    try {
+      if (window.LMToast) LMToast.info('Building ZIP package with original filenames and timestamps...');
+      var zipBlob = await window.LM_MediaCompressorService.generateZipArchive(items);
+      window.LM_MediaCompressorService.triggerDownload(zipBlob, 'LedgerMate_Compressed_Media.zip');
+      if (window.LMToast) LMToast.ok('ZIP package saved to your Downloads folder!');
+    } catch (zipErr) {
+      console.error('[LM MediaCompressor] ZIP generation failed:', zipErr);
+      if (window.LMToast) LMToast.error('Failed to generate ZIP archive: ' + zipErr.message);
+    }
+  }
+
+  function downloadAllSequentially() {
+    var items = _state.compressedResults;
+    if (items.length === 0) return;
+
+    var service = window.LM_MediaCompressorService;
+    if (window.LMToast) LMToast.ok(`Saving ${items.length} files to your Downloads folder...`);
+
+    items.forEach((item, idx) => {
+      setTimeout(() => {
+        service.triggerDownload(item.blob || item.file, item.name);
+      }, idx * 450);
+    });
   }
 
   function downloadItem(index) {
     var item = _state.compressedResults[index];
     if (!item) return;
     window.LM_MediaCompressorService.triggerDownload(item.blob || item.file, item.name);
-    if (window.LMToast) LMToast.ok(`Downloading ${item.name}`);
+    if (window.LMToast) LMToast.ok(`Downloading ${item.name} to Downloads folder`);
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // DESTINATION & SAVE OPTIONS MODAL (MOBILE WEB & INFO)
+  // ─────────────────────────────────────────────────────────────
+  function openSaveOptionsModal() {
+    var modal = document.getElementById('mcSaveOptionsModal');
+    if (!modal) return;
+
+    var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    modal.innerHTML = `
+      <div class="mc-modal-backdrop" onclick="window.LM_MediaCompressorUI.closeSaveOptionsModal()"></div>
+      <div class="mc-modal-card mc-options-modal-card">
+        <div class="mc-modal-head">
+          <div class="mc-modal-title">
+            <span>📁 Destination &amp; Save Settings</span>
+          </div>
+          <button type="button" class="mc-modal-close" onclick="window.LM_MediaCompressorUI.closeSaveOptionsModal()">✕</button>
+        </div>
+
+        <div class="mc-modal-body">
+          <div class="mc-modal-info-box">
+            <span class="mc-info-icon">ℹ️</span>
+            <div>
+              <strong>How file saving works in mobile web browsers:</strong>
+              <p class="mc-info-p">
+                Mobile web browsers (Chrome, Safari, Firefox) automatically save all downloaded files into your device's 
+                <strong>Downloads</strong> folder. For device privacy and security, mobile web browsers do not allow web pages to pop up arbitrary folder choosers.
+              </p>
+            </div>
+          </div>
+
+          <div class="mc-field-group">
+            <label class="mc-label">Preferred Save Method:</label>
+            <div class="mc-save-option-list">
+              <label class="mc-save-opt-card ${_state.mobileSavePreference === 'zip' ? 'selected' : ''}">
+                <input type="radio" name="mcSavePref" value="zip" ${_state.mobileSavePreference === 'zip' ? 'checked' : ''} onchange="window.LM_MediaCompressorUI.setMobileSavePref('zip')">
+                <div class="mc-save-opt-content">
+                  <div class="mc-save-opt-title">📦 1-Click ZIP Archive (Recommended)</div>
+                  <div class="mc-save-opt-desc">Combines all compressed photos &amp; videos into a single organized ZIP package in your Downloads. Avoids multiple annoying download popups and preserves exact filenames and creation timestamps.</div>
+                </div>
+              </label>
+
+              <label class="mc-save-opt-card ${_state.mobileSavePreference === 'sequential' ? 'selected' : ''}">
+                <input type="radio" name="mcSavePref" value="sequential" ${_state.mobileSavePreference === 'sequential' ? 'checked' : ''} onchange="window.LM_MediaCompressorUI.setMobileSavePref('sequential')">
+                <div class="mc-save-opt-content">
+                  <div class="mc-save-opt-title">⬇️ Direct File Downloads</div>
+                  <div class="mc-save-opt-desc">Downloads each compressed file directly to your Downloads folder one by one.</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Native App Recommendation Banner -->
+          <div class="mc-app-promo-card">
+            <div class="mc-app-promo-head">
+              <span class="mc-app-promo-icon">📱</span>
+              <div>
+                <div class="mc-app-promo-title">Want to pick custom device folders?</div>
+                <div class="mc-app-promo-desc">Install the LedgerMate Android App for direct phone storage access (DCIM, Pictures, SD Card, etc.).</div>
+              </div>
+            </div>
+            <button type="button" class="btn-submit mc-app-dl-btn" onclick="window.LM_PWA?.downloadApk(); window.LM_MediaCompressorUI.closeSaveOptionsModal();">
+              ⬇️ Download Android App (APK)
+            </button>
+          </div>
+        </div>
+
+        <div class="mc-modal-foot">
+          <button type="button" class="btn-submit" onclick="window.LM_MediaCompressorUI.closeSaveOptionsModal()">
+            Done
+          </button>
+        </div>
+      </div>
+    `;
+
+    modal.style.display = 'flex';
+  }
+
+  function closeSaveOptionsModal() {
+    var modal = document.getElementById('mcSaveOptionsModal');
+    if (modal) modal.style.display = 'none';
+    render();
+  }
+
+  function setMobileSavePref(pref) {
+    _state.mobileSavePreference = pref;
+    var cards = document.querySelectorAll('.mc-save-opt-card');
+    cards.forEach(c => {
+      var r = c.querySelector('input[type="radio"]');
+      if (r && r.value === pref) c.classList.add('selected');
+      else c.classList.remove('selected');
+    });
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -1021,9 +1205,14 @@
   window.LM_MediaCompressorUI = {
     init: init,
     downloadItem: downloadItem,
+    downloadAllAsZip: downloadAllAsZip,
+    downloadAllSequentially: downloadAllSequentially,
     openComparisonModal: openComparisonModal,
     closeComparisonModal: closeComparisonModal,
-    _getState: function () { return _state; } // For unit testing
+    openSaveOptionsModal: openSaveOptionsModal,
+    closeSaveOptionsModal: closeSaveOptionsModal,
+    setMobileSavePref: setMobileSavePref,
+    _getState: function () { return _state; }
   };
 
 })();

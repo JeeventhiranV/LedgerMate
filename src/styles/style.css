@@ -5436,6 +5436,152 @@ footer span { color: var(--teal); font-weight: 600; }
   border-top: 1px solid var(--border);
 }
 
+/* Savings Estimate Pill */
+.mc-estimate-pill {
+  font-size: 11px;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 4px 10px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+/* Destination Mobile Note & Option Button */
+.mc-dest-mobile {
+  background: rgba(255, 255, 255, 0.02);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.mc-dest-note {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 8px;
+  padding-left: 4px;
+}
+
+.mc-btn-options {
+  font-size: 12px !important;
+  padding: 6px 14px !important;
+  border-radius: 8px !important;
+}
+
+/* Save Options Modal */
+.mc-options-modal-card {
+  max-width: 540px !important;
+}
+
+.mc-modal-info-box {
+  display: flex;
+  gap: 12px;
+  background: rgba(0, 212, 180, 0.06);
+  border: 1px solid rgba(0, 212, 180, 0.2);
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.mc-info-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.mc-info-p {
+  margin: 4px 0 0;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+.mc-save-option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.mc-save-opt-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mc-save-opt-card:hover {
+  border-color: rgba(0, 212, 180, 0.4);
+}
+
+.mc-save-opt-card.selected {
+  border-color: var(--teal);
+  background: rgba(0, 212, 180, 0.06);
+}
+
+.mc-save-opt-card input[type="radio"] {
+  margin-top: 3px;
+  accent-color: var(--teal);
+}
+
+.mc-save-opt-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 3px;
+}
+
+.mc-save-opt-desc {
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.4;
+}
+
+/* App Promo Card in Modal */
+.mc-app-promo-card {
+  margin-top: 20px;
+  background: linear-gradient(135deg, rgba(0, 212, 180, 0.08), rgba(20, 184, 166, 0.04));
+  border: 1px solid rgba(0, 212, 180, 0.25);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.mc-app-promo-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.mc-app-promo-icon {
+  font-size: 24px;
+}
+
+.mc-app-promo-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.mc-app-promo-desc {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.mc-app-dl-btn {
+  width: 100% !important;
+  padding: 8px 16px !important;
+  font-size: 12px !important;
+  border-radius: 8px !important;
+  text-align: center !important;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .mc-header {
