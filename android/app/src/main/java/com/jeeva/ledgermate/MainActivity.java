@@ -15,7 +15,9 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Message;
+import android.provider.DocumentsContract;
 import android.provider.Settings;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
@@ -124,12 +126,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String pendingFolderCallbackId = null;
+    private String pendingFolderType = "backup"; // "backup" or "media"
 
     private final ActivityResultLauncher<Intent> folderPickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 String callbackId = pendingFolderCallbackId;
                 pendingFolderCallbackId = null;
+                String folderType = (pendingFolderType != null) ? pendingFolderType : "backup";
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                     Uri treeUri = result.getData().getData();
                     if (treeUri != null) {
@@ -138,14 +142,23 @@ public class MainActivity extends AppCompatActivity {
                             getContentResolver().takePersistableUriPermission(treeUri, takeFlags);
 
                             String folderName = getFolderDisplayName(treeUri);
-                            SharedPreferences prefs = getSharedPreferences("ledgermate_backup_prefs", Context.MODE_PRIVATE);
-                            prefs.edit()
-                                    .putString("backup_folder_uri", treeUri.toString())
-                                    .putString("backup_folder_name", folderName)
-                                    .apply();
+                            if ("media".equals(folderType)) {
+                                SharedPreferences mediaPrefs = getSharedPreferences("ledgermate_media_prefs", Context.MODE_PRIVATE);
+                                mediaPrefs.edit()
+                                        .putString("media_folder_uri", treeUri.toString())
+                                        .putString("media_folder_name", folderName)
+                                        .apply();
+                            } else {
+                                SharedPreferences backupPrefs = getSharedPreferences("ledgermate_backup_prefs", Context.MODE_PRIVATE);
+                                backupPrefs.edit()
+                                        .putString("backup_folder_uri", treeUri.toString())
+                                        .putString("backup_folder_name", folderName)
+                                        .apply();
+                            }
 
                             JSONObject resp = new JSONObject();
                             resp.put("status", "success");
+                            resp.put("type", folderType);
                             resp.put("uri", treeUri.toString());
                             resp.put("folderName", folderName);
                             returnToJs(callbackId, resp.toString());
@@ -159,6 +172,48 @@ public class MainActivity extends AppCompatActivity {
                 sendError(callbackId, "Folder selection cancelled or failed");
             }
     );
+
+    /**
+     * Resolves underlying filesystem file from a SAF document URI and preserves original modified timestamp.
+     */
+    private void trySetLastModified(Uri fileUri, long lastModified) {
+        if (lastModified <= 0 || fileUri == null) return;
+        try {
+            if ("com.android.externalstorage.documents".equals(fileUri.getAuthority())) {
+                String docId = DocumentsContract.getDocumentId(fileUri);
+                if (docId != null) {
+                    String[] split = docId.split(":", 2);
+                    if (split.length == 2) {
+                        String type = split[0];
+                        String relativePath = split[1];
+                        File targetFile = null;
+                        if ("primary".equalsIgnoreCase(type)) {
+                            targetFile = new File(Environment.getExternalStorageDirectory(), relativePath);
+                        } else {
+                            File[] externalMediaDirs = ContextCompat.getExternalFilesDirs(this, null);
+                            for (File dir : externalMediaDirs) {
+                                if (dir != null) {
+                                    String path = dir.getAbsolutePath();
+                                    int index = path.indexOf("/Android/data");
+                                    if (index > 0) {
+                                        String root = path.substring(0, index);
+                                        File candidate = new File(root, relativePath);
+                                        if (candidate.exists()) {
+                                            targetFile = candidate;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (targetFile != null && targetFile.exists()) {
+                            targetFile.setLastModified(lastModified);
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+    }
 
 
     @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
@@ -1607,6 +1662,7 @@ public class MainActivity extends AppCompatActivity {
         public void selectBackupFolder(String callbackId) {
             runOnUiThread(() -> {
                 try {
+                    pendingFolderType = "backup";
                     pendingFolderCallbackId = callbackId;
                     Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
                     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
@@ -1616,6 +1672,24 @@ public class MainActivity extends AppCompatActivity {
                     folderPickerLauncher.launch(intent);
                 } catch (Exception e) {
                     sendError(callbackId, "Cannot open folder picker: " + e.getMessage());
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void selectMediaFolder(String callbackId) {
+            runOnUiThread(() -> {
+                try {
+                    pendingFolderType = "media";
+                    pendingFolderCallbackId = callbackId;
+                    Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                            | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                            | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
+                    folderPickerLauncher.launch(intent);
+                } catch (Exception e) {
+                    sendError(callbackId, "Cannot open media folder picker: " + e.getMessage());
                 }
             });
         }
@@ -1633,6 +1707,30 @@ public class MainActivity extends AppCompatActivity {
                         resp.put("configured", true);
                         resp.put("uri", uri);
                         resp.put("folderName", name != null ? name : "Configured Folder");
+                    } else {
+                        resp.put("status", "success");
+                        resp.put("configured", false);
+                    }
+                    returnToJs(callbackId, resp.toString());
+                } catch (Exception e) {
+                    sendError(callbackId, e.getMessage());
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void getMediaFolder(String callbackId) {
+            executorService.execute(() -> {
+                try {
+                    SharedPreferences prefs = getSharedPreferences("ledgermate_media_prefs", Context.MODE_PRIVATE);
+                    String uri = prefs.getString("media_folder_uri", null);
+                    String name = prefs.getString("media_folder_name", null);
+                    JSONObject resp = new JSONObject();
+                    if (uri != null && !uri.isEmpty()) {
+                        resp.put("status", "success");
+                        resp.put("configured", true);
+                        resp.put("uri", uri);
+                        resp.put("folderName", name != null ? name : "Configured Media Folder");
                     } else {
                         resp.put("status", "success");
                         resp.put("configured", false);
@@ -1707,11 +1805,11 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     String targetUriStr = uriStr;
                     if (targetUriStr == null || targetUriStr.isEmpty()) {
-                        SharedPreferences prefs = getSharedPreferences("ledgermate_backup_prefs", Context.MODE_PRIVATE);
-                        targetUriStr = prefs.getString("backup_folder_uri", null);
+                        SharedPreferences prefs = getSharedPreferences("ledgermate_media_prefs", Context.MODE_PRIVATE);
+                        targetUriStr = prefs.getString("media_folder_uri", null);
                     }
                     if (targetUriStr == null || targetUriStr.isEmpty()) {
-                        sendError(callbackId, "No destination folder configured on device. Please select a folder.");
+                        sendError(callbackId, "No destination media folder configured on device. Please select a folder.");
                         return;
                     }
 
@@ -1745,6 +1843,11 @@ public class MainActivity extends AppCompatActivity {
                         }
                         out.write(data);
                         out.flush();
+                    }
+
+                    // Preserve inode modification timestamp if known
+                    if (lastModified > 0) {
+                        trySetLastModified(mediaFile.getUri(), lastModified);
                     }
 
                     JSONObject resp = new JSONObject();

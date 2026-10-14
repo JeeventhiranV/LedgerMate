@@ -17,12 +17,176 @@
   'use strict';
 
   // ─────────────────────────────────────────────────────────────
-  // 1. EXIF & JPEG METADATA EXTRACTION & RE-INJECTION
   // ─────────────────────────────────────────────────────────────
+  // 1. EXIF, GPS & METADATA PRESERVATION ENGINE
+  // ─────────────────────────────────────────────────────────────
+
+  // MP4 uses Mac Epoch (seconds since midnight Jan 1, 1904).
+  // Offset between Jan 1, 1904 and Jan 1, 1970 is 2,082,844,800 seconds.
+  var MAC_EPOCH_OFFSET = 2082844800;
+
+  function unixToMacEpoch(unixMs) {
+    return Math.floor(Number(unixMs) / 1000) + MAC_EPOCH_OFFSET;
+  }
+
+  /**
+   * Normalizes EXIF Orientation tag (0x0112) in IFD0 to 1 (Normal).
+   * Prevents browsers and gallery apps from double-rotating images whose
+   * pixels have already been rendered upright by the HTML5 canvas.
+   * 
+   * @param {Uint8Array} segment - Extracted APP1 segment bytes
+   */
+  function normalizeExifOrientation(segment) {
+    if (!segment || segment.length < 14) return;
+    // Format: [0xFF, 0xE1, lenHigh, lenLow, 'E', 'x', 'i', 'f', 0x00, 0x00, ...]
+    if (segment[4] !== 0x45 || segment[5] !== 0x78 || segment[6] !== 0x69 || segment[7] !== 0x66 || segment[8] !== 0x00 || segment[9] !== 0x00) {
+      return; // Not standard Exif header (e.g. Adobe XMP)
+    }
+
+    var tiffStart = 10;
+    var isLittleEndian = (segment[tiffStart] === 0x49 && segment[tiffStart + 1] === 0x49); // "II"
+    var isBigEndian = (segment[tiffStart] === 0x4D && segment[tiffStart + 1] === 0x4D);    // "MM"
+    if (!isLittleEndian && !isBigEndian) return;
+
+    function getU16(pos) {
+      if (pos + 2 > segment.length) return 0;
+      return isLittleEndian
+        ? (segment[pos] | (segment[pos + 1] << 8))
+        : ((segment[pos] << 8) | segment[pos + 1]);
+    }
+    function getU32(pos) {
+      if (pos + 4 > segment.length) return 0;
+      return isLittleEndian
+        ? ((segment[pos]) | (segment[pos + 1] << 8) | (segment[pos + 2] << 16) | (segment[pos + 3] << 24)) >>> 0
+        : (((segment[pos] << 24) | (segment[pos + 1] << 16) | (segment[pos + 2] << 8) | segment[pos + 3])) >>> 0;
+    }
+
+    var ifd0Offset = getU32(tiffStart + 4);
+    var ifd0Pos = tiffStart + ifd0Offset;
+    if (ifd0Pos + 2 > segment.length) return;
+
+    var numEntries = getU16(ifd0Pos);
+    var entryPos = ifd0Pos + 2;
+
+    for (var i = 0; i < numEntries && entryPos + 12 <= segment.length; i++) {
+      var tag = getU16(entryPos);
+      if (tag === 0x0112) { // Orientation tag
+        var type = getU16(entryPos + 2);
+        if (type === 3) { // SHORT
+          if (isLittleEndian) {
+            segment[entryPos + 8] = 0x01;
+            segment[entryPos + 9] = 0x00;
+            segment[entryPos + 10] = 0x00;
+            segment[entryPos + 11] = 0x00;
+          } else {
+            segment[entryPos + 8] = 0x00;
+            segment[entryPos + 9] = 0x01;
+            segment[entryPos + 10] = 0x00;
+            segment[entryPos + 11] = 0x00;
+          }
+        }
+        break;
+      }
+      entryPos += 12;
+    }
+  }
+
+  /**
+   * Formats a Unix timestamp (ms) into standard EXIF date format "YYYY:MM:DD HH:MM:SS"
+   */
+  function formatExifDate(timestamp) {
+    var d = timestamp ? new Date(timestamp) : new Date();
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    var h = String(d.getHours()).padStart(2, '0');
+    var min = String(d.getMinutes()).padStart(2, '0');
+    var s = String(d.getSeconds()).padStart(2, '0');
+    return y + ':' + m + ':' + day + ' ' + h + ':' + min + ':' + s;
+  }
+
+  /**
+   * Synthesizes a valid minimal APP1 EXIF segment containing DateTimeOriginal,
+   * CreateDate, and ModifyDate from the file's original modified timestamp.
+   * Ensures that photos without existing EXIF metadata preserve their dates.
+   * 
+   * @param {number} timestamp - Unix timestamp ms
+   * @returns {Uint8Array} Standard APP1 segment bytes
+   */
+  function createMinimalExifSegment(timestamp) {
+    var dateStr = formatExifDate(timestamp);
+    var encoder = new TextEncoder();
+    var dateBytes = encoder.encode(dateStr + '\0'); // 20 bytes null-terminated
+
+    var ifd0Offset = 8;
+    var ifd0Size = 2 + 12 * 2 + 4; // 30 bytes
+    var exifIfdOffset = ifd0Offset + ifd0Size; // 38
+    var exifIfdSize = 2 + 12 * 2 + 4; // 30 bytes
+    var dateOffset = exifIfdOffset + exifIfdSize; // 68
+    var tiffPayloadLen = dateOffset + 20; // 88 bytes
+    var segmentLen = 2 + 6 + tiffPayloadLen; // 96 bytes
+
+    var seg = new Uint8Array(2 + segmentLen);
+    seg[0] = 0xFF;
+    seg[1] = 0xE1;
+    seg[2] = (segmentLen >> 8) & 0xFF;
+    seg[3] = segmentLen & 0xFF;
+    // "Exif\0\0"
+    seg[4] = 0x45; seg[5] = 0x78; seg[6] = 0x69; seg[7] = 0x66; seg[8] = 0x00; seg[9] = 0x00;
+
+    var t = 10;
+    // TIFF header Little Endian
+    seg[t] = 0x49; seg[t + 1] = 0x49; // "II"
+    seg[t + 2] = 0x2A; seg[t + 3] = 0x00; // 42
+    seg[t + 4] = 0x08; seg[t + 5] = 0x00; seg[t + 6] = 0x00; seg[t + 7] = 0x00; // IFD0 offset
+
+    // IFD0
+    var p = t + 8;
+    seg[p] = 0x02; seg[p + 1] = 0x00; p += 2; // 2 entries
+    // ModifyDate (0x0132)
+    seg[p] = 0x32; seg[p + 1] = 0x01;
+    seg[p + 2] = 0x02; seg[p + 3] = 0x00;
+    seg[p + 4] = 0x14; seg[p + 5] = 0x00; seg[p + 6] = 0x00; seg[p + 7] = 0x00;
+    seg[p + 8] = dateOffset & 0xFF; seg[p + 9] = (dateOffset >> 8) & 0xFF; seg[p + 10] = 0; seg[p + 11] = 0;
+    p += 12;
+
+    // ExifIFD pointer (0x8769)
+    seg[p] = 0x69; seg[p + 1] = 0x87;
+    seg[p + 2] = 0x04; seg[p + 3] = 0x00;
+    seg[p + 4] = 0x01; seg[p + 5] = 0x00; seg[p + 6] = 0x00; seg[p + 7] = 0x00;
+    seg[p + 8] = exifIfdOffset & 0xFF; seg[p + 9] = (exifIfdOffset >> 8) & 0xFF; seg[p + 10] = 0; seg[p + 11] = 0;
+    p += 12;
+
+    seg[p] = 0; seg[p + 1] = 0; seg[p + 2] = 0; seg[p + 3] = 0; p += 4;
+
+    // ExifIFD
+    seg[p] = 0x02; seg[p + 1] = 0x00; p += 2; // 2 entries
+    // DateTimeOriginal (0x9003)
+    seg[p] = 0x03; seg[p + 1] = 0x90;
+    seg[p + 2] = 0x02; seg[p + 3] = 0x00;
+    seg[p + 4] = 0x14; seg[p + 5] = 0x00; seg[p + 6] = 0x00; seg[p + 7] = 0x00;
+    seg[p + 8] = dateOffset & 0xFF; seg[p + 9] = (dateOffset >> 8) & 0xFF; seg[p + 10] = 0; seg[p + 11] = 0;
+    p += 12;
+
+    // CreateDate (0x9004)
+    seg[p] = 0x04; seg[p + 1] = 0x90;
+    seg[p + 2] = 0x02; seg[p + 3] = 0x00;
+    seg[p + 4] = 0x14; seg[p + 5] = 0x00; seg[p + 6] = 0x00; seg[p + 7] = 0x00;
+    seg[p + 8] = dateOffset & 0xFF; seg[p + 9] = (dateOffset >> 8) & 0xFF; seg[p + 10] = 0; seg[p + 11] = 0;
+    p += 12;
+
+    seg[p] = 0; seg[p + 1] = 0; seg[p + 2] = 0; seg[p + 3] = 0; p += 4;
+
+    // Write date bytes
+    seg.set(dateBytes, t + dateOffset);
+
+    return seg;
+  }
 
   /**
    * Scans a JPEG ArrayBuffer and extracts all metadata APP segments
-   * (APP1 Exif & XMP, APP2 ICC Profile, APP13 IPTC).
+   * (APP1 Exif & XMP, APP2 ICC Profile, APP13 IPTC, etc.), robustly handling
+   * consecutive 0xFF fill bytes and non-payload markers.
    * 
    * @param {ArrayBuffer} buffer - Original JPEG binary data
    * @returns {Array<Uint8Array>} Array of extracted segment byte blocks
@@ -56,36 +220,54 @@
 
     var offset = 2;
 
-    while (offset < length - 1) {
+    while (offset < length) {
+      // Find 0xFF marker prefix
       if (view.getUint8(offset) !== 0xFF) {
-        break; // Malformed JPEG stream
+        offset++;
+        continue;
       }
 
-      var marker = view.getUint8(offset + 1);
+      // Skip consecutive 0xFF fill/padding bytes
+      while (offset < length && view.getUint8(offset) === 0xFF) {
+        offset++;
+      }
+      if (offset >= length) break;
+
+      var marker = view.getUint8(offset);
+      offset++;
 
       // Stop scanning once SOS (Start of Scan 0xFFDA) or EOI (0xFFD9) is reached
       if (marker === 0xDA || marker === 0xD9) {
         break;
       }
 
-      // Variable-length markers have a 16-bit length immediately following
-      if (offset + 4 > length) break;
-      var segmentLen = view.getUint16(offset + 2, false);
-
-      // Target markers:
-      // 0xE1 = APP1 (Exif & Adobe XMP - Camera info, GPS, timestamps, author)
-      // 0xE2 = APP2 (ICC Profile)
-      // 0xED = APP13 (Photoshop IPTC)
-      if (marker === 0xE1 || marker === 0xE2 || marker === 0xED) {
-        var segmentTotalLen = 2 + segmentLen; // Marker (2 bytes) + Length field & payload
-        if (offset + segmentTotalLen <= length) {
-          var copy = new Uint8Array(segmentTotalLen);
-          copy.set(rawBytes.subarray(offset, offset + segmentTotalLen));
-          segments.push(copy);
-        }
+      // Stand-alone markers without payload: RST0-7 (0xD0-0xD7), TEM (0x01)
+      if ((marker >= 0xD0 && marker <= 0xD7) || marker === 0x01) {
+        continue;
       }
 
-      offset += 2 + segmentLen;
+      // Markers with variable length
+      if (offset + 2 > length) break;
+      var segmentLen = view.getUint16(offset, false);
+      if (segmentLen < 2 || offset + segmentLen > length) break;
+
+      // Extract APP segments (APP1-APP15: 0xE1-0xEF, IPTC: 0xED)
+      if ((marker >= 0xE1 && marker <= 0xEF) || marker === 0xED) {
+        var segmentTotalLen = 2 + segmentLen;
+        var seg = new Uint8Array(segmentTotalLen);
+        seg[0] = 0xFF;
+        seg[1] = marker;
+        seg.set(rawBytes.subarray(offset, offset + segmentLen), 2);
+
+        // Normalize EXIF orientation to 1 in APP1
+        if (marker === 0xE1) {
+          normalizeExifOrientation(seg);
+        }
+
+        segments.push(seg);
+      }
+
+      offset += segmentLen;
     }
 
     return segments;
@@ -93,7 +275,7 @@
 
   /**
    * Injects extracted metadata segments (APP1 EXIF, etc.) into a freshly compressed
-   * JPEG binary buffer, immediately following the SOI marker (0xFFD8).
+   * JPEG binary buffer, immediately following the SOI marker (0xFFD8) or APP0 (JFIF).
    * 
    * @param {ArrayBuffer|Uint8Array} compressedBuffer - Compressed JPEG data from canvas
    * @param {Array<Uint8Array>} segments - Extracted metadata segments
@@ -121,16 +303,13 @@
       return compBytes; // Not valid JPEG
     }
 
-    // Determine insertion position:
-    // If the compressed JPEG has an APP0 (JFIF) marker at offset 2, we can insert right after APP0
-    // so JFIF standard compatibility is strictly maintained.
+    // Determine insertion position: insert right after APP0 (JFIF) if present
     var insertPos = 2;
     if (compBytes[2] === 0xFF && compBytes[3] === 0xE0) {
       var app0Len = (compBytes[4] << 8) | compBytes[5];
       insertPos = 2 + 2 + app0Len;
     }
 
-    // Calculate total output length
     var totalSegmentsLen = 0;
     for (var i = 0; i < segments.length; i++) {
       totalSegmentsLen += segments[i].length;
@@ -155,43 +334,120 @@
   }
 
   // ─────────────────────────────────────────────────────────────
+  // MP4 VIDEO CONTAINER ATOM DATE PARSER & PATCHER
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * Reads the creation and modification timestamps from an MP4/MOV container's mvhd atom.
+   * 
+   * @param {ArrayBuffer} arrayBuffer - Buffer of original MP4 file (or prefix)
+   * @returns {{ creationTime: number, modTime: number }|null} Timestamps in Mac epoch seconds
+   */
+  function readMp4Timestamps(arrayBuffer) {
+    if (!arrayBuffer) return null;
+    var view = new DataView(arrayBuffer);
+    var len = view.byteLength;
+    if (len < 16) return null;
+
+    for (var i = 0; i <= len - 16; i++) {
+      if (view.getUint8(i) === 0x6D && view.getUint8(i + 1) === 0x76 &&
+          view.getUint8(i + 2) === 0x68 && view.getUint8(i + 3) === 0x64) { // 'mvhd'
+        var version = view.getUint8(i + 4);
+        var creationTime = 0;
+        var modTime = 0;
+        if (version === 0 && i + 16 <= len) {
+          creationTime = view.getUint32(i + 8, false);
+          modTime = view.getUint32(i + 12, false);
+        } else if (version === 1 && i + 24 <= len) {
+          creationTime = view.getUint32(i + 12, false);
+          modTime = view.getUint32(i + 20, false);
+        }
+        if (creationTime && creationTime > 0) {
+          return { creationTime: creationTime, modTime: modTime };
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Patches the creation_time and modification_time fields inside all mvhd and tkhd atoms
+   * of an MP4/MOV container with the specified Mac epoch timestamp.
+   * 
+   * @param {ArrayBuffer} arrayBuffer - Transcoded MP4 array buffer
+   * @param {number} targetMacEpoch - Timestamp in Mac epoch seconds
+   * @returns {ArrayBuffer} Modified array buffer
+   */
+  function patchMp4Timestamps(arrayBuffer, targetMacEpoch) {
+    if (!arrayBuffer) return arrayBuffer;
+    var view = new DataView(arrayBuffer);
+    var len = view.byteLength;
+    var macTime = targetMacEpoch || (Math.floor(Date.now() / 1000) + MAC_EPOCH_OFFSET);
+
+    for (var i = 0; i <= len - 16; i++) {
+      var isMvhd = (view.getUint8(i) === 0x6D && view.getUint8(i + 1) === 0x76 && view.getUint8(i + 2) === 0x68 && view.getUint8(i + 3) === 0x64);
+      var isTkhd = (view.getUint8(i) === 0x74 && view.getUint8(i + 1) === 0x6B && view.getUint8(i + 2) === 0x68 && view.getUint8(i + 3) === 0x64);
+
+      if (isMvhd || isTkhd) {
+        var version = view.getUint8(i + 4);
+        if (version === 0 && i + 16 <= len) {
+          view.setUint32(i + 8, macTime, false);
+          view.setUint32(i + 12, macTime, false);
+        } else if (version === 1 && i + 24 <= len) {
+          view.setUint32(i + 8, 0, false);
+          view.setUint32(i + 12, macTime, false);
+          view.setUint32(i + 16, 0, false);
+          view.setUint32(i + 20, macTime, false);
+        }
+      }
+    }
+    return arrayBuffer;
+  }
+
+  // ─────────────────────────────────────────────────────────────
   // 2. DIMENSION & ASPECT RATIO CALCULATION
   // ─────────────────────────────────────────────────────────────
 
   /**
-   * Computes target dimensions based on source dimensions and resize rules.
-   * Preserves exact aspect ratio.
+   * Computes target dimensions based on source dimensions and separate width/height controls.
+   * Supports aspect ratio locking (bounding box fit) and unlocked custom dimensions.
    * 
    * @param {number} origWidth - Source width in pixels
    * @param {number} origHeight - Source height in pixels
-   * @param {string} resizeMode - 'original' | 'custom'
-   * @param {number} maxDimension - Max width or height constraint (e.g. 1200)
+   * @param {Object|string} options - Configuration object or legacy resizeMode string
+   * @param {number} [legacyMaxDim] - Legacy max dimension
    * @returns {{ width: number, height: number, scaled: boolean }}
    */
-  function calculateDimensions(origWidth, origHeight, resizeMode, maxDimension) {
-    if (resizeMode === 'original' || !maxDimension || maxDimension <= 0) {
+  function calculateDimensions(origWidth, origHeight, options, legacyMaxDim) {
+    if (typeof options === 'string') {
+      var legacyMode = options;
+      var dim = legacyMaxDim || 1200;
+      options = { resizeMode: legacyMode, maxWidth: dim, maxHeight: dim, lockAspectRatio: true };
+    }
+    options = options || {};
+    var resizeMode = options.resizeMode || 'custom';
+    if (resizeMode === 'original' || !origWidth || !origHeight) {
       return { width: origWidth, height: origHeight, scaled: false };
     }
 
-    var limit = Math.max(100, Math.round(Number(maxDimension) || 1200));
+    var maxW = Math.max(50, Math.round(Number(options.maxWidth || options.maxDimension || 1200)));
+    var maxH = Math.max(50, Math.round(Number(options.maxHeight || options.maxDimension || 1200)));
+    var lockAspect = options.lockAspectRatio !== false;
 
-    // If source is already within limit, no downscaling needed
-    if (origWidth <= limit && origHeight <= limit) {
-      return { width: origWidth, height: origHeight, scaled: false };
-    }
-
-    var targetW = origWidth;
-    var targetH = origHeight;
-
-    if (origWidth >= origHeight) {
-      targetW = limit;
-      targetH = Math.max(1, Math.round((origHeight * limit) / origWidth));
+    if (lockAspect) {
+      // If image already fits inside bounding box, do not upscale
+      if (origWidth <= maxW && origHeight <= maxH) {
+        return { width: origWidth, height: origHeight, scaled: false };
+      }
+      var scale = Math.min(maxW / origWidth, maxH / origHeight);
+      var targetW = Math.max(1, Math.round(origWidth * scale));
+      var targetH = Math.max(1, Math.round(origHeight * scale));
+      return { width: targetW, height: targetH, scaled: true };
     } else {
-      targetH = limit;
-      targetW = Math.max(1, Math.round((origWidth * limit) / origHeight));
+      var targetW = maxW;
+      var targetH = maxH;
+      return { width: targetW, height: targetH, scaled: (targetW !== origWidth || targetH !== origHeight) };
     }
-
-    return { width: targetW, height: targetH, scaled: true };
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -242,8 +498,8 @@
           var origW = img.naturalWidth || img.width;
           var origH = img.naturalHeight || img.height;
 
-          // 3. Compute target resolution
-          var targetDims = calculateDimensions(origW, origH, resizeMode, maxDimension);
+          // 3. Compute target resolution using separate width/height controls
+          var targetDims = calculateDimensions(origW, origH, options);
           var targetW = targetDims.width;
           var targetH = targetDims.height;
 
@@ -274,7 +530,11 @@
 
             var finalBytes;
             // 6. Re-inject EXIF metadata if applicable
-            if (isJpeg && preserveExif && metadataSegments.length > 0) {
+            if (isJpeg && preserveExif) {
+              if (metadataSegments.length === 0) {
+                // Synthesize minimal standard EXIF preserving creation & modified timestamps
+                metadataSegments = [createMinimalExifSegment(file.lastModified || Date.now())];
+              }
               try {
                 var compBuffer = await compressedBlob.arrayBuffer();
                 finalBytes = injectJpegMetadataSegments(compBuffer, metadataSegments);
@@ -465,6 +725,18 @@
         URL.revokeObjectURL(videoUrl);
       };
 
+      var origMacEpoch = unixToMacEpoch(file.lastModified || Date.now());
+      if (file && typeof file.slice === 'function') {
+        try {
+          file.slice(0, 524288).arrayBuffer().then(function (prefBuf) {
+            var origTs = readMp4Timestamps(prefBuf);
+            if (origTs && origTs.creationTime) {
+              origMacEpoch = origTs.creationTime;
+            }
+          }).catch(function () {});
+        } catch (ignored) {}
+      }
+
       video.onloadedmetadata = function () {
         try {
           var origW = video.videoWidth || 1280;
@@ -521,7 +793,7 @@
           var isCancelled = false;
           var frameTimer = null;
 
-          recorder.onstop = function () {
+          recorder.onstop = async function () {
             cancelAnimationFrame(frameTimer);
             cleanUp();
 
@@ -529,12 +801,24 @@
               return reject(new Error('Video compression was cancelled'));
             }
 
-            var finalBlob = new Blob(chunks, { type: mimeType.split(';')[0] });
+            var rawBlob = new Blob(chunks, { type: mimeType.split(';')[0] });
             
             // Retain original filename with matched extension
             var ext = mimeType.includes('mp4') ? '.mp4' : '.webm';
             var baseName = file.name.replace(/\.[^/.]+$/, '');
             var outFileName = baseName + ext;
+
+            var finalBlob = rawBlob;
+            // Patch MP4 container atom creation & modification dates if MP4
+            if (mimeType.includes('mp4')) {
+              try {
+                var rawBuffer = await rawBlob.arrayBuffer();
+                var patchedBuffer = patchMp4Timestamps(rawBuffer, origMacEpoch);
+                finalBlob = new Blob([patchedBuffer], { type: 'video/mp4' });
+              } catch (patchErr) {
+                console.warn('[LM MediaCompressor] MP4 timestamp patch error:', patchErr);
+              }
+            }
 
             var finalFile = new File([finalBlob], outFileName, {
               type: finalBlob.type,
@@ -558,7 +842,7 @@
               savedPercent: savedPercent,
               originalDimensions: { width: origW, height: origH },
               compressedDimensions: { width: targetW, height: targetH },
-              exifPreserved: false,
+              exifPreserved: true,
               previewUrl: URL.createObjectURL(finalBlob),
               originalPreviewUrl: URL.createObjectURL(file)
             });
@@ -636,7 +920,7 @@
    */
   async function chooseDestinationDirectory() {
     // 1. Native Android Storage Access Framework (SAF)
-    if (isNativeAndroid() && typeof window.AndroidBridge.selectBackupFolder === 'function') {
+    if (isNativeAndroid() && typeof window.AndroidBridge.selectMediaFolder === 'function') {
       return new Promise(function (resolve, reject) {
         var callbackId = 'cb_mc_folder_' + Date.now();
         window.LM_NativeBridgeCallbacks = window.LM_NativeBridgeCallbacks || {};
@@ -654,7 +938,7 @@
         };
 
         try {
-          window.AndroidBridge.selectBackupFolder(callbackId);
+          window.AndroidBridge.selectMediaFolder(callbackId);
           // Set safety timeout if user closes without selecting
           setTimeout(function () {
             if (window.LM_NativeBridgeCallbacks[callbackId]) {
@@ -697,6 +981,45 @@
     }
 
     // 3. Fallback for mobile browsers (Chrome on Android, Safari on iOS)
+    return null;
+  }
+
+  /**
+   * Retrieves previously configured destination media folder if available.
+   * 
+   * @returns {Promise<{ type: string, uri?: string, handle?: any, name: string }|null>}
+   */
+  async function getSavedDestinationDirectory() {
+    if (isNativeAndroid() && typeof window.AndroidBridge.getMediaFolder === 'function') {
+      return new Promise(function (resolve) {
+        var callbackId = 'cb_mc_getfolder_' + Date.now();
+        window.LM_NativeBridgeCallbacks = window.LM_NativeBridgeCallbacks || {};
+        window.LM_NativeBridgeCallbacks[callbackId] = function (res) {
+          delete window.LM_NativeBridgeCallbacks[callbackId];
+          if (res && res.status === 'success' && res.configured && res.uri) {
+            resolve({
+              type: 'native',
+              uri: res.uri,
+              name: res.folderName || 'Selected Device Folder'
+            });
+          } else {
+            resolve(null);
+          }
+        };
+        try {
+          window.AndroidBridge.getMediaFolder(callbackId);
+          setTimeout(function () {
+            if (window.LM_NativeBridgeCallbacks[callbackId]) {
+              delete window.LM_NativeBridgeCallbacks[callbackId];
+              resolve(null);
+            }
+          }, 2000);
+        } catch (e) {
+          resolve(null);
+        }
+      });
+    }
+
     return null;
   }
 
@@ -886,6 +1209,15 @@
       var fileCrc = crc32(fileData);
       var modDate = item.file && item.file.lastModified ? new Date(item.file.lastModified) : new Date();
       var dos = dosDateTime(modDate);
+      var unixSeconds = Math.floor(modDate.getTime() / 1000);
+
+      // Info-ZIP Extended Timestamp extra field (tag 0x5455 'UT'):
+      // Tag (2), Size (2), Flag 0x01 (1), mtime uint32 (4) = 9 bytes total
+      var extraField = new Uint8Array(9);
+      extraField[0] = 0x55; extraField[1] = 0x54; // 'UT'
+      extraField[2] = 0x05; extraField[3] = 0x00; // 5 bytes payload
+      extraField[4] = 0x01; // flag: modification time present
+      extraField.set(u32(unixSeconds), 5);
 
       var localHeaderOffset = offset;
 
@@ -900,13 +1232,14 @@
       localHeader.set(u32(fileData.length), 18);
       localHeader.set(u32(fileData.length), 22);
       localHeader.set(u16(nameBytes.length), 26);
-      localHeader.set(u16(0), 28);
+      localHeader.set(u16(extraField.length), 28);
 
       parts.push(localHeader);
       parts.push(nameBytes);
+      parts.push(extraField);
       parts.push(fileData);
 
-      offset += localHeader.length + nameBytes.length + fileData.length;
+      offset += localHeader.length + nameBytes.length + extraField.length + fileData.length;
 
       var cdHeader = new Uint8Array(46);
       cdHeader.set([0x50, 0x4B, 0x01, 0x02], 0);
@@ -920,7 +1253,7 @@
       cdHeader.set(u32(fileData.length), 20);
       cdHeader.set(u32(fileData.length), 24);
       cdHeader.set(u16(nameBytes.length), 28);
-      cdHeader.set(u16(0), 30);
+      cdHeader.set(u16(extraField.length), 30);
       cdHeader.set(u16(0), 32);
       cdHeader.set(u16(0), 34);
       cdHeader.set(u16(0), 36);
@@ -929,6 +1262,7 @@
 
       centralDirRecords.push(cdHeader);
       centralDirRecords.push(nameBytes);
+      centralDirRecords.push(extraField);
     }
 
     var centralDirStartOffset = offset;
@@ -976,11 +1310,15 @@
   window.LM_MediaCompressorService = {
     extractJpegMetadataSegments: extractJpegMetadataSegments,
     injectJpegMetadataSegments: injectJpegMetadataSegments,
+    createMinimalExifSegment: createMinimalExifSegment,
+    readMp4Timestamps: readMp4Timestamps,
+    patchMp4Timestamps: patchMp4Timestamps,
     calculateDimensions: calculateDimensions,
     compressImage: compressImage,
     compressVideo: compressVideo,
     calculateVideoParameters: calculateVideoParameters,
     chooseDestinationDirectory: chooseDestinationDirectory,
+    getSavedDestinationDirectory: getSavedDestinationDirectory,
     saveItemsToDirectory: saveItemsToDirectory,
     generateZipArchive: generateZipArchive,
     triggerDownload: triggerDownload,

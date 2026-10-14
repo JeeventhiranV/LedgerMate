@@ -30,6 +30,9 @@
     options: {
       quality: 0.75,
       resizeMode: 'custom',
+      maxWidth: 1200,
+      maxHeight: 1200,
+      lockAspectRatio: true,
       maxDimension: 1200,
       preserveExif: true,
       videoResolution: '720p',
@@ -69,6 +72,16 @@
   function init() {
     var container = document.getElementById('page-media-compressor');
     if (!container) return;
+
+    // Auto-detect previously configured media destination folder
+    if (!_state.destination && window.LM_MediaCompressorService && typeof window.LM_MediaCompressorService.getSavedDestinationDirectory === 'function') {
+      window.LM_MediaCompressorService.getSavedDestinationDirectory().then(function (dest) {
+        if (dest) {
+          _state.destination = dest;
+          render(container);
+        }
+      }).catch(function () {});
+    }
 
     render(container);
   }
@@ -266,7 +279,7 @@
                 <div class="mc-radio-group">
                   <label class="mc-radio-label">
                     <input type="radio" name="mcResizeMode" value="custom" ${_state.options.resizeMode === 'custom' ? 'checked' : ''} id="mcResizeCustomRadio">
-                    <span>Resize to Max Dimension (Recommended)</span>
+                    <span>Resize to Custom Dimensions (Editable)</span>
                   </label>
                   <label class="mc-radio-label">
                     <input type="radio" name="mcResizeMode" value="original" ${_state.options.resizeMode === 'original' ? 'checked' : ''} id="mcResizeOrigRadio">
@@ -275,9 +288,29 @@
                 </div>
 
                 <div class="mc-dim-input-wrap" id="mcDimWrap" style="${_state.options.resizeMode === 'original' ? 'display:none;' : ''}">
-                  <span class="mc-dim-label">Max Width / Height (px):</span>
-                  <input type="number" class="mc-number-input" id="mcMaxDimInput" min="100" max="8000" step="50" value="${_state.options.maxDimension}">
-                  <span class="mc-dim-hint">Default 1200px · Maintains original aspect ratio</span>
+                  <div class="mc-dim-dual-row">
+                    <div class="mc-dim-col">
+                      <label class="mc-dim-sublabel">Max Width (px):</label>
+                      <input type="number" class="mc-number-input" id="mcMaxWidthInput" min="50" max="8000" step="50" value="${_state.options.maxWidth || 1200}">
+                    </div>
+                    <div class="mc-dim-lock-col">
+                      <label class="mc-dim-sublabel">&nbsp;</label>
+                      <button type="button" class="mc-btn-aspect-link ${_state.options.lockAspectRatio ? 'locked' : ''}" id="mcAspectLinkBtn" title="${_state.options.lockAspectRatio ? 'Aspect Ratio Locked (Proportional scaling)' : 'Aspect Ratio Unlocked (Free dimensions)'}">
+                        ${_state.options.lockAspectRatio ? '🔒 Locked' : '🔓 Free'}
+                      </button>
+                    </div>
+                    <div class="mc-dim-col">
+                      <label class="mc-dim-sublabel">Max Height (px):</label>
+                      <input type="number" class="mc-number-input" id="mcMaxHeightInput" min="50" max="8000" step="50" value="${_state.options.maxHeight || 1200}">
+                    </div>
+                  </div>
+                  <div class="mc-dim-presets">
+                    <button type="button" class="mc-dim-chip" data-w="1200" data-h="1200">1200 × 1200 (Default Web)</button>
+                    <button type="button" class="mc-dim-chip" data-w="1920" data-h="1080">1920 × 1080 (FHD)</button>
+                    <button type="button" class="mc-dim-chip" data-w="1280" data-h="720">1280 × 720 (HD)</button>
+                    <button type="button" class="mc-dim-chip" data-w="1080" data-h="1350">1080 × 1350 (Portrait)</button>
+                  </div>
+                  <span class="mc-dim-hint">${_state.options.lockAspectRatio ? '🔒 Both dimensions maintain original aspect ratio without stretching.' : '🔓 Exact custom width and height will be applied.'}</span>
                 </div>
               </div>
 
@@ -364,7 +397,7 @@
               <span class="mc-card-icon">📁</span>
               <div>
                 <h3 class="mc-card-title">Destination &amp; Save Method</h3>
-                <p class="mc-card-subtitle">Choose how and where compressed files with identical original names will be saved</p>
+                <p class="mc-card-subtitle">Choose where compressed files with identical original names will be saved</p>
               </div>
             </div>
 
@@ -375,9 +408,9 @@
                   <span class="mc-dest-icon">📂</span>
                   <div>
                     <div class="mc-dest-name" id="mcDestFolderLabel">
-                      ${_state.destination ? ('📁 ' + _state.destination.name) : 'Device Folder (Click Choose Folder to select)'}
+                      ${_state.destination ? ('📁 ' + _state.destination.name) : 'Device Folder (Click Choose Destination Folder below)'}
                     </div>
-                    <div class="mc-dest-sub">Files will be written directly with their exact original names &amp; timestamps.</div>
+                    <div class="mc-dest-sub">Files are written directly into this folder with exact original timestamps &amp; EXIF.</div>
                   </div>
                 </div>
                 <button type="button" class="btn-submit mc-btn-folder" id="mcChooseFolderBtn">
@@ -392,7 +425,7 @@
                   <div>
                     <div class="mc-dest-name">Device Downloads Folder</div>
                     <div class="mc-dest-sub">
-                      Saving via: <strong>${_state.mobileSavePreference === 'zip' ? '1-Click ZIP Archive (Recommended)' : 'Direct File Downloads'}</strong>
+                      Saving via: <strong>${_state.mobileSavePreference === 'zip' ? '1-Click ZIP Archive (Original Dates Kept)' : 'Direct File Downloads'}</strong>
                     </div>
                   </div>
                 </div>
@@ -401,7 +434,8 @@
                 </button>
               </div>
               <div class="mc-dest-note">
-                💡 <em>Mobile web browsers route downloads directly to your Downloads folder. Tap "Save Options" to customize.</em>
+                💡 <em>Mobile web browsers route file downloads directly to your device Downloads folder. To pick custom device folders on Android, install the LedgerMate APK app.</em>
+                <a href="dist/LedgerMate.apk" download class="mc-apk-link-inline">📲 Install Android App for Folder Chooser</a>
               </div>
             `}
           </div>
@@ -505,7 +539,10 @@
               <div class="mc-res-card card" data-idx="${idx}">
                 <div class="mc-res-card-top">
                   <div class="mc-res-thumb-pair" onclick="window.LM_MediaCompressorUI.openComparisonModal(${idx})">
-                    <img src="${item.previewUrl}" alt="${item.name}" class="mc-res-thumb">
+                    ${item.type === 'video'
+                      ? `<video src="${item.previewUrl}" class="mc-res-thumb" muted playsinline></video>`
+                      : `<img src="${item.previewUrl}" alt="${item.name}" class="mc-res-thumb">`
+                    }
                     <span class="mc-compare-badge" title="Click to view Before/After">🔍 Compare</span>
                   </div>
                   <div class="mc-res-info">
@@ -699,14 +736,80 @@
       });
     }
 
-    // Max Dimension input
-    var maxDimInput = container.querySelector('#mcMaxDimInput');
-    if (maxDimInput) {
-      maxDimInput.addEventListener('input', function (e) {
-        _state.options.maxDimension = parseInt(e.target.value, 10) || 1200;
-        updateEstimate();
+    // Dual Width & Height Inputs & Aspect Ratio Lock
+    var maxWidthInput = container.querySelector('#mcMaxWidthInput');
+    var maxHeightInput = container.querySelector('#mcMaxHeightInput');
+    var aspectLinkBtn = container.querySelector('#mcAspectLinkBtn');
+
+    function getActiveAspectRatio() {
+      var firstImg = _state.selectedFiles.find(f => f.type === 'image' && f.width && f.height);
+      if (firstImg && firstImg.width > 0 && firstImg.height > 0) {
+        return firstImg.height / firstImg.width;
+      }
+      return 1;
+    }
+
+    if (maxWidthInput) {
+      maxWidthInput.addEventListener('input', function (e) {
+        var val = parseInt(e.target.value, 10);
+        if (val > 0) {
+          _state.options.maxWidth = val;
+          _state.options.maxDimension = val;
+          if (_state.options.lockAspectRatio && maxHeightInput) {
+            var ratio = getActiveAspectRatio();
+            var newH = Math.max(50, Math.round(val * ratio));
+            _state.options.maxHeight = newH;
+            maxHeightInput.value = newH;
+          }
+          updateEstimate();
+        }
       });
     }
+
+    if (maxHeightInput) {
+      maxHeightInput.addEventListener('input', function (e) {
+        var val = parseInt(e.target.value, 10);
+        if (val > 0) {
+          _state.options.maxHeight = val;
+          if (_state.options.lockAspectRatio && maxWidthInput) {
+            var ratio = getActiveAspectRatio();
+            var newW = Math.max(50, Math.round(val / (ratio || 1)));
+            _state.options.maxWidth = newW;
+            _state.options.maxDimension = newW;
+            maxWidthInput.value = newW;
+          }
+          updateEstimate();
+        }
+      });
+    }
+
+    if (aspectLinkBtn) {
+      aspectLinkBtn.addEventListener('click', function () {
+        _state.options.lockAspectRatio = !_state.options.lockAspectRatio;
+        this.classList.toggle('locked', _state.options.lockAspectRatio);
+        this.textContent = _state.options.lockAspectRatio ? '🔒 Locked' : '🔓 Free';
+        var hint = container.querySelector('.mc-dim-hint');
+        if (hint) {
+          hint.textContent = _state.options.lockAspectRatio
+            ? '🔒 Both dimensions maintain original aspect ratio without stretching.'
+            : '🔓 Exact custom width and height will be applied.';
+        }
+      });
+    }
+
+    // Dimension preset chips
+    container.querySelectorAll('.mc-dim-chip').forEach(chip => {
+      chip.addEventListener('click', function () {
+        var w = parseInt(this.getAttribute('data-w'), 10) || 1200;
+        var h = parseInt(this.getAttribute('data-h'), 10) || 1200;
+        _state.options.maxWidth = w;
+        _state.options.maxHeight = h;
+        _state.options.maxDimension = w;
+        if (maxWidthInput) maxWidthInput.value = w;
+        if (maxHeightInput) maxHeightInput.value = h;
+        updateEstimate();
+      });
+    });
 
     // EXIF toggle
     var exifToggle = container.querySelector('#mcExifToggle');
@@ -908,7 +1011,10 @@
           result = await service.compressImage(file, {
             quality: _state.options.quality,
             resizeMode: _state.options.resizeMode,
-            maxDimension: _state.options.maxDimension,
+            maxWidth: _state.options.maxWidth,
+            maxHeight: _state.options.maxHeight,
+            lockAspectRatio: _state.options.lockAspectRatio,
+            maxDimension: _state.options.maxWidth,
             preserveExif: _state.options.preserveExif
           });
         } else {
