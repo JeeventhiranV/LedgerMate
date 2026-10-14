@@ -1139,10 +1139,20 @@
           await window.LM_CreditCardsService.addCard(cardData);
           if (typeof showToast === 'function') showToast('✅ Credit card added', 'success');
         }
+        var scrollPos = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+        var userId = window.LM_Auth?.getCurrentUserId() || 'default';
+        var activePage = localStorage.getItem('lm_u_' + userId + '_lastPage') || localStorage.getItem('ledgerMate_lastPage') || 'credit-cards';
+
         this.closeModal('ccFormModal');
         this.render();
-        if (typeof renderAll === 'function') renderAll();
+        if (activePage === 'dashboard' && typeof renderAll === 'function') renderAll();
         if (typeof window.renderDashboardCreditCardReminders === 'function') window.renderDashboardCreditCardReminders();
+
+        if (scrollPos > 0) {
+          requestAnimationFrame(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); });
+          setTimeout(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 50);
+          setTimeout(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 150);
+        }
       } catch (err) {
         console.error('[CreditCardsUI] save error:', err);
         if (typeof showToast === 'function') showToast('❌ Error saving card: ' + err.message, 'error');
@@ -1294,9 +1304,19 @@
           }
         }
 
+        var scrollPos = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+        var userId = window.LM_Auth?.getCurrentUserId() || 'default';
+        var activePage = localStorage.getItem('lm_u_' + userId + '_lastPage') || localStorage.getItem('ledgerMate_lastPage') || 'credit-cards';
+
         this.render();
-        if (typeof renderAll === 'function') renderAll();
+        if (activePage === 'dashboard' && typeof renderAll === 'function') renderAll();
         if (typeof window.renderDashboardCreditCardReminders === 'function') window.renderDashboardCreditCardReminders();
+
+        if (scrollPos > 0) {
+          requestAnimationFrame(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); });
+          setTimeout(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 50);
+          setTimeout(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 150);
+        }
       } catch (err) {
         console.error('[CreditCardsUI] payment error:', err);
         if (typeof showToast === 'function') showToast('❌ Payment failed: ' + err.message, 'error');
@@ -1576,9 +1596,19 @@
       try {
         await window.LM_CreditCardsService.deleteCard(cardId);
         if (typeof showToast === 'function') showToast('Card deleted', 'info');
+        var scrollPos = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+        var userId = window.LM_Auth?.getCurrentUserId() || 'default';
+        var activePage = localStorage.getItem('lm_u_' + userId + '_lastPage') || localStorage.getItem('ledgerMate_lastPage') || 'credit-cards';
+
         this.render();
-        if (typeof renderAll === 'function') renderAll();
+        if (activePage === 'dashboard' && typeof renderAll === 'function') renderAll();
         if (typeof window.renderDashboardCreditCardReminders === 'function') window.renderDashboardCreditCardReminders();
+
+        if (scrollPos > 0) {
+          requestAnimationFrame(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); });
+          setTimeout(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 50);
+          setTimeout(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 150);
+        }
       } catch (err) {
         console.error('[CreditCardsUI] delete error:', err);
         if (typeof showToast === 'function') showToast('❌ Delete failed: ' + err.message, 'error');

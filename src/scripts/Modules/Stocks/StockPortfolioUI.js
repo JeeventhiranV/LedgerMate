@@ -1147,9 +1147,16 @@
         notes: notes
       });
 
+      var scrollPos = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
       closeModal();
       toast('✅ Transaction for ' + symbol.toUpperCase() + ' saved successfully!', 'success');
       render();
+
+      if (scrollPos > 0) {
+        requestAnimationFrame(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); });
+        setTimeout(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 50);
+        setTimeout(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 150);
+      }
 
       if (window.LM_MarketDataService) {
         window.LM_MarketDataService.fetchQuote(symbol, exchange, true).catch(function () {});
@@ -1244,9 +1251,16 @@
         notes: notes
       });
 
+      var scrollPos = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
       closeModal();
       toast('✅ Stock holding updated successfully', 'success');
       render();
+
+      if (scrollPos > 0) {
+        requestAnimationFrame(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); });
+        setTimeout(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 50);
+        setTimeout(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 150);
+      }
     } catch (err) {
       toast('❌ Error: ' + err.message, 'error');
     } finally {
@@ -1409,9 +1423,16 @@
         notes: notes
       });
 
+      var scrollPos = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
       closeModal();
       toast('✅ Transaction updated successfully', 'success');
       render();
+
+      if (scrollPos > 0) {
+        requestAnimationFrame(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); });
+        setTimeout(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 50);
+        setTimeout(function () { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 150);
+      }
     } catch (err) {
       toast('❌ Error: ' + err.message, 'error');
     } finally {

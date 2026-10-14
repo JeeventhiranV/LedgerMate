@@ -785,7 +785,54 @@ function openModal(id) {
   if (id==='goalModal') { renderGoalList(); }
   if (id==='investModal') { renderInvestList(); }
 }
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function closeModal(id) {
+  if (!id) {
+    const openModals = document.querySelectorAll('.modal-overlay.show, .stock-modal-backdrop.open');
+    openModals.forEach(m => m.classList.remove('show', 'open'));
+    return;
+  }
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('show', 'open');
+}
+
+/**
+ * Global Screen & Scroll State Preservation Helper
+ * Captures active screen and scroll offset before data/view mutations,
+ * executes the given callback, and restores exact viewing position.
+ */
+window.LM_preserveScreenState = function(fn) {
+  const scrollPos = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+  const userId = window.LM_Auth?.getCurrentUserId() || 'default';
+  const activePage = localStorage.getItem(`lm_u_${userId}_lastPage`) || localStorage.getItem('ledgerMate_lastPage') || 'dashboard';
+
+  let result;
+  if (typeof fn === 'function') {
+    result = fn(activePage, scrollPos);
+  }
+
+  // Ensure active page stays visible
+  const activePageEl = document.getElementById('page-' + activePage);
+  if (activePageEl && activePageEl.style.display === 'none') {
+    document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
+    activePageEl.style.display = 'block';
+  }
+
+  // Restore scroll position
+  if (scrollPos > 0) {
+    const restore = () => {
+      window.scrollTo({ top: scrollPos, behavior: 'instant' });
+      document.documentElement.scrollTop = scrollPos;
+      document.body.scrollTop = scrollPos;
+    };
+    requestAnimationFrame(restore);
+    setTimeout(restore, 50);
+    setTimeout(restore, 150);
+    setTimeout(restore, 300);
+  }
+
+  return result;
+};
+
 // Close modal on overlay click
 document.querySelectorAll('.modal-overlay').forEach(el => {
   el.addEventListener('click', e => { if(e.target===el) el.classList.remove('show'); });
@@ -848,8 +895,12 @@ async function handleLoanTransaction(loan, shouldAdd) {
     }
   }
 
-  refreshRecentList();
-  renderAll();
+  try { refreshRecentList(); } catch(e) {}
+  const _lmUid = window.LM_Auth?.getCurrentUserId() || 'default';
+  const _activePage = localStorage.getItem(`lm_u_${_lmUid}_lastPage`) || localStorage.getItem('ledgerMate_lastPage') || 'dashboard';
+  if (_activePage === 'dashboard' && typeof renderAll === 'function') {
+    renderAll();
+  }
 }
 
 async function handleLoanTransaction_V1(loan, shouldAdd) {
@@ -1394,8 +1445,19 @@ function openAddLoanModal(prefill = {}) {
     await handleRecurringLoans();
     autoBackup();
     showToast('Loan(s) added!', 'success');
+    const scrollPos = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
     closeAddLoanModal();
-    showLoansModal(); // refresh
+    const loanContainer = document.querySelector('#loansOverview') || document.querySelector('#wealth-tab-content');
+    if (loanContainer && typeof renderWealthLoans === 'function') {
+      renderWealthLoans(loanContainer);
+    } else if (typeof showLoansModal === 'function') {
+      showLoansModal();
+    }
+    if (scrollPos > 0) {
+      requestAnimationFrame(() => { window.scrollTo({ top: scrollPos, behavior: 'instant' }); });
+      setTimeout(() => { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 50);
+      setTimeout(() => { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 150);
+    }
   };
 }
 
@@ -2820,18 +2882,49 @@ function openAddTransactionModal(prefill = {}) {
     }
 
     try {
+      const scrollPos = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      const _lmUid = window.LM_Auth?.getCurrentUserId() || 'default';
+      const _activePage = localStorage.getItem(`lm_u_${_lmUid}_lastPage`) || localStorage.getItem('ledgerMate_lastPage') || 'dashboard';
+
       await put('transactions', txObj);
       state.transactions.push(txObj);
-      closeModal();
-      // Targeted refresh — avoids full chart redraw / page-scroll side-effects
-      try { renderKPIs(); } catch(e) {}
+
+      // Close modal safely
+      if (typeof closeModal === 'function') {
+        try { closeModal('addTxOverlay'); } catch(e) {}
+      }
+      const overlay = document.getElementById('addTxOverlay');
+      if (overlay) {
+        overlay.classList.remove('show');
+        setTimeout(() => overlay.remove(), 250);
+      }
+
+      // Targeted refresh — only render dashboard items if user is on dashboard
+      if (_activePage === 'dashboard') {
+        try { renderKPIs(); } catch(e) {}
+        try { renderBudgetOverview(); } catch(e) {}
+        try { renderHeatmap(); } catch(e) {}
+      }
+      // Always refresh recent transaction list if DOM is present
       try { refreshRecentList(); } catch(e) {}
-      try { renderBudgetOverview(); } catch(e) {}
-      try { renderHeatmap(); } catch(e) {}
+
       autoBackup();
       const amtStr = fmtINR(amount);
       showToast(`${txObj.type === 'in' ? '💰 Income' : '💸 Expense'} ${amtStr} saved`, 'success');
+
+      // Preserve active screen & exact scroll position
+      const activeEl = document.getElementById('page-' + _activePage);
+      if (activeEl && activeEl.style.display === 'none') {
+        document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
+        activeEl.style.display = 'block';
+      }
+      if (scrollPos > 0) {
+        requestAnimationFrame(() => { window.scrollTo({ top: scrollPos, behavior: 'instant' }); });
+        setTimeout(() => { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 50);
+        setTimeout(() => { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 150);
+      }
     } catch (err) {
+      console.error('[AddTransaction] Error:', err);
       showToast('Failed to save transaction', 'error');
     }
   };

@@ -591,8 +591,12 @@
           window.LM_Bus.emit('lm:data:changed', { store: 'transactions' });
         }
 
-        if (typeof renderAll === 'function') {
+        var _lmUid = window.LM_Auth?.getCurrentUserId() || 'default';
+        var _activePage = localStorage.getItem('lm_u_' + _lmUid + '_lastPage') || localStorage.getItem('ledgerMate_lastPage') || 'credit-cards';
+        if (_activePage === 'dashboard' && typeof renderAll === 'function') {
           renderAll();
+        } else if (typeof refreshRecentList === 'function') {
+          try { refreshRecentList(); } catch(e) {}
         }
       }
 

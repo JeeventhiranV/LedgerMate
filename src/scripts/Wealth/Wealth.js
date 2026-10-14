@@ -2415,10 +2415,17 @@ function openAddLoanModal(prefill = {}) {
     if (typeof handleRecurringLoans === 'function') await handleRecurringLoans();
     if (typeof autoBackup === 'function') autoBackup();
     if (typeof showToast === 'function') showToast(`Successfully added ${selectedPersons.length > 1 ? selectedPersons.length + ' loans' : 'loan'}!`, 'success');
+    const scrollPos = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
     closeAddLoanModal();
 
     const wealthContainer = document.querySelector('#wealth-tab-content') || document.querySelector('#loansOverview');
     if (wealthContainer && typeof renderWealthLoans === 'function') renderWealthLoans(wealthContainer);
+
+    if (scrollPos > 0) {
+      requestAnimationFrame(() => { window.scrollTo({ top: scrollPos, behavior: 'instant' }); });
+      setTimeout(() => { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 50);
+      setTimeout(() => { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 150);
+    }
   };
 }
 
@@ -2684,12 +2691,19 @@ function openEditLoanModal(loan, onSaveCallback) {
 
     if (typeof autoBackup === 'function') autoBackup();
     if (typeof showToast === 'function') showToast('✅ Loan details updated successfully', 'success');
+    const scrollPos = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
     closeEditLoanModal();
 
     if (onSaveCallback) onSaveCallback();
     else {
       const wealthContainer = document.querySelector('#wealth-tab-content') || document.querySelector('#loansOverview');
       if (wealthContainer && typeof renderWealthLoans === 'function') renderWealthLoans(wealthContainer);
+    }
+
+    if (scrollPos > 0) {
+      requestAnimationFrame(() => { window.scrollTo({ top: scrollPos, behavior: 'instant' }); });
+      setTimeout(() => { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 50);
+      setTimeout(() => { window.scrollTo({ top: scrollPos, behavior: 'instant' }); }, 150);
     }
   };
 }

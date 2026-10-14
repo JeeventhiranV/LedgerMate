@@ -1751,21 +1751,57 @@ footer span { color: var(--teal); font-weight: 600; }
 .atx-field { display: flex; flex-direction: column; gap: 5px; }
 
 .atx-cat-grid {
-  display: grid; grid-template-columns: repeat(4,1fr); gap: 5px;
-  max-height: 130px; overflow-y: auto; padding: 2px;
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 6px;
+  max-height: 140px; overflow-y: auto; padding: 3px;
 }
 @media (min-width: 420px) { .atx-cat-grid { grid-template-columns: repeat(5,1fr); } }
 @media (min-width: 600px) { .atx-cat-grid { grid-template-columns: repeat(6,1fr); } }
 .atx-cat-chip {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 6px 3px; border-radius: 9px; border: 1.5px solid var(--border);
-  background: var(--bg3); cursor: pointer; transition: all var(--transition-fast);
-  font-size: 10px; color: var(--text-3); font-family: var(--font-b);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  padding: 7px 4px; min-height: 52px; border-radius: 10px; border: 1.5px solid var(--border);
+  background: var(--bg2, #111526); cursor: pointer; transition: all var(--transition-fast);
+  font-size: 11px; color: var(--text, #f1f5f9); font-family: var(--font-b);
 }
-.atx-cat-chip span:first-child { font-size: 18px; }
+.atx-cat-chip span:first-child { font-size: 19px; line-height: 1; }
 .atx-cat-chip:hover { background: var(--surface-h); border-color: var(--border-h); color: var(--text); }
-.atx-cat-chip.active { background: rgba(0,212,180,0.12); border-color: var(--teal); color: var(--teal); }
-.atx-cat-label { font-size: 9px; text-align: center; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.atx-cat-chip.active {
+  background: rgba(0,212,180,0.14) !important;
+  border-color: var(--teal) !important;
+  color: var(--teal) !important;
+  box-shadow: 0 0 10px rgba(0,212,180,0.2) !important;
+}
+.atx-cat-label {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: var(--text, #f1f5f9) !important;
+  text-align: center;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+  letter-spacing: 0.1px;
+}
+.atx-cat-chip.active .atx-cat-label {
+  color: var(--teal, #00d4b4) !important;
+  font-weight: 700 !important;
+}
+[data-theme="light"] .atx-cat-chip {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+[data-theme="light"] .atx-cat-label {
+  color: #0f172a !important;
+}
+[data-theme="light"] .atx-cat-chip.active {
+  background: rgba(13, 148, 136, 0.12) !important;
+  border-color: #0d9488 !important;
+}
+[data-theme="light"] .atx-cat-chip.active .atx-cat-label {
+  color: #0f766e !important;
+}
 
 /* Tablet adjustments */
 @media (min-width: 521px) and (max-width: 768px) {
@@ -1776,7 +1812,9 @@ footer span { color: var(--teal); font-weight: 600; }
   .atx-modal { max-width: 100% !important; }
   .atx-amount-input { font-size: 22px !important; padding: 9px 0 !important; }
   .atx-currency-symbol { font-size: 18px !important; }
-  .atx-cat-grid { max-height: 110px !important; }
+  .atx-cat-grid { max-height: 130px !important; gap: 5px !important; }
+  .atx-cat-chip { padding: 6px 3px !important; min-height: 48px !important; }
+  .atx-cat-label { font-size: 10.5px !important; }
   .atx-modal .form-input { padding: 8px 10px !important; font-size: 13px !important; }
   .atx-modal .form-label { font-size: 10px !important; }
   .atx-modal .btn-submit { padding: 11px !important; font-size: 13px !important; }
