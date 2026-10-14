@@ -332,6 +332,9 @@
       <button class="sidebar-nav-item" onclick="openWidgetPage()" data-module="widget">
         <span class="nav-icon">📱</span> <span class="nav-label">Home Widget</span>
       </button>
+      <button class="sidebar-nav-item" onclick="showPage('media-compressor')" data-module="media-compressor">
+        <span class="nav-icon">🗜️</span> <span class="nav-label">Media Compressor</span>
+      </button>
     </div>
 
     <!-- ── SETTINGS ──────────────────────────────────────── -->
@@ -1127,6 +1130,11 @@
         <!-- rendered by LM_BusinessUI.init() in BusinessUI.js -->
       </div>
 
+      <!-- ─── MEDIA COMPRESSOR (PHOTO & VIDEO) PAGE ──── -->
+      <div id="page-media-compressor" style="display:none;">
+        <!-- rendered by LM_MediaCompressorUI.init() in MediaCompressorUI.js -->
+      </div>
+
     </div><!-- /pageContent -->
   </main>
 </div>
@@ -1554,6 +1562,13 @@ function showPage(page) {
         }
       } catch (e) { console.warn('[LM] Business Hub error:', e); }
     }
+    if (page === 'media-compressor') {
+      try {
+        if (window.LM_MediaCompressorUI && typeof window.LM_MediaCompressorUI.init === 'function') {
+          window.LM_MediaCompressorUI.init();
+        }
+      } catch (e) { console.warn('[LM] Media Compressor error:', e); }
+    }
     if (page === 'savings-goals') {
       try { renderSavingsGoals(); } catch (e) { console.warn('[LM] Savings goals error:', e); }
     }
@@ -1755,6 +1770,9 @@ function setGreeting() {
   <script src="./src/scripts/Modules/MonteCarloFIRE.js"></script>
   <!-- Community Knowledge Base, FAQ & Feedback Reviews Module -->
   <script src="./src/scripts/Modules/HelpFeedbackModal.js"></script>
+  <!-- Media Compressor Module (Lossless EXIF Photos & Videos) -->
+  <script src="./src/scripts/Modules/MediaCompressor/MediaCompressorService.js"></script>
+  <script src="./src/scripts/Modules/MediaCompressor/MediaCompressorUI.js"></script>
   <!-- PWA install prompt — works on any page -->
   <script src="./src/scripts/pwa-install.js"></script>
   <!-- Real-time push notifications -->
