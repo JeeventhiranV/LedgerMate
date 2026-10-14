@@ -1016,6 +1016,8 @@
             lockAspectRatio: _state.options.lockAspectRatio,
             maxDimension: _state.options.maxWidth,
             preserveExif: _state.options.preserveExif
+          }, function (subPct, subText) {
+            updateProgressUI(i, total, file.name, subText, subPct);
           });
         } else {
           result = await service.compressVideo(file, {

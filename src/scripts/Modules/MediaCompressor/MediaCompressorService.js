@@ -115,8 +115,16 @@
    */
   function createMinimalExifSegment(timestamp) {
     var dateStr = formatExifDate(timestamp);
-    var encoder = new TextEncoder();
-    var dateBytes = encoder.encode(dateStr + '\0'); // 20 bytes null-terminated
+    var dateBytes;
+    if (typeof TextEncoder !== 'undefined') {
+      dateBytes = new TextEncoder().encode(dateStr + '\0');
+    } else {
+      dateBytes = new Uint8Array(20);
+      for (var di = 0; di < dateStr.length && di < 19; di++) {
+        dateBytes[di] = dateStr.charCodeAt(di);
+      }
+      dateBytes[19] = 0;
+    }
 
     var ifd0Offset = 8;
     var ifd0Size = 2 + 12 * 2 + 4; // 30 bytes
@@ -218,56 +226,61 @@
       return segments; // Not a valid JPEG
     }
 
-    var offset = 2;
+    try {
+      var offset = 2;
+      var maxIterations = 50000;
 
-    while (offset < length) {
-      // Find 0xFF marker prefix
-      if (view.getUint8(offset) !== 0xFF) {
-        offset++;
-        continue;
-      }
-
-      // Skip consecutive 0xFF fill/padding bytes
-      while (offset < length && view.getUint8(offset) === 0xFF) {
-        offset++;
-      }
-      if (offset >= length) break;
-
-      var marker = view.getUint8(offset);
-      offset++;
-
-      // Stop scanning once SOS (Start of Scan 0xFFDA) or EOI (0xFFD9) is reached
-      if (marker === 0xDA || marker === 0xD9) {
-        break;
-      }
-
-      // Stand-alone markers without payload: RST0-7 (0xD0-0xD7), TEM (0x01)
-      if ((marker >= 0xD0 && marker <= 0xD7) || marker === 0x01) {
-        continue;
-      }
-
-      // Markers with variable length
-      if (offset + 2 > length) break;
-      var segmentLen = view.getUint16(offset, false);
-      if (segmentLen < 2 || offset + segmentLen > length) break;
-
-      // Extract APP segments (APP1-APP15: 0xE1-0xEF, IPTC: 0xED)
-      if ((marker >= 0xE1 && marker <= 0xEF) || marker === 0xED) {
-        var segmentTotalLen = 2 + segmentLen;
-        var seg = new Uint8Array(segmentTotalLen);
-        seg[0] = 0xFF;
-        seg[1] = marker;
-        seg.set(rawBytes.subarray(offset, offset + segmentLen), 2);
-
-        // Normalize EXIF orientation to 1 in APP1
-        if (marker === 0xE1) {
-          normalizeExifOrientation(seg);
+      while (offset < length && --maxIterations > 0) {
+        // Find 0xFF marker prefix
+        if (view.getUint8(offset) !== 0xFF) {
+          offset++;
+          continue;
         }
 
-        segments.push(seg);
-      }
+        // Skip consecutive 0xFF fill/padding bytes
+        while (offset < length && view.getUint8(offset) === 0xFF) {
+          offset++;
+        }
+        if (offset >= length) break;
 
-      offset += segmentLen;
+        var marker = view.getUint8(offset);
+        offset++;
+
+        // Stop scanning once SOS (Start of Scan 0xFFDA) or EOI (0xFFD9) is reached
+        if (marker === 0xDA || marker === 0xD9) {
+          break;
+        }
+
+        // Stand-alone markers without payload: RST0-7 (0xD0-0xD7), TEM (0x01), Byte-stuffed 0x00
+        if (marker === 0x00 || (marker >= 0xD0 && marker <= 0xD7) || marker === 0x01) {
+          continue;
+        }
+
+        // Markers with variable length
+        if (offset + 2 > length) break;
+        var segmentLen = view.getUint16(offset, false);
+        if (segmentLen < 2 || offset + segmentLen > length) break;
+
+        // Extract APP segments (APP1-APP15: 0xE1-0xEF, IPTC: 0xED)
+        if ((marker >= 0xE1 && marker <= 0xEF) || marker === 0xED) {
+          var segmentTotalLen = 2 + segmentLen;
+          var seg = new Uint8Array(segmentTotalLen);
+          seg[0] = 0xFF;
+          seg[1] = marker;
+          seg.set(rawBytes.subarray(offset, offset + segmentLen), 2);
+
+          // Normalize EXIF orientation to 1 in APP1
+          if (marker === 0xE1) {
+            try { normalizeExifOrientation(seg); } catch (e) {}
+          }
+
+          segments.push(seg);
+        }
+
+        offset += segmentLen;
+      }
+    } catch (parseErr) {
+      console.warn('[LM MediaCompressor] extractJpegMetadataSegments error:', parseErr);
     }
 
     return segments;
@@ -451,12 +464,219 @@
   }
 
   // ─────────────────────────────────────────────────────────────
-  // 3. PHOTO COMPRESSION ENGINE
+  // 3. PHOTO COMPRESSION ENGINE & ROBUST HELPERS
   // ─────────────────────────────────────────────────────────────
+
+  /**
+   * Safely reads an ArrayBuffer from a Blob or File across all browsers and Android WebViews.
+   */
+  async function readBlobAsArrayBuffer(blob) {
+    if (!blob) return new ArrayBuffer(0);
+    if (typeof blob.arrayBuffer === 'function') {
+      try {
+        return await blob.arrayBuffer();
+      } catch (err) {
+        // Fall back to FileReader
+      }
+    }
+    return new Promise(function (resolve, reject) {
+      if (typeof FileReader === 'undefined') {
+        return reject(new Error('FileReader API unavailable'));
+      }
+      var reader = new FileReader();
+      reader.onload = function () {
+        resolve(reader.result || new ArrayBuffer(0));
+      };
+      reader.onerror = function (e) {
+        reject(e || new Error('Failed to read blob data'));
+      };
+      reader.readAsArrayBuffer(blob);
+    });
+  }
+
+  /**
+   * Constructs a File object from a Blob, with robust fallback for Android WebViews
+   * where the File constructor throws TypeError: Illegal constructor.
+   */
+  function createFileSafe(blob, fileName, lastModified) {
+    var mime = blob.type || 'image/jpeg';
+    var modTime = lastModified || Date.now();
+    try {
+      return new File([blob], fileName, {
+        type: mime,
+        lastModified: modTime
+      });
+    } catch (e) {
+      var fallbackFile = blob;
+      try {
+        Object.defineProperty(fallbackFile, 'name', { value: fileName, configurable: true, writable: true });
+        Object.defineProperty(fallbackFile, 'lastModified', { value: modTime, configurable: true, writable: true });
+        Object.defineProperty(fallbackFile, 'lastModifiedDate', { value: new Date(modTime), configurable: true, writable: true });
+      } catch (propErr) {
+        fallbackFile.name = fileName;
+        fallbackFile.lastModified = modTime;
+      }
+      return fallbackFile;
+    }
+  }
+
+  function dataUrlToBlob(dataUrl, fallbackMime) {
+    var parts = dataUrl.split(',');
+    var byteString;
+    try {
+      byteString = atob(parts[1] || '');
+    } catch (e) {
+      return new Blob([], { type: fallbackMime || 'image/jpeg' });
+    }
+    var mime = (parts[0].split(':')[1] || '').split(';')[0] || fallbackMime || 'image/jpeg';
+    var ab = new ArrayBuffer(byteString.length);
+    var ia = new Uint8Array(ab);
+    for (var i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mime });
+  }
+
+  /**
+   * Safely converts a canvas to Blob with timeout fallback to toDataURL.
+   * Prevents hangs when canvas.toBlob callback is dropped by WebView or returns null.
+   */
+  function canvasToBlobSafe(canvas, mimeType, quality) {
+    return new Promise(function (resolve, reject) {
+      var settled = false;
+
+      function fallbackToDataUrl() {
+        if (settled) return;
+        settled = true;
+        try {
+          var dataUrl = canvas.toDataURL(mimeType, quality);
+          var blob = dataUrlToBlob(dataUrl, mimeType);
+          resolve(blob);
+        } catch (err) {
+          reject(new Error('Canvas export failed: ' + (err.message || 'Unknown error')));
+        }
+      }
+
+      if (typeof canvas.toBlob === 'function') {
+        try {
+          canvas.toBlob(function (blob) {
+            if (settled) return;
+            if (blob && blob.size > 0) {
+              settled = true;
+              resolve(blob);
+            } else {
+              fallbackToDataUrl();
+            }
+          }, mimeType, quality);
+        } catch (toBlobErr) {
+          fallbackToDataUrl();
+          return;
+        }
+
+        // Safety timeout: 4 seconds
+        setTimeout(function () {
+          if (!settled) {
+            fallbackToDataUrl();
+          }
+        }, 4000);
+      } else {
+        fallbackToDataUrl();
+      }
+    });
+  }
+
+  /**
+   * Safely loads an image via createImageBitmap or Image element with timeout.
+   */
+  function loadImageSafe(file) {
+    return new Promise(function (resolve, reject) {
+      var settled = false;
+      var objectUrl = null;
+
+      function done(drawable, w, h, cleanup) {
+        if (settled) return;
+        settled = true;
+        resolve({
+          drawable: drawable,
+          width: w,
+          height: h,
+          close: cleanup || function () {}
+        });
+      }
+
+      function fail(err) {
+        if (settled) return;
+        settled = true;
+        if (objectUrl) {
+          try { URL.revokeObjectURL(objectUrl); } catch (e) {}
+        }
+        reject(err);
+      }
+
+      // Safety watchdog: 10 seconds
+      var timeoutTimer = setTimeout(function () {
+        fail(new Error('Image decode timed out after 10s'));
+      }, 10000);
+
+      // Fast path: createImageBitmap if available
+      var bitmapFn = (typeof window !== 'undefined' && typeof window.createImageBitmap === 'function')
+        ? window.createImageBitmap
+        : (typeof createImageBitmap === 'function' ? createImageBitmap : null);
+
+      if (bitmapFn) {
+        bitmapFn(file).then(function (bitmap) {
+          clearTimeout(timeoutTimer);
+          done(bitmap, bitmap.width, bitmap.height, function () {
+            if (typeof bitmap.close === 'function') bitmap.close();
+          });
+        }).catch(function () {
+          // Fall back to Image element
+          loadViaImage();
+        });
+      } else {
+        loadViaImage();
+      }
+
+      function loadViaImage() {
+        if (settled) return;
+        try {
+          var urlHelper = (typeof window !== 'undefined' && window.URL) ? window.URL : (typeof URL !== 'undefined' ? URL : null);
+          if (urlHelper && typeof urlHelper.createObjectURL === 'function') {
+            objectUrl = urlHelper.createObjectURL(file);
+          }
+          var ImgCtor = (typeof window !== 'undefined' && window.Image) ? window.Image : (typeof Image !== 'undefined' ? Image : null);
+          if (!ImgCtor) {
+            fail(new Error('Image constructor unavailable'));
+            return;
+          }
+          var img = new ImgCtor();
+          img.onload = function () {
+            clearTimeout(timeoutTimer);
+            var w = img.naturalWidth || img.width;
+            var h = img.naturalHeight || img.height;
+            done(img, w, h, function () {
+              if (objectUrl && urlHelper && typeof urlHelper.revokeObjectURL === 'function') {
+                try { urlHelper.revokeObjectURL(objectUrl); } catch (e) {}
+              }
+            });
+          };
+          img.onerror = function (err) {
+            clearTimeout(timeoutTimer);
+            fail(new Error('Failed to load image: format not supported or corrupted'));
+          };
+          img.src = objectUrl;
+        } catch (e) {
+          clearTimeout(timeoutTimer);
+          fail(e);
+        }
+      }
+    });
+  }
 
   /**
    * Compresses an image file with custom quality and resolution controls,
    * preserving EXIF, GPS, author, creation date, and lastModified timestamps.
+   * Emits granular progress events to prevent UI stalling.
    * 
    * @param {File} file - Original image file
    * @param {Object} options - Compression options
@@ -465,9 +685,10 @@
    * @param {number} [options.maxDimension=1200] - Max bounding box px
    * @param {boolean} [options.preserveExif=true] - Retain EXIF & metadata
    * @param {string} [options.format='image/jpeg'] - Output mime type
+   * @param {Function} [onProgress] - Callback (percent, statusText)
    * @returns {Promise<Object>} Compression result with file, sizes & metrics
    */
-  async function compressImage(file, options) {
+  async function compressImage(file, options, onProgress) {
     options = options || {};
     var quality = typeof options.quality === 'number' ? Math.max(0.1, Math.min(1.0, options.quality)) : 0.75;
     var resizeMode = options.resizeMode || 'custom';
@@ -475,120 +696,115 @@
     var preserveExif = options.preserveExif !== false;
     var mimeType = options.format || 'image/jpeg';
 
+    if (typeof onProgress === 'function') onProgress(15, 'Reading image metadata...');
+
     // 1. Read original binary buffer for EXIF extraction if JPEG
-    var isJpeg = file.type === 'image/jpeg' || file.name.match(/\.jpe?g$/i);
+    var isJpeg = file.type === 'image/jpeg' || (file.name && file.name.match(/\.jpe?g$/i));
     var metadataSegments = [];
 
     if (isJpeg && preserveExif) {
       try {
-        var origBuffer = await file.arrayBuffer();
+        var origBuffer = await readBlobAsArrayBuffer(file);
         metadataSegments = extractJpegMetadataSegments(origBuffer);
       } catch (err) {
         console.warn('[LM MediaCompressor] Error reading EXIF segments:', err);
       }
     }
 
-    // 2. Load image element / bitmap to obtain dimensions
-    return new Promise(function (resolve, reject) {
-      var img = new Image();
-      var objectUrl = URL.createObjectURL(file);
+    if (typeof onProgress === 'function') onProgress(35, 'Decoding image pixels...');
 
-      img.onload = async function () {
-        try {
-          var origW = img.naturalWidth || img.width;
-          var origH = img.naturalHeight || img.height;
+    // 2. Load image element / bitmap safely with timeout
+    var loaded = await loadImageSafe(file);
 
-          // 3. Compute target resolution using separate width/height controls
-          var targetDims = calculateDimensions(origW, origH, options);
-          var targetW = targetDims.width;
-          var targetH = targetDims.height;
+    try {
+      var origW = loaded.width;
+      var origH = loaded.height;
 
-          // 4. Render onto high-quality canvas
-          var canvas = document.createElement('canvas');
-          canvas.width = targetW;
-          canvas.height = targetH;
-          var ctx = canvas.getContext('2d', { alpha: mimeType !== 'image/jpeg' });
+      if (typeof onProgress === 'function') onProgress(55, 'Rendering to canvas...');
 
-          // Smooth scaling
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
+      // 3. Compute target resolution using separate width/height controls
+      var targetDims = calculateDimensions(origW, origH, options);
+      var targetW = targetDims.width;
+      var targetH = targetDims.height;
 
-          // If JPEG, fill white background to prevent transparency turning black
-          if (mimeType === 'image/jpeg') {
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, targetW, targetH);
-          }
+      // 4. Render onto high-quality canvas
+      var canvas = document.createElement('canvas');
+      canvas.width = targetW;
+      canvas.height = targetH;
+      var ctx = canvas.getContext('2d', { alpha: mimeType !== 'image/jpeg' });
 
-          ctx.drawImage(img, 0, 0, targetW, targetH);
+      // Smooth scaling
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
 
-          // 5. Convert canvas to Blob
-          canvas.toBlob(async function (compressedBlob) {
-            URL.revokeObjectURL(objectUrl);
-            if (!compressedBlob) {
-              return reject(new Error('Canvas blob generation failed'));
-            }
+      // If JPEG, fill white background to prevent transparency turning black
+      if (mimeType === 'image/jpeg') {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, targetW, targetH);
+      }
 
-            var finalBytes;
-            // 6. Re-inject EXIF metadata if applicable
-            if (isJpeg && preserveExif) {
-              if (metadataSegments.length === 0) {
-                // Synthesize minimal standard EXIF preserving creation & modified timestamps
-                metadataSegments = [createMinimalExifSegment(file.lastModified || Date.now())];
-              }
-              try {
-                var compBuffer = await compressedBlob.arrayBuffer();
-                finalBytes = injectJpegMetadataSegments(compBuffer, metadataSegments);
-              } catch (exifErr) {
-                console.warn('[LM MediaCompressor] Failed to re-inject EXIF, using default blob:', exifErr);
-                finalBytes = new Uint8Array(await compressedBlob.arrayBuffer());
-              }
-            } else {
-              finalBytes = new Uint8Array(await compressedBlob.arrayBuffer());
-            }
+      ctx.drawImage(loaded.drawable, 0, 0, targetW, targetH);
+      loaded.close(); // Free bitmap / revoke URL immediately
 
-            // 7. Create output File preserving original name, creation and modified date
-            var outputBlob = new Blob([finalBytes], { type: mimeType });
-            var finalFile = new File([outputBlob], file.name, {
-              type: mimeType,
-              lastModified: file.lastModified || Date.now()
-            });
+      if (typeof onProgress === 'function') onProgress(75, 'Compressing image bytes...');
 
-            var origSize = file.size;
-            var compSize = finalFile.size;
-            var savedBytes = Math.max(0, origSize - compSize);
-            var savedPercent = origSize > 0 ? ((origSize - compSize) / origSize) * 100 : 0;
+      // 5. Convert canvas to Blob safely (with toDataURL fallback)
+      var compressedBlob = await canvasToBlobSafe(canvas, mimeType, quality);
+      if (!compressedBlob || compressedBlob.size === 0) {
+        throw new Error('Canvas blob generation failed');
+      }
 
-            resolve({
-              file: finalFile,
-              blob: outputBlob,
-              originalFile: file,
-              type: 'image',
-              name: file.name,
-              originalSize: origSize,
-              compressedSize: compSize,
-              savedBytes: savedBytes,
-              savedPercent: savedPercent,
-              originalDimensions: { width: origW, height: origH },
-              compressedDimensions: { width: targetW, height: targetH },
-              exifPreserved: isJpeg && preserveExif && metadataSegments.length > 0,
-              previewUrl: URL.createObjectURL(outputBlob),
-              originalPreviewUrl: URL.createObjectURL(file)
-            });
-          }, mimeType, quality);
+      if (typeof onProgress === 'function') onProgress(88, 'Preserving EXIF metadata & dates...');
 
-        } catch (procErr) {
-          URL.revokeObjectURL(objectUrl);
-          reject(procErr);
+      var finalBytes;
+      // 6. Re-inject EXIF metadata if applicable
+      if (isJpeg && preserveExif) {
+        if (metadataSegments.length === 0) {
+          metadataSegments = [createMinimalExifSegment(file.lastModified || Date.now())];
         }
-      };
+        try {
+          var compBuffer = await readBlobAsArrayBuffer(compressedBlob);
+          finalBytes = injectJpegMetadataSegments(compBuffer, metadataSegments);
+        } catch (exifErr) {
+          console.warn('[LM MediaCompressor] Failed to re-inject EXIF, using default blob:', exifErr);
+          finalBytes = new Uint8Array(await readBlobAsArrayBuffer(compressedBlob));
+        }
+      } else {
+        finalBytes = new Uint8Array(await readBlobAsArrayBuffer(compressedBlob));
+      }
 
-      img.onerror = function (err) {
-        URL.revokeObjectURL(objectUrl);
-        reject(new Error('Failed to load image for compression: ' + (err.message || 'Image decode error')));
-      };
+      // 7. Create output File preserving original name, creation and modified date
+      var outputBlob = new Blob([finalBytes], { type: mimeType });
+      var finalFile = createFileSafe(outputBlob, file.name, file.lastModified || Date.now());
 
-      img.src = objectUrl;
-    });
+      var origSize = file.size;
+      var compSize = finalFile.size;
+      var savedBytes = Math.max(0, origSize - compSize);
+      var savedPercent = origSize > 0 ? ((origSize - compSize) / origSize) * 100 : 0;
+
+      if (typeof onProgress === 'function') onProgress(100, 'Done!');
+
+      return {
+        file: finalFile,
+        blob: outputBlob,
+        originalFile: file,
+        type: 'image',
+        name: file.name,
+        originalSize: origSize,
+        compressedSize: compSize,
+        savedBytes: savedBytes,
+        savedPercent: savedPercent,
+        originalDimensions: { width: origW, height: origH },
+        compressedDimensions: { width: targetW, height: targetH },
+        exifPreserved: isJpeg && preserveExif && metadataSegments.length > 0,
+        previewUrl: URL.createObjectURL(outputBlob),
+        originalPreviewUrl: URL.createObjectURL(file)
+      };
+    } finally {
+      if (loaded && typeof loaded.close === 'function') {
+        loaded.close();
+      }
+    }
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -715,20 +931,35 @@
       video.playsInline = true;
       video.preload = 'auto';
 
+      if (typeof document !== 'undefined' && document.body) {
+        video.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;width:1px;height:1px;';
+        document.body.appendChild(video);
+      }
+
       var videoUrl = URL.createObjectURL(file);
       video.src = videoUrl;
 
+      var isRecording = true;
+      var watchdogTimer = null;
+      var frameTimer = null;
+
       var cleanUp = function () {
+        isRecording = false;
+        if (watchdogTimer) clearTimeout(watchdogTimer);
+        if (frameTimer) cancelAnimationFrame(frameTimer);
         try { video.pause(); } catch (e) {}
+        if (video.parentNode) {
+          try { video.parentNode.removeChild(video); } catch (e) {}
+        }
         video.src = '';
-        video.load();
+        try { video.load(); } catch (e) {}
         URL.revokeObjectURL(videoUrl);
       };
 
       var origMacEpoch = unixToMacEpoch(file.lastModified || Date.now());
       if (file && typeof file.slice === 'function') {
         try {
-          file.slice(0, 524288).arrayBuffer().then(function (prefBuf) {
+          readBlobAsArrayBuffer(file.slice(0, 524288)).then(function (prefBuf) {
             var origTs = readMp4Timestamps(prefBuf);
             if (origTs && origTs.creationTime) {
               origMacEpoch = origTs.creationTime;
@@ -791,10 +1022,8 @@
           };
 
           var isCancelled = false;
-          var frameTimer = null;
 
           recorder.onstop = async function () {
-            cancelAnimationFrame(frameTimer);
             cleanUp();
 
             if (isCancelled) {
@@ -812,7 +1041,7 @@
             // Patch MP4 container atom creation & modification dates if MP4
             if (mimeType.includes('mp4')) {
               try {
-                var rawBuffer = await rawBlob.arrayBuffer();
+                var rawBuffer = await readBlobAsArrayBuffer(rawBlob);
                 var patchedBuffer = patchMp4Timestamps(rawBuffer, origMacEpoch);
                 finalBlob = new Blob([patchedBuffer], { type: 'video/mp4' });
               } catch (patchErr) {
@@ -820,10 +1049,7 @@
               }
             }
 
-            var finalFile = new File([finalBlob], outFileName, {
-              type: finalBlob.type,
-              lastModified: file.lastModified || Date.now()
-            });
+            var finalFile = createFileSafe(finalBlob, outFileName, file.lastModified || Date.now());
 
             var origSize = file.size;
             var compSize = finalFile.size;
@@ -853,19 +1079,42 @@
             reject(new Error('MediaRecorder error: ' + (e.error ? e.error.name : 'Unknown error')));
           };
 
-          // Frame draw loop
-          function renderFrame() {
-            if (video.paused || video.ended) return;
+          // Continuous Frame draw loop
+          function renderLoop() {
+            if (!isRecording) return;
 
-            ctx.drawImage(video, 0, 0, targetW, targetH);
+            if (!video.paused && !video.ended) {
+              try {
+                ctx.drawImage(video, 0, 0, targetW, targetH);
+                if (typeof onProgress === 'function' && duration > 0) {
+                  var pct = Math.min(99, Math.round((video.currentTime / duration) * 100));
+                  onProgress(pct, 'Transcoding video (' + pct + '%)...');
+                }
+              } catch (e) {}
+            }
 
+            if (!video.ended) {
+              frameTimer = requestAnimationFrame(renderLoop);
+            }
+          }
+
+          video.ontimeupdate = function () {
             if (typeof onProgress === 'function' && duration > 0) {
               var pct = Math.min(99, Math.round((video.currentTime / duration) * 100));
               onProgress(pct, 'Transcoding video (' + pct + '%)...');
             }
+          };
 
-            frameTimer = requestAnimationFrame(renderFrame);
-          }
+          // Watchdog timeout to prevent indefinite hangs
+          var maxDurationMs = Math.max(30000, Math.round((duration || 10) * 3500));
+          watchdogTimer = setTimeout(function () {
+            if (isRecording) {
+              console.warn('[LM MediaCompressor] Video compression watchdog timer expired, stopping recorder');
+              if (recorder && recorder.state === 'recording') {
+                recorder.stop();
+              }
+            }
+          }, maxDurationMs);
 
           recorder.start(100); // 100ms chunk intervals
           video.currentTime = 0;
@@ -878,7 +1127,7 @@
           };
 
           video.play().then(function () {
-            renderFrame();
+            renderLoop();
           }).catch(function (playErr) {
             cleanUp();
             reject(new Error('Cannot start video playback for compression: ' + playErr.message));
