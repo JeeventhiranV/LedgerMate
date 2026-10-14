@@ -107,6 +107,14 @@
     container = container || document.getElementById('page-media-compressor');
     if (!container) return;
 
+    var stages = ['select', 'configure', 'processing', 'results'];
+    var currentIdx = stages.indexOf(_state.currentStage);
+    function getStepClass(stepIdx) {
+      if (currentIdx === stepIdx) return 'active';
+      if (currentIdx > stepIdx) return 'completed';
+      return '';
+    }
+
     var html = `
       <div class="mc-wrapper">
         <!-- Header -->
@@ -119,19 +127,19 @@
             </div>
           </div>
           <div class="mc-stepper">
-            <div class="mc-step ${_state.currentStage === 'select' ? 'active' : (_state.selectedFiles.length > 0 ? 'completed' : '')}">
+            <div class="mc-step ${getStepClass(0)}">
               <span class="mc-step-num">1</span> <span class="mc-step-text">Select</span>
             </div>
             <div class="mc-step-line"></div>
-            <div class="mc-step ${_state.currentStage === 'configure' ? 'active' : (_state.compressedResults.length > 0 ? 'completed' : '')}">
+            <div class="mc-step ${getStepClass(1)}">
               <span class="mc-step-num">2</span> <span class="mc-step-text">Configure</span>
             </div>
             <div class="mc-step-line"></div>
-            <div class="mc-step ${_state.currentStage === 'processing' ? 'active' : ''}">
+            <div class="mc-step ${getStepClass(2)}">
               <span class="mc-step-num">3</span> <span class="mc-step-text">Compress</span>
             </div>
             <div class="mc-step-line"></div>
-            <div class="mc-step ${_state.currentStage === 'results' ? 'active' : ''}">
+            <div class="mc-step ${getStepClass(3)}">
               <span class="mc-step-num">4</span> <span class="mc-step-text">Results</span>
             </div>
           </div>
@@ -181,12 +189,24 @@
       <!-- Dropzone -->
       <div class="mc-dropzone" id="mcDropzone">
         <input type="file" id="mcFileInput" multiple accept="image/*,video/*" style="display:none;">
+        <input type="file" id="mcFolderFileInput" multiple accept="*/*" style="display:none;">
+        <input type="file" id="mcDirInput" webkitdirectory directory multiple style="display:none;">
+
         <div class="mc-dropzone-icon">📥</div>
-        <div class="mc-dropzone-title">Drag &amp; Drop photos or videos here</div>
-        <div class="mc-dropzone-desc">Supports JPEG, PNG, WEBP, MP4, MOV, WEBM · Multiple files supported</div>
-        <button type="button" class="btn-submit mc-browse-btn" id="mcBrowseBtn">
-          Browse Photos &amp; Videos
-        </button>
+        <div class="mc-dropzone-title">Select or Drop Photos &amp; Videos</div>
+        <div class="mc-dropzone-desc">Pick from Gallery, Browse All Storage Folders, or Drop files here</div>
+
+        <div class="mc-dropzone-actions">
+          <button type="button" class="btn-submit mc-browse-btn" id="mcBrowseBtn">
+            🖼️ Browse Gallery (Photos &amp; Videos)
+          </button>
+          <button type="button" class="mc-btn-secondary mc-browse-folder-btn" id="mcBrowseFolderBtn" title="Browse device internal storage, SD card, DCIM, WhatsApp and custom folders">
+            📁 Browse All Folders &amp; Files
+          </button>
+          <button type="button" class="mc-btn-secondary mc-browse-dir-btn" id="mcBrowseDirBtn" title="Select an entire folder of photos/videos" style="display:none;">
+            📂 Select Entire Folder
+          </button>
+        </div>
       </div>
 
       <!-- Selected Queue -->
@@ -197,7 +217,8 @@
             <span class="mc-queue-size">(${formatBytes(totalSize)})</span>
           </div>
           <div class="mc-queue-actions">
-            <button type="button" class="mc-btn-link" id="mcAddMoreBtn">➕ Add More</button>
+            <button type="button" class="mc-btn-link" id="mcAddMoreBtn">➕ Add Photos/Videos</button>
+            <button type="button" class="mc-btn-link" id="mcAddFolderBtn">📁 Add from Folder</button>
             <button type="button" class="mc-btn-link text-danger" id="mcClearAllBtn">🗑️ Clear All</button>
           </div>
         </div>
@@ -710,8 +731,17 @@
   function attachEvents(container) {
     // Stage 1 Events
     var fileInput = container.querySelector('#mcFileInput');
+    var folderFileInput = container.querySelector('#mcFolderFileInput');
+    var dirInput = container.querySelector('#mcDirInput');
     var browseBtn = container.querySelector('#mcBrowseBtn');
+    var browseFolderBtn = container.querySelector('#mcBrowseFolderBtn');
+    var browseDirBtn = container.querySelector('#mcBrowseDirBtn');
     var dropzone = container.querySelector('#mcDropzone');
+
+    // Show entire folder button if supported by browser/platform
+    if (browseDirBtn && dirInput && ('webkitdirectory' in dirInput)) {
+      browseDirBtn.style.display = 'inline-flex';
+    }
 
     if (browseBtn && fileInput) {
       browseBtn.addEventListener('click', function () {
@@ -719,14 +749,28 @@
       });
     }
 
-    if (fileInput) {
-      fileInput.addEventListener('change', function (e) {
-        if (e.target.files && e.target.files.length > 0) {
-          addFiles(Array.from(e.target.files));
-          fileInput.value = '';
-        }
+    if (browseFolderBtn && folderFileInput) {
+      browseFolderBtn.addEventListener('click', function () {
+        folderFileInput.click();
       });
     }
+
+    if (browseDirBtn && dirInput) {
+      browseDirBtn.addEventListener('click', function () {
+        dirInput.click();
+      });
+    }
+
+    [fileInput, folderFileInput, dirInput].forEach(inp => {
+      if (inp) {
+        inp.addEventListener('change', function (e) {
+          if (e.target.files && e.target.files.length > 0) {
+            addFiles(Array.from(e.target.files));
+            inp.value = '';
+          }
+        });
+      }
+    });
 
     if (dropzone) {
       ['dragenter', 'dragover'].forEach(eventName => {
@@ -756,6 +800,11 @@
     var addMoreBtn = container.querySelector('#mcAddMoreBtn');
     if (addMoreBtn && fileInput) {
       addMoreBtn.addEventListener('click', () => fileInput.click());
+    }
+
+    var addFolderBtn = container.querySelector('#mcAddFolderBtn');
+    if (addFolderBtn && folderFileInput) {
+      addFolderBtn.addEventListener('click', () => folderFileInput.click());
     }
 
     var clearAllBtn = container.querySelector('#mcClearAllBtn');
@@ -1095,12 +1144,21 @@
   // FILE QUEUE INGESTION & THUMBNAILS
   // ─────────────────────────────────────────────────────────────
   async function addFiles(files) {
+    var addedCount = 0;
+    var ignoredCount = 0;
+
     for (var i = 0; i < files.length; i++) {
       var file = files[i];
-      var isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mov|mkv|avi)$/i);
-      var isImage = file.type.startsWith('image/') || file.name.match(/\.(jpe?g|png|webp|gif|bmp)$/i);
+      var name = file.name || '';
+      var type = file.type || '';
 
-      if (!isImage && !isVideo) continue;
+      var isVideo = type.startsWith('video/') || name.match(/\.(mp4|webm|mov|mkv|avi|3gp|m4v|flv|wmv|ts|mts)$/i);
+      var isImage = type.startsWith('image/') || name.match(/\.(jpe?g|png|webp|gif|bmp|heic|heif|avif|tiff?|dng|raw|cr2|nef|ico|svg)$/i);
+
+      if (!isImage && !isVideo) {
+        ignoredCount++;
+        continue;
+      }
 
       var id = 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
       var previewUrl = URL.createObjectURL(file);
@@ -1118,6 +1176,13 @@
 
       _state.selectedFiles.push(item);
       measureMediaDimensions(item);
+      addedCount++;
+    }
+
+    if (addedCount > 0 && ignoredCount > 0 && window.LMToast) {
+      LMToast.info(`Added ${addedCount} media files. Skipped ${ignoredCount} non-media file(s).`);
+    } else if (addedCount === 0 && ignoredCount > 0 && window.LMToast) {
+      LMToast.error(`No supported photos or videos found in selected files.`);
     }
 
     render();

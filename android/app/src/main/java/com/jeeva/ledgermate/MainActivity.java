@@ -100,6 +100,13 @@ public class MainActivity extends AppCompatActivity {
                             results = new Uri[]{result.getData().getData()};
                         }
                     }
+                    if (results != null) {
+                        for (Uri u : results) {
+                            try {
+                                getContentResolver().takePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                            } catch (Throwable ignored) {}
+                        }
+                    }
                     filePathCallback.onReceiveValue(results);
                     filePathCallback = null;
                 }
@@ -397,14 +404,66 @@ public class MainActivity extends AppCompatActivity {
                 }
                 MainActivity.this.filePathCallback = filePathCallback;
 
-                Intent intent = fileChooserParams.createIntent();
                 try {
-                    fileChooserLauncher.launch(intent);
+                    String[] acceptTypes = fileChooserParams.getAcceptTypes();
+                    boolean isMultiple = (fileChooserParams.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
+
+                    // Check if folder-wise or general storage browsing is requested
+                    boolean isAllOrFolder = (acceptTypes == null || acceptTypes.length == 0 ||
+                            (acceptTypes.length == 1 && (acceptTypes[0].equals("*/*") || acceptTypes[0].isEmpty())));
+
+                    Intent chooser;
+                    if (isAllOrFolder) {
+                        // Document file picker allowing browsing all device folders and SD card
+                        Intent docIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                        docIntent.addCategory(Intent.CATEGORY_OPENABLE);
+                        docIntent.setType("*/*");
+                        if (isMultiple) {
+                            docIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                        }
+                        docIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+
+                        Intent getContentIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                        getContentIntent.addCategory(Intent.CATEGORY_OPENABLE);
+                        getContentIntent.setType("*/*");
+                        if (isMultiple) {
+                            getContentIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                        }
+
+                        chooser = Intent.createChooser(docIntent, "Browse Folders & Files");
+                        chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{getContentIntent});
+                    } else {
+                        // Media-focused picker (Gallery / Photos) with folder browser option
+                        Intent mediaIntent = fileChooserParams.createIntent();
+                        if (isMultiple) {
+                            mediaIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                        }
+
+                        Intent docIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                        docIntent.addCategory(Intent.CATEGORY_OPENABLE);
+                        docIntent.setType("*/*");
+                        docIntent.putExtra(Intent.EXTRA_MIME_TYPES, acceptTypes);
+                        if (isMultiple) {
+                            docIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                        }
+                        docIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                        chooser = Intent.createChooser(mediaIntent, "Select Photos, Videos or Folders");
+                        chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{docIntent});
+                    }
+
+                    fileChooserLauncher.launch(chooser);
+                    return true;
                 } catch (Exception e) {
-                    MainActivity.this.filePathCallback = null;
-                    return false;
+                    try {
+                        Intent fallbackIntent = fileChooserParams.createIntent();
+                        fileChooserLauncher.launch(fallbackIntent);
+                        return true;
+                    } catch (Exception fallbackErr) {
+                        MainActivity.this.filePathCallback = null;
+                        return false;
+                    }
                 }
-                return true;
             }
 
             @Override
