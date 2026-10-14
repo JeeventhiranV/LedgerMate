@@ -551,6 +551,7 @@
                       <span class="mc-meta-badge">${item.type === 'image' ? '📸 Photo' : '🎬 Video'}</span>
                       <span class="mc-savings-badge">-${savedPct}% (${savedMb} saved)</span>
                       ${item.exifPreserved ? '<span class="mc-exif-badge">🏷️ EXIF &amp; Dates Preserved</span>' : '<span class="mc-exif-badge">⏱️ Timestamp Preserved</span>'}
+                      ${item.originalTimestamp ? `<span class="mc-dim-badge" title="Original capture date: ${new Date(item.originalTimestamp).toLocaleString()}">📅 ${new Date(item.originalTimestamp).toLocaleDateString()}</span>` : ''}
                     </div>
 
                     <div class="mc-res-metrics">

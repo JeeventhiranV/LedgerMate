@@ -18,7 +18,11 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Message;
 import android.provider.DocumentsContract;
+import android.provider.MediaStore;
 import android.provider.Settings;
+import android.content.ContentValues;
+import android.media.MediaScannerConnection;
+import android.os.ParcelFileDescriptor;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.JsResult;
@@ -174,10 +178,41 @@ public class MainActivity extends AppCompatActivity {
     );
 
     /**
-     * Resolves underlying filesystem file from a SAF document URI and preserves original modified timestamp.
+     * Preserves original modified timestamp across all Android versions using:
+     * 1. Os.futimens on ParcelFileDescriptor (direct Linux kernel inode mtime update)
+     * 2. DocumentsContract COLUMN_LAST_MODIFIED SAF provider metadata
+     * 3. Physical File.setLastModified
+     * 4. MediaScannerConnection scanFile (triggers Android Gallery / MediaStore EXIF indexing)
+     * 5. MediaStore MediaColumns.DATE_MODIFIED update
      */
     private void trySetLastModified(Uri fileUri, long lastModified) {
         if (lastModified <= 0 || fileUri == null) return;
+
+        // Method 1: Os.futimens via ParcelFileDescriptor (direct kernel inode mtime update)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                try (ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(fileUri, "rw")) {
+                    if (pfd != null) {
+                        long sec = lastModified / 1000;
+                        long nsec = (lastModified % 1000) * 1000000;
+                        android.system.StructTimespec[] times = new android.system.StructTimespec[] {
+                            new android.system.StructTimespec(sec, nsec),
+                            new android.system.StructTimespec(sec, nsec)
+                        };
+                        android.system.Os.futimens(pfd.getFileDescriptor(), times);
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        // Method 2: SAF DocumentsContract COLUMN_LAST_MODIFIED
+        try {
+            ContentValues values = new ContentValues();
+            values.put(DocumentsContract.Document.COLUMN_LAST_MODIFIED, lastModified);
+            getContentResolver().update(fileUri, values, null, null);
+        } catch (Throwable ignored) {}
+
+        // Method 3: Resolve physical File path for File.setLastModified & MediaScanner
         try {
             if ("com.android.externalstorage.documents".equals(fileUri.getAuthority())) {
                 String docId = DocumentsContract.getDocumentId(fileUri);
@@ -208,11 +243,31 @@ public class MainActivity extends AppCompatActivity {
                         }
                         if (targetFile != null && targetFile.exists()) {
                             targetFile.setLastModified(lastModified);
+
+                            // Method 4: Notify Android MediaStore / Gallery scanner
+                            MediaScannerConnection.scanFile(this, new String[]{targetFile.getAbsolutePath()}, null, null);
+
+                            // Method 5: Update MediaStore DATE_MODIFIED & DATE_TAKEN
+                            try {
+                                ContentValues mValues = new ContentValues();
+                                mValues.put(MediaStore.MediaColumns.DATE_MODIFIED, lastModified / 1000);
+                                mValues.put("datetaken", lastModified);
+                                getContentResolver().update(
+                                    MediaStore.Files.getContentUri("external"),
+                                    mValues,
+                                    MediaStore.MediaColumns.DATA + "=?",
+                                    new String[]{targetFile.getAbsolutePath()}
+                                );
+                            } catch (Throwable ignored) {}
+
+                            try {
+                                sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(targetFile)));
+                            } catch (Throwable ignored) {}
                         }
                     }
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {}
     }
 
 

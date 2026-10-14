@@ -30,6 +30,85 @@
   }
 
   /**
+   * Converts Mac Epoch seconds (used in MP4 mvhd/tkhd) to Unix epoch milliseconds.
+   * 
+   * @param {number} macSec - Seconds since 1904-01-01
+   * @returns {number|null} Unix milliseconds since 1970-01-01, or null if invalid
+   */
+  function macToUnixEpochMs(macSec) {
+    if (!macSec || macSec <= MAC_EPOCH_OFFSET) return null;
+    return (macSec - MAC_EPOCH_OFFSET) * 1000;
+  }
+
+  /**
+   * Extracts original capture or modification timestamp (Unix ms) from JPEG APP1 segments.
+   * Scans for standard EXIF "YYYY:MM:DD HH:MM:SS" tags (DateTimeOriginal, CreateDate, ModifyDate)
+   * or ISO 8601 strings in XMP.
+   * 
+   * @param {Array<Uint8Array>} segments - Extracted APP segments
+   * @returns {number|null} Unix timestamp ms, or null if not found
+   */
+  function extractExifDateFromSegments(segments) {
+    if (!segments || segments.length === 0) return null;
+    var decoder;
+    try { decoder = new TextDecoder('latin1'); } catch (e) { decoder = null; }
+
+    for (var i = 0; i < segments.length; i++) {
+      var seg = segments[i];
+      if (!seg || seg.length < 14) continue;
+      // Must be APP1 (0xFFE1)
+      if (seg[1] !== 0xE1) continue;
+
+      var text = '';
+      if (decoder) {
+        try {
+          text = decoder.decode(seg);
+        } catch (decErr) {
+          text = '';
+        }
+      }
+      if (!text) {
+        for (var j = 0; j < seg.length; j++) {
+          text += String.fromCharCode(seg[j]);
+        }
+      }
+
+      // Check standard EXIF format: "YYYY:MM:DD HH:MM:SS"
+      var exifMatch = text.match(/(\d{4}):(\d{2}):(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+      if (exifMatch) {
+        var yr = parseInt(exifMatch[1], 10);
+        var mo = parseInt(exifMatch[2], 10) - 1;
+        var da = parseInt(exifMatch[3], 10);
+        var hr = parseInt(exifMatch[4], 10);
+        var mi = parseInt(exifMatch[5], 10);
+        var se = parseInt(exifMatch[6], 10);
+        if (yr >= 1970 && yr <= 2099 && mo >= 0 && mo <= 11 && da >= 1 && da <= 31) {
+          var dateObj = new Date(yr, mo, da, hr, mi, se);
+          var ts = dateObj.getTime();
+          if (!isNaN(ts) && ts > 0) return ts;
+        }
+      }
+
+      // Check ISO format in XMP: "YYYY-MM-DDTHH:MM:SS"
+      var xmpMatch = text.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+      if (xmpMatch) {
+        var yrX = parseInt(xmpMatch[1], 10);
+        var moX = parseInt(xmpMatch[2], 10) - 1;
+        var daX = parseInt(xmpMatch[3], 10);
+        var hrX = parseInt(xmpMatch[4], 10);
+        var miX = parseInt(xmpMatch[5], 10);
+        var seX = parseInt(xmpMatch[6], 10);
+        if (yrX >= 1970 && yrX <= 2099 && moX >= 0 && moX <= 11 && daX >= 1 && daX <= 31) {
+          var dateObjX = new Date(yrX, moX, daX, hrX, miX, seX);
+          var tsX = dateObjX.getTime();
+          if (!isNaN(tsX) && tsX > 0) return tsX;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
    * Normalizes EXIF Orientation tag (0x0112) in IFD0 to 1 (Normal).
    * Prevents browsers and gallery apps from double-rotating images whose
    * pixels have already been rendered upright by the HTML5 canvas.
@@ -701,15 +780,20 @@
     // 1. Read original binary buffer for EXIF extraction if JPEG
     var isJpeg = file.type === 'image/jpeg' || (file.name && file.name.match(/\.jpe?g$/i));
     var metadataSegments = [];
+    var extractedExifTimestamp = null;
 
     if (isJpeg && preserveExif) {
       try {
         var origBuffer = await readBlobAsArrayBuffer(file);
         metadataSegments = extractJpegMetadataSegments(origBuffer);
+        extractedExifTimestamp = extractExifDateFromSegments(metadataSegments);
       } catch (err) {
         console.warn('[LM MediaCompressor] Error reading EXIF segments:', err);
       }
     }
+
+    // Determine the true original capture/creation timestamp
+    var origTimestamp = extractedExifTimestamp || (file && file.lastModified) || Date.now();
 
     if (typeof onProgress === 'function') onProgress(35, 'Decoding image pixels...');
 
@@ -760,7 +844,7 @@
       // 6. Re-inject EXIF metadata if applicable
       if (isJpeg && preserveExif) {
         if (metadataSegments.length === 0) {
-          metadataSegments = [createMinimalExifSegment(file.lastModified || Date.now())];
+          metadataSegments = [createMinimalExifSegment(origTimestamp)];
         }
         try {
           var compBuffer = await readBlobAsArrayBuffer(compressedBlob);
@@ -775,7 +859,7 @@
 
       // 7. Create output File preserving original name, creation and modified date
       var outputBlob = new Blob([finalBytes], { type: mimeType });
-      var finalFile = createFileSafe(outputBlob, file.name, file.lastModified || Date.now());
+      var finalFile = createFileSafe(outputBlob, file.name, origTimestamp);
 
       var origSize = file.size;
       var compSize = finalFile.size;
@@ -788,6 +872,7 @@
         file: finalFile,
         blob: outputBlob,
         originalFile: file,
+        originalTimestamp: origTimestamp,
         type: 'image',
         name: file.name,
         originalSize: origSize,
@@ -925,6 +1010,27 @@
       throw new Error('Video compression is not supported on this browser (MediaRecorder API unavailable)');
     }
 
+    if (typeof onProgress === 'function') onProgress(10, 'Reading video container atoms...');
+
+    var origMacEpoch = unixToMacEpoch(file.lastModified || Date.now());
+    var extractedVideoTimestamp = null;
+    if (file && typeof file.slice === 'function') {
+      try {
+        var prefBuf = await readBlobAsArrayBuffer(file.slice(0, 1048576));
+        var origTs = readMp4Timestamps(prefBuf);
+        if (origTs && origTs.creationTime) {
+          origMacEpoch = origTs.creationTime;
+          var convertedMs = macToUnixEpochMs(origTs.creationTime);
+          if (convertedMs) {
+            extractedVideoTimestamp = convertedMs;
+          }
+        }
+      } catch (prefixErr) {
+        console.warn('[LM MediaCompressor] Error reading MP4 prefix atom:', prefixErr);
+      }
+    }
+    var origTimestamp = extractedVideoTimestamp || (file && file.lastModified) || Date.now();
+
     return new Promise(function (resolve, reject) {
       var video = document.createElement('video');
       video.muted = true;
@@ -955,18 +1061,6 @@
         try { video.load(); } catch (e) {}
         URL.revokeObjectURL(videoUrl);
       };
-
-      var origMacEpoch = unixToMacEpoch(file.lastModified || Date.now());
-      if (file && typeof file.slice === 'function') {
-        try {
-          readBlobAsArrayBuffer(file.slice(0, 524288)).then(function (prefBuf) {
-            var origTs = readMp4Timestamps(prefBuf);
-            if (origTs && origTs.creationTime) {
-              origMacEpoch = origTs.creationTime;
-            }
-          }).catch(function () {});
-        } catch (ignored) {}
-      }
 
       video.onloadedmetadata = function () {
         try {
@@ -1049,7 +1143,7 @@
               }
             }
 
-            var finalFile = createFileSafe(finalBlob, outFileName, file.lastModified || Date.now());
+            var finalFile = createFileSafe(finalBlob, outFileName, origTimestamp);
 
             var origSize = file.size;
             var compSize = finalFile.size;
@@ -1059,6 +1153,7 @@
             resolve({
               file: finalFile,
               blob: finalBlob,
+              originalTimestamp: origTimestamp,
               type: 'video',
               name: outFileName,
               originalFile: file,
@@ -1328,7 +1423,7 @@
           var blobNative = itemNative.blob || itemNative.file;
           var b64 = await blobToBase64(blobNative);
           var mType = blobNative.type || (itemNative.type === 'image' ? 'image/jpeg' : 'video/mp4');
-          var lMod = itemNative.file && itemNative.file.lastModified ? itemNative.file.lastModified : Date.now();
+          var lMod = itemNative.originalTimestamp || (itemNative.file && itemNative.file.lastModified) || (itemNative.originalFile && itemNative.originalFile.lastModified) || Date.now();
 
           await new Promise(function (resolveWrite, rejectWrite) {
             var cbId = 'cb_mc_write_' + Date.now() + '_' + i;
@@ -1456,7 +1551,8 @@
       var fileData = new Uint8Array(await (item.blob || item.file).arrayBuffer());
       var nameBytes = encoder.encode(name);
       var fileCrc = crc32(fileData);
-      var modDate = item.file && item.file.lastModified ? new Date(item.file.lastModified) : new Date();
+      var modTs = item.originalTimestamp || (item.file && item.file.lastModified) || (item.originalFile && item.originalFile.lastModified) || Date.now();
+      var modDate = new Date(modTs);
       var dos = dosDateTime(modDate);
       var unixSeconds = Math.floor(modDate.getTime() / 1000);
 
@@ -1560,6 +1656,8 @@
     extractJpegMetadataSegments: extractJpegMetadataSegments,
     injectJpegMetadataSegments: injectJpegMetadataSegments,
     createMinimalExifSegment: createMinimalExifSegment,
+    extractExifDateFromSegments: extractExifDateFromSegments,
+    macToUnixEpochMs: macToUnixEpochMs,
     readMp4Timestamps: readMp4Timestamps,
     patchMp4Timestamps: patchMp4Timestamps,
     calculateDimensions: calculateDimensions,
