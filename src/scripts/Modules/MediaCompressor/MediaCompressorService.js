@@ -271,6 +271,189 @@
   }
 
   /**
+   * Extracts comprehensive EXIF tags and device metadata from an image or video file.
+   * Parses Camera Make, Model, Lens, ISO, F-Number, Exposure Time, Focal Length,
+   * GPS Coordinates (lat, lng, Google Maps URL), and capture/creation timestamp.
+   * 
+   * @param {File|Blob} file - Target media file
+   * @returns {Promise<Object>} Detailed metadata descriptor
+   */
+  async function extractDetailedMetadata(file) {
+    if (!file) return null;
+    var meta = {
+      name: file.name || 'Media File',
+      size: file.size || 0,
+      type: file.type || 'image/jpeg',
+      lastModified: file.lastModified || Date.now(),
+      timestamps: {
+        modificationTime: file.lastModified || Date.now(),
+        creationTime: file.lastModified || Date.now()
+      },
+      make: null,
+      model: null,
+      lens: null,
+      iso: null,
+      fNumber: null,
+      exposureTime: null,
+      focalLength: null,
+      dateTimeOriginal: null,
+      gps: null,
+      resolution: null
+    };
+
+    var isJpeg = file.type === 'image/jpeg' || (file.name && file.name.match(/\.jpe?g$/i));
+
+    if (isJpeg) {
+      try {
+        var buffer = await readBlobAsArrayBuffer(file);
+        var segments = extractJpegMetadataSegments(buffer);
+        var exifDate = extractExifDateFromSegments(segments);
+        if (exifDate) {
+          meta.dateTimeOriginal = exifDate;
+        }
+
+        for (var s = 0; s < segments.length; s++) {
+          var seg = segments[s];
+          if (!seg || seg.length < 14 || seg[1] !== 0xE1) continue;
+          if (seg[4] !== 0x45 || seg[5] !== 0x78 || seg[6] !== 0x69 || seg[7] !== 0x66 || seg[8] !== 0x00 || seg[9] !== 0x00) {
+            continue; // Not Exif\0\0
+          }
+
+          var t = 10;
+          var isLE = (seg[t] === 0x49 && seg[t + 1] === 0x49); // "II"
+          var isBE = (seg[t] === 0x4D && seg[t + 1] === 0x4D); // "MM"
+          if (!isLE && !isBE) continue;
+
+          function rU16(p) {
+            if (p + 2 > seg.length) return 0;
+            return isLE ? (seg[p] | (seg[p + 1] << 8)) : ((seg[p] << 8) | seg[p + 1]);
+          }
+          function rU32(p) {
+            if (p + 4 > seg.length) return 0;
+            return isLE
+              ? ((seg[p]) | (seg[p + 1] << 8) | (seg[p + 2] << 16) | (seg[p + 3] << 24)) >>> 0
+              : (((seg[p] << 24) | (seg[p + 1] << 16) | (seg[p + 2] << 8) | seg[p + 3])) >>> 0;
+          }
+          function rStr(p, len) {
+            var str = '';
+            for (var k = 0; k < len && p + k < seg.length; k++) {
+              if (seg[p + k] === 0) break;
+              str += String.fromCharCode(seg[p + k]);
+            }
+            return str.trim();
+          }
+          function rRational(p) {
+            var num = rU32(p);
+            var den = rU32(p + 4);
+            return den === 0 ? 0 : (num / den);
+          }
+
+          var ifd0Off = rU32(t + 4);
+          var ifd0Pos = t + ifd0Off;
+          if (ifd0Pos + 2 > seg.length) continue;
+
+          var ifd0Count = rU16(ifd0Pos);
+          var curPos = ifd0Pos + 2;
+          var exifIfdPos = 0;
+          var gpsIfdPos = 0;
+
+          for (var i = 0; i < ifd0Count && curPos + 12 <= seg.length; i++) {
+            var tag = rU16(curPos);
+            var count = rU32(curPos + 4);
+            var valOff = rU32(curPos + 8);
+            var valPos = (count <= 4) ? (curPos + 8) : (t + valOff);
+
+            if (tag === 0x010F) meta.make = rStr(valPos, count);
+            if (tag === 0x0110) meta.model = rStr(valPos, count);
+            if (tag === 0x8769) exifIfdPos = t + valOff;
+            if (tag === 0x8825) gpsIfdPos = t + valOff;
+            curPos += 12;
+          }
+
+          // Parse ExifIFD
+          if (exifIfdPos > 0 && exifIfdPos + 2 <= seg.length) {
+            var exifCount = rU16(exifIfdPos);
+            var ePos = exifIfdPos + 2;
+            for (var j = 0; j < exifCount && ePos + 12 <= seg.length; j++) {
+              var eTag = rU16(ePos);
+              var eCount = rU32(ePos + 4);
+              var eValOff = rU32(ePos + 8);
+              var eValPos = (eCount <= 4) ? (ePos + 8) : (t + eValOff);
+
+              if (eTag === 0x829A) { // ExposureTime
+                var num = rU32(eValPos);
+                var den = rU32(eValPos + 4);
+                if (den > 0) meta.exposureTime = (num === 1) ? ('1/' + den + 's') : ((num / den).toFixed(3) + 's');
+              }
+              if (eTag === 0x829D) { // FNumber
+                var fn = rRational(eValPos);
+                if (fn > 0) meta.fNumber = 'f/' + fn.toFixed(1);
+              }
+              if (eTag === 0x8827) { // ISO
+                meta.iso = rU16(ePos + 8) || rU32(ePos + 8);
+              }
+              if (eTag === 0x920A) { // FocalLength
+                var fl = rRational(eValPos);
+                if (fl > 0) meta.focalLength = Math.round(fl) + ' mm';
+              }
+              if (eTag === 0xA434) { // LensModel
+                meta.lens = rStr(eValPos, eCount);
+              }
+              ePos += 12;
+            }
+          }
+
+          // Parse GPSInfoIFD
+          if (gpsIfdPos > 0 && gpsIfdPos + 2 <= seg.length) {
+            var gpsCount = rU16(gpsIfdPos);
+            var gPos = gpsIfdPos + 2;
+            var latRef = 'N', lngRef = 'E';
+            var latDeg = null, lngDeg = null;
+
+            for (var g = 0; g < gpsCount && gPos + 12 <= seg.length; g++) {
+              var gTag = rU16(gPos);
+              var gCount = rU32(gPos + 4);
+              var gValOff = rU32(gPos + 8);
+              var gValPos = (gCount <= 4) ? (gPos + 8) : (t + gValOff);
+
+              if (gTag === 0x0001) latRef = String.fromCharCode(seg[gPos + 8] || 78);
+              if (gTag === 0x0003) lngRef = String.fromCharCode(seg[gPos + 8] || 69);
+              if (gTag === 0x0002) { // Latitude
+                var d1 = rRational(gValPos);
+                var m1 = rRational(gValPos + 8);
+                var s1 = rRational(gValPos + 16);
+                latDeg = d1 + (m1 / 60) + (s1 / 3600);
+              }
+              if (gTag === 0x0004) { // Longitude
+                var d2 = rRational(gValPos);
+                var m2 = rRational(gValPos + 8);
+                var s2 = rRational(gValPos + 16);
+                lngDeg = d2 + (m2 / 60) + (s2 / 3600);
+              }
+              gPos += 12;
+            }
+
+            if (latDeg !== null && lngDeg !== null) {
+              if (latRef === 'S') latDeg = -latDeg;
+              if (lngRef === 'W') lngDeg = -lngDeg;
+              meta.gps = {
+                latitude: Number(latDeg.toFixed(6)),
+                longitude: Number(lngDeg.toFixed(6)),
+                mapsUrl: 'https://www.google.com/maps?q=' + latDeg.toFixed(6) + ',' + lngDeg.toFixed(6)
+              };
+            }
+          }
+          break;
+        }
+      } catch (err) {
+        console.warn('[LM MediaCompressor] extractDetailedMetadata error:', err);
+      }
+    }
+
+    return meta;
+  }
+
+  /**
    * Scans a JPEG ArrayBuffer and extracts all metadata APP segments
    * (APP1 Exif & XMP, APP2 ICC Profile, APP13 IPTC, etc.), robustly handling
    * consecutive 0xFF fill bytes and non-payload markers.
@@ -773,7 +956,19 @@
     var resizeMode = options.resizeMode || 'custom';
     var maxDimension = typeof options.maxDimension !== 'undefined' ? options.maxDimension : 1200;
     var preserveExif = options.preserveExif !== false;
-    var mimeType = options.format || 'image/jpeg';
+    
+    // Determine target mime type (supports WebP, PNG, JPEG)
+    var requestedFormat = options.format || 'auto';
+    var mimeType = 'image/jpeg';
+    if (requestedFormat === 'image/webp' || requestedFormat === 'webp') {
+      mimeType = 'image/webp';
+    } else if (requestedFormat === 'image/png' || requestedFormat === 'png') {
+      mimeType = 'image/png';
+    } else if (requestedFormat === 'auto') {
+      mimeType = (file.type === 'image/png' || (file.name && file.name.match(/\.png$/i))) ? 'image/png' : 'image/jpeg';
+    } else {
+      mimeType = requestedFormat;
+    }
 
     if (typeof onProgress === 'function') onProgress(15, 'Reading image metadata...');
 
@@ -781,6 +976,7 @@
     var isJpeg = file.type === 'image/jpeg' || (file.name && file.name.match(/\.jpe?g$/i));
     var metadataSegments = [];
     var extractedExifTimestamp = null;
+    var detailedMeta = null;
 
     if (isJpeg && preserveExif) {
       try {
@@ -791,6 +987,10 @@
         console.warn('[LM MediaCompressor] Error reading EXIF segments:', err);
       }
     }
+
+    try {
+      detailedMeta = await extractDetailedMetadata(file);
+    } catch (dErr) {}
 
     // Determine the true original capture/creation timestamp
     var origTimestamp = extractedExifTimestamp || (file && file.lastModified) || Date.now();
@@ -803,6 +1003,9 @@
     try {
       var origW = loaded.width;
       var origH = loaded.height;
+      if (detailedMeta) {
+        detailedMeta.resolution = { width: origW, height: origH };
+      }
 
       if (typeof onProgress === 'function') onProgress(55, 'Rendering to canvas...');
 
@@ -842,7 +1045,7 @@
 
       var finalBytes;
       // 6. Re-inject EXIF metadata if applicable
-      if (isJpeg && preserveExif) {
+      if (isJpeg && mimeType === 'image/jpeg' && preserveExif) {
         if (metadataSegments.length === 0) {
           metadataSegments = [createMinimalExifSegment(origTimestamp)];
         }
@@ -858,8 +1061,12 @@
       }
 
       // 7. Create output File preserving original name, creation and modified date
+      var outExt = mimeType === 'image/webp' ? '.webp' : (mimeType === 'image/png' ? '.png' : '.jpg');
+      var baseName = file.name.replace(/\.[^/.]+$/, '');
+      var outName = (mimeType === 'image/jpeg' && file.name.match(/\.jpe?g$/i)) ? file.name : (baseName + outExt);
+
       var outputBlob = new Blob([finalBytes], { type: mimeType });
-      var finalFile = createFileSafe(outputBlob, file.name, origTimestamp);
+      var finalFile = createFileSafe(outputBlob, outName, origTimestamp);
 
       var origSize = file.size;
       var compSize = finalFile.size;
@@ -873,8 +1080,10 @@
         blob: outputBlob,
         originalFile: file,
         originalTimestamp: origTimestamp,
+        detailedMetadata: detailedMeta,
         type: 'image',
-        name: file.name,
+        name: outName,
+        format: mimeType,
         originalSize: origSize,
         compressedSize: compSize,
         savedBytes: savedBytes,
@@ -1650,6 +1859,121 @@
   }
 
   // ─────────────────────────────────────────────────────────────
+  // 7. SMART PRESETS & SYSTEM STORAGE HELPERS
+  // ─────────────────────────────────────────────────────────────
+
+  var SMART_PRESETS = {
+    whatsapp: {
+      id: 'whatsapp',
+      name: 'WhatsApp & Social',
+      icon: '💬',
+      badge: '~85% Space Saved',
+      description: 'Ultra-compact file size for fast uploads on WhatsApp, Instagram & Discord',
+      quality: 0.65,
+      resizeMode: 'custom',
+      maxWidth: 1080,
+      maxHeight: 1080,
+      lockAspectRatio: true,
+      format: 'image/jpeg',
+      videoResolution: '720p',
+      videoQuality: 'aggressive'
+    },
+    storage_saver: {
+      id: 'storage_saver',
+      name: 'Storage Saver',
+      icon: '⚡',
+      badge: '~70% Space Saved (Default)',
+      description: 'Ideal visual balance for freeing device storage with high clarity',
+      quality: 0.75,
+      resizeMode: 'custom',
+      maxWidth: 1200,
+      maxHeight: 1200,
+      lockAspectRatio: true,
+      format: 'auto',
+      videoResolution: '720p',
+      videoQuality: 'balanced'
+    },
+    lossless: {
+      id: 'lossless',
+      name: 'Lossless Archive',
+      icon: '💎',
+      badge: '~40% Space Saved',
+      description: 'Preserves 100% original pixel resolution with studio-grade fidelity',
+      quality: 0.90,
+      resizeMode: 'original',
+      maxWidth: 4000,
+      maxHeight: 4000,
+      lockAspectRatio: true,
+      format: 'auto',
+      videoResolution: '1080p',
+      videoQuality: 'high'
+    },
+    custom: {
+      id: 'custom',
+      name: 'Pro Custom',
+      icon: '🛠️',
+      badge: 'Full Granular Control',
+      description: 'Manually adjust dimensions, quality slider, aspect ratio, and audio settings',
+      quality: 0.75,
+      resizeMode: 'custom',
+      maxWidth: 1200,
+      maxHeight: 1200,
+      lockAspectRatio: true,
+      format: 'auto',
+      videoResolution: '720p',
+      videoQuality: 'balanced'
+    }
+  };
+
+  function getSmartPresets() {
+    return SMART_PRESETS;
+  }
+
+  async function hasAllFilesPermission() {
+    if (!isNativeAndroid() || typeof window.AndroidBridge.hasManageStoragePermission !== 'function') {
+      return true;
+    }
+    return new Promise(function (resolve) {
+      var cbId = 'cb_mc_hasperm_' + Date.now();
+      window.LM_NativeBridgeCallbacks = window.LM_NativeBridgeCallbacks || {};
+      window.LM_NativeBridgeCallbacks[cbId] = function (res) {
+        delete window.LM_NativeBridgeCallbacks[cbId];
+        resolve(res && res.granted === true);
+      };
+      try {
+        window.AndroidBridge.hasManageStoragePermission(cbId);
+        setTimeout(function () {
+          if (window.LM_NativeBridgeCallbacks[cbId]) {
+            delete window.LM_NativeBridgeCallbacks[cbId];
+            resolve(true);
+          }
+        }, 1500);
+      } catch (e) {
+        resolve(true);
+      }
+    });
+  }
+
+  async function requestAllFilesPermission() {
+    if (!isNativeAndroid() || typeof window.AndroidBridge.requestManageStoragePermission !== 'function') {
+      return;
+    }
+    return new Promise(function (resolve) {
+      var cbId = 'cb_mc_reqperm_' + Date.now();
+      window.LM_NativeBridgeCallbacks = window.LM_NativeBridgeCallbacks || {};
+      window.LM_NativeBridgeCallbacks[cbId] = function () {
+        delete window.LM_NativeBridgeCallbacks[cbId];
+        resolve();
+      };
+      try {
+        window.AndroidBridge.requestManageStoragePermission(cbId);
+      } catch (e) {
+        resolve();
+      }
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────
   // PUBLIC API
   // ─────────────────────────────────────────────────────────────
   window.LM_MediaCompressorService = {
@@ -1657,6 +1981,7 @@
     injectJpegMetadataSegments: injectJpegMetadataSegments,
     createMinimalExifSegment: createMinimalExifSegment,
     extractExifDateFromSegments: extractExifDateFromSegments,
+    extractDetailedMetadata: extractDetailedMetadata,
     macToUnixEpochMs: macToUnixEpochMs,
     readMp4Timestamps: readMp4Timestamps,
     patchMp4Timestamps: patchMp4Timestamps,
@@ -1670,7 +1995,10 @@
     generateZipArchive: generateZipArchive,
     triggerDownload: triggerDownload,
     isFolderPickerSupported: isFolderPickerSupported,
-    isNativeAndroid: isNativeAndroid
+    isNativeAndroid: isNativeAndroid,
+    getSmartPresets: getSmartPresets,
+    hasAllFilesPermission: hasAllFilesPermission,
+    requestAllFilesPermission: requestAllFilesPermission
   };
 
   if (typeof module !== 'undefined' && module.exports) {

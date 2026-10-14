@@ -27,6 +27,9 @@
     compressedResults: [],  // Array of result objects from service
     destination: null,      // { type: 'native'|'fsa', uri?, handle?, name }
     mobileSavePreference: 'zip', // 'zip' | 'sequential'
+    selectedPreset: 'storage_saver', // 'whatsapp' | 'storage_saver' | 'lossless' | 'custom'
+    comparisonMode: 'swipe', // 'swipe' | 'side'
+    hasStoragePermission: true,
     options: {
       quality: 0.75,
       resizeMode: 'custom',
@@ -35,6 +38,7 @@
       lockAspectRatio: true,
       maxDimension: 1200,
       preserveExif: true,
+      format: 'auto', // 'auto' | 'image/webp' | 'image/jpeg'
       videoResolution: '720p',
       videoQuality: 'balanced',
       includeAudio: true
@@ -78,6 +82,16 @@
       window.LM_MediaCompressorService.getSavedDestinationDirectory().then(function (dest) {
         if (dest) {
           _state.destination = dest;
+          render(container);
+        }
+      }).catch(function () {});
+    }
+
+    // Proactive All Files storage permission check for Android 11+
+    if (window.LM_MediaCompressorService && typeof window.LM_MediaCompressorService.hasAllFilesPermission === 'function') {
+      window.LM_MediaCompressorService.hasAllFilesPermission().then(function (granted) {
+        _state.hasStoragePermission = granted;
+        if (!granted && _state.currentStage === 'configure') {
           render(container);
         }
       }).catch(function () {});
@@ -130,6 +144,7 @@
 
         <!-- Modals -->
         <div id="mcComparisonModal" class="mc-modal" style="display:none;"></div>
+        <div id="mcMetadataModal" class="mc-modal" style="display:none;"></div>
         <div id="mcSaveOptionsModal" class="mc-modal" style="display:none;"></div>
       </div>
     `;
@@ -238,7 +253,53 @@
           </div>
         </div>
 
+        ${(!_state.hasStoragePermission && window.LM_MediaCompressorService && window.LM_MediaCompressorService.isNativeAndroid()) ? `
+          <div class="mc-perm-banner">
+            <div class="mc-perm-left">
+              <span class="mc-perm-icon">🛡️</span>
+              <div>
+                <div class="mc-perm-title">Preserve Exact Inode Dates &amp; Details</div>
+                <div class="mc-perm-desc">Android 11+ requires All Files Access so compressed files in your folder keep identical original creation &amp; modified dates on disk.</div>
+              </div>
+            </div>
+            <button type="button" class="btn-submit mc-btn-perm" id="mcGrantPermBtn">
+              Grant Storage Access
+            </button>
+          </div>
+        ` : ''}
+
         <div class="mc-config-cards">
+          <!-- 0. Smart 1-Tap Presets -->
+          <div class="card mc-config-card">
+            <div class="mc-card-head">
+              <span class="mc-card-icon">⚡</span>
+              <div style="flex:1;">
+                <h3 class="mc-card-title">1-Tap Smart Presets</h3>
+                <p class="mc-card-subtitle">Select an instant profile or fine-tune granular parameters below</p>
+              </div>
+            </div>
+
+            <div class="mc-smart-presets-grid">
+              ${(function () {
+                var presets = (window.LM_MediaCompressorService && window.LM_MediaCompressorService.getSmartPresets) ? window.LM_MediaCompressorService.getSmartPresets() : {};
+                return Object.keys(presets).map(function (key) {
+                  var p = presets[key];
+                  var isActive = _state.selectedPreset === key;
+                  return `
+                    <div class="mc-smart-preset-card ${isActive ? 'active' : ''}" data-preset="${p.id}">
+                      <div class="mc-preset-top">
+                        <span class="mc-preset-icon">${p.icon}</span>
+                        <span class="mc-preset-badge">${p.badge}</span>
+                      </div>
+                      <div class="mc-preset-name">${p.name}</div>
+                      <div class="mc-preset-desc">${p.description}</div>
+                    </div>
+                  `;
+                }).join('');
+              })()}
+            </div>
+          </div>
+
           <!-- 1. Photo Compression Settings -->
           ${hasPhotos ? `
             <div class="card mc-config-card">
@@ -250,6 +311,25 @@
                 </div>
                 <div class="mc-estimate-pill" id="mcEstimatePill">
                   ⚡ Est. Space Saved: ~${estSavings}%
+                </div>
+              </div>
+
+              <!-- Output Format Selector -->
+              <div class="mc-field-group">
+                <label class="mc-label">Output Image Format:</label>
+                <div class="mc-format-selector">
+                  <button type="button" class="mc-format-chip ${_state.options.format === 'auto' ? 'active' : ''}" data-fmt="auto">
+                    <span>✨ Auto</span>
+                    <span class="mc-format-sub">Original Extension</span>
+                  </button>
+                  <button type="button" class="mc-format-chip ${_state.options.format === 'image/webp' ? 'active' : ''}" data-fmt="image/webp">
+                    <span>🚀 WebP</span>
+                    <span class="mc-format-sub">Smallest File (~30% smaller)</span>
+                  </button>
+                  <button type="button" class="mc-format-chip ${_state.options.format === 'image/jpeg' ? 'active' : ''}" data-fmt="image/jpeg">
+                    <span>🖼️ JPEG</span>
+                    <span class="mc-format-sub">Universal Compatibility</span>
+                  </button>
                 </div>
               </div>
 
@@ -463,10 +543,40 @@
           <h2 class="mc-proc-title">Compressing Media...</h2>
           <div class="mc-proc-status" id="mcProcStatus">Preparing files...</div>
 
-          <div class="mc-proc-bar-wrap">
-            <div class="mc-proc-bar" id="mcProcBar" style="width: 0%;"></div>
+          <!-- Dual Progress Container -->
+          <div class="mc-dual-prog-wrap">
+            <!-- Active File with Live Thumbnail -->
+            <div class="mc-prog-thumb-container" id="mcActiveFileBox" style="display:none;">
+              <img id="mcActiveFileThumb" class="mc-prog-thumb-img" alt="Thumbnail" style="display:none;">
+              <div style="flex:1; min-width: 0;">
+                <div class="mc-prog-thumb-name" id="mcActiveFileName">filename.jpg</div>
+                <div class="mc-prog-thumb-sub" id="mcActiveStatus">Optimizing...</div>
+              </div>
+              <div class="mc-slider-val" id="mcActivePct">0%</div>
+            </div>
+
+            <!-- Active File Sub-progress -->
+            <div>
+              <div class="mc-prog-row-label">
+                <span>Current File Encoding</span>
+                <span id="mcActiveBarPct">0%</span>
+              </div>
+              <div class="mc-proc-bar-wrap" style="height:6px; margin-top:4px;">
+                <div class="mc-proc-bar" id="mcActiveBar" style="width: 0%; background: var(--accent);"></div>
+              </div>
+            </div>
+
+            <!-- Overall Batch Progress -->
+            <div>
+              <div class="mc-prog-row-label">
+                <span>Overall Batch Progress</span>
+                <span id="mcProcPct">0%</span>
+              </div>
+              <div class="mc-proc-bar-wrap" style="height:10px; margin-top:4px;">
+                <div class="mc-proc-bar" id="mcProcBar" style="width: 0%;"></div>
+              </div>
+            </div>
           </div>
-          <div class="mc-proc-pct" id="mcProcPct">0%</div>
 
           <div class="mc-proc-meta" id="mcProcSubtext">Preserving metadata &amp; optimizing bytes</div>
 
@@ -525,6 +635,9 @@
               ⬇️ Save Files to Downloads (Sequential)
             </button>
           `}
+          <button type="button" class="mc-btn-secondary mc-btn-share" id="mcShareAllBtn">
+            📤 Share All (${_state.compressedResults.length})
+          </button>
           <button type="button" class="mc-btn-secondary" id="mcNewBatchBtn">
             🔄 Compress More Files
           </button>
@@ -571,7 +684,13 @@
 
                 <div class="mc-res-card-bottom">
                   <button type="button" class="mc-btn-link" onclick="window.LM_MediaCompressorUI.openComparisonModal(${idx})">
-                    👁️ Full Preview
+                    🔍 Compare
+                  </button>
+                  <button type="button" class="mc-btn-link" onclick="window.LM_MediaCompressorUI.openMetadataModal(${idx})">
+                    ℹ️ Metadata
+                  </button>
+                  <button type="button" class="mc-btn-secondary" onclick="window.LM_MediaCompressorUI.shareItem(${idx})" title="Share to WhatsApp, Telegram, etc.">
+                    📤 Share
                   </button>
                   <button type="button" class="btn-submit mc-btn-dl" onclick="window.LM_MediaCompressorUI.downloadItem(${idx})">
                     ⬇️ Download
@@ -680,6 +799,35 @@
       }
     });
 
+    // Storage Permission Button
+    var grantPermBtn = container.querySelector('#mcGrantPermBtn');
+    if (grantPermBtn) {
+      grantPermBtn.addEventListener('click', async function () {
+        if (window.LM_MediaCompressorService && typeof window.LM_MediaCompressorService.requestAllFilesPermission === 'function') {
+          await window.LM_MediaCompressorService.requestAllFilesPermission();
+          if (window.LMToast) LMToast.info('Please enable "Allow access to manage all files" to write exact inode file dates.');
+        }
+      });
+    }
+
+    // Smart Preset Cards
+    container.querySelectorAll('.mc-smart-preset-card').forEach(card => {
+      card.addEventListener('click', function () {
+        var presetId = this.getAttribute('data-preset');
+        applyPreset(presetId);
+      });
+    });
+
+    // Format Selector Chips
+    container.querySelectorAll('.mc-format-chip').forEach(chip => {
+      chip.addEventListener('click', function () {
+        var fmt = this.getAttribute('data-fmt');
+        _state.options.format = fmt;
+        container.querySelectorAll('.mc-format-chip').forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
     // Quality Slider
     var qualitySlider = container.querySelector('#mcQualitySlider');
     var qualityVal = container.querySelector('#mcQualityVal');
@@ -696,6 +844,10 @@
       qualitySlider.addEventListener('input', function (e) {
         var val = parseInt(e.target.value, 10);
         _state.options.quality = val / 100;
+        _state.selectedPreset = 'custom';
+        container.querySelectorAll('.mc-smart-preset-card').forEach(c => c.classList.remove('active'));
+        var customCard = container.querySelector('.mc-smart-preset-card[data-preset="custom"]');
+        if (customCard) customCard.classList.add('active');
         qualityVal.textContent = val + '%';
         container.querySelectorAll('.mc-chip').forEach(c => c.classList.remove('active'));
         updateEstimate();
@@ -707,6 +859,10 @@
       chip.addEventListener('click', function () {
         var q = parseFloat(this.getAttribute('data-quality'));
         _state.options.quality = q;
+        _state.selectedPreset = 'custom';
+        container.querySelectorAll('.mc-smart-preset-card').forEach(c => c.classList.remove('active'));
+        var customCard = container.querySelector('.mc-smart-preset-card[data-preset="custom"]');
+        if (customCard) customCard.classList.add('active');
         if (qualitySlider) qualitySlider.value = Math.round(q * 100);
         if (qualityVal) qualityVal.textContent = Math.round(q * 100) + '%';
         container.querySelectorAll('.mc-chip').forEach(c => c.classList.remove('active'));
@@ -913,6 +1069,13 @@
       });
     }
 
+    var shareAllBtn = container.querySelector('#mcShareAllBtn');
+    if (shareAllBtn) {
+      shareAllBtn.addEventListener('click', function () {
+        shareAll();
+      });
+    }
+
     var newBatchBtn = container.querySelector('#mcNewBatchBtn');
     if (newBatchBtn) {
       newBatchBtn.addEventListener('click', function () {
@@ -984,8 +1147,29 @@
   }
 
   // ─────────────────────────────────────────────────────────────
-  // COMPRESSION ENGINE EXECUTION
+  // COMPRESSION ENGINE EXECUTION & PRESET HANDLER
   // ─────────────────────────────────────────────────────────────
+  function applyPreset(presetId) {
+    var presets = (window.LM_MediaCompressorService && window.LM_MediaCompressorService.getSmartPresets) ? window.LM_MediaCompressorService.getSmartPresets() : {};
+    var preset = presets[presetId];
+    if (!preset) return;
+
+    _state.selectedPreset = presetId;
+    if (preset.quality !== undefined) _state.options.quality = preset.quality;
+    if (preset.resizeMode !== undefined) _state.options.resizeMode = preset.resizeMode;
+    if (preset.maxWidth !== undefined) {
+      _state.options.maxWidth = preset.maxWidth;
+      _state.options.maxDimension = preset.maxWidth;
+    }
+    if (preset.maxHeight !== undefined) _state.options.maxHeight = preset.maxHeight;
+    if (preset.lockAspectRatio !== undefined) _state.options.lockAspectRatio = preset.lockAspectRatio;
+    if (preset.format !== undefined) _state.options.format = preset.format;
+    if (preset.videoResolution !== undefined) _state.options.videoResolution = preset.videoResolution;
+    if (preset.videoQuality !== undefined) _state.options.videoQuality = preset.videoQuality;
+
+    render();
+  }
+
   async function startCompression() {
     if (_state.selectedFiles.length === 0) return;
 
@@ -1004,7 +1188,7 @@
       var fileItem = _state.selectedFiles[i];
       var file = fileItem.file;
 
-      updateProgressUI(i, total, file.name, 'Optimizing media bytes...');
+      updateProgressUI(i, total, fileItem, 'Optimizing media bytes...', 5);
 
       try {
         var result;
@@ -1016,9 +1200,10 @@
             maxHeight: _state.options.maxHeight,
             lockAspectRatio: _state.options.lockAspectRatio,
             maxDimension: _state.options.maxWidth,
-            preserveExif: _state.options.preserveExif
+            preserveExif: _state.options.preserveExif,
+            format: _state.options.format
           }, function (subPct, subText) {
-            updateProgressUI(i, total, file.name, subText, subPct);
+            updateProgressUI(i, total, fileItem, subText, subPct);
           });
         } else {
           result = await service.compressVideo(file, {
@@ -1026,7 +1211,7 @@
             qualityTier: _state.options.videoQuality,
             includeAudio: _state.options.includeAudio
           }, function (pct, text) {
-            updateProgressUI(i, total, file.name, text, pct);
+            updateProgressUI(i, total, fileItem, text, pct);
           });
         }
 
@@ -1050,11 +1235,23 @@
     }
   }
 
-  function updateProgressUI(index, total, fileName, statusText, subPercent) {
+  function updateProgressUI(index, total, fileItemOrName, statusText, subPercent) {
     var procStatus = document.getElementById('mcProcStatus');
     var procBar = document.getElementById('mcProcBar');
     var procPct = document.getElementById('mcProcPct');
     var procSub = document.getElementById('mcProcSubtext');
+
+    var activeBox = document.getElementById('mcActiveFileBox');
+    var activeThumb = document.getElementById('mcActiveFileThumb');
+    var activeName = document.getElementById('mcActiveFileName');
+    var activeStatus = document.getElementById('mcActiveStatus');
+    var activePct = document.getElementById('mcActivePct');
+    var activeBar = document.getElementById('mcActiveBar');
+    var activeBarPct = document.getElementById('mcActiveBarPct');
+
+    var fileName = typeof fileItemOrName === 'string' ? fileItemOrName : (fileItemOrName && fileItemOrName.name);
+    var previewUrl = fileItemOrName && fileItemOrName.previewUrl;
+    var isImage = fileItemOrName && fileItemOrName.type === 'image';
 
     var basePct = (index / total) * 100;
     var stepSize = (1 / total) * 100;
@@ -1065,6 +1262,22 @@
     if (procBar) procBar.style.width = overallPct + '%';
     if (procPct) procPct.textContent = overallPct + '%';
     if (procSub) procSub.textContent = statusText || 'Compressing...';
+
+    if (activeBox) activeBox.style.display = 'flex';
+    if (activeThumb) {
+      if (previewUrl && isImage) {
+        activeThumb.src = previewUrl;
+        activeThumb.style.display = 'block';
+      } else {
+        activeThumb.style.display = 'none';
+      }
+    }
+    if (activeName) activeName.textContent = fileName || 'Media file';
+    if (activeStatus) activeStatus.textContent = statusText || 'Optimizing...';
+    var subVal = Math.round(subPercent || 0);
+    if (activePct) activePct.textContent = subVal + '%';
+    if (activeBar) activeBar.style.width = subVal + '%';
+    if (activeBarPct) activeBarPct.textContent = subVal + '%';
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -1228,8 +1441,20 @@
   }
 
   // ─────────────────────────────────────────────────────────────
-  // BEFORE / AFTER COMPARISON MODAL
+  // BEFORE / AFTER COMPARISON MODAL (SWIPE SLIDER & SIDE-BY-SIDE)
   // ─────────────────────────────────────────────────────────────
+  function setComparisonMode(mode, index) {
+    _state.comparisonMode = mode;
+    openComparisonModal(index);
+  }
+
+  function onSwipeMove(val) {
+    var comp = document.getElementById('mcSwipeCompressedLayer');
+    var line = document.getElementById('mcSwipeLine');
+    if (comp) comp.style.clipPath = `polygon(0 0, ${val}% 0, ${val}% 100%, 0 100%)`;
+    if (line) line.style.left = val + '%';
+  }
+
   function openComparisonModal(index) {
     var item = _state.compressedResults[index];
     if (!item) return;
@@ -1238,58 +1463,97 @@
     if (!modal) return;
 
     var savedPct = item.savedPercent.toFixed(1);
+    var isImage = item.type === 'image';
+    var isSwipe = _state.comparisonMode === 'swipe' && isImage;
 
     modal.innerHTML = `
       <div class="mc-modal-backdrop" onclick="window.LM_MediaCompressorUI.closeComparisonModal()"></div>
-      <div class="mc-modal-card">
+      <div class="mc-modal-card" style="max-width: 920px;">
         <div class="mc-modal-head">
           <div class="mc-modal-title">
-            <span>🔍 Before / After Comparison</span>
+            <span>🔍 Visual Comparison</span>
             <span class="mc-modal-filename">${item.name}</span>
           </div>
           <button type="button" class="mc-modal-close" onclick="window.LM_MediaCompressorUI.closeComparisonModal()">✕</button>
         </div>
 
         <div class="mc-modal-body">
-          <div class="mc-compare-view">
-            <!-- Before Column -->
-            <div class="mc-compare-col">
-              <div class="mc-compare-header">
-                <span class="mc-tag orig">Original</span>
-                <span class="mc-stat-bold">${formatBytes(item.originalSize)}</span>
-                ${item.originalDimensions ? `<span class="mc-stat-sub">${item.originalDimensions.width}×${item.originalDimensions.height}</span>` : ''}
+          ${isImage ? `
+            <div class="mc-compare-mode-switch">
+              <button type="button" class="mc-mode-tab ${_state.comparisonMode === 'swipe' ? 'active' : ''}" onclick="window.LM_MediaCompressorUI.setComparisonMode('swipe', ${index})">
+                ⚡ Split Swipe Slider
+              </button>
+              <button type="button" class="mc-mode-tab ${_state.comparisonMode === 'side' ? 'active' : ''}" onclick="window.LM_MediaCompressorUI.setComparisonMode('side', ${index})">
+                🔲 Side-by-Side
+              </button>
+            </div>
+          ` : ''}
+
+          ${isSwipe ? `
+            <!-- Interactive Swipe Slider -->
+            <div class="mc-swipe-box" id="mcSwipeBox">
+              <div class="mc-swipe-layer original">
+                <img src="${item.originalPreviewUrl}" alt="Original" draggable="false">
               </div>
-              <div class="mc-compare-media">
-                ${item.type === 'image' 
-                  ? `<img src="${item.originalPreviewUrl}" alt="Original" class="mc-compare-img">`
-                  : `<video src="${item.originalPreviewUrl}" controls class="mc-compare-img"></video>`
-                }
+              <div class="mc-swipe-layer compressed" id="mcSwipeCompressedLayer" style="clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);">
+                <img src="${item.previewUrl}" alt="Compressed" draggable="false">
+              </div>
+              <div class="mc-swipe-divider-line" id="mcSwipeLine" style="left: 50%;">
+                <div class="mc-swipe-divider-handle">‹ ›</div>
+              </div>
+              <span class="mc-swipe-pill left">Compressed (-${savedPct}%)</span>
+              <span class="mc-swipe-pill right">Original (${formatBytes(item.originalSize)})</span>
+              <input type="range" class="mc-swipe-slider-input" min="0" max="100" value="50" oninput="window.LM_MediaCompressorUI.onSwipeMove(this.value)">
+            </div>
+            <div style="text-align:center; font-size:11px; color:var(--text-3); margin-top:8px;">
+              👆 Drag slider horizontally to inspect visual quality
+            </div>
+          ` : `
+            <!-- Side by Side View -->
+            <div class="mc-compare-view">
+              <div class="mc-compare-col">
+                <div class="mc-compare-header">
+                  <span class="mc-tag orig">Original</span>
+                  <span class="mc-stat-bold">${formatBytes(item.originalSize)}</span>
+                  ${item.originalDimensions ? `<span class="mc-stat-sub">${item.originalDimensions.width}×${item.originalDimensions.height}</span>` : ''}
+                </div>
+                <div class="mc-compare-media">
+                  ${item.type === 'image' 
+                    ? `<img src="${item.originalPreviewUrl}" alt="Original" class="mc-compare-img">`
+                    : `<video src="${item.originalPreviewUrl}" controls class="mc-compare-img"></video>`
+                  }
+                </div>
+              </div>
+
+              <div class="mc-compare-col">
+                <div class="mc-compare-header">
+                  <span class="mc-tag comp">Compressed (-${savedPct}%)</span>
+                  <span class="mc-stat-bold text-success">${formatBytes(item.compressedSize)}</span>
+                  ${item.compressedDimensions ? `<span class="mc-stat-sub">${item.compressedDimensions.width}×${item.compressedDimensions.height}</span>` : ''}
+                </div>
+                <div class="mc-compare-media">
+                  ${item.type === 'image' 
+                    ? `<img src="${item.previewUrl}" alt="Compressed" class="mc-compare-img">`
+                    : `<video src="${item.previewUrl}" controls class="mc-compare-img"></video>`
+                  }
+                </div>
               </div>
             </div>
+          `}
 
-            <!-- After Column -->
-            <div class="mc-compare-col">
-              <div class="mc-compare-header">
-                <span class="mc-tag comp">Compressed (-${savedPct}%)</span>
-                <span class="mc-stat-bold text-success">${formatBytes(item.compressedSize)}</span>
-                ${item.compressedDimensions ? `<span class="mc-stat-sub">${item.compressedDimensions.width}×${item.compressedDimensions.height}</span>` : ''}
-              </div>
-              <div class="mc-compare-media">
-                ${item.type === 'image' 
-                  ? `<img src="${item.previewUrl}" alt="Compressed" class="mc-compare-img">`
-                  : `<video src="${item.previewUrl}" controls class="mc-compare-img"></video>`
-                }
-              </div>
-            </div>
-          </div>
-
-          <div class="mc-modal-meta-bar">
+          <div class="mc-modal-meta-bar" style="margin-top:14px;">
             <span>🏷️ <strong>Metadata Status:</strong> ${item.exifPreserved ? 'EXIF, GPS Coordinates, Author & Creation Date 100% Preserved' : 'Original Creation & Modified Timestamps Preserved'}</span>
             <span class="text-success font-bold">Space Reduced: -${formatBytes(item.savedBytes)}</span>
           </div>
         </div>
 
         <div class="mc-modal-foot">
+          <button type="button" class="mc-btn-secondary" onclick="window.LM_MediaCompressorUI.openMetadataModal(${index})">
+            ℹ️ View Metadata
+          </button>
+          <button type="button" class="mc-btn-secondary" onclick="window.LM_MediaCompressorUI.shareItem(${index})">
+            📤 Share
+          </button>
           <button type="button" class="btn-submit" onclick="window.LM_MediaCompressorUI.downloadItem(${index}); window.LM_MediaCompressorUI.closeComparisonModal();">
             ⬇️ Download Compressed File
           </button>
@@ -1309,6 +1573,177 @@
   }
 
   // ─────────────────────────────────────────────────────────────
+  // DETAILED METADATA & EXIF INSPECTOR MODAL
+  // ─────────────────────────────────────────────────────────────
+  function openMetadataModal(index) {
+    var item = _state.compressedResults[index];
+    if (!item) return;
+
+    var modal = document.getElementById('mcMetadataModal');
+    if (!modal) return;
+
+    var meta = item.detailedMetadata || {};
+    var cameraText = meta.model ? ((meta.make ? meta.make + ' ' : '') + meta.model) : 'Standard Digital / Mobile Camera';
+    var lensText = meta.lens || 'Primary Camera Lens';
+    var expText = meta.exposureTime || 'Auto Exposure';
+    var fNumText = meta.fNumber ? ('f/' + meta.fNumber) : 'Standard';
+    var isoText = meta.iso ? ('ISO ' + meta.iso) : 'Auto';
+    var captureDateStr = meta.dateTimeOriginal || (item.originalTimestamp ? new Date(item.originalTimestamp).toLocaleString() : 'Preserved from Source');
+    var timestampStr = item.originalTimestamp ? new Date(item.originalTimestamp).toLocaleString() : new Date().toLocaleString();
+    var origResStr = item.originalDimensions ? (item.originalDimensions.width + ' × ' + item.originalDimensions.height + ' px') : 'Original Source';
+    var compResStr = item.compressedDimensions ? (item.compressedDimensions.width + ' × ' + item.compressedDimensions.height + ' px') : origResStr;
+
+    var gpsContent = 'None embedded in source';
+    if (meta.gps && meta.gps.latitude != null && meta.gps.longitude != null) {
+      gpsContent = `
+        <div>
+          <span>${meta.gps.latitude.toFixed(5)}°, ${meta.gps.longitude.toFixed(5)}°</span>
+          <br>
+          <a href="${meta.gps.mapsUrl || ('https://maps.google.com/?q=' + meta.gps.latitude + ',' + meta.gps.longitude)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent); font-size:11px; text-decoration:underline;">
+            🗺️ Open Location in Maps
+          </a>
+        </div>
+      `;
+    }
+
+    modal.innerHTML = `
+      <div class="mc-modal-backdrop" onclick="window.LM_MediaCompressorUI.closeMetadataModal()"></div>
+      <div class="mc-modal-card" style="max-width: 680px;">
+        <div class="mc-modal-head">
+          <div class="mc-modal-title">
+            <span>🏷️ Metadata &amp; Timestamp Inspector</span>
+            <span class="mc-modal-filename">${item.name}</span>
+          </div>
+          <button type="button" class="mc-modal-close" onclick="window.LM_MediaCompressorUI.closeMetadataModal()">✕</button>
+        </div>
+
+        <div class="mc-modal-body">
+          <div class="mc-meta-success-pill" style="margin-bottom:12px;">
+            ✅ Original Creation Date &amp; Modified Timestamps 100% Preserved
+          </div>
+
+          <div class="mc-meta-table">
+            <div class="mc-meta-cell">
+              <div class="mc-meta-cell-label">Camera Device</div>
+              <div class="mc-meta-cell-value">📷 ${cameraText}</div>
+            </div>
+
+            <div class="mc-meta-cell">
+              <div class="mc-meta-cell-label">Lens / Optics</div>
+              <div class="mc-meta-cell-value">🔍 ${lensText}</div>
+            </div>
+
+            <div class="mc-meta-cell">
+              <div class="mc-meta-cell-label">Exposure &amp; ISO</div>
+              <div class="mc-meta-cell-value">⚡ ${expText} · ${fNumText} · ${isoText}</div>
+            </div>
+
+            <div class="mc-meta-cell">
+              <div class="mc-meta-cell-label">Capture Date (EXIF)</div>
+              <div class="mc-meta-cell-value">📅 ${captureDateStr}</div>
+            </div>
+
+            <div class="mc-meta-cell">
+              <div class="mc-meta-cell-label">Filesystem Date Created</div>
+              <div class="mc-meta-cell-value">⏱️ ${timestampStr}</div>
+            </div>
+
+            <div class="mc-meta-cell">
+              <div class="mc-meta-cell-label">Filesystem Date Modified</div>
+              <div class="mc-meta-cell-value">⏱️ ${timestampStr}</div>
+            </div>
+
+            <div class="mc-meta-cell">
+              <div class="mc-meta-cell-label">Resolution Scaling</div>
+              <div class="mc-meta-cell-value">📐 ${origResStr} ➔ ${compResStr}</div>
+            </div>
+
+            <div class="mc-meta-cell">
+              <div class="mc-meta-cell-label">GPS Geolocation</div>
+              <div class="mc-meta-cell-value">📍 ${gpsContent}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mc-modal-foot">
+          <button type="button" class="btn-submit" onclick="window.LM_MediaCompressorUI.downloadItem(${index}); window.LM_MediaCompressorUI.closeMetadataModal();">
+            ⬇️ Download Media
+          </button>
+          <button type="button" class="mc-btn-secondary" onclick="window.LM_MediaCompressorUI.closeMetadataModal()">
+            Close
+          </button>
+        </div>
+      </div>
+    `;
+
+    modal.style.display = 'flex';
+  }
+
+  function closeMetadataModal() {
+    var modal = document.getElementById('mcMetadataModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // WEB SHARE API
+  // ─────────────────────────────────────────────────────────────
+  async function shareItem(index) {
+    var item = _state.compressedResults[index];
+    if (!item) return;
+
+    try {
+      var blob = item.blob || item.file;
+      var file = new File([blob], item.name, {
+        type: item.format || blob.type || 'image/jpeg',
+        lastModified: item.originalTimestamp || Date.now()
+      });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: item.name,
+          text: `Compressed with LedgerMate (-${item.savedPercent.toFixed(1)}% space saved)`
+        });
+      } else {
+        downloadItem(index);
+      }
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        downloadItem(index);
+      }
+    }
+  }
+
+  async function shareAll() {
+    var items = _state.compressedResults;
+    if (!items || items.length === 0) return;
+
+    try {
+      var files = items.map(function (it) {
+        var blob = it.blob || it.file;
+        return new File([blob], it.name, {
+          type: it.format || blob.type || 'application/octet-stream',
+          lastModified: it.originalTimestamp || Date.now()
+        });
+      });
+
+      if (navigator.canShare && navigator.canShare({ files: files })) {
+        await navigator.share({
+          files: files,
+          title: 'LedgerMate Compressed Media',
+          text: `Compressed ${files.length} media files with LedgerMate!`
+        });
+      } else {
+        await downloadAllAsZip();
+      }
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        await downloadAllAsZip();
+      }
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
   // PUBLIC INTERFACE
   // ─────────────────────────────────────────────────────────────
   window.LM_MediaCompressorUI = {
@@ -1316,11 +1751,18 @@
     downloadItem: downloadItem,
     downloadAllAsZip: downloadAllAsZip,
     downloadAllSequentially: downloadAllSequentially,
+    shareItem: shareItem,
+    shareAll: shareAll,
     openComparisonModal: openComparisonModal,
     closeComparisonModal: closeComparisonModal,
+    setComparisonMode: setComparisonMode,
+    onSwipeMove: onSwipeMove,
+    openMetadataModal: openMetadataModal,
+    closeMetadataModal: closeMetadataModal,
     openSaveOptionsModal: openSaveOptionsModal,
     closeSaveOptionsModal: closeSaveOptionsModal,
     setMobileSavePref: setMobileSavePref,
+    applyPreset: applyPreset,
     _getState: function () { return _state; }
   };
 

@@ -5710,3 +5710,413 @@ footer span { color: var(--teal); font-weight: 600; }
   }
 }
 
+/* ───────────────────────────────────────────────────────────── */
+/* PRO MEDIA COMPRESSOR UPGRADES (SMART PRESETS, SWIPE, EXIF)   */
+/* ───────────────────────────────────────────────────────────── */
+
+/* Smart Presets Grid */
+.mc-smart-presets-wrap {
+  margin-bottom: 20px;
+}
+
+.mc-section-lead {
+  font-size: 13px;
+  color: var(--text-2);
+  margin-bottom: 12px;
+}
+
+.mc-smart-presets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.mc-smart-preset-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.mc-smart-preset-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(0, 212, 180, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.mc-smart-preset-card.active {
+  background: linear-gradient(135deg, rgba(0, 212, 180, 0.12) 0%, rgba(59, 130, 246, 0.08) 100%);
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 8px 20px rgba(0, 212, 180, 0.15);
+}
+
+.mc-preset-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.mc-preset-icon {
+  font-size: 24px;
+}
+
+.mc-preset-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 99px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.mc-smart-preset-card.active .mc-preset-badge {
+  background: var(--accent);
+  color: #0d1117;
+  border-color: var(--accent);
+}
+
+.mc-preset-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 4px;
+}
+
+.mc-preset-desc {
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.4;
+  flex: 1;
+}
+
+/* Format Selector */
+.mc-format-selector {
+  display: flex;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+.mc-format-chip {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.mc-format-chip:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-1);
+}
+
+.mc-format-chip.active {
+  background: var(--accent);
+  color: #0f172a;
+  box-shadow: 0 2px 8px rgba(0, 212, 180, 0.3);
+}
+
+.mc-format-sub {
+  font-size: 9px;
+  opacity: 0.8;
+  font-weight: 400;
+}
+
+/* All Files Storage Permission Banner */
+.mc-perm-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.06) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.mc-perm-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mc-perm-icon {
+  font-size: 24px;
+}
+
+.mc-perm-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.mc-perm-desc {
+  font-size: 11px;
+  color: var(--text-2);
+  margin-top: 2px;
+}
+
+.mc-btn-perm {
+  font-size: 12px !important;
+  padding: 8px 16px !important;
+  background: #f59e0b !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+  white-space: nowrap;
+}
+
+/* Draggable Split Comparison Slider */
+.mc-swipe-box {
+  position: relative;
+  width: 100%;
+  height: 380px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #000;
+  user-select: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.mc-swipe-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mc-swipe-layer img, .mc-swipe-layer video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mc-swipe-layer.compressed {
+  z-index: 2;
+  clip-path: polygon(0 0, var(--swipe-pos, 50%) 0, var(--swipe-pos, 50%) 100%, 0 100%);
+}
+
+.mc-swipe-divider-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--swipe-pos, 50%);
+  width: 2px;
+  background: #fff;
+  z-index: 3;
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.mc-swipe-divider-handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 38px;
+  height: 38px;
+  background: #fff;
+  color: #0f172a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 900;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.mc-swipe-slider-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: ew-resize;
+  z-index: 4;
+  margin: 0;
+}
+
+.mc-swipe-pill {
+  position: absolute;
+  top: 14px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  z-index: 5;
+  backdrop-filter: blur(8px);
+}
+
+.mc-swipe-pill.left {
+  left: 14px;
+  background: rgba(16, 185, 129, 0.85);
+  color: #fff;
+}
+
+.mc-swipe-pill.right {
+  right: 14px;
+  background: rgba(59, 130, 246, 0.85);
+  color: #fff;
+}
+
+/* View Mode Switcher in Compare Modal */
+.mc-compare-mode-switch {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.mc-mode-tab {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mc-mode-tab.active {
+  background: var(--accent);
+  color: #0f172a;
+  border-color: var(--accent);
+}
+
+/* Detailed Metadata Inspector Modal */
+.mc-meta-table {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.mc-meta-cell {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.mc-meta-cell-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-3);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.mc-meta-cell-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.mc-meta-success-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+/* Dual Progress in Stage 3 */
+.mc-dual-prog-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  margin: 16px 0;
+}
+
+.mc-prog-row-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.mc-prog-thumb-container {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.mc-prog-thumb-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #000;
+}
+
+.mc-prog-thumb-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-1);
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mc-prog-thumb-sub {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+/* Web Share Button */
+.mc-btn-share {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+.mc-btn-share:hover {
+  filter: brightness(1.1);
+}
+
+

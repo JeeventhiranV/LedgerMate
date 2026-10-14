@@ -743,6 +743,46 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private File resolvePhysicalDirectory(Uri treeUri) {
+        if (treeUri == null) return null;
+        try {
+            if ("com.android.externalstorage.documents".equals(treeUri.getAuthority())) {
+                String docId = DocumentsContract.getTreeDocumentId(treeUri);
+                if (docId == null) {
+                    docId = DocumentsContract.getDocumentId(treeUri);
+                }
+                if (docId != null) {
+                    String[] split = docId.split(":", 2);
+                    if (split.length == 2) {
+                        String type = split[0];
+                        String relativePath = split[1];
+                        if ("primary".equalsIgnoreCase(type)) {
+                            File f = new File(Environment.getExternalStorageDirectory(), relativePath);
+                            if (f.exists() && f.isDirectory()) return f;
+                            if (f.mkdirs()) return f;
+                            return f;
+                        } else {
+                            File[] externalMediaDirs = ContextCompat.getExternalFilesDirs(this, null);
+                            for (File dir : externalMediaDirs) {
+                                if (dir != null) {
+                                    String path = dir.getAbsolutePath();
+                                    int index = path.indexOf("/Android/data");
+                                    if (index > 0) {
+                                        String root = path.substring(0, index);
+                                        File candidate = new File(root, relativePath);
+                                        if (candidate.exists() && candidate.isDirectory()) return candidate;
+                                        if (candidate.mkdirs()) return candidate;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
     private int performBackupPruning(DocumentFile dir, int maxDays, int maxCount) {
         // Backups are never deleted; older backups are compressed and archived in Backups/
         return performBackupArchivingAndCompression(dir);
@@ -1884,16 +1924,75 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     Uri treeUri = Uri.parse(targetUriStr);
+                    String name = (fileName != null && !fileName.isEmpty()) ? fileName : ("media_" + System.currentTimeMillis());
+                    String targetMime = (mimeType != null && !mimeType.isEmpty()) ? mimeType : "application/octet-stream";
+                    byte[] data = android.util.Base64.decode(base64Content, android.util.Base64.DEFAULT);
+
+                    // Method A: Direct Physical File Writing (Ensures Linux Inode mtime is 100% accurately set)
+                    File physicalDir = resolvePhysicalDirectory(treeUri);
+                    boolean canWriteDirect = physicalDir != null && (
+                        physicalDir.canWrite() ||
+                        (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager())
+                    );
+
+                    if (physicalDir != null && canWriteDirect) {
+                        try {
+                            if (!physicalDir.exists()) {
+                                physicalDir.mkdirs();
+                            }
+                            File targetFile = new File(physicalDir, name);
+                            if (targetFile.exists()) {
+                                try { targetFile.delete(); } catch (Exception ignored) {}
+                            }
+
+                            try (FileOutputStream fos = new FileOutputStream(targetFile)) {
+                                fos.write(data);
+                                fos.flush();
+                            }
+
+                            if (lastModified > 0) {
+                                targetFile.setLastModified(lastModified);
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                    try {
+                                        java.nio.file.Files.setLastModifiedTime(
+                                            targetFile.toPath(),
+                                            java.nio.file.attribute.FileTime.fromMillis(lastModified)
+                                        );
+                                    } catch (Throwable ignored) {}
+                                }
+                            }
+
+                            // Trigger Android MediaStore & Gallery scan with exact timestamp
+                            MediaScannerConnection.scanFile(MainActivity.this, new String[]{targetFile.getAbsolutePath()}, new String[]{targetMime}, (path, scannedUri) -> {
+                                if (scannedUri != null && lastModified > 0) {
+                                    try {
+                                        ContentValues mValues = new ContentValues();
+                                        mValues.put(MediaStore.MediaColumns.DATE_MODIFIED, lastModified / 1000);
+                                        mValues.put("datetaken", lastModified);
+                                        getContentResolver().update(scannedUri, mValues, null, null);
+                                    } catch (Throwable ignored) {}
+                                }
+                            });
+
+                            JSONObject resp = new JSONObject();
+                            resp.put("status", "success");
+                            resp.put("fileName", name);
+                            resp.put("fileUri", Uri.fromFile(targetFile).toString());
+                            resp.put("timestamp", lastModified > 0 ? lastModified : System.currentTimeMillis());
+                            returnToJs(callbackId, resp.toString());
+                            return;
+                        } catch (Exception directErr) {
+                            android.util.Log.w("MainActivity", "Direct physical file write failed, falling back to SAF: " + directErr.getMessage());
+                        }
+                    }
+
+                    // Method B: SAF DocumentFile Fallback (for restricted sandboxed storage providers)
                     DocumentFile dir = DocumentFile.fromTreeUri(MainActivity.this, treeUri);
                     if (dir == null || !dir.exists() || !dir.isDirectory()) {
                         sendError(callbackId, "Destination directory not accessible. Please re-select the folder.");
                         return;
                     }
 
-                    String name = (fileName != null && !fileName.isEmpty()) ? fileName : ("media_" + System.currentTimeMillis());
-                    String targetMime = (mimeType != null && !mimeType.isEmpty()) ? mimeType : "application/octet-stream";
-
-                    // Overwrite if file already exists
                     DocumentFile existing = dir.findFile(name);
                     if (existing != null && existing.exists()) {
                         try { existing.delete(); } catch (Exception ignored) {}
@@ -1905,7 +2004,6 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
 
-                    byte[] data = android.util.Base64.decode(base64Content, android.util.Base64.DEFAULT);
                     try (OutputStream out = getContentResolver().openOutputStream(mediaFile.getUri())) {
                         if (out == null) {
                             sendError(callbackId, "Could not open stream to write media file.");
@@ -1915,7 +2013,6 @@ public class MainActivity extends AppCompatActivity {
                         out.flush();
                     }
 
-                    // Preserve inode modification timestamp if known
                     if (lastModified > 0) {
                         trySetLastModified(mediaFile.getUri(), lastModified);
                     }
@@ -1929,6 +2026,52 @@ public class MainActivity extends AppCompatActivity {
 
                 } catch (Exception e) {
                     sendError(callbackId, "Failed to write media file: " + (e.getMessage() != null ? e.getMessage() : e.toString()));
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void hasManageStoragePermission(String callbackId) {
+            try {
+                boolean granted = true;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    granted = Environment.isExternalStorageManager();
+                }
+                JSONObject resp = new JSONObject();
+                resp.put("status", "success");
+                resp.put("granted", granted);
+                returnToJs(callbackId, resp.toString());
+            } catch (Exception e) {
+                sendError(callbackId, e.getMessage());
+            }
+        }
+
+        @JavascriptInterface
+        public void requestManageStoragePermission(String callbackId) {
+            runOnUiThread(() -> {
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        if (!Environment.isExternalStorageManager()) {
+                            Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                            intent.setData(Uri.parse("package:" + getPackageName()));
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(intent);
+                        }
+                    }
+                    JSONObject resp = new JSONObject();
+                    resp.put("status", "success");
+                    returnToJs(callbackId, resp.toString());
+                } catch (Exception e) {
+                    try {
+                        Intent fallbackIntent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                        fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(fallbackIntent);
+                        JSONObject resp = new JSONObject();
+                        resp.put("status", "success");
+                        returnToJs(callbackId, resp.toString());
+                    } catch (Exception ex) {
+                        sendError(callbackId, ex.getMessage());
+                    }
                 }
             });
         }
