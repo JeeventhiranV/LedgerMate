@@ -1196,6 +1196,27 @@
           state.investments.push(invData);
         }
 
+        // Interlink newly created investment to a bank transaction
+        if (!invId && principal > 0 && window.LM_InterlinkEngine && typeof window.LM_InterlinkEngine.recordInterlinkedTx === 'function') {
+          try {
+            await window.LM_InterlinkEngine.recordInterlinkedTx({
+              sourceModule: window.LM_InterlinkEngine.MODULES.INVESTMENTS,
+              sourceId: String(invData.id),
+              refType: window.LM_InterlinkEngine.REF_TYPES.INV_SIP,
+              entityName: invData.name + ' (' + invData.type + ')',
+              date: startDate,
+              type: 'out',
+              amount: principal,
+              category: 'Investment',
+              account: (state?.dropdowns?.accounts?.[0] || 'Bank'),
+              note: 'Investment Initial Deposit - ' + invData.name + ' (' + invData.type + ')',
+              extraData: { investmentId: invData.id, type: invData.type }
+            });
+          } catch (ilErr) {
+            console.warn('[Investments] Interlink error:', ilErr);
+          }
+        }
+
         if (window.LM_Bus) {
           window.LM_Bus.emit('lm:data:changed', { store: 'investments' });
         }

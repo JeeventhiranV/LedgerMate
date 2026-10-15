@@ -6502,5 +6502,385 @@ footer span { color: var(--teal); font-weight: 600; }
   }
 }
 
+/* ==========================================================================
+   🔗 CROSS-MODULE INTERLINKED DASHBOARD & BADGES
+   ========================================================================== */
+
+.dash-interlink-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.dash-il-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.dash-il-card:hover {
+  border-color: rgba(0, 240, 255, 0.25);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 16px rgba(0, 240, 255, 0.08);
+}
+
+.dash-il-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.dash-il-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dash-il-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.dash-il-title {
+  font-family: var(--font-h);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.25;
+}
+
+.dash-il-sub {
+  font-size: 11.5px;
+  color: var(--text-2);
+  margin: 2px 0 0 0;
+}
+
+.dash-il-badge {
+  font-size: 11.5px;
+  font-family: var(--font-m);
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Consolidated Balance Sheet Grid */
+.dash-bs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.dash-bs-col {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.dash-bs-col.assets {
+  border-left: 3px solid var(--emerald);
+}
+
+.dash-bs-col.liabilities {
+  border-left: 3px solid var(--rose);
+}
+
+.dash-bs-col-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding-bottom: 8px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dash-bs-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  color: var(--text);
+  padding: 5px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.04);
+}
+
+.dash-bs-item:last-child {
+  border-bottom: none;
+}
+
+.dash-bs-item.total-debt-ratio {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}
+
+/* Two Column Layout */
+.dash-il-two-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+/* Money Flow Proportion Bar */
+.dash-flow-multi-bar {
+  height: 10px;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  margin: 12px 0 16px 0;
+}
+
+.dash-flow-seg {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.dash-flow-seg.cc { background: #f43f5e; }
+.dash-flow-seg.loan { background: #f59e0b; }
+.dash-flow-seg.invest { background: #10b981; }
+.dash-flow-seg.biz { background: #38bdf8; }
+.dash-flow-seg.veh { background: #a855f7; }
+.dash-flow-seg.living { background: #64748b; }
+
+.dash-flow-legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.dash-flow-legend-item {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dash-flow-legend-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--teal);
+  transform: translateY(-1px);
+}
+
+.dash-flow-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-bottom: 5px;
+}
+
+.dash-flow-dot.cc { background: #f43f5e; }
+.dash-flow-dot.loan { background: #f59e0b; }
+.dash-flow-dot.invest { background: #10b981; }
+.dash-flow-dot.biz { background: #38bdf8; }
+.dash-flow-dot.veh { background: #a855f7; }
+.dash-flow-dot.living { background: #64748b; }
+
+.dash-flow-name {
+  font-size: 11px;
+  color: var(--text-2);
+  margin-bottom: 2px;
+}
+
+.dash-flow-val {
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: var(--font-m);
+  color: var(--text);
+}
+
+.dash-flow-val small {
+  font-size: 10px;
+  font-weight: normal;
+  color: var(--text-3);
+}
+
+/* 30-Day Obligations Runway Metric Box */
+.dash-runway-metric-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  gap: 6px;
+}
+
+.dash-runway-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.dash-runway-col.highlight {
+  padding: 2px 8px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dash-runway-sub {
+  font-size: 10px;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.dash-runway-val {
+  font-size: 14px;
+  font-family: var(--font-m);
+  color: var(--text);
+}
+
+.dash-runway-minus,
+.dash-runway-equals {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-3);
+  user-select: none;
+}
+
+/* Commitments list */
+.dash-commitments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dash-commitment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  gap: 8px;
+}
+
+.dash-commitment-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.dash-commitment-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.dash-commitment-days {
+  font-size: 11px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.dash-commitment-days.overdue {
+  color: var(--rose);
+  font-weight: 700;
+}
+
+.dash-commitment-amt {
+  font-family: var(--font-m);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.dash-no-commitments {
+  text-align: center;
+  padding: 14px;
+  font-size: 12px;
+  color: var(--emerald);
+  background: rgba(16, 185, 129, 0.06);
+  border-radius: var(--r-sm);
+  border: 1px dashed rgba(16, 185, 129, 0.2);
+}
+
+/* Transaction List Interlink Badges */
+.tx-badge-interlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 12px;
+  background: rgba(0, 240, 255, 0.08);
+  color: var(--teal);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.tx-badge-interlink:hover {
+  background: rgba(0, 240, 255, 0.18);
+  border-color: var(--teal);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 600px) {
+  .dash-runway-metric-box {
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+  }
+  .dash-runway-minus,
+  .dash-runway-equals {
+    display: none;
+  }
+  .dash-flow-legend-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 
 

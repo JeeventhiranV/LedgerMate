@@ -456,28 +456,46 @@
       v.updatedAt = nowIso;
 
       // Optionally create linked transaction in LedgerMate
-      if (linkToTx && cost > 0 && typeof window.put === 'function') {
-        try {
+      if (linkToTx && cost > 0) {
+        if (window.LM_InterlinkEngine && typeof window.LM_InterlinkEngine.recordInterlinkedTx === 'function') {
           var category = entry.type === 'insurance' ? 'Insurance' : 'Automobile';
           var note = (v.name || 'Vehicle') + ' (' + (v.regNumber || '') + ') - ' + entry.title + (entry.workshop ? ' @ ' + entry.workshop : '');
-          var txPayload = {
-            id: 'tx_veh_' + logId,
-            profile: _getProfileId(),
+          await window.LM_InterlinkEngine.recordInterlinkedTx({
+            sourceModule: window.LM_InterlinkEngine.MODULES.VEHICLES,
+            sourceId: v.id,
+            refType: entry.type === 'insurance' ? window.LM_InterlinkEngine.REF_TYPES.VEH_INSURANCE : window.LM_InterlinkEngine.REF_TYPES.VEH_SERVICE,
+            entityName: (v.name || 'Vehicle') + ' (' + (v.regNumber || '') + ')',
             date: date,
             type: 'out',
             amount: cost,
             category: category,
             account: 'Bank',
             note: note,
-            vehicleId: v.id,
-            vehicleLogId: logId
-          };
-          await window.put('transactions', txPayload);
-          if (typeof state === 'object' && Array.isArray(state.transactions)) {
-            state.transactions.unshift(txPayload);
+            extraData: { vehicleId: v.id, logId: logId, workshop: entry.workshop }
+          });
+        } else if (typeof window.put === 'function') {
+          try {
+            var category = entry.type === 'insurance' ? 'Insurance' : 'Automobile';
+            var note = (v.name || 'Vehicle') + ' (' + (v.regNumber || '') + ') - ' + entry.title + (entry.workshop ? ' @ ' + entry.workshop : '');
+            var txPayload = {
+              id: 'tx_veh_' + logId,
+              profile: _getProfileId(),
+              date: date,
+              type: 'out',
+              amount: cost,
+              category: category,
+              account: 'Bank',
+              note: note,
+              vehicleId: v.id,
+              vehicleLogId: logId
+            };
+            await window.put('transactions', txPayload);
+            if (typeof state === 'object' && Array.isArray(state.transactions)) {
+              state.transactions.unshift(txPayload);
+            }
+          } catch (e) {
+            console.warn('[VehicleService] Failed to link expense transaction:', e);
           }
-        } catch (e) {
-          console.warn('[VehicleService] Failed to link expense transaction:', e);
         }
       }
 
@@ -541,27 +559,43 @@
       v.updatedAt = nowIso;
 
       // Optionally create linked transaction in LedgerMate
-      if (linkToTx && cost > 0 && typeof window.put === 'function') {
-        try {
-          var note = 'Fuel for ' + (v.name || 'Vehicle') + ' (' + (v.regNumber || '') + ') · ' + liters + 'L' + (kmPerLiter > 0 ? ' (' + kmPerLiter + ' km/L)' : '');
-          var txPayload = {
-            id: 'tx_fuel_' + fuelId,
-            profile: _getProfileId(),
+      if (linkToTx && cost > 0) {
+        var note = 'Fuel for ' + (v.name || 'Vehicle') + ' (' + (v.regNumber || '') + ') · ' + liters + 'L' + (kmPerLiter > 0 ? ' (' + kmPerLiter + ' km/L)' : '');
+        if (window.LM_InterlinkEngine && typeof window.LM_InterlinkEngine.recordInterlinkedTx === 'function') {
+          await window.LM_InterlinkEngine.recordInterlinkedTx({
+            sourceModule: window.LM_InterlinkEngine.MODULES.VEHICLES,
+            sourceId: v.id,
+            refType: window.LM_InterlinkEngine.REF_TYPES.VEH_FUEL,
+            entityName: (v.name || 'Vehicle') + ' (' + (v.regNumber || '') + ')',
             date: date,
             type: 'out',
             amount: cost,
             category: 'Fuel',
             account: 'Bank',
             note: note,
-            vehicleId: v.id,
-            fuelLogId: fuelId
-          };
-          await window.put('transactions', txPayload);
-          if (typeof state === 'object' && Array.isArray(state.transactions)) {
-            state.transactions.unshift(txPayload);
+            extraData: { vehicleId: v.id, fuelId: fuelId, liters: liters, odo: odo }
+          });
+        } else if (typeof window.put === 'function') {
+          try {
+            var txPayload = {
+              id: 'tx_fuel_' + fuelId,
+              profile: _getProfileId(),
+              date: date,
+              type: 'out',
+              amount: cost,
+              category: 'Fuel',
+              account: 'Bank',
+              note: note,
+              vehicleId: v.id,
+              fuelLogId: fuelId
+            };
+            await window.put('transactions', txPayload);
+            if (typeof state === 'object' && Array.isArray(state.transactions)) {
+              state.transactions.unshift(txPayload);
+            }
+          } catch (e) {
+            console.warn('[VehicleService] Failed to link fuel expense:', e);
           }
-        } catch (e) {
-          console.warn('[VehicleService] Failed to link fuel expense:', e);
         }
       }
 

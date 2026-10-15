@@ -640,6 +640,9 @@
         <!-- FINANCIAL HEALTH SCORE -->
         <div id="healthScoreWidget" class="fade-up fade-up-4" style="margin-top:16px;"></div>
 
+        <!-- 🔗 INTERLINKED FINANCIAL INTELLIGENCE & BALANCE SHEET -->
+        <div id="dashInterlinkSection" style="margin-top:16px;"></div>
+
         <!-- 💳 CREDIT CARD PAYMENT REMINDERS & PENDING DUES -->
         <div id="dashCcRemindersSection" class="tx-card fade-up fade-up-3" style="margin-top:16px;">
           <div class="section-heading">
@@ -1492,6 +1495,9 @@ function showPage(page) {
         if (typeof renderDashboardCreditCardReminders === 'function') renderDashboardCreditCardReminders();
         if (typeof renderDashboardWealthWidget === 'function') renderDashboardWealthWidget();
         if (window.LM_VehicleUI && typeof window.LM_VehicleUI.renderDashboardWidget === 'function') window.LM_VehicleUI.renderDashboardWidget();
+        if (window.LM_InterlinkEngine && typeof window.LM_InterlinkEngine.renderDashboardInterlinkAnalysis === 'function') {
+          window.LM_InterlinkEngine.renderDashboardInterlinkAnalysis();
+        }
       } catch (e) {
         console.warn('[LM] Dashboard render error:', e);
       }
@@ -1711,6 +1717,8 @@ function setGreeting() {
 }
 
 </script>
+  <!-- Core Interlinking Engine -->
+  <script src="./src/scripts/Core/InterlinkEngine.js"></script>
   <script src="./src/scripts/Common.js"></script>
   <!-- CloudSync: cloud save/load — after Common.js so FinalJson is available -->
   <script src="./src/scripts/CloudSync.js"></script>

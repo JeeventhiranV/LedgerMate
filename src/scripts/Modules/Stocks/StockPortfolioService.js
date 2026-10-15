@@ -445,6 +445,30 @@
       _transactions.push(newTx);
       saveLocalData();
 
+      // Interlink with LedgerMate Bank Account Transactions
+      if (data.linkToBank !== false && window.LM_InterlinkEngine) {
+        try {
+          var tradeTotal = _round2(qty * price);
+          var totalImpact = txType === 'BUY' ? _round2(tradeTotal + brokerage + taxes) : _round2(tradeTotal - brokerage - taxes);
+          var acc = data.account || (state?.dropdowns?.accounts?.[0] || 'Bank');
+          await window.LM_InterlinkEngine.recordInterlinkedTx({
+            sourceModule: window.LM_InterlinkEngine.MODULES.STOCKS,
+            sourceId: newTx.id,
+            refType: txType === 'BUY' ? window.LM_InterlinkEngine.REF_TYPES.STOCK_BUY : window.LM_InterlinkEngine.REF_TYPES.STOCK_SELL,
+            entityName: symbol + ' (' + companyName + ')',
+            date: txDate,
+            type: txType === 'BUY' ? 'out' : 'in',
+            amount: totalImpact,
+            category: txType === 'BUY' ? 'Investment' : 'Stock Realization',
+            account: acc,
+            note: (txType === 'BUY' ? 'Bought ' : 'Sold ') + qty + ' shares of ' + symbol + ' @ ₹' + price + ' (' + exchange + ')',
+            extraData: { symbol: symbol, quantity: qty, price: price, brokerage: brokerage, taxes: taxes }
+          });
+        } catch (ilErr) {
+          console.warn('[StockPortfolioService] Failed to record interlinked tx:', ilErr);
+        }
+      }
+
       // Register in StockRegistry if new
       if (window.LM_StockRegistry) {
         window.LM_StockRegistry.registerStock({

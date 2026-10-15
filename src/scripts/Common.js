@@ -869,24 +869,39 @@ async function handleLoanTransaction(loan, shouldAdd) {
   const transactionNote = `Loan ${loan.type === 'given' ? 'from' : 'to'} ${loan.person}${loan.note ? `: ${loan.note}` : ''}`;
 
   if (shouldAdd) {
-    const transaction = {
-      id: uid('tx'),
-      date: nowISO1().split('T')[0],
-      type: loan.type === 'given' ? 'in' : 'out', // collected -> money in if they give you money, etc.
-      amount: loan.amount,
-      account: loan.loanAccount ,
-      category: loan.category || 'Loan',
-      recurrence: '',
-      note: transactionNote,
-      createdAt: nowISO1()
-    };
-    await put('transactions', transaction);
-    state.transactions.push(transaction);
+    if (window.LM_InterlinkEngine && typeof window.LM_InterlinkEngine.recordInterlinkedTx === 'function') {
+      await window.LM_InterlinkEngine.recordInterlinkedTx({
+        sourceModule: window.LM_InterlinkEngine.MODULES.LOANS,
+        sourceId: loan.id,
+        refType: loan.type === 'given' ? window.LM_InterlinkEngine.REF_TYPES.LOAN_REPAYMENT : window.LM_InterlinkEngine.REF_TYPES.LOAN_EMI,
+        entityName: 'Loan: ' + (loan.person || 'Person'),
+        date: nowISO1().split('T')[0],
+        type: loan.type === 'given' ? 'in' : 'out',
+        amount: loan.amount,
+        account: loan.loanAccount || 'Bank',
+        category: loan.category || 'Loans',
+        note: transactionNote,
+        extraData: { loanId: loan.id, person: loan.person }
+      });
+    } else {
+      const transaction = {
+        id: uid('tx'),
+        date: nowISO1().split('T')[0],
+        type: loan.type === 'given' ? 'in' : 'out',
+        amount: loan.amount,
+        account: loan.loanAccount,
+        category: loan.category || 'Loan',
+        recurrence: '',
+        note: transactionNote,
+        createdAt: nowISO1()
+      };
+      await put('transactions', transaction);
+      state.transactions.push(transaction);
+    }
   } else {
     const idx = state.transactions.findIndex(t =>
-      t.note === transactionNote &&
-      Number(t.amount) === Number(loan.amount) &&
-      (t.category || 'Loan') === (loan.category || 'Loan')
+      (t.interlink && t.interlink.sourceId === loan.id) ||
+      (t.note === transactionNote && Number(t.amount) === Number(loan.amount) && (t.category || 'Loan') === (loan.category || 'Loan'))
     );
     if (idx !== -1) {
       const id = state.transactions[idx].id;
@@ -1843,6 +1858,7 @@ function _doRenderAll(){
   renderBudgetOverview();
   renderDashboardCreditCardReminders();
   try { renderDashboardVehicleAlerts(); } catch (e) {}
+  try { window.LM_InterlinkEngine?.renderDashboardInterlinkAnalysis(); } catch(e) {}
   try { applyDashboardConfig(); } catch(e) {}
 }
 
@@ -2415,6 +2431,21 @@ if (!q) {
     const autoBadge = t.recurringOrigin
       ? `<span class="tx-badge-auto" title="Auto-generated">⟳ Auto</span>`
       : '';
+    let interlinkBadge = '';
+    if (t.interlink && t.interlink.sourceModule) {
+      const srcMod = t.interlink.sourceModule;
+      const modLabels = {
+        credit_cards: { icon: '💳', name: 'Credit Card', target: 'credit-cards' },
+        loans: { icon: '🏦', name: 'Loan EMI', target: 'loans' },
+        stocks: { icon: '📈', name: 'Stock Trade', target: 'stocks' },
+        investments: { icon: '💰', name: 'Investment', target: 'investments' },
+        vehicles: { icon: '🏍️', name: 'Vehicle', target: 'vehicles' },
+        business: { icon: '💼', name: 'Business Hub', target: 'business' }
+      };
+      const info = modLabels[srcMod] || { icon: '🔗', name: srcMod, target: srcMod };
+      const entityStr = t.interlink.entityName ? ` · ${t.interlink.entityName}` : '';
+      interlinkBadge = `<span class="tx-badge-interlink" data-mod="${info.target}" title="Interlinked from ${info.name}${entityStr}. Click to view source module.">${info.icon} ${info.name}${entityStr}</span>`;
+    }
 
     // Timestamp
     const ts = t.createdAt ? new Date(t.createdAt).toLocaleString('en-IN', { dateStyle:'short', timeStyle:'short' }) : '';
@@ -2437,7 +2468,7 @@ if (!q) {
               <span class="tx-meta-sep">·</span>
               <span class="tx-meta-acc">${hlText(t.account || '—', simpleQ)}</span>
               <span class="tx-meta-sep">·</span><span class="tx-time">${t.date}</span>
-              ${recurrenceBadge}${autoBadge}
+              ${recurrenceBadge}${autoBadge}${interlinkBadge}
             </div>
           </div>
         </div>
@@ -2460,6 +2491,28 @@ if (!q) {
     btn.onclick = async (e) => {
       const id = e.target.dataset.id;
       try { window.LM_Haptic?.warning(); } catch (err) {}
+
+      // Interlink reversal check
+      if (window.LM_InterlinkEngine && typeof window.LM_InterlinkEngine.checkLinkedReversal === 'function') {
+        const linkedTx = await window.LM_InterlinkEngine.checkLinkedReversal(id);
+        if (linkedTx && linkedTx.interlink) {
+          const mod = (linkedTx.interlink.sourceModule || 'linked module').toUpperCase();
+          const entity = linkedTx.interlink.entityName ? ` (${linkedTx.interlink.entityName})` : '';
+          const confirmMsg = `This transaction is interlinked with ${mod}${entity}.\n\nDo you want to delete this transaction AND roll back the source balance/status?\n\nClick [OK] to delete & roll back source\nClick [Cancel] to abort.`;
+          if (!confirm(confirmMsg)) return;
+          try {
+            await window.LM_InterlinkEngine.revertInterlinkedTx(id, true);
+            renderAll();
+            autoBackup();
+            try { window.LM_Haptic?.success(); } catch (err) {}
+            showToast('Interlinked transaction deleted and source rolled back!', 'success');
+            return;
+          } catch (revErr) {
+            console.warn('[LM] Revert interlink error:', revErr);
+          }
+        }
+      }
+
       if (!confirm('Are you sure you want to delete this transaction?')) return;
       try {
         await del('transactions', id);
@@ -2473,6 +2526,16 @@ if (!q) {
       }
     }
   );
+
+  document.querySelectorAll('.tx-badge-interlink').forEach((badge) => {
+    badge.onclick = (e) => {
+      e.stopPropagation();
+      const target = badge.dataset.mod;
+      if (target && typeof showPage === 'function') {
+        showPage(target);
+      }
+    };
+  });
   document.querySelectorAll('.editTx').forEach((btn) =>
     btn.onclick = (e) => openEditTransactionModal(e.target.dataset.id)
   );
@@ -2879,6 +2942,37 @@ function openAddTransactionModal(prefill = {}) {
     // If recurring, also add to recurringTransactions store
     if (txObj.recurrence && txObj.recurrence !== 'none') {
       await put('recurringTransactions', { ...txObj, id: uid('rec'), originalTxId: txObj.id });
+    }
+
+    // Interlink credit card swipe/purchase if an expense is charged to a Credit Card account
+    if (txObj.type === 'out' && window.LM_CreditCardsService && typeof window.LM_CreditCardsService.getAllCards === 'function') {
+      try {
+        const cards = window.LM_CreditCardsService.getAllCards();
+        const accLower = (txObj.account || '').toLowerCase().trim();
+        const matchedCard = cards.find(c => 
+          (c.name && c.name.toLowerCase().trim() === accLower) ||
+          (c.bank_name && accLower.includes(c.bank_name.toLowerCase().trim())) ||
+          (c.name && accLower.includes(c.name.toLowerCase().trim()))
+        );
+        if (matchedCard) {
+          txObj.interlink = {
+            sourceModule: 'credit_cards',
+            sourceId: matchedCard.id,
+            refType: 'card_swipe',
+            entityName: matchedCard.name || matchedCard.bank_name,
+            subDetails: { account: txObj.account },
+            timestamp: new Date().toISOString()
+          };
+          const newDue = (Number(matchedCard.current_due) || 0) + Number(txObj.amount || 0);
+          const newAvail = Math.max(0, (Number(matchedCard.credit_limit) || 0) - newDue);
+          await window.LM_CreditCardsService.updateCard(matchedCard.id, {
+            current_due: newDue,
+            available_limit: newAvail
+          });
+        }
+      } catch (ccErr) {
+        console.warn('[LM] Credit card swipe interlink error:', ccErr);
+      }
     }
 
     try {

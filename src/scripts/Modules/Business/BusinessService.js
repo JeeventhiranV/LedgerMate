@@ -435,6 +435,29 @@
         }
       }
 
+      // Optional link to LedgerMate Personal/Bank Transactions
+      if (txData.linkToPersonal === true && window.LM_InterlinkEngine && tx.paymentStatus === 'paid') {
+        try {
+          var biz = this.getBusinessById(bId);
+          var bName = biz ? biz.name : 'Business';
+          await window.LM_InterlinkEngine.recordInterlinkedTx({
+            sourceModule: window.LM_InterlinkEngine.MODULES.BUSINESS,
+            sourceId: tx.id,
+            refType: type === 'credit' ? window.LM_InterlinkEngine.REF_TYPES.BIZ_INVOICE : window.LM_InterlinkEngine.REF_TYPES.BIZ_EXPENSE,
+            entityName: bName + ': ' + tx.partyName,
+            date: tx.date,
+            type: type === 'credit' ? 'in' : 'out',
+            amount: tx.netAmount,
+            category: type === 'credit' ? 'Business Revenue' : 'Business Expense',
+            account: txData.account || 'Bank',
+            note: (type === 'credit' ? 'Revenue: ' : 'Expense: ') + tx.partyName + ' · ' + tx.category + (tx.invoiceNumber ? ' (Inv #' + tx.invoiceNumber + ')' : ''),
+            extraData: { businessId: bId, partyName: tx.partyName, invoiceNumber: tx.invoiceNumber }
+          });
+        } catch (bizIlErr) {
+          console.warn('[BusinessService] Interlink error:', bizIlErr);
+        }
+      }
+
       if (window.LM_CloudSync && typeof window.LM_CloudSync.queueSave === 'function') {
         window.LM_CloudSync.queueSave(1000);
       }

@@ -563,32 +563,40 @@
 
       // Optionally record an expense or bill payment transaction
       if (recordAsTransaction) {
-        var tx = {
-          id: typeof uid === 'function' ? uid('tx') : ('tx_' + Date.now()),
-          date: paymentDate,
-          type: 'out',
-          amount: amount,
-          category: 'Bills',
-          account: accountId,
-          note: 'Credit Card Bill Payment - ' + (card.card_name || 'Card') + ' (•••• ' + (card.last_4_digits || '0000') + ')',
-          profile: _getProfileId(),
-          createdAt: new Date().toISOString()
-        };
+        if (window.LM_InterlinkEngine && typeof window.LM_InterlinkEngine.recordInterlinkedTx === 'function') {
+          await window.LM_InterlinkEngine.recordInterlinkedTx({
+            sourceModule: window.LM_InterlinkEngine.MODULES.CREDIT_CARDS,
+            sourceId: card.id,
+            refType: window.LM_InterlinkEngine.REF_TYPES.CARD_BILL,
+            entityName: (card.card_name || 'Credit Card') + ' (•••• ' + (card.last_4_digits || '0000') + ')',
+            date: paymentDate,
+            type: 'out',
+            amount: amount,
+            category: 'Credit Card Payment',
+            account: accountId,
+            note: 'Credit Card Bill Payment - ' + (card.card_name || 'Card') + ' (•••• ' + (card.last_4_digits || '0000') + ')',
+            extraData: { cardId: card.id, last4: card.last_4_digits, remainingDue: newDue }
+          });
+        } else {
+          var tx = {
+            id: typeof uid === 'function' ? uid('tx') : ('tx_' + Date.now()),
+            date: paymentDate,
+            type: 'out',
+            amount: amount,
+            category: 'Bills',
+            account: accountId,
+            note: 'Credit Card Bill Payment - ' + (card.card_name || 'Card') + ' (•••• ' + (card.last_4_digits || '0000') + ')',
+            profile: _getProfileId(),
+            createdAt: new Date().toISOString()
+          };
 
-        if (typeof window.put === 'function') {
-          try {
-            await window.put('transactions', tx);
-          } catch (e) {
-            console.warn('[CreditCardsService] tx put error:', e);
+          if (typeof window.put === 'function') {
+            try { await window.put('transactions', tx); } catch (e) {}
           }
-        }
-
-        if (typeof state === 'object' && Array.isArray(state.transactions)) {
-          state.transactions.push(tx);
-        }
-
-        if (window.LM_Bus) {
-          window.LM_Bus.emit('lm:data:changed', { store: 'transactions' });
+          if (typeof state === 'object' && Array.isArray(state.transactions)) {
+            state.transactions.push(tx);
+          }
+          if (window.LM_Bus) window.LM_Bus.emit('lm:data:changed', { store: 'transactions' });
         }
 
         var _lmUid = window.LM_Auth?.getCurrentUserId() || 'default';
