@@ -595,21 +595,21 @@
                   <span class="text-success font-bold">TOTAL REAL ASSETS</span>
                   <span class="font-bold text-success">${_fmtINR(sheet.totalRealAssets)}</span>
                 </div>
-                <div class="dash-bs-item">
+                <div class="dash-bs-item clickable" onclick="window.LM_DashboardUpgrade?.setViewMode('daily'); document.getElementById('dashAccountSummariesSection')?.scrollIntoView({behavior:'smooth'});" title="View Liquid Bank Accounts">
                   <span>💼 Liquid Cash (Bank &amp; Wallets)</span>
-                  <span class="font-bold">${_fmtINR(sheet.liquidTotal)}</span>
+                  <span class="font-bold">${_fmtINR(sheet.liquidTotal)} →</span>
                 </div>
-                <div class="dash-bs-item">
+                <div class="dash-bs-item clickable" onclick="showPage('stocks')" title="View Stock Portfolio">
                   <span>📈 Indian Equities &amp; Stocks</span>
-                  <span class="font-bold">${_fmtINR(sheet.stocksTotal)}</span>
+                  <span class="font-bold">${_fmtINR(sheet.stocksTotal)} →</span>
                 </div>
-                <div class="dash-bs-item">
+                <div class="dash-bs-item clickable" onclick="showPage('investments')" title="View Mutual Funds &amp; FDs">
                   <span>💎 Mutual Funds, Gold &amp; FDs</span>
-                  <span class="font-bold">${_fmtINR(sheet.mutualFundsTotal + sheet.goldTotal + sheet.fdsTotal)}</span>
+                  <span class="font-bold">${_fmtINR(sheet.mutualFundsTotal + sheet.goldTotal + sheet.fdsTotal)} →</span>
                 </div>
-                <div class="dash-bs-item">
+                <div class="dash-bs-item clickable" onclick="showPage('business')" title="View Business Hub">
                   <span>🏢 Business Uncollected Receivables</span>
-                  <span class="font-bold">${_fmtINR(sheet.businessReceivables)}</span>
+                  <span class="font-bold">${_fmtINR(sheet.businessReceivables)} →</span>
                 </div>
               </div>
 
@@ -619,17 +619,17 @@
                   <span class="text-danger font-bold">ACTIVE LIABILITIES</span>
                   <span class="font-bold text-danger">${_fmtINR(sheet.totalLiabilities)}</span>
                 </div>
-                <div class="dash-bs-item">
+                <div class="dash-bs-item clickable" onclick="showPage('credit-cards')" title="View Credit Card Dues">
                   <span>💳 Credit Card Outstanding Dues</span>
-                  <span class="font-bold text-danger">${_fmtINR(sheet.creditCardDues)}</span>
+                  <span class="font-bold text-danger">${_fmtINR(sheet.creditCardDues)} →</span>
                 </div>
-                <div class="dash-bs-item">
+                <div class="dash-bs-item clickable" onclick="showPage('loans')" title="View Loan Balances">
                   <span>🏦 Loan &amp; EMI Principal Balances</span>
-                  <span class="font-bold text-danger">${_fmtINR(sheet.loanPrincipalRemaining)}</span>
+                  <span class="font-bold text-danger">${_fmtINR(sheet.loanPrincipalRemaining)} →</span>
                 </div>
-                <div class="dash-bs-item">
+                <div class="dash-bs-item clickable" onclick="showPage('business')" title="View Business Hub">
                   <span>🏢 Business Vendor Payables</span>
-                  <span class="font-bold text-danger">${_fmtINR(sheet.businessPayables)}</span>
+                  <span class="font-bold text-danger">${_fmtINR(sheet.businessPayables)} →</span>
                 </div>
                 <div class="dash-bs-item total-debt-ratio">
                   <span>Debt-to-Asset Leverage Ratio</span>
@@ -741,6 +741,7 @@
                     <span class="dash-commitment-title" title="${ob.title}">${ob.title}</span>
                     <span class="dash-commitment-days ${ob.isOverdue ? 'overdue' : ''}">${ob.isOverdue ? '⚠️ Overdue' : ('In ' + ob.daysUntilDue + 'd')}</span>
                     <span class="dash-commitment-amt font-bold">${_fmtINR(ob.amount)}</span>
+                    <button class="dash-obligation-pay-btn" onclick="window.LM_InterlinkEngine.handleQuickPayObligation('${ob.type}', '${ob.title.replace(/'/g, "\\'")}', ${ob.amount})" title="Pay or settle this commitment">⚡ Pay</button>
                   </div>
                 `).join('')}
               </div>
@@ -786,6 +787,53 @@
       if (mod === this.MODULES.BUSINESS) return 'Business Ledger - ' + ent;
       if (mod === this.MODULES.VEHICLES) return 'Vehicle Expense - ' + ent;
       return 'Linked Transaction - ' + ent;
+    },
+
+    handleQuickPayObligation: function (type, title, amount) {
+      amount = Number(amount) || 0;
+      try { if (window.LM_Haptic) window.LM_Haptic.light(); } catch (e) {}
+
+      if (type === 'credit_card') {
+        if (window.LM_CreditCardsService && typeof window.LM_CreditCardsService.getAllCards === 'function') {
+          var cards = window.LM_CreditCardsService.getAllCards() || [];
+          var tLower = (title || '').toLowerCase();
+          var matched = cards.find(function (c) {
+            return tLower.includes((c.card_name || '').toLowerCase()) ||
+                   (c.last_4_digits && tLower.includes(c.last_4_digits));
+          });
+          if (matched && window.LM_CreditCardsUI && typeof window.LM_CreditCardsUI.openPayModal === 'function') {
+            window.LM_CreditCardsUI.openPayModal(matched.id);
+            return;
+          }
+        }
+        if (typeof showPage === 'function') showPage('credit-cards');
+        return;
+      }
+
+      if (type === 'loan') {
+        if (typeof openAddTransactionModal === 'function') {
+          openAddTransactionModal({
+            type: 'out',
+            category: 'Loan',
+            amount: amount,
+            note: 'Loan EMI Payment - ' + title,
+            date: _todayISO()
+          });
+          return;
+        }
+        if (typeof showPage === 'function') showPage('loans');
+        return;
+      }
+
+      if (typeof openAddTransactionModal === 'function') {
+        openAddTransactionModal({
+          type: 'out',
+          category: type === 'vehicle_insurance' ? 'Insurance' : 'Bills',
+          amount: amount,
+          note: title,
+          date: _todayISO()
+        });
+      }
     }
   };
 

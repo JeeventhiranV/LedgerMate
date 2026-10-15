@@ -1859,6 +1859,7 @@ function _doRenderAll(){
   renderDashboardCreditCardReminders();
   try { renderDashboardVehicleAlerts(); } catch (e) {}
   try { window.LM_InterlinkEngine?.renderDashboardInterlinkAnalysis(); } catch(e) {}
+  try { window.LM_DashboardUpgrade?.refresh(); } catch(e) {}
   try { applyDashboardConfig(); } catch(e) {}
 }
 
@@ -9213,13 +9214,25 @@ function calcRetirement() {
    CUSTOM DASHBOARD — widget visibility toggle
 ══════════════════════════════════════════════════════════════ */
 const DASHBOARD_WIDGETS = [
-  { id: 'kpiCards',               label: 'KPI Cards',                 icon: '📊' },
-  { id: 'dashCcRemindersSection', label: 'Credit Card Bill Reminders',icon: '💳' },
-  { id: 'nwSparklineWidget',      label: 'Net Worth Trend',            icon: '📈' },
-  { id: 'budgetOverview',         label: 'Budget Overview',            icon: '🎯' },
-  { id: 'topCategories',          label: 'Top Categories',             icon: '🗂️' },
-  { id: 'heatmap-wrap',           label: 'Expense Heatmap',            icon: '🗓️' },
-  { id: 'recentList',             label: 'Recent Transactions',        icon: '↕️' },
+  { id: 'dashDailyBriefing',               label: 'Daily Financial Briefing',  icon: '🌅' },
+  { id: 'dashHeroCard',                    label: 'Executive Hero Card',       icon: '👑' },
+  { id: 'dashQuickActionsWrap',            label: 'Quick Action Speed Dial',   icon: '⚡' },
+  { id: 'kpiCards',                        label: 'KPI Cards',                 icon: '📊' },
+  { id: 'dashInterlinkSection',            label: 'Consolidated Balance Sheet',icon: '🏛️' },
+  { id: 'dashCcRemindersSection',          label: 'Credit Card Bill Reminders',icon: '💳' },
+  { id: 'cardOptimizerWidgetWrap',         label: 'Credit Card Optimizer',     icon: '💡' },
+  { id: 'dashVehicleWidget',               label: 'Vehicle Alerts',            icon: '🏍️' },
+  { id: 'dashAccountSummariesSection',     label: 'Account Balances',          icon: '💼' },
+  { id: 'dashRecentActivitySection',       label: 'Recent Activity Feed',      icon: '📝' },
+  { id: 'dashChartsSection',               label: 'Cashflow & Doughnut Charts',icon: '📈' },
+  { id: 'dashTopCategoriesForecastSection',label: 'Top Categories & Forecast', icon: '🗂️' },
+  { id: 'healthScoreWidget',               label: 'Financial Health Score',    icon: '❤️' },
+  { id: 'dashBudgetOverviewSection',       label: 'Budget Overview',           icon: '🎯' },
+  { id: 'dashHeatmapSection',              label: 'Expense Heatmap',           icon: '🗓️' },
+  { id: 'dashWealthWidgetSection',         label: 'Wealth Summary',            icon: '💎' },
+  { id: 'dashNwSparklineSection',          label: 'Net Worth Trend',           icon: '📉' },
+  { id: 'dashMomSection',                  label: 'Month-over-Month',          icon: '⚖️' },
+  { id: 'recentList',                      label: 'All Transactions Stream',   icon: '↕️' }
 ];
 
 function openDashboardCustomizer() {
@@ -9250,15 +9263,14 @@ async function toggleDashWidget(id, visible) {
 function applyDashboardConfig() {
   const cfg = state.dashboard_config?.widgets || {};
   DASHBOARD_WIDGETS.forEach(w => {
-    // Handle both direct ID and parent .heatmap-wrap
     const el = document.getElementById(w.id) || document.querySelector(`.${w.id}`);
     if (!el) return;
     const visible = cfg[w.id] !== false;
-    // Walk up to find the section container
     const section = el.closest('.fade-up') || el.closest('.card') || el.parentElement;
     const target = (w.id === 'recentList' || w.id === 'kpiCards') ? el.parentElement : section;
     if (target) target.style.display = visible ? '' : 'none';
   });
+  try { window.LM_DashboardUpgrade?.applyViewFilter(); } catch(e) {}
 }
 
 /* ══════════════════════════════════════════════════════════════

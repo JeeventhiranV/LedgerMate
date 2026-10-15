@@ -517,6 +517,35 @@
           </div>
         </div>  
 
+        <!-- 🎯 SMART VIEW FOCUS DOCK (SEGMENTED VIEW SWITCHER) -->
+        <div class="dash-focus-dock-wrap fade-up fade-up-1" id="dashFocusDockWrap">
+          <div class="dash-focus-dock" id="dashViewModeDock" role="tablist" aria-label="Dashboard Focus Views">
+            <button class="dash-focus-pill active" data-view="executive" onclick="window.LM_DashboardUpgrade?.setViewMode('executive')" role="tab" aria-selected="true">
+              <span class="df-icon">🎯</span>
+              <span class="df-label">Executive</span>
+            </button>
+            <button class="dash-focus-pill" data-view="daily" onclick="window.LM_DashboardUpgrade?.setViewMode('daily')" role="tab" aria-selected="false">
+              <span class="df-icon">⚡</span>
+              <span class="df-label">Daily Pulse</span>
+            </button>
+            <button class="dash-focus-pill" data-view="wealth" onclick="window.LM_DashboardUpgrade?.setViewMode('wealth')" role="tab" aria-selected="false">
+              <span class="df-icon">💎</span>
+              <span class="df-label">Wealth &amp; Balance</span>
+            </button>
+            <button class="dash-focus-pill" data-view="analytics" onclick="window.LM_DashboardUpgrade?.setViewMode('analytics')" role="tab" aria-selected="false">
+              <span class="df-icon">📊</span>
+              <span class="df-label">Analytics</span>
+            </button>
+            <button class="dash-focus-pill" data-view="all" onclick="window.LM_DashboardUpgrade?.setViewMode('all')" role="tab" aria-selected="false">
+              <span class="df-icon">🌐</span>
+              <span class="df-label">All</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 🌅 SMART DAILY FINANCIAL BRIEFING STRIP -->
+        <div id="dashDailyBriefing" class="fade-up fade-up-1" style="margin-bottom:16px;"></div>
+
         <!-- 👑 EXECUTIVE MASTER FINANCIAL HERO CARD -->
         <div id="dashHeroCard" class="dash-hero-card fade-up fade-up-1">
           <div class="dash-hero-glass-mesh"></div>
@@ -590,7 +619,7 @@
         </div>
 
         <!-- ⚡ DASHBOARD QUICK ACTION SPEED DIAL -->
-        <div class="dash-quick-actions-wrap fade-up fade-up-2">
+        <div class="dash-quick-actions-wrap fade-up fade-up-2" id="dashQuickActionsWrap">
           <button class="dash-action-btn primary-action expense" onclick="openAddTransactionModal({type:'out'})" title="Log an expense">
             <span class="dash-action-icon expense">💸</span>
             <span class="dash-action-label">Expense</span>
@@ -659,20 +688,33 @@
         <!-- 🏍️ BIKE & VEHICLE MAINTENANCE ALERTS WIDGET -->
         <div id="dashVehicleWidget" style="display:none;"></div>
 
-        <div class="tx-card fade-up fade-up-3"> 
+        <div id="dashAccountSummariesSection" class="tx-card fade-up fade-up-3"> 
           <!-- Header -->
           <div class="section-heading">
             <div class="section-title">
               <span class="dot"></span>
               Account Summary
             </div> 
+            <button class="section-action" onclick="openAddTransactionModal({type:'transfer'})">Transfer ⇄</button>
           </div> 
           <!-- Grid Container -->
           <div id="accountSummaries" class="kpi-grid"></div>
         </div>
 
+        <!-- 📝 RECENT ACTIVITY STREAM (DAILY PULSE) -->
+        <div id="dashRecentActivitySection" class="tx-card fade-up fade-up-3" style="display:none; margin-top:16px;">
+          <div class="section-heading">
+            <div class="section-title">
+              <span class="dot" style="background:var(--teal)"></span>
+              Recent Activity Feed
+            </div>
+            <button class="section-action" onclick="showPage('transactions')">All Transactions →</button>
+          </div>
+          <div id="dashRecentActivityList" class="tx-list text-sm"></div>
+        </div>
+
         <!-- CHARTS GRID -->
-        <div class="charts-grid fade-up fade-up-4">
+        <div id="dashChartsSection" class="charts-grid fade-up fade-up-4">
           <div class="chart-card">
             <div class="chart-card-title" style="justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
               <span style="display:flex;align-items:center;gap:6px;">
@@ -727,7 +769,7 @@
         </div>
 
         <!-- TWO COL: TOP CATEGORIES + FORECAST -->
-       <div class="two-col fade-up fade-up-5">
+       <div id="dashTopCategoriesForecastSection" class="two-col fade-up fade-up-5">
 
   <!-- LEFT: TOP CATEGORIES -->
   <div>
@@ -802,7 +844,7 @@
 
 </div>
         <!-- HEATMAP -->
-        <div class="fade-up fade-up-5">
+        <div id="dashHeatmapSection" class="fade-up fade-up-5">
           <div class="section-heading">
             <div class="section-title"><span class="dot" style="background:var(--emerald)"></span>Expense Heatmap (30d)</div>
           </div>
@@ -823,7 +865,7 @@
         </div>
 
         <!-- WEALTH SUMMARY WIDGET -->
-        <div class="fade-up fade-up-5" style="margin-top:8px;">
+        <div id="dashWealthWidgetSection" class="fade-up fade-up-5" style="margin-top:8px;">
           <div class="section-heading">
             <div class="section-title"><span class="dot" style="background:var(--blue)"></span>Wealth Summary</div>
           </div>
@@ -831,7 +873,7 @@
         </div>
 
         <!-- NET WORTH SPARKLINE -->
-        <div class="fade-up fade-up-5" style="margin-top:8px;">
+        <div id="dashNwSparklineSection" class="fade-up fade-up-5" style="margin-top:8px;">
           <div class="section-heading">
             <div class="section-title"><span class="dot" style="background:var(--teal)"></span>Net Worth Trend</div>
             <button class="section-action" onclick="showPage('wealth')">Details →</button>
@@ -840,7 +882,7 @@
         </div>
 
         <!-- MONTH-OVER-MONTH ANALYTICS -->
-        <div class="fade-up fade-up-5" style="margin-top:8px;">
+        <div id="dashMomSection" class="fade-up fade-up-5" style="margin-top:8px;">
           <div class="section-heading">
             <div class="section-title"><span class="dot" style="background:var(--violet)"></span>Month-over-Month</div>
             <span style="font-size:11px;color:var(--text-3);">vs last month</span>
@@ -849,7 +891,7 @@
         </div>
 
         <!-- BUDGETS OVERVIEW -->
-        <div class="fade-up fade-up-5">
+        <div id="dashBudgetOverviewSection" class="fade-up fade-up-5">
           <div class="section-heading" style="margin-top:24px;">
             <div class="section-title"><span class="dot" style="background:var(--gold)"></span>Budget Status</div>
             <button class="section-action" id="openBudgets1" onclick="showBudgetsModal()">Manage →</button>
@@ -1498,6 +1540,9 @@ function showPage(page) {
         if (window.LM_InterlinkEngine && typeof window.LM_InterlinkEngine.renderDashboardInterlinkAnalysis === 'function') {
           window.LM_InterlinkEngine.renderDashboardInterlinkAnalysis();
         }
+        if (window.LM_DashboardUpgrade && typeof window.LM_DashboardUpgrade.init === 'function') {
+          window.LM_DashboardUpgrade.init();
+        }
       } catch (e) {
         console.warn('[LM] Dashboard render error:', e);
       }
@@ -1719,6 +1764,8 @@ function setGreeting() {
 </script>
   <!-- Core Interlinking Engine -->
   <script src="./src/scripts/Core/InterlinkEngine.js"></script>
+  <!-- Executive Dashboard 2.0 Engine -->
+  <script src="./src/scripts/Core/DashboardUpgrade.js"></script>
   <script src="./src/scripts/Common.js"></script>
   <!-- CloudSync: cloud save/load — after Common.js so FinalJson is available -->
   <script src="./src/scripts/CloudSync.js"></script>
