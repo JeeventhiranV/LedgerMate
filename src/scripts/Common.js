@@ -6302,32 +6302,119 @@ function calculateFinancialHealth() {
   const month = new Date().toISOString().slice(0, 7);
 
   // 1. Savings Rate (0–30 pts)
-  const savingsRate = parseFloat(k.savingsRate) || 0;
-  const savingsPts = savingsRate >= 20 ? 30 : savingsRate >= 10 ? 20 : savingsRate > 0 ? 10 : 0;
+  let savingsRate = parseFloat(k.savingsRate) || 0;
+  let monthlyIncome = (k.avgDailyIncome || 0) * 30;
 
-  // 2. Debt-to-Income (0–25 pts): annual outstanding vs annual income
-  const totalDebt = (state.emi_loans || []).reduce((s, l) => s + (parseFloat(l.outstanding) || 0), 0);
-  const annualIncome = k.avgDailyIncome * 365;
+  // Fallback to all-time / multi-month income run-rate if current window has no income
+  if (monthlyIncome <= 0 && state.transactions && state.transactions.length > 0) {
+    const allIncomes = state.transactions.filter(t => t.type === 'in' || t.type === 'income');
+    if (allIncomes.length > 0) {
+      const sumInc = allIncomes.reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+      const firstDate = new Date(allIncomes[allIncomes.length - 1].date || allIncomes[allIncomes.length - 1].createdAt || Date.now());
+      const monthsSpanned = Math.max(1, (Date.now() - firstDate.getTime()) / (30 * 86400000));
+      monthlyIncome = sumInc / monthsSpanned;
+      if (savingsRate <= 0) {
+        const sumOut = state.transactions.filter(t => t.type === 'out').reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+        const monthlyOut = sumOut / monthsSpanned;
+        savingsRate = monthlyIncome > 0 ? Math.max(0, parseFloat((((monthlyIncome - monthlyOut) / monthlyIncome) * 100).toFixed(1))) : 0;
+      }
+    }
+  }
+  if (monthlyIncome <= 0 && state.essentials_settings && state.essentials_settings.monthlyIncome) {
+    monthlyIncome = parseFloat(state.essentials_settings.monthlyIncome) || 0;
+  }
+
+  const savingsPts = savingsRate >= 30 ? 30 : savingsRate >= 20 ? 25 : savingsRate >= 10 ? 18 : savingsRate > 0 ? 12 : 0;
+
+  // 2. Debt-to-Income / Debt Service Ratio (0–25 pts)
+  let totalDebt = 0;
+  let monthlyDebtService = 0;
+
+  // EMI loans (Wealth module)
+  (state.emi_loans || []).forEach(l => {
+    const out = parseFloat(l.outstanding || l.remainingAmount || 0) || 0;
+    totalDebt += out;
+    const emi = parseFloat(l.emi || l.monthlyEmi || 0) || (out > 0 ? out / Math.max(1, (l.tenureMonths || 12)) : 0);
+    monthlyDebtService += emi;
+  });
+
+  // Loans & EMIs module
+  (state.loans || []).forEach(l => {
+    const out = parseFloat(l.remainingAmount !== undefined ? l.remainingAmount : l.amount) || 0;
+    totalDebt += out;
+    const emi = parseFloat(l.emi || l.monthlyEmi || 0) || (out > 0 ? out / Math.max(1, (l.tenureMonths || 12)) : 0);
+    monthlyDebtService += emi;
+  });
+
+  // Credit card current obligations (minimum ~5% monthly service)
+  (state.credit_cards || []).forEach(c => {
+    const due = parseFloat(c.current_due || 0) || 0;
+    totalDebt += due;
+    monthlyDebtService += Math.round(due * 0.05);
+  });
+
   let debtPts = 25;
-  if (annualIncome > 0) {
-    const dti = totalDebt / annualIncome;
-    debtPts = dti < 0.2 ? 25 : dti < 0.4 ? 18 : dti < 0.6 ? 10 : 3;
+  let dtiPct = 0;
+  if (totalDebt === 0) {
+    debtPts = 25;
+    dtiPct = 0;
+  } else if (monthlyIncome > 0) {
+    const dti = monthlyDebtService / monthlyIncome;
+    dtiPct = Math.round(dti * 100);
+    debtPts = dti <= 0.20 ? 25 : dti <= 0.35 ? 20 : dti <= 0.50 ? 14 : 6;
+  } else {
+    // If income is not yet specified, judge by debt magnitude
+    debtPts = totalDebt <= 50000 ? 22 : totalDebt <= 200000 ? 18 : 12;
   }
 
-  // 3. Emergency Fund – months of expenses covered by savings balance (0–25 pts)
-  const totalSavings = (state.savings || []).reduce((s, x) => s + (parseFloat(x.amount || x.balance || 0) || 0), 0);
-  const monthlyExpense = k.avgDailyExpense * 30;
+  // 3. Emergency Fund – Liquid Reserves (0–25 pts)
+  let totalLiquidSavings = 0;
+
+  // A: Liquid Bank Accounts & Cash Wallets
+  if (typeof getAccountSummaries === 'function') {
+    const accs = getAccountSummaries();
+    Object.keys(accs).forEach(a => {
+      const b = Number(accs[a].balance || 0);
+      if (b > 0) totalLiquidSavings += b;
+    });
+  } else if (Array.isArray(state.accounts)) {
+    state.accounts.forEach(a => {
+      const b = Number(a.balance || 0);
+      if (b > 0) totalLiquidSavings += b;
+    });
+  }
+
+  // B: Liquid & Deposit Investments (FDs, RDs, Liquid Funds, Cash)
+  (state.investments || []).forEach(inv => {
+    if (typeof window.LM_isClosedOrMatured === 'function' && window.LM_isClosedOrMatured(inv)) return;
+    const t = (inv.type || '').toUpperCase();
+    const cat = (inv.wealthCategory || '').toLowerCase();
+    if (['FD', 'RD', 'CASH', 'SAVINGS', 'LIQUID', 'EMERGENCY_FUND'].includes(t) || cat.includes('cash') || cat.includes('liquid') || cat.includes('deposit')) {
+      const cur = typeof getAssetCurrentValue === 'function' ? getAssetCurrentValue(inv) : (parseFloat(inv.currentValue || inv.amount || 0) || 0);
+      totalLiquidSavings += cur;
+    }
+  });
+
+  // C: Savings Goals Store
+  (state.savings || []).forEach(x => {
+    totalLiquidSavings += (parseFloat(x.amount || x.balance || 0) || 0);
+  });
+
+  const monthlyExpense = (k.avgDailyExpense * 30) || 0;
   let emergencyPts = 0;
+  let monthsCovered = 0;
   if (monthlyExpense > 0) {
-    const months = totalSavings / monthlyExpense;
-    emergencyPts = months >= 6 ? 25 : months >= 3 ? 18 : months >= 1 ? 10 : 3;
-  } else if (totalSavings > 0) {
-    emergencyPts = 15; // has savings but no expense data yet
+    monthsCovered = totalLiquidSavings / monthlyExpense;
+    emergencyPts = monthsCovered >= 6 ? 25 : monthsCovered >= 3 ? 20 : monthsCovered >= 1 ? 14 : monthsCovered > 0 ? 8 : 0;
+  } else if (totalLiquidSavings > 0) {
+    emergencyPts = 25;
+    monthsCovered = 12;
   }
 
-  // 4. Budget Adherence (0–20 pts)
+  // 4. Budget Adherence & Spending Discipline (0–20 pts)
   const monthBudgets = (state.budgets || []).filter(b => b.month === month);
-  let budgetPts = 10;
+  let budgetPts = 15;
+  let budgetStatus = 'On Track';
   if (monthBudgets.length > 0) {
     const onTrack = monthBudgets.filter(b => {
       const actual = (state.transactions || [])
@@ -6336,13 +6423,28 @@ function calculateFinancialHealth() {
       return actual <= b.limit;
     }).length;
     budgetPts = Math.round((onTrack / monthBudgets.length) * 20);
+    budgetStatus = budgetPts >= 16 ? 'On Track' : budgetPts >= 10 ? 'Moderate' : 'Over Budget';
+  } else if (monthlyIncome > 0 && monthlyExpense > 0) {
+    // Reward disciplined spending within reasonable % of income
+    const ratio = monthlyExpense / monthlyIncome;
+    if (ratio <= 0.50) { budgetPts = 20; budgetStatus = 'Disciplined (≤50%)'; }
+    else if (ratio <= 0.70) { budgetPts = 18; budgetStatus = 'Balanced (≤70%)'; }
+    else if (ratio <= 0.90) { budgetPts = 15; budgetStatus = 'Within Means'; }
+    else if (ratio <= 1.00) { budgetPts = 12; budgetStatus = 'Break-even'; }
+    else { budgetPts = 6; budgetStatus = 'Deficit Spending'; }
   }
 
   const score = Math.min(100, Math.max(0, Math.round(savingsPts + debtPts + emergencyPts + budgetPts)));
   const grade = score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : score >= 40 ? 'Fair' : 'Needs Work';
   const color = score >= 80 ? 'var(--emerald)' : score >= 60 ? 'var(--teal)' : score >= 40 ? 'var(--gold)' : 'var(--rose)';
 
-  return { score, grade, color, savingsPts, debtPts, emergencyPts, budgetPts, savingsRate, totalDebt, totalSavings, monthlyExpense };
+  return {
+    score, grade, color,
+    savingsPts, debtPts, emergencyPts, budgetPts,
+    savingsRate, dtiPct, monthsCovered,
+    totalDebt, totalSavings: totalLiquidSavings,
+    monthlyExpense, monthlyIncome, budgetStatus
+  };
 }
 
 function renderHealthScore() {
@@ -6360,11 +6462,13 @@ function renderHealthScore() {
     tipText = '💡 Tip: Pay down outstanding loans or credit debt to significantly enhance debt-to-income score.';
   } else if (h.emergencyPts < 18) {
     tipText = '💡 Tip: Build an emergency buffer covering 3–6 months of basic expenses for total peace of mind.';
-  } else if (h.budgetPts < 16) {
+  } else if (h.budgetPts < 15) {
     tipText = '💡 Tip: Keep spending strictly within monthly category budgets to protect your cash reserves.';
   } else {
     tipText = '🎉 Excellent habits! Your savings rate, low liabilities, and budget adherence are at peak levels.';
   }
+
+  const fmt = (n) => typeof fmtINR === 'function' ? fmtINR(n) : ('₹' + Math.round(n).toLocaleString('en-IN'));
 
   wrap.innerHTML = `
     <div class="chart-card" style="padding:20px;">
@@ -6389,9 +6493,9 @@ function renderHealthScore() {
 
         <div style="flex:1;min-width:180px;">
           ${_healthBar('Savings Rate', h.savingsPts, 30, h.savingsRate + '%')}
-          ${_healthBar('Debt-to-Income', h.debtPts, 25, h.totalDebt > 0 ? (typeof fmtINR === 'function' ? fmtINR(h.totalDebt) : h.totalDebt) + ' debt' : 'Debt-free')}
-          ${_healthBar('Emergency Fund', h.emergencyPts, 25, h.totalSavings > 0 ? (typeof fmtINR === 'function' ? fmtINR(h.totalSavings) : h.totalSavings) + ' saved' : 'No savings')}
-          ${_healthBar('Budget Adherence', h.budgetPts, 20, h.budgetPts >= 16 ? 'On Track' : h.budgetPts >= 10 ? 'Moderate' : 'Over Budget')}
+          ${_healthBar('Debt-to-Income', h.debtPts, 25, h.totalDebt > 0 ? (h.dtiPct > 0 ? h.dtiPct + '% DTI' : fmt(h.totalDebt) + ' debt') : 'Debt-free')}
+          ${_healthBar('Emergency Fund', h.emergencyPts, 25, h.totalSavings > 0 ? (h.monthsCovered > 0 ? h.monthsCovered.toFixed(1) + ' mo runway' : fmt(h.totalSavings) + ' saved') : 'No buffer')}
+          ${_healthBar('Budget Adherence', h.budgetPts, 20, h.budgetStatus || (h.budgetPts >= 16 ? 'On Track' : h.budgetPts >= 10 ? 'Moderate' : 'Over Budget'))}
         </div>
 
       </div>

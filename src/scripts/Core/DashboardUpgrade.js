@@ -130,6 +130,11 @@
         var isActive = view === cur;
         pill.classList.toggle('active', isActive);
         pill.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        if (isActive && typeof pill.scrollIntoView === 'function') {
+          try {
+            pill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          } catch (e) {}
+        }
       });
     },
 
