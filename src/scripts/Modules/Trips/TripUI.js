@@ -275,8 +275,10 @@
                 <span>←</span> All Trips
               </button>
               <div class="tp-workspace-actions">
-                <button class="tp-btn-secondary" onclick="window.LM_TripUI.openAddTripModal('${trip.id}')">✏️ Edit Trip</button>
-                <button class="tp-btn-secondary" onclick="window.LM_TripUI.shareTrip('${trip.id}')">📤 Share</button>
+                <button class="tp-btn-secondary" style="color:var(--teal);" onclick="window.LM_TripUI.startVoiceLog('${trip.id}')" title="Voice Expense / Note">🎙️ Voice</button>
+                <button class="tp-btn-secondary" onclick="window.LM_TripUI.printTripItinerary('${trip.id}')" title="Printable / PDF Itinerary">📄 PDF</button>
+                <button class="tp-btn-secondary" onclick="window.LM_TripUI.shareTrip('${trip.id}')" title="Copy WhatsApp Formatted Itinerary">💬 WhatsApp</button>
+                <button class="tp-btn-secondary" onclick="window.LM_TripUI.openAddTripModal('${trip.id}')">✏️ Edit</button>
                 <button class="tp-btn-secondary" style="color:var(--rose);" onclick="window.LM_TripUI.deleteTrip('${trip.id}')">🗑️</button>
               </div>
             </div>
@@ -287,6 +289,7 @@
                 <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                   <h1 class="tp-hero-title" style="font-size:22px; margin:0;">${_esc(trip.name)}</h1>
                   <span class="tp-status-pill tp-status-${trip.status || 'planning'}">${_esc(trip.status || 'planning')}</span>
+                  ${trip.currency && trip.currency !== 'INR' ? `<span class="tp-currency-pill" style="background:rgba(0,240,255,0.12); color:var(--teal); font-size:11px; padding:2px 8px; border-radius:12px; font-weight:600;">💱 ${trip.currency} (1 = ₹${trip.exchangeRate || 1})</span>` : ''}
                 </div>
                 <div class="tp-trip-card-meta" style="margin-top:4px; margin-bottom:0;">
                   <span>📍 ${_esc(trip.destination || 'Unspecified')}</span>
@@ -294,6 +297,7 @@
                   <span>📅 ${trip.startDate || '?'} → ${trip.endDate || '?'} (${days} Days)</span>
                   <span>·</span>
                   <span>👥 ${(trip.persons || []).map(p => _esc(p.name)).join(', ')}</span>
+                  ${trip.vehicleId ? `<span>·</span><span>🚗 Linked Vehicle</span>` : ''}
                 </div>
               </div>
             </div>
@@ -305,7 +309,7 @@
                 <span class="tp-kpi-value" style="color:var(--teal); font-size:16px;">${_fmtINR(targetBudget)}</span>
               </div>
               <div class="tp-kpi-card">
-                <span class="tp-kpi-label">Planned Costs</span>
+                <span class="tp-kpi-label">Plan Estimated Costs</span>
                 <span class="tp-kpi-value" style="color:var(--gold); font-size:16px;">${_fmtINR(fin.totalPlannedCost)}</span>
               </div>
               <div class="tp-kpi-card">
@@ -335,8 +339,12 @@
               <span>💡</span> Seen &amp; Wishlist Places
               <span class="tp-tab-badge">${(trip.wishlist || []).length}</span>
             </button>
+            <button class="tp-tab-btn ${this.activeTab === 'packing' ? 'active' : ''}" onclick="window.LM_TripUI.switchTab('packing')">
+              <span>🎒</span> Packing &amp; Docs
+              <span class="tp-tab-badge">${fin.packingStats?.packed || 0}/${fin.packingStats?.total || 0}</span>
+            </button>
             <button class="tp-tab-btn ${this.activeTab === 'analytics' ? 'active' : ''}" onclick="window.LM_TripUI.switchTab('analytics')">
-              <span>💰</span> Plan Expenses &amp; Analytics
+              <span>📊</span> Analytics &amp; Charts
             </button>
             <button class="tp-tab-btn ${this.activeTab === 'split' ? 'active' : ''}" onclick="window.LM_TripUI.switchTab('split')">
               <span>👥</span> Split &amp; Settlements
@@ -368,6 +376,8 @@
         this.renderItineraryTab(trip, container);
       } else if (this.activeTab === 'wishlist') {
         this.renderWishlistTab(trip, container);
+      } else if (this.activeTab === 'packing') {
+        this.renderPackingAndDocsTab(trip, container);
       } else if (this.activeTab === 'analytics') {
         this.renderAnalyticsTab(trip, container);
       } else if (this.activeTab === 'split') {
@@ -445,11 +455,18 @@
               // Calculate Day's planned vs actual
               const dayPlanned = dayPlans.reduce((s, p) => s + (p.estimatedCost || 0), 0);
               const dayActual = dayPlans.reduce((s, p) => s + (p.expenses || []).reduce((es, e) => es + e.amount, 0), 0);
+              const dayLocations = dayPlans.map(p => p.location).filter(Boolean);
+              const routeBtn = dayLocations.length > 1
+                ? `<a href="https://www.google.com/maps/dir/${dayLocations.map(encodeURIComponent).join('/')}" target="_blank" rel="noopener" class="tp-route-link" style="color:var(--teal); font-size:11px; text-decoration:none; display:inline-flex; align-items:center; gap:3px; background:rgba(0,240,255,0.08); padding:2px 8px; border-radius:12px;">🗺️ Day Route (${dayLocations.length} stops) ↗</a>`
+                : '';
 
               return `
                 <div class="tp-day-group">
                   <div class="tp-day-title-strip">
-                    <div class="tp-day-title-text">📅 DAY ${d}</div>
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                      <div class="tp-day-title-text">📅 DAY ${d}</div>
+                      ${routeBtn}
+                    </div>
                     <div class="tp-day-title-meta">
                       Est: ${_fmtINR(dayPlanned)} · Spent: ${_fmtINR(dayActual)}
                     </div>
@@ -463,7 +480,7 @@
                         const pf = window.LM_TripService.getPlanFinancials(plan);
                         const icon = catIcons[plan.category] || '📌';
                         const timeStr = plan.time ? ` · ⏰ ${plan.time}` : '';
-                        const locStr = plan.location ? ` · 📍 ${_esc(plan.location)}` : '';
+                        const locStr = plan.location ? ` · <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(plan.location)}" target="_blank" rel="noopener" style="color:var(--teal); text-decoration:none;">📍 ${_esc(plan.location)} ↗</a>` : '';
 
                         let varBadge = '';
                         if (pf.actualTotal === 0 && pf.estimatedCost > 0) {
@@ -493,6 +510,7 @@
                                 </div>
                               </div>
                               <div class="tp-plan-actions">
+                                <a class="tp-icon-btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(plan.location || plan.title)}" target="_blank" rel="noopener" title="Navigate on Google Maps">🧭</a>
                                 <button class="tp-icon-btn" title="Edit Plan" onclick="window.LM_TripUI.openAddPlanModal('${trip.id}', '${plan.id}')">✏️</button>
                                 <button class="tp-icon-btn" title="Delete Plan" onclick="window.LM_TripUI.deletePlan('${trip.id}', '${plan.id}')">🗑️</button>
                               </div>
@@ -521,7 +539,11 @@
                               <div class="tp-micro-expenses-list">
                                 ${plan.expenses.map(e => `
                                   <div class="tp-micro-exp-item">
-                                    <span>• ${_esc(e.title)} (${e.paymentMethod || 'Cash'}${e.linkedTxId ? ' · 🔗 Linked' : ''})</span>
+                                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                      <span>• ${_esc(e.title)} (${_esc(e.paymentMethod || 'Cash')}${e.linkedTxId ? ' · 🔗' : ''})</span>
+                                      ${(e.currency && e.currency !== 'INR') ? `<span style="background:rgba(0,240,255,0.1); color:var(--teal); font-size:10px; padding:1px 5px; border-radius:4px; font-weight:600;">${window.LM_TripService.fmtCurrency(e.localAmount, e.currency)}</span>` : ''}
+                                      ${(e.receiptUrl || e.receiptId) ? `<button type="button" class="tp-receipt-pill" style="border:none; background:rgba(168,85,247,0.18); color:var(--violet); font-size:10px; padding:1px 6px; border-radius:4px; cursor:pointer;" onclick="window.LM_TripUI.viewReceipt('${e.receiptUrl || e.receiptId}')" title="View attached bill">📎 Bill</button>` : ''}
+                                    </div>
                                     <div style="display:flex; align-items:center; gap:8px;">
                                       <strong style="color:var(--text); font-family:var(--font-m);">${_fmtINR(e.amount)}</strong>
                                       <button class="tp-icon-btn" style="color:var(--rose); padding:1px 4px;" title="Delete Expense" onclick="window.LM_TripUI.deletePlanExpense('${trip.id}', '${plan.id}', '${e.id}')">×</button>
@@ -636,15 +658,298 @@
     },
 
     // ─────────────────────────────────────────────────────────────
-    // 5. TAB 3: PLAN-BY-PLAN EXPENSES & FINANCIAL ANALYTICS
+    // 5. TAB 3: SMART PACKING CHECKLIST & DIGITAL DOCUMENT LOCKER
+    // ─────────────────────────────────────────────────────────────
+    renderPackingAndDocsTab: function (trip, container) {
+      const stats = window.LM_TripService.getPackingStats(trip.id);
+      const packingList = Array.isArray(trip.packingList) ? trip.packingList : [];
+      const documents = Array.isArray(trip.documents) ? trip.documents : [];
+
+      const categories = [
+        { key: 'clothing', label: '👕 Clothing & Apparel' },
+        { key: 'toiletries', label: '🧴 Toiletries & Grooming' },
+        { key: 'electronics', label: '🔌 Electronics & Cables' },
+        { key: 'documents', label: '🛂 IDs & Travel Documents' },
+        { key: 'medical', label: '💊 Health & First Aid' },
+        { key: 'gear', label: '🎒 Travel Gear & Utilities' },
+        { key: 'general', label: '📌 Miscellaneous Items' }
+      ];
+
+      const docIcons = {
+        flight: '✈️', hotel: '🏨', visa: '🛂', insurance: '🛡️',
+        contact: '📞', ticket: '🎟️', rental: '🚗', other: '📄'
+      };
+
+      container.innerHTML = `
+        <div class="tp-packing-container">
+          <!-- PACKING PROGRESS SUMMARY & PRESETS -->
+          <div class="tp-packing-hero-card" style="background:var(--surface-card); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
+              <div>
+                <h3 style="font-size:16px; font-weight:700; color:var(--text); margin:0;">🎒 Smart Packing Checklist</h3>
+                <p style="font-size:12px; color:var(--text-3); margin:2px 0 0;">Never forget essentials with 1-click curated travel presets</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:13px; font-weight:700; color:var(--teal); font-family:var(--font-m);">
+                  ${stats.packed} of ${stats.total} Packed (${stats.percent}%)
+                </span>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="tp-progress-bar-bg" style="height:8px; margin-bottom:14px; background:rgba(255,255,255,0.08); border-radius:4px; overflow:hidden;">
+              <div class="tp-progress-bar-fill" style="width:${stats.percent}%; height:100%; background:linear-gradient(90deg, var(--teal), var(--emerald)); transition:width 0.3s ease;"></div>
+            </div>
+
+            <!-- Presets Bar -->
+            <div class="tp-preset-strip" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span style="font-size:11px; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:0.04em;">Auto-Populate:</span>
+              <button type="button" class="tp-btn-secondary" style="font-size:11.5px; padding:4px 10px;" onclick="window.LM_TripUI.applyPackingPreset('${trip.id}', 'general')">🎒 General</button>
+              <button type="button" class="tp-btn-secondary" style="font-size:11.5px; padding:4px 10px;" onclick="window.LM_TripUI.applyPackingPreset('${trip.id}', 'beach')">🏖️ Beach</button>
+              <button type="button" class="tp-btn-secondary" style="font-size:11.5px; padding:4px 10px;" onclick="window.LM_TripUI.applyPackingPreset('${trip.id}', 'trek')">🥾 Trek / Hike</button>
+              <button type="button" class="tp-btn-secondary" style="font-size:11.5px; padding:4px 10px;" onclick="window.LM_TripUI.applyPackingPreset('${trip.id}', 'international')">✈️ International</button>
+              <button type="button" class="tp-btn-secondary" style="font-size:11.5px; padding:4px 10px;" onclick="window.LM_TripUI.applyPackingPreset('${trip.id}', 'roadtrip')">🚗 Road Trip</button>
+            </div>
+          </div>
+
+          <!-- ADD PACKING ITEM INLINE -->
+          <div class="tp-pack-add-bar" style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+            <input type="text" id="tp_new_pack_item" placeholder="Add custom item, e.g. Extra camera battery..." class="form-input" style="flex:1; min-width:180px;" onkeydown="if(event.key==='Enter') window.LM_TripUI.addCustomPackItem('${trip.id}')" />
+            <select id="tp_new_pack_cat" class="form-input" style="width:auto; min-width:140px;">
+              <option value="clothing">👕 Clothing</option>
+              <option value="toiletries">🧴 Toiletries</option>
+              <option value="electronics">🔌 Electronics</option>
+              <option value="documents">🛂 Documents</option>
+              <option value="medical">💊 Medical</option>
+              <option value="gear">🎒 Gear</option>
+              <option value="general" selected>📌 General</option>
+            </select>
+            <button type="button" class="tp-btn-primary" onclick="window.LM_TripUI.addCustomPackItem('${trip.id}')">
+              ＋ Add
+            </button>
+          </div>
+
+          <!-- CATEGORIZED PACKING CHECKLIST -->
+          <div class="tp-packing-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px; margin-bottom:24px;">
+            ${packingList.length === 0 ? `
+              <div style="grid-column:1/-1; text-align:center; padding:32px 16px; background:var(--surface-card); border-radius:12px; border:1px dashed var(--border);">
+                <div style="font-size:28px; margin-bottom:8px;">🎒</div>
+                <div style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:4px;">Checklist is empty</div>
+                <p style="font-size:12px; color:var(--text-3); max-width:320px; margin:0 auto 12px;">Choose a preset above or add custom packing items to get started.</p>
+              </div>
+            ` : categories.map(cat => {
+              const items = packingList.filter(i => (i.category || 'general').toLowerCase() === cat.key);
+              if (items.length === 0) return '';
+              const catPacked = items.filter(i => i.packed).length;
+
+              return `
+                <div class="tp-pack-category-card" style="background:var(--surface-card); border:1px solid var(--border); border-radius:12px; padding:12px 14px;">
+                  <div class="tp-pack-cat-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:6px;">
+                    <span style="font-weight:700; font-size:13px; color:var(--text);">${cat.label}</span>
+                    <span style="font-size:11px; color:var(--text-3); font-family:var(--font-m);">${catPacked}/${items.length}</span>
+                  </div>
+                  <div class="tp-pack-items-list space-y-1">
+                    ${items.map(item => `
+                      <div class="tp-pack-item ${item.packed ? 'packed' : ''}" style="display:flex; align-items:center; justify-content:space-between; padding:4px 6px; border-radius:6px; background:rgba(255,255,255,0.02);">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; flex:1; overflow:hidden;">
+                          <input type="checkbox" ${item.packed ? 'checked' : ''} onchange="window.LM_TripUI.togglePackItem('${trip.id}', '${item.id}')" />
+                          <span style="font-size:12.5px; ${item.packed ? 'text-decoration:line-through; color:var(--text-3);' : 'color:var(--text);'} overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${_esc(item.item)}</span>
+                        </label>
+                        <button type="button" class="tp-icon-btn" style="color:var(--text-3); padding:2px;" title="Delete item" onclick="window.LM_TripUI.deletePackItem('${trip.id}', '${item.id}')">✕</button>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <!-- DIGITAL DOCUMENT LOCKER SECTION -->
+          <div class="tp-docs-section" style="background:var(--surface-card); border:1px solid var(--border); border-radius:14px; padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+              <div>
+                <h3 style="font-size:16px; font-weight:700; color:var(--text); margin:0;">🔒 Digital Document Locker</h3>
+                <p style="font-size:12px; color:var(--text-3); margin:2px 0 0;">Offline PNRs, booking codes, policies &amp; emergency contacts</p>
+              </div>
+              <button class="tp-btn-primary" onclick="window.LM_TripUI.openAddDocModal('${trip.id}')">
+                <span>＋</span> Add Document
+              </button>
+            </div>
+
+            <div class="tp-docs-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px;">
+              ${documents.length === 0 ? `
+                <div style="grid-column:1/-1; text-align:center; padding:32px 16px; background:rgba(255,255,255,0.02); border-radius:12px; border:1px dashed var(--border);">
+                  <div style="font-size:28px; margin-bottom:8px;">📂</div>
+                  <div style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:4px;">No documents in locker</div>
+                  <p style="font-size:12px; color:var(--text-3); max-width:320px; margin:0 auto 12px;">Save flight PNRs, hotel voucher codes, visa numbers or emergency contacts here.</p>
+                  <button class="tp-btn-secondary" onclick="window.LM_TripUI.openAddDocModal('${trip.id}')">+ Add First Document</button>
+                </div>
+              ` : documents.map(doc => {
+                const icon = docIcons[doc.type] || '📄';
+                return `
+                  <div class="tp-doc-card" style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px 14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                      <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:20px;">${icon}</span>
+                        <div>
+                          <div style="font-size:13.5px; font-weight:700; color:var(--text);">${_esc(doc.title)}</div>
+                          <span style="font-size:10px; color:var(--teal); font-weight:600; text-transform:uppercase;">${_esc(doc.type)}</span>
+                        </div>
+                      </div>
+                      <div style="display:flex; gap:4px;">
+                        <button class="tp-icon-btn" title="Edit" onclick="window.LM_TripUI.openAddDocModal('${trip.id}', '${doc.id}')">✏️</button>
+                        <button class="tp-icon-btn" style="color:var(--rose);" title="Delete" onclick="window.LM_TripUI.deleteDoc('${trip.id}', '${doc.id}')">🗑️</button>
+                      </div>
+                    </div>
+
+                    ${doc.refCode ? `
+                      <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(0,240,255,0.06); border:1px dashed rgba(0,240,255,0.25); border-radius:6px; padding:6px 10px; margin-bottom:8px;">
+                        <span style="font-family:var(--font-m); font-size:12px; font-weight:700; color:var(--teal); letter-spacing:0.04em;">${_esc(doc.refCode)}</span>
+                        <button type="button" class="tp-icon-btn" style="font-size:11px; padding:2px 6px; color:var(--teal);" onclick="window.LM_TripUI.copyToClipboard('${_esc(doc.refCode)}')" title="Copy Code">
+                          📋 Copy
+                        </button>
+                      </div>
+                    ` : ''}
+
+                    ${doc.notes ? `<div style="font-size:12px; color:var(--text-2); margin-bottom:6px;">${_esc(doc.notes)}</div>` : ''}
+
+                    ${doc.attachmentUrl ? `
+                      <a href="${_esc(doc.attachmentUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px; color:var(--teal); text-decoration:none;">
+                        📎 View Attached File ↗
+                      </a>
+                    ` : ''}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 6. TAB 4: PLAN-BY-PLAN EXPENSES, BURNING VELOCITY & CHARTS
     // ─────────────────────────────────────────────────────────────
     renderAnalyticsTab: function (trip, container) {
       const fin = window.LM_TripService.getTripFinancials(trip.id);
       const plans = Array.isArray(trip.plans) ? trip.plans : [];
       const generalExpenses = Array.isArray(trip.expenses) ? trip.expenses : [];
 
+      // 1. Burn Pacing Banner
+      let pacingBanner = '';
+      if (fin.pacingStatus === 'over_pacing') {
+        pacingBanner = `
+          <div style="background:rgba(244,63,94,0.12); border:1px solid rgba(244,63,94,0.3); border-radius:12px; padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="font-size:22px;">⚠️</span>
+              <div>
+                <strong style="color:var(--rose); font-size:13.5px; display:block;">Spending Pacing Warning</strong>
+                <span style="font-size:12px; color:var(--text-2);">Burning ${_fmtINR(fin.avgDailySpend)}/day vs target cap of ${_fmtINR(fin.dailyBudgetCap)}/day (${fin.daysElapsed} of ${fin.tripDays} days elapsed).</span>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <span style="font-size:11px; color:var(--text-3); display:block;">Projected Total</span>
+              <strong style="font-size:14px; color:var(--rose); font-family:var(--font-m);">${_fmtINR(fin.projectedTotal)}</strong>
+            </div>
+          </div>
+        `;
+      } else if (fin.daysElapsed > 0) {
+        pacingBanner = `
+          <div style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:12px; padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="font-size:22px;">✅</span>
+              <div>
+                <strong style="color:var(--emerald); font-size:13.5px; display:block;">Pacing Is On Track</strong>
+                <span style="font-size:12px; color:var(--text-2);">Burning ${_fmtINR(fin.avgDailySpend)}/day safely within daily target cap of ${_fmtINR(fin.dailyBudgetCap)}/day.</span>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <span style="font-size:11px; color:var(--text-3); display:block;">Projected Total</span>
+              <strong style="font-size:14px; color:var(--emerald); font-family:var(--font-m);">${_fmtINR(fin.projectedTotal)}</strong>
+            </div>
+          </div>
+        `;
+      }
+
+      // 2. Daily Burn Pacing Bar Chart Data
+      const tripDays = fin.tripDays || 1;
+      const dayData = [];
+      let maxDayVal = fin.dailyBudgetCap || 1000;
+      for (let d = 1; d <= tripDays; d++) {
+        const dPlans = plans.filter(p => (p.dayNumber || 1) === d);
+        const planned = dPlans.reduce((s, p) => s + (p.estimatedCost || 0), 0);
+        const actual = dPlans.reduce((s, p) => s + (p.expenses || []).reduce((es, e) => es + e.amount, 0), 0);
+        if (planned > maxDayVal) maxDayVal = planned;
+        if (actual > maxDayVal) maxDayVal = actual;
+        dayData.push({ day: d, planned, actual });
+      }
+      maxDayVal = Math.ceil(maxDayVal * 1.15) || 1000;
+
+      const chartTop = 30;
+      const chartBottom = 160;
+      const chartHeight = chartBottom - chartTop;
+      const chartLeft = 55;
+      const chartRight = 585;
+      const chartWidth = chartRight - chartLeft;
+      const barSlotWidth = chartWidth / tripDays;
+      const barWidth = Math.min(18, Math.max(8, barSlotWidth * 0.35));
+      const yMid = chartTop + chartHeight / 2;
+      const midVal = Math.round(maxDayVal / 2);
+      const capY = fin.dailyBudgetCap > 0 ? (chartBottom - (fin.dailyBudgetCap / maxDayVal) * chartHeight) : 0;
+
+      const barsSvg = dayData.map((dd, idx) => {
+        const cx = chartLeft + (idx + 0.5) * barSlotWidth;
+        const pHeight = Math.max(2, (dd.planned / maxDayVal) * chartHeight);
+        const aHeight = dd.actual > 0 ? Math.max(2, (dd.actual / maxDayVal) * chartHeight) : 0;
+        const pY = chartBottom - pHeight;
+        const aY = chartBottom - aHeight;
+        const isOver = dd.actual > dd.planned && dd.actual > 0;
+
+        return `
+          <g class="tp-chart-bar-group">
+            <rect x="${cx - barWidth - 1}" y="${pY}" width="${barWidth}" height="${pHeight}" fill="rgba(234, 179, 8, 0.45)" rx="2">
+              <title>Day ${dd.day} Planned: ${_fmtINR(dd.planned)}</title>
+            </rect>
+            ${aHeight > 0 ? `
+              <rect x="${cx + 1}" y="${aY}" width="${barWidth}" height="${aHeight}" fill="${isOver ? '#f43f5e' : '#10b981'}" rx="2">
+                <title>Day ${dd.day} Actual: ${_fmtINR(dd.actual)}</title>
+              </rect>
+            ` : ''}
+            <text x="${cx}" y="${chartBottom + 16}" font-size="10" text-anchor="middle" fill="#94a3b8">D${dd.day}</text>
+          </g>
+        `;
+      }).join('');
+
+      const capLineSvg = (capY >= chartTop && capY <= chartBottom) ? `
+        <line x1="${chartLeft}" y1="${capY}" x2="${chartRight}" y2="${capY}" stroke="#00f0ff" stroke-dasharray="4 3" stroke-width="1.5" opacity="0.8" />
+        <text x="${chartRight - 4}" y="${capY - 4}" font-size="9" text-anchor="end" fill="#00f0ff" font-weight="600">Daily Cap: ${_fmtINR(fin.dailyBudgetCap)}</text>
+      ` : '';
+
+      // 3. Category Donut Slices Data
+      const catColors = {
+        Stay: '#38bdf8', Food: '#f59e0b', Activity: '#a855f7', Sightseeing: '#10b981',
+        Transit: '#f43f5e', Shopping: '#ec4899', Other: '#94a3b8'
+      };
+      const catEntries = Object.entries(fin.categoryBreakdown).filter(([_, d]) => d.actual > 0);
+      const totalActual = fin.totalActualExpenses || 0;
+      const R = 38;
+      const C = 2 * Math.PI * R; // ~238.76
+
+      let accumulatedOffset = 0;
+      const donutSlices = catEntries.map(([cat, d]) => {
+        const ratio = totalActual > 0 ? (d.actual / totalActual) : 0;
+        const dash = ratio * C;
+        const gap = C - dash;
+        const offset = -accumulatedOffset;
+        accumulatedOffset += dash;
+        const color = catColors[cat] || '#94a3b8';
+        return `<circle cx="60" cy="60" r="${R}" fill="none" stroke="${color}" stroke-width="16" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${offset}"><title>${cat}: ${_fmtINR(d.actual)} (${Math.round(ratio*100)}%)</title></circle>`;
+      }).join('');
+
       container.innerHTML = `
         <div style="margin-bottom:20px;">
+          ${pacingBanner}
+
           <!-- FINANCIAL SCORECARD -->
           <div class="tp-kpi-grid" style="margin-bottom:18px;">
             <div class="tp-kpi-card">
@@ -665,26 +970,66 @@
             </div>
           </div>
 
-          <!-- CATEGORY BREAKDOWN BARS -->
-          <div style="background:var(--surface-card); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:20px;">
-            <h4 style="font-size:14px; font-weight:700; color:var(--text); margin-bottom:12px;">📊 Category Spending Breakdown</h4>
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
-              ${Object.keys(fin.categoryBreakdown).map(cat => {
-                const data = fin.categoryBreakdown[cat];
-                const pct = fin.totalActualExpenses > 0 ? Math.round((data.actual / fin.totalActualExpenses) * 100) : 0;
-                return `
-                  <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px;">
-                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
-                      <span style="font-weight:600; color:var(--text);">${cat}</span>
-                      <span style="font-family:var(--font-m); color:var(--teal);">${_fmtINR(data.actual)}</span>
-                    </div>
-                    <div style="font-size:11px; color:var(--text-3); margin-bottom:6px;">Est: ${_fmtINR(data.planned)} · ${pct}% of total</div>
-                    <div class="tp-progress-bar-bg" style="height:4px;">
-                      <div class="tp-progress-bar-fill" style="width:${pct}%; background:var(--teal);"></div>
+          <!-- CHARTS GRID: SVG BURN PACING + SVG DONUT -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:14px; margin-bottom:20px;">
+            <!-- DAILY BURN PACING BAR CHART -->
+            <div style="background:var(--surface-card); border:1px solid var(--border); border-radius:14px; padding:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <h4 style="font-size:14px; font-weight:700; color:var(--text); margin:0;">📈 Daily Burn Pacing vs Cap</h4>
+                <div style="display:flex; align-items:center; gap:8px; font-size:11px;">
+                  <span style="display:inline-flex; align-items:center; gap:3px;"><span style="display:inline-block; width:8px; height:8px; background:rgba(234,179,8,0.7); border-radius:2px;"></span> Est</span>
+                  <span style="display:inline-flex; align-items:center; gap:3px;"><span style="display:inline-block; width:8px; height:8px; background:#10b981; border-radius:2px;"></span> Actual</span>
+                </div>
+              </div>
+              <svg viewBox="0 0 600 190" style="width:100%; height:auto; display:block; overflow:visible;">
+                <!-- Grid Lines -->
+                <line x1="${chartLeft}" y1="${chartTop}" x2="${chartRight}" y2="${chartTop}" stroke="rgba(255,255,255,0.06)" />
+                <text x="${chartLeft - 6}" y="${chartTop + 4}" font-size="9" text-anchor="end" fill="#94a3b8">${_fmtINR(maxDayVal)}</text>
+                <line x1="${chartLeft}" y1="${yMid}" x2="${chartRight}" y2="${yMid}" stroke="rgba(255,255,255,0.06)" />
+                <text x="${chartLeft - 6}" y="${yMid + 4}" font-size="9" text-anchor="end" fill="#94a3b8">${_fmtINR(midVal)}</text>
+                <line x1="${chartLeft}" y1="${chartBottom}" x2="${chartRight}" y2="${chartBottom}" stroke="rgba(255,255,255,0.12)" />
+                <text x="${chartLeft - 6}" y="${chartBottom + 4}" font-size="9" text-anchor="end" fill="#94a3b8">₹0</text>
+                <!-- Daily Cap Dotted Line -->
+                ${capLineSvg}
+                <!-- Day Bars -->
+                ${barsSvg}
+              </svg>
+            </div>
+
+            <!-- CATEGORY SPENDING DONUT & LEGEND -->
+            <div style="background:var(--surface-card); border:1px solid var(--border); border-radius:14px; padding:16px;">
+              <h4 style="font-size:14px; font-weight:700; color:var(--text); margin-bottom:12px;">🍩 Category Spending Breakdown</h4>
+              ${totalActual === 0 ? `
+                <div style="text-align:center; padding:36px 12px; color:var(--text-3); font-size:12.5px;">No expenses logged yet to render breakdown.</div>
+              ` : `
+                <div style="display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
+                  <div style="position:relative; width:120px; height:120px; flex-shrink:0;">
+                    <svg viewBox="0 0 120 120" style="width:100%; height:100%; transform:rotate(-90deg);">
+                      ${donutSlices}
+                    </svg>
+                    <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none;">
+                      <span style="font-size:10px; color:var(--text-3); text-transform:uppercase;">Total</span>
+                      <strong style="font-size:11.5px; color:var(--text); font-family:var(--font-m);">${_fmtINR(totalActual)}</strong>
                     </div>
                   </div>
-                `;
-              }).join('') || '<div style="color:var(--text-3); font-size:12px;">No categorized expenses yet.</div>'}
+
+                  <div style="flex:1; min-width:160px;" class="space-y-1">
+                    ${catEntries.map(([cat, d]) => {
+                      const color = catColors[cat] || '#94a3b8';
+                      const pct = Math.round((d.actual / totalActual) * 100);
+                      return `
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px;">
+                          <div style="display:flex; align-items:center; gap:6px;">
+                            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${color};"></span>
+                            <span style="color:var(--text);">${cat}</span>
+                          </div>
+                          <span style="font-family:var(--font-m); font-weight:600; color:var(--teal);">${_fmtINR(d.actual)} (${pct}%)</span>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+              `}
             </div>
           </div>
 
@@ -738,7 +1083,7 @@
           </div>
 
           <!-- GENERAL TRIP EXPENSES -->
-          <div style="background:var(--surface-card); border:1px solid var(--border); border-radius:14px; padding:16px;">
+          <div style="background:var(--surface-card); border:1px solid var(--border); border-radius:14px; padding:16px; margin-top:20px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
               <div>
                 <h4 style="font-size:14px; font-weight:700; color:var(--text); margin:0;">
@@ -775,7 +1120,7 @@
     },
 
     // ─────────────────────────────────────────────────────────────
-    // 6. TAB 4: GROUP BILL SPLIT & SETTLEMENTS
+    // 7. TAB 5: GROUP BILL SPLIT, UPI DEEP-LINK & QR SETTLEMENTS
     // ─────────────────────────────────────────────────────────────
     renderSplitTab: function (trip, container) {
       const persons = trip.persons || [];
@@ -803,6 +1148,7 @@
             ` : payments.map(p => {
               const existing = settlements.find(s => s.from === p.from && s.to === p.to);
               const isSettled = existing && existing.status === 'collected';
+              const upiUrl = window.LM_TripService.getUpiIntentUrl(trip.id, p.to, p.amount);
 
               return `
                 <div style="background:var(--surface-card); border:1px solid var(--border); border-radius:12px; padding:14px;">
@@ -814,12 +1160,19 @@
                       ${_fmtINR(p.amount)}
                     </div>
                   </div>
-                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
                     ${isSettled ? `
                       <span style="font-size:11.5px; font-weight:700; color:var(--emerald);">✅ Confirmed Settled</span>
                     ` : `
-                      <span style="font-size:11.5px; color:var(--gold);">⚠️ Uncollected</span>
-                      <button class="tp-btn-primary" style="padding:4px 10px; font-size:11px;" onclick="window.LM_TripUI.confirmSettlement('${trip.id}', '${p.from}', '${p.to}', ${p.amount})">
+                      <div style="display:flex; align-items:center; gap:6px;">
+                        <a href="${upiUrl}" class="tp-btn-primary" style="padding:4px 10px; font-size:11px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                          ⚡ Pay UPI
+                        </a>
+                        <button type="button" class="tp-btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="window.LM_TripUI.openUpiQrModal('${_esc(p.fromName)}', '${_esc(p.toName)}', ${p.amount}, '${_esc(trip.name)}')">
+                          📱 QR
+                        </button>
+                      </div>
+                      <button class="tp-btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="window.LM_TripUI.confirmSettlement('${trip.id}', '${p.from}', '${p.to}', ${p.amount})">
                         Mark Paid
                       </button>
                     `}
@@ -833,17 +1186,20 @@
     },
 
     // ─────────────────────────────────────────────────────────────
-    // 7. INTERACTIVE MODALS & CRUD FORMS
+    // 8. INTERACTIVE MODALS & CRUD FORMS
     // ─────────────────────────────────────────────────────────────
     openAddTripModal: function (existingTripId = null) {
       const existing = existingTripId ? window.LM_TripService.getTrip(existingTripId) : null;
+      const vehicles = (window.LM_VehicleService && typeof window.LM_VehicleService.getVehicles === 'function') ? (window.LM_VehicleService.getVehicles() || []) : [];
+      const currencies = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'THB', 'SGD', 'JPY', 'IDR', 'CAD', 'AUD'];
+
       const modal = document.createElement('div');
       modal.className = 'modal-overlay';
       modal.id = 'tp_tripModalOverlay';
       modal.style.zIndex = '99999';
 
       modal.innerHTML = `
-        <div class="modal" style="max-width:500px; width:92vw;">
+        <div class="modal" style="max-width:520px; width:92vw;">
           <div class="modal-header">
             <h3 class="modal-title font-bold text-lg">${existing ? '✏️ Edit Trip' : '✈️ Plan New Trip'}</h3>
             <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
@@ -862,6 +1218,24 @@
               <div>
                 <label class="text-xs font-semibold text-muted">Cover Emoji</label>
                 <input id="tp_form_emoji" placeholder="🏖️" value="${_esc(existing?.coverEmoji || '✈️')}" class="form-input w-full" />
+              </div>
+            </div>
+
+            <!-- CURRENCY & FX RATES -->
+            <div class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+              <div>
+                <label class="text-xs font-semibold text-muted">Trip Currency</label>
+                <select id="tp_form_currency" class="form-input w-full" onchange="window.LM_TripUI._onCurrencyChange()">
+                  ${currencies.map(c => `
+                    <option value="${c}" ${(existing?.currency || 'INR') === c ? 'selected' : ''}>
+                      ${c} (${window.LM_TripService.CURRENCY_SYMBOLS[c] || ''})
+                    </option>
+                  `).join('')}
+                </select>
+              </div>
+              <div id="tp_form_fx_wrap" style="${(existing?.currency && existing.currency !== 'INR') ? '' : 'display:none;'}">
+                <label class="text-xs font-semibold text-muted">FX Rate (₹ per 1 unit)</label>
+                <input type="number" step="0.01" id="tp_form_fx" value="${existing?.exchangeRate || 1}" class="form-input w-full" />
               </div>
             </div>
 
@@ -900,6 +1274,21 @@
               </div>
             </div>
 
+            <!-- VEHICLE FLEET SYNC -->
+            <div class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+              <div>
+                <label class="text-xs font-semibold text-muted">Linked Vehicle (Optional)</label>
+                <select id="tp_form_vehicle" class="form-input w-full">
+                  <option value="">None / Public Transport</option>
+                  ${vehicles.map(v => `<option value="${v.id}" ${existing?.vehicleId === v.id ? 'selected' : ''}>${_esc(v.name || 'Vehicle')} (${_esc(v.regNumber || '')})</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="text-xs font-semibold text-muted">Start Odometer (km)</label>
+                <input type="number" id="tp_form_odo" placeholder="e.g. 45200" value="${existing?.startOdometer || ''}" class="form-input w-full" />
+              </div>
+            </div>
+
             <div>
               <label class="text-xs font-semibold text-muted">Total Budget Target (₹)</label>
               <input type="number" id="tp_form_budget" placeholder="e.g. 40000" value="${existing?.budgetCap || ''}" class="form-input w-full" />
@@ -933,6 +1322,18 @@
       persons.forEach(p => this._addPersonRow(p.name, p.id));
     },
 
+    _onCurrencyChange: function () {
+      const curr = document.getElementById('tp_form_currency')?.value || 'INR';
+      const wrap = document.getElementById('tp_form_fx_wrap');
+      const fxInp = document.getElementById('tp_form_fx');
+      if (wrap) {
+        wrap.style.display = (curr !== 'INR') ? 'block' : 'none';
+      }
+      if (fxInp && curr !== 'INR' && window.LM_TripService.DEFAULT_FX_RATES) {
+        fxInp.value = window.LM_TripService.DEFAULT_FX_RATES[curr] || 1;
+      }
+    },
+
     _addPersonRow: function (name = '', id = '') {
       const container = document.getElementById('tp_form_persons');
       if (!container) return;
@@ -961,6 +1362,11 @@
       const budget = Number(document.getElementById('tp_form_budget')?.value) || 0;
       const notes = document.getElementById('tp_form_notes')?.value.trim() || '';
 
+      const currency = document.getElementById('tp_form_currency')?.value || 'INR';
+      const exchangeRate = Number(document.getElementById('tp_form_fx')?.value) || 1;
+      const vehicleId = document.getElementById('tp_form_vehicle')?.value || null;
+      const startOdometer = document.getElementById('tp_form_odo')?.value ? Number(document.getElementById('tp_form_odo').value) : null;
+
       const personInputs = Array.from(document.querySelectorAll('.tp-person-input'));
       const persons = personInputs
         .map((inp, idx) => ({ id: inp.dataset.id || `p_${idx + 1}`, name: inp.value.trim() }))
@@ -972,13 +1378,15 @@
         if (existingId) {
           await window.LM_TripService.updateTrip(existingId, {
             name, destination: dest, coverEmoji: emoji, startDate: start, endDate: end,
-            travelMode: mode, status, budgetCap: budget, notes, persons
+            travelMode: mode, status, budgetCap: budget, notes, persons,
+            currency, exchangeRate, vehicleId, startOdometer
           });
           this.openTrip(existingId);
         } else {
           const newTrip = await window.LM_TripService.createTrip({
             name, destination: dest, coverEmoji: emoji, startDate: start, endDate: end,
-            travelMode: mode, status, budgetCap: budget, notes, persons
+            travelMode: mode, status, budgetCap: budget, notes, persons,
+            currency, exchangeRate, vehicleId, startOdometer
           });
           this.openTrip(newTrip.id);
         }
@@ -1323,7 +1731,7 @@
     },
 
     // ─────────────────────────────────────────────────────────────
-    // 10. PLAN EXPENSE MODAL (LOGGING EXPENSE AGAINST PLAN)
+    // 10. PLAN EXPENSE MODAL (DUAL CURRENCY & RECEIPT SCAN)
     // ─────────────────────────────────────────────────────────────
     openPlanExpenseModal: function (tripId, planId, existingExpId = null) {
       const trip = window.LM_TripService.getTrip(tripId);
@@ -1332,6 +1740,8 @@
 
       const pf = window.LM_TripService.getPlanFinancials(plan);
       const defaultAmount = pf.actualTotal === 0 && pf.estimatedCost > 0 ? pf.estimatedCost : '';
+      const isForeign = trip.currency && trip.currency !== 'INR';
+      const fxRate = trip.exchangeRate || 1;
 
       const modal = document.createElement('div');
       modal.className = 'modal-overlay';
@@ -1339,7 +1749,7 @@
       modal.style.zIndex = '99999';
 
       modal.innerHTML = `
-        <div class="modal" style="max-width:460px; width:92vw;">
+        <div class="modal" style="max-width:480px; width:92vw;">
           <div class="modal-header">
             <h3 class="modal-title font-bold text-lg">⚡ Log Expense for Plan</h3>
             <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
@@ -1349,21 +1759,48 @@
               Plan: <strong style="color:var(--text);">${_esc(plan.title)}</strong> (Estimated: ${_fmtINR(pf.estimatedCost)})
             </p>
 
-            <div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
               <label class="text-xs font-semibold text-muted">Expense Description *</label>
-              <input id="tp_pexp_title" placeholder="e.g. Scuba Advance Deposit" value="${_esc(plan.title)}" class="form-input w-full" />
+              <button type="button" class="tp-btn-secondary" style="font-size:11px; padding:2px 8px; color:var(--teal);" onclick="window.LM_TripUI.triggerReceiptScan('tp_pexp_title', 'tp_pexp_amount', 'tp_pexp_receipt_preview', 'tp_pexp_receipt_url')">
+                📷 Scan Bill / Receipt
+              </button>
             </div>
+            <input id="tp_pexp_title" placeholder="e.g. Scuba Advance Deposit" value="${_esc(plan.title)}" class="form-input w-full" />
+            <input type="file" id="tp_receipt_hidden_file" accept="image/*" style="display:none;" onchange="window.LM_TripUI._handleReceiptFile(event, 'tp_pexp_title', 'tp_pexp_amount', 'tp_pexp_receipt_preview', 'tp_pexp_receipt_url')" />
+            <input type="hidden" id="tp_pexp_receipt_url" value="" />
+            <div id="tp_pexp_receipt_preview" style="display:none;"></div>
 
-            <div class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-              <div>
-                <label class="text-xs font-semibold text-muted">Amount (₹) *</label>
-                <input type="number" id="tp_pexp_amount" placeholder="e.g. 3500" value="${defaultAmount}" class="form-input w-full" />
+            <!-- DUAL CURRENCY FIELDS IF FOREIGN -->
+            ${isForeign ? `
+              <div class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div>
+                  <label class="text-xs font-semibold text-muted">Amount in ${trip.currency} (${window.LM_TripService.CURRENCY_SYMBOLS[trip.currency] || ''})</label>
+                  <input type="number" step="0.01" id="tp_pexp_local_amt" placeholder="e.g. 50" class="form-input w-full" oninput="document.getElementById('tp_pexp_amount').value = Math.round(Number(this.value) * ${fxRate})" />
+                </div>
+                <div>
+                  <label class="text-xs font-semibold text-muted">Amount in INR (₹) *</label>
+                  <input type="number" id="tp_pexp_amount" placeholder="e.g. 4300" value="${defaultAmount}" class="form-input w-full" />
+                </div>
               </div>
+            ` : `
+              <div class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div>
+                  <label class="text-xs font-semibold text-muted">Amount (₹) *</label>
+                  <input type="number" id="tp_pexp_amount" placeholder="e.g. 3500" value="${defaultAmount}" class="form-input w-full" />
+                </div>
+                <div>
+                  <label class="text-xs font-semibold text-muted">Date</label>
+                  <input type="date" id="tp_pexp_date" value="${new Date().toISOString().split('T')[0]}" class="form-input w-full" />
+                </div>
+              </div>
+            `}
+
+            ${isForeign ? `
               <div>
                 <label class="text-xs font-semibold text-muted">Date</label>
                 <input type="date" id="tp_pexp_date" value="${new Date().toISOString().split('T')[0]}" class="form-input w-full" />
               </div>
-            </div>
+            ` : ''}
 
             <div class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
               <div>
@@ -1395,6 +1832,16 @@
               </div>
             </div>
 
+            <!-- Vehicle Fuel Sync Option -->
+            ${trip.vehicleId ? `
+              <div style="background:rgba(234, 179, 8, 0.08); border:1px solid rgba(234, 179, 8, 0.2); border-radius:10px; padding:10px 12px;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; font-weight:600; color:var(--text);">
+                  <input type="checkbox" id="tp_pexp_sync_fuel" ${plan.category === 'Transit' ? 'checked' : ''} />
+                  <span>🚗 Auto-Sync to Linked Vehicle Fuel Log</span>
+                </label>
+              </div>
+            ` : ''}
+
             <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
               <button type="button" class="tp-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
               <button type="button" class="tp-btn-primary" onclick="window.LM_TripUI._savePlanExpense('${trip.id}', '${plan.id}')">Save Expense</button>
@@ -1415,14 +1862,26 @@
         return;
       }
 
+      const trip = window.LM_TripService.getTrip(tripId);
       const date = document.getElementById('tp_pexp_date')?.value;
       const paidBy = document.getElementById('tp_pexp_paidby')?.value;
       const paymentMethod = document.getElementById('tp_pexp_method')?.value;
       const linkToCentralLedger = Boolean(document.getElementById('tp_pexp_link')?.checked);
+      const syncFuel = Boolean(document.getElementById('tp_pexp_sync_fuel')?.checked);
+      const receiptUrl = document.getElementById('tp_pexp_receipt_url')?.value || null;
+      const localAmount = Number(document.getElementById('tp_pexp_local_amt')?.value) || amount;
 
       await window.LM_TripService.addPlanExpense(tripId, planId, {
-        title, amount, date, paidBy, paymentMethod
-      }, { linkToCentralLedger });
+        title,
+        amount,
+        date,
+        paidBy,
+        paymentMethod,
+        currency: trip?.currency || 'INR',
+        localAmount,
+        exchangeRate: trip?.exchangeRate || 1,
+        receiptUrl
+      }, { linkToCentralLedger, syncFuelToVehicle: syncFuel });
 
       document.getElementById('tp_planExpModalOverlay')?.remove();
       this.renderTripWorkspace(tripId);
@@ -1435,11 +1894,14 @@
     },
 
     // ─────────────────────────────────────────────────────────────
-    // 11. GENERAL EXPENSE MODAL
+    // 11. GENERAL EXPENSE MODAL (WITH SCAN & DUAL CURRENCY)
     // ─────────────────────────────────────────────────────────────
     openGeneralExpenseModal: function (tripId) {
       const trip = window.LM_TripService.getTrip(tripId);
       if (!trip) return;
+
+      const isForeign = trip.currency && trip.currency !== 'INR';
+      const fxRate = trip.exchangeRate || 1;
 
       const modal = document.createElement('div');
       modal.className = 'modal-overlay';
@@ -1447,22 +1909,53 @@
       modal.style.zIndex = '99999';
 
       modal.innerHTML = `
-        <div class="modal" style="max-width:460px; width:92vw;">
+        <div class="modal" style="max-width:480px; width:92vw;">
           <div class="modal-header">
             <h3 class="modal-title font-bold text-lg">＋ Add General Trip Expense</h3>
             <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
           </div>
           <div class="modal-body space-y-3" style="padding:16px;">
-            <div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
               <label class="text-xs font-semibold text-muted">Description *</label>
-              <input id="tp_gexp_title" placeholder="e.g. Highway Toll / Group Snacks" class="form-input w-full" />
+              <button type="button" class="tp-btn-secondary" style="font-size:11px; padding:2px 8px; color:var(--teal);" onclick="window.LM_TripUI.triggerReceiptScan('tp_gexp_title', 'tp_gexp_amount', 'tp_gexp_receipt_preview', 'tp_gexp_receipt_url')">
+                📷 Scan Bill / Receipt
+              </button>
             </div>
+            <input id="tp_gexp_title" placeholder="e.g. Highway Toll / Group Snacks" class="form-input w-full" />
+            <input type="file" id="tp_receipt_hidden_file" accept="image/*" style="display:none;" onchange="window.LM_TripUI._handleReceiptFile(event, 'tp_gexp_title', 'tp_gexp_amount', 'tp_gexp_receipt_preview', 'tp_gexp_receipt_url')" />
+            <input type="hidden" id="tp_gexp_receipt_url" value="" />
+            <div id="tp_gexp_receipt_preview" style="display:none;"></div>
 
-            <div class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-              <div>
-                <label class="text-xs font-semibold text-muted">Amount (₹) *</label>
-                <input type="number" id="tp_gexp_amount" placeholder="e.g. 500" class="form-input w-full" />
+            ${isForeign ? `
+              <div class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div>
+                  <label class="text-xs font-semibold text-muted">Amount in ${trip.currency} (${window.LM_TripService.CURRENCY_SYMBOLS[trip.currency] || ''})</label>
+                  <input type="number" step="0.01" id="tp_gexp_local_amt" placeholder="e.g. 20" class="form-input w-full" oninput="document.getElementById('tp_gexp_amount').value = Math.round(Number(this.value) * ${fxRate})" />
+                </div>
+                <div>
+                  <label class="text-xs font-semibold text-muted">Amount in INR (₹) *</label>
+                  <input type="number" id="tp_gexp_amount" placeholder="e.g. 1720" class="form-input w-full" />
+                </div>
               </div>
+            ` : `
+              <div class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div>
+                  <label class="text-xs font-semibold text-muted">Amount (₹) *</label>
+                  <input type="number" id="tp_gexp_amount" placeholder="e.g. 500" class="form-input w-full" />
+                </div>
+                <div>
+                  <label class="text-xs font-semibold text-muted">Category</label>
+                  <select id="tp_gexp_cat" class="form-input w-full">
+                    <option value="Transit">🚗 Toll / Fuel / Transit</option>
+                    <option value="Food">🍽️ Snacks / Food</option>
+                    <option value="Shopping">🛍️ Shopping</option>
+                    <option value="General">📌 General / Misc</option>
+                  </select>
+                </div>
+              </div>
+            `}
+
+            ${isForeign ? `
               <div>
                 <label class="text-xs font-semibold text-muted">Category</label>
                 <select id="tp_gexp_cat" class="form-input w-full">
@@ -1472,7 +1965,7 @@
                   <option value="General">📌 General / Misc</option>
                 </select>
               </div>
-            </div>
+            ` : ''}
 
             <div class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
               <div>
@@ -1498,6 +1991,15 @@
               </label>
             </div>
 
+            ${trip.vehicleId ? `
+              <div style="background:rgba(234, 179, 8, 0.08); border:1px solid rgba(234, 179, 8, 0.2); border-radius:10px; padding:10px 12px;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; font-weight:600; color:var(--text);">
+                  <input type="checkbox" id="tp_gexp_sync_fuel" />
+                  <span>🚗 Auto-Sync to Linked Vehicle Fuel Log</span>
+                </label>
+              </div>
+            ` : ''}
+
             <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
               <button type="button" class="tp-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
               <button type="button" class="tp-btn-primary" onclick="window.LM_TripUI._saveGeneralExpense('${trip.id}')">Save Expense</button>
@@ -1518,14 +2020,26 @@
         return;
       }
 
+      const trip = window.LM_TripService.getTrip(tripId);
       const category = document.getElementById('tp_gexp_cat')?.value || 'General';
       const paidBy = document.getElementById('tp_gexp_paidby')?.value;
       const paymentMethod = document.getElementById('tp_gexp_method')?.value;
       const linkToCentralLedger = Boolean(document.getElementById('tp_gexp_link')?.checked);
+      const syncFuel = Boolean(document.getElementById('tp_gexp_sync_fuel')?.checked);
+      const receiptUrl = document.getElementById('tp_gexp_receipt_url')?.value || null;
+      const localAmount = Number(document.getElementById('tp_gexp_local_amt')?.value) || amount;
 
       await window.LM_TripService.addGeneralExpense(tripId, {
-        title, amount, category, paidBy, paymentMethod
-      }, { linkToCentralLedger });
+        title,
+        amount,
+        category,
+        paidBy,
+        paymentMethod,
+        currency: trip?.currency || 'INR',
+        localAmount,
+        exchangeRate: trip?.exchangeRate || 1,
+        receiptUrl
+      }, { linkToCentralLedger, syncFuelToVehicle: syncFuel });
 
       document.getElementById('tp_genExpModalOverlay')?.remove();
       this.renderTripWorkspace(tripId);
@@ -1535,6 +2049,327 @@
       if (!confirm('Delete this expense?')) return;
       await window.LM_TripService.deleteGeneralExpense(tripId, expId, true);
       this.renderTripWorkspace(tripId);
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 12. PACKING CHECKLIST HANDLERS
+    // ─────────────────────────────────────────────────────────────
+    applyPackingPreset: async function (tripId, presetKey) {
+      try {
+        const res = await window.LM_TripService.populatePackingPreset(tripId, presetKey);
+        if (typeof showToast === 'function') {
+          showToast(`🎒 Added ${res.addedCount} items to packing list!`, 'success');
+        }
+        this.renderTripWorkspace(tripId);
+      } catch (err) {
+        alert('Error applying preset: ' + err.message);
+      }
+    },
+
+    addCustomPackItem: async function (tripId) {
+      const itemInput = document.getElementById('tp_new_pack_item');
+      const catInput = document.getElementById('tp_new_pack_cat');
+      const item = itemInput?.value.trim();
+      if (!item) return;
+      const category = catInput?.value || 'general';
+      await window.LM_TripService.addPackingItem(tripId, { item, category });
+      if (itemInput) itemInput.value = '';
+      this.renderTripWorkspace(tripId);
+    },
+
+    togglePackItem: async function (tripId, itemId) {
+      await window.LM_TripService.togglePackingItem(tripId, itemId);
+      this.renderTripWorkspace(tripId);
+    },
+
+    deletePackItem: async function (tripId, itemId) {
+      await window.LM_TripService.deletePackingItem(tripId, itemId);
+      this.renderTripWorkspace(tripId);
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 13. DIGITAL DOCUMENT LOCKER HANDLERS
+    // ─────────────────────────────────────────────────────────────
+    openAddDocModal: function (tripId, docId = null) {
+      const trip = window.LM_TripService.getTrip(tripId);
+      if (!trip) return;
+      const existing = docId ? (trip.documents || []).find(d => d.id === docId) : null;
+
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.id = 'tp_docModalOverlay';
+      modal.style.zIndex = '99999';
+
+      modal.innerHTML = `
+        <div class="modal" style="max-width:460px; width:92vw;">
+          <div class="modal-header">
+            <h3 class="modal-title font-bold text-lg">${existing ? '✏️ Edit Travel Document' : '🔒 Add Travel Document'}</h3>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          </div>
+          <div class="modal-body space-y-3" style="padding:16px;">
+            <div>
+              <label class="text-xs font-semibold text-muted">Document / Booking Title *</label>
+              <input id="tp_doc_title" placeholder="e.g. Flight to Goa (Air India) / Taj Hotel Voucher" value="${_esc(existing?.title || '')}" class="form-input w-full" />
+            </div>
+
+            <div class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+              <div>
+                <label class="text-xs font-semibold text-muted">Type</label>
+                <select id="tp_doc_type" class="form-input w-full">
+                  <option value="flight" ${existing?.type === 'flight' ? 'selected' : ''}>✈️ Flight Ticket / Boarding</option>
+                  <option value="hotel" ${existing?.type === 'hotel' ? 'selected' : ''}>🏨 Hotel / Resort Voucher</option>
+                  <option value="ticket" ${existing?.type === 'ticket' ? 'selected' : ''}>🎟️ Activity / Entry Pass</option>
+                  <option value="visa" ${existing?.type === 'visa' ? 'selected' : ''}>🛂 Visa / Entry Permit</option>
+                  <option value="insurance" ${existing?.type === 'insurance' ? 'selected' : ''}>🛡️ Travel Insurance</option>
+                  <option value="rental" ${existing?.type === 'rental' ? 'selected' : ''}>🚗 Car / Scooter Rental</option>
+                  <option value="contact" ${existing?.type === 'contact' ? 'selected' : ''}>📞 Emergency Contact</option>
+                  <option value="other" ${existing?.type === 'other' || !existing ? 'selected' : ''}>📄 Other Document</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-xs font-semibold text-muted">PNR / Ref / Policy Code</label>
+                <input id="tp_doc_code" placeholder="e.g. AI-9821, BKG-883" value="${_esc(existing?.refCode || '')}" class="form-input w-full" />
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs font-semibold text-muted">Attachment Link / Web URL</label>
+              <input id="tp_doc_url" placeholder="https://drive.google.com/... or reservation link" value="${_esc(existing?.attachmentUrl || '')}" class="form-input w-full" />
+            </div>
+
+            <div>
+              <label class="text-xs font-semibold text-muted">Notes (Seat #, terminal, baggage allowance, emergency numbers)</label>
+              <textarea id="tp_doc_notes" rows="2" placeholder="Terminal 2, Seat 14B, 15kg check-in..." class="form-input w-full">${_esc(existing?.notes || '')}</textarea>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+              <button type="button" class="tp-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+              <button type="button" class="tp-btn-primary" onclick="window.LM_TripUI._saveDocModal('${trip.id}', '${existing?.id || ''}')">Save Document</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+      setTimeout(() => modal.classList.add('show'), 10);
+    },
+
+    _saveDocModal: async function (tripId, docId) {
+      const title = document.getElementById('tp_doc_title')?.value.trim();
+      if (!title) { alert('Please enter a document title'); return; }
+
+      const type = document.getElementById('tp_doc_type')?.value || 'other';
+      const refCode = document.getElementById('tp_doc_code')?.value.trim() || '';
+      const attachmentUrl = document.getElementById('tp_doc_url')?.value.trim() || null;
+      const notes = document.getElementById('tp_doc_notes')?.value.trim() || '';
+
+      if (docId) {
+        await window.LM_TripService.updateDocument(tripId, docId, { title, type, refCode, attachmentUrl, notes });
+      } else {
+        await window.LM_TripService.addDocument(tripId, { title, type, refCode, attachmentUrl, notes });
+      }
+
+      document.getElementById('tp_docModalOverlay')?.remove();
+      this.renderTripWorkspace(tripId);
+    },
+
+    deleteDoc: async function (tripId, docId) {
+      if (!confirm('Remove this document from locker?')) return;
+      await window.LM_TripService.deleteDocument(tripId, docId);
+      this.renderTripWorkspace(tripId);
+    },
+
+    copyToClipboard: function (text) {
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          if (typeof showToast === 'function') showToast('📋 Copied to clipboard!', 'info');
+        }).catch(() => {
+          prompt('Copy reference code:', text);
+        });
+      } else {
+        prompt('Copy reference code:', text);
+      }
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 14. UPI QR & RECEIPT LIGHTBOX MODALS
+    // ─────────────────────────────────────────────────────────────
+    openUpiQrModal: function (fromName, toName, amount, tripName) {
+      const vpa = 'settlement@upi';
+      const upiUrl = `upi://pay?pa=${vpa}&pn=${encodeURIComponent(toName)}&am=${amount}&tn=${encodeURIComponent(tripName + ' split')}&cu=INR`;
+      const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiUrl)}`;
+
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.id = 'tp_upiQrModalOverlay';
+      modal.style.zIndex = '99999';
+
+      modal.innerHTML = `
+        <div class="modal" style="max-width:360px; width:92vw; text-align:center;">
+          <div class="modal-header">
+            <h3 class="modal-title font-bold text-base">📱 UPI Settlement QR</h3>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          </div>
+          <div class="modal-body" style="padding:20px 16px;">
+            <div style="font-size:14px; font-weight:700; color:var(--text); margin-bottom:2px;">
+              ${_esc(fromName)} ➔ ${_esc(toName)}
+            </div>
+            <div style="font-size:24px; font-weight:800; color:var(--teal); font-family:var(--font-m); margin-bottom:14px;">
+              ${_fmtINR(amount)}
+            </div>
+
+            <div style="background:#ffffff; padding:12px; border-radius:12px; display:inline-block; margin-bottom:14px; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+              <img src="${qrImgSrc}" alt="UPI QR Code" style="width:200px; height:200px; display:block;" onerror="this.alt='Unable to load QR image. Please use UPI link below.'" />
+            </div>
+
+            <p style="font-size:12px; color:var(--text-3); margin-bottom:14px;">
+              Scan using any UPI App (GPay, PhonePe, Paytm, BHIM)
+            </p>
+
+            <div style="display:flex; justify-content:center; gap:8px;">
+              <a href="${upiUrl}" class="tp-btn-primary" style="text-decoration:none; padding:8px 14px; font-size:12px;">⚡ Open UPI App</a>
+              <button type="button" class="tp-btn-secondary" style="font-size:12px; padding:8px 12px;" onclick="window.LM_TripUI.copyToClipboard('${upiUrl}')">📋 Copy Link</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+      setTimeout(() => modal.classList.add('show'), 10);
+    },
+
+    triggerReceiptScan: function (titleInputId, amountInputId, previewId, receiptUrlInputId) {
+      if (window.LM_ReceiptOCR && typeof window.LM_ReceiptOCR.openReceiptScannerModal === 'function') {
+        window.LM_ReceiptOCR.openReceiptScannerModal((data) => {
+          const titleEl = document.getElementById(titleInputId);
+          const amtEl = document.getElementById(amountInputId);
+          const previewEl = document.getElementById(previewId);
+          const urlInpEl = document.getElementById(receiptUrlInputId);
+
+          if (titleEl && data.merchant) titleEl.value = data.merchant;
+          if (amtEl && data.amount > 0) amtEl.value = data.amount;
+          if (data.receiptUrl || data.receiptId) {
+            if (urlInpEl) urlInpEl.value = data.receiptUrl || data.receiptId;
+            if (previewEl) {
+              previewEl.style.display = 'block';
+              previewEl.innerHTML = `<span style="font-size:11px; color:var(--emerald);">📎 Bill attached (${data.merchant || 'Receipt'})</span>`;
+            }
+          }
+          if (typeof showToast === 'function') showToast('📷 Receipt scanned & applied!', 'success');
+        });
+      } else {
+        const fileInput = document.getElementById('tp_receipt_hidden_file');
+        if (fileInput) fileInput.click();
+      }
+    },
+
+    _handleReceiptFile: function (event, titleInputId, amountInputId, previewId, receiptUrlInputId) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target.result;
+        const urlInpEl = document.getElementById(receiptUrlInputId);
+        const previewEl = document.getElementById(previewId);
+        if (urlInpEl) urlInpEl.value = dataUrl;
+        if (previewEl) {
+          previewEl.style.display = 'block';
+          previewEl.innerHTML = `
+            <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+              <img src="${dataUrl}" style="width:40px; height:40px; object-fit:cover; border-radius:6px; border:1px solid var(--border);" />
+              <span style="font-size:11px; color:var(--emerald);">📎 Receipt attached (${file.name})</span>
+            </div>
+          `;
+        }
+        if (typeof showToast === 'function') showToast('📷 Bill image attached!', 'success');
+      };
+      reader.readAsDataURL(file);
+    },
+
+    viewReceipt: function (urlOrId) {
+      if (!urlOrId) return;
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.id = 'tp_receiptLightbox';
+      modal.style.zIndex = '99999';
+
+      modal.innerHTML = `
+        <div class="modal" style="max-width:540px; width:94vw; padding:0; overflow:hidden;">
+          <div class="modal-header" style="padding:12px 16px;">
+            <h3 class="modal-title font-bold text-sm">📎 Attached Bill / Receipt</h3>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          </div>
+          <div style="padding:16px; text-align:center; background:#0b1120; max-height:75vh; overflow-y:auto;">
+            <img src="${_esc(urlOrId)}" alt="Receipt" style="max-width:100%; height:auto; border-radius:8px; display:inline-block;" onerror="this.alt='Unable to preview image file.'" />
+          </div>
+          <div style="padding:10px 16px; display:flex; justify-content:flex-end;">
+            <button type="button" class="tp-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+      setTimeout(() => modal.classList.add('show'), 10);
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 15. VOICE LOGGING & OFFLINE PRINT / PDF
+    // ─────────────────────────────────────────────────────────────
+    startVoiceLog: function (tripId) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        const text = prompt('🎙️ Voice input not supported in this browser. Enter quick expense description & amount:\n(e.g. "Beach cafe snacks 450")');
+        if (text) this._parseAndOpenQuickExpense(tripId, text);
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-IN';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      if (typeof showToast === 'function') {
+        showToast('🎙️ Listening... Say your expense (e.g. "Dinner at cafe 850")', 'info');
+      }
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        if (typeof showToast === 'function') showToast(`🎙️ Heard: "${transcript}"`, 'info');
+        this._parseAndOpenQuickExpense(tripId, transcript);
+      };
+
+      recognition.onerror = (e) => {
+        console.warn('[TripUI] Speech recognition error:', e);
+        if (typeof showToast === 'function') showToast('Voice recognition ended. Opening expense form.', 'info');
+        this.openGeneralExpenseModal(tripId);
+      };
+
+      try {
+        recognition.start();
+      } catch (e) {
+        this.openGeneralExpenseModal(tripId);
+      }
+    },
+
+    _parseAndOpenQuickExpense: function (tripId, transcript) {
+      const match = transcript.match(/\d+(\.\d+)?/);
+      const amount = match ? Number(match[0]) : '';
+      let title = transcript.replace(/\d+(\.\d+)?/g, '').replace(/\b(spent|for|rupees|rs|inr|paid)\b/gi, '').trim();
+      if (!title) title = 'Trip Expense';
+
+      this.openGeneralExpenseModal(tripId);
+      setTimeout(() => {
+        const tInp = document.getElementById('tp_gexp_title');
+        const aInp = document.getElementById('tp_gexp_amount');
+        if (tInp && title) tInp.value = title.charAt(0).toUpperCase() + title.slice(1);
+        if (aInp && amount) aInp.value = amount;
+      }, 150);
+    },
+
+    printTripItinerary: function (tripId) {
+      window.print();
     },
 
     confirmSettlement: async function (tripId, fromId, toId, amount) {

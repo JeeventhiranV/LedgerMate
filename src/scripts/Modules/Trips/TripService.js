@@ -40,7 +40,100 @@
     return '₹' + Math.round(n).toLocaleString('en-IN');
   }
 
+  const DEFAULT_FX_RATES = {
+    INR: 1.0,
+    USD: 86.5,
+    EUR: 92.0,
+    GBP: 110.5,
+    AED: 23.55,
+    THB: 2.55,
+    SGD: 65.2,
+    JPY: 0.58,
+    IDR: 0.0055,
+    CAD: 63.8,
+    AUD: 57.2
+  };
+
+  const CURRENCY_SYMBOLS = {
+    INR: '₹',
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    AED: 'AED ',
+    THB: '฿',
+    SGD: 'S$',
+    JPY: '¥',
+    IDR: 'Rp ',
+    CAD: 'C$',
+    AUD: 'A$'
+  };
+
+  function _fmtCurrency(amount, currency = 'INR') {
+    const curr = (currency || 'INR').toUpperCase();
+    const sym = CURRENCY_SYMBOLS[curr] || (curr + ' ');
+    const n = Number(amount) || 0;
+    if (curr === 'INR') {
+      return _fmtINR(n);
+    }
+    return sym + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  const PACKING_PRESETS = {
+    beach: [
+      { item: 'Swimwear / Beach Outfits', category: 'clothing' },
+      { item: 'Sunscreen Lotion (SPF 50+)', category: 'toiletries' },
+      { item: 'Polarized Sunglasses', category: 'gear' },
+      { item: 'Quick-Dry Beach Towel & Flip-Flops', category: 'clothing' },
+      { item: 'Waterproof Phone Pouch', category: 'electronics' },
+      { item: 'Aloe Vera / After-Sun Gel', category: 'toiletries' },
+      { item: 'Sun Hat / Beach Cap', category: 'clothing' },
+      { item: 'Power Bank & Water-Resistant Speaker', category: 'electronics' }
+    ],
+    trek: [
+      { item: 'Trekking Boots & Extra Socks', category: 'clothing' },
+      { item: 'Thermal Innerwear & Fleece Jacket', category: 'clothing' },
+      { item: 'Waterproof Rain Poncho / Windcheater', category: 'gear' },
+      { item: 'Headlamp & Spare Batteries', category: 'electronics' },
+      { item: 'Hydration Flask & Water Purification Drops', category: 'gear' },
+      { item: 'First Aid Kit & Blister Tape', category: 'medical' },
+      { item: 'Energy Bars & Electrolyte Packets (ORS)', category: 'medical' },
+      { item: 'Trekking Pole & Daypack', category: 'gear' }
+    ],
+    international: [
+      { item: 'Passport & Physical Visa Copies', category: 'documents' },
+      { item: 'Forex Multi-Currency Card & Local Cash', category: 'documents' },
+      { item: 'Universal Travel Power Adapter', category: 'electronics' },
+      { item: 'e-SIM / Roaming Package Setup', category: 'electronics' },
+      { item: 'Travel Insurance Policy Copy', category: 'documents' },
+      { item: 'Prescription Medicines with Doctor Note', category: 'medical' },
+      { item: 'Noise-Cancelling Headphones', category: 'electronics' },
+      { item: 'Memory Foam Neck Pillow', category: 'gear' }
+    ],
+    roadtrip: [
+      { item: 'Driving License, Vehicle RC & Insurance', category: 'documents' },
+      { item: 'Fastag Balance Recharged', category: 'documents' },
+      { item: 'Tubeless Tyre Puncture Kit & Electric Pump', category: 'gear' },
+      { item: 'Car Mobile Mount & Fast Car Charger', category: 'electronics' },
+      { item: 'Thermos Flask & Roadside Snacks', category: 'gear' },
+      { item: 'Motion Sickness / Vomistop Tablets', category: 'medical' },
+      { item: 'Emergency High-Beam Torch & Jumper Cables', category: 'gear' }
+    ],
+    general: [
+      { item: 'Daily Clothes & Undergarments', category: 'clothing' },
+      { item: 'Toothbrush, Toothpaste & Floss', category: 'toiletries' },
+      { item: 'Shampoo, Body Wash & Moisturizer', category: 'toiletries' },
+      { item: 'Mobile Charger & Cables', category: 'electronics' },
+      { item: 'Emergency Meds (Paracetamol, Antacid, Band-Aids)', category: 'medical' },
+      { item: 'Government ID Proof (Aadhaar / Voter ID)', category: 'documents' },
+      { item: 'Cash Wallet & Primary Credit Cards', category: 'documents' }
+    ]
+  };
+
   const TripService = {
+    DEFAULT_FX_RATES: DEFAULT_FX_RATES,
+    CURRENCY_SYMBOLS: CURRENCY_SYMBOLS,
+    PACKING_PRESETS: PACKING_PRESETS,
+    fmtCurrency: _fmtCurrency,
     // ─────────────────────────────────────────────────────────────
     // 1. STATE & PERSISTENCE
     // ─────────────────────────────────────────────────────────────
@@ -132,6 +225,9 @@
         persons = [{ id: 'p1', name: 'You' }];
       }
 
+      const currency = (data.currency || 'INR').toUpperCase();
+      const exchangeRate = Number(data.exchangeRate) || DEFAULT_FX_RATES[currency] || 1.0;
+
       const trip = {
         id: tripId,
         name: data.name.trim(),
@@ -141,6 +237,8 @@
         status: data.status || 'planning', // 'wishlist' | 'planning' | 'booked' | 'ongoing' | 'completed'
         travelMode: data.travelMode || 'car', // 'car' | 'bike' | 'flight' | 'train' | 'bus' | 'mixed'
         budgetCap: _round2(data.budgetCap || 0),
+        currency: currency,
+        exchangeRate: exchangeRate,
         coverEmoji: data.coverEmoji || '✈️',
         notes: (data.notes || '').trim(),
         persons: persons,
@@ -148,6 +246,11 @@
         plans: Array.isArray(data.plans) ? data.plans : [],
         expenses: Array.isArray(data.expenses) ? data.expenses : [],
         settlements: Array.isArray(data.settlements) ? data.settlements : [],
+        packingList: Array.isArray(data.packingList) ? data.packingList : [],
+        documents: Array.isArray(data.documents) ? data.documents : [],
+        vehicleId: data.vehicleId || null,
+        startOdometer: data.startOdometer !== undefined && data.startOdometer !== null ? Number(data.startOdometer) : null,
+        endOdometer: data.endOdometer !== undefined && data.endOdometer !== null ? Number(data.endOdometer) : null,
         completed: Boolean(data.completed),
         createdAt: now,
         updatedAt: now
@@ -168,9 +271,16 @@
       if (updates.status !== undefined) trip.status = updates.status;
       if (updates.travelMode !== undefined) trip.travelMode = updates.travelMode;
       if (updates.budgetCap !== undefined) trip.budgetCap = _round2(updates.budgetCap);
+      if (updates.currency !== undefined) trip.currency = updates.currency.toUpperCase();
+      if (updates.exchangeRate !== undefined) trip.exchangeRate = Number(updates.exchangeRate) || 1.0;
       if (updates.coverEmoji !== undefined) trip.coverEmoji = updates.coverEmoji;
       if (updates.notes !== undefined) trip.notes = updates.notes.trim();
       if (updates.completed !== undefined) trip.completed = Boolean(updates.completed);
+      if (updates.packingList !== undefined) trip.packingList = updates.packingList;
+      if (updates.documents !== undefined) trip.documents = updates.documents;
+      if (updates.vehicleId !== undefined) trip.vehicleId = updates.vehicleId;
+      if (updates.startOdometer !== undefined) trip.startOdometer = updates.startOdometer !== null ? Number(updates.startOdometer) : null;
+      if (updates.endOdometer !== undefined) trip.endOdometer = updates.endOdometer !== null ? Number(updates.endOdometer) : null;
 
       if (updates.persons !== undefined) {
         if (Array.isArray(updates.persons)) {
@@ -387,8 +497,17 @@
       if (!plan) throw new Error('Plan item not found');
 
       const title = (expenseData && (expenseData.title || expenseData.description || expenseData.name || plan.title || 'Expense')).trim();
-      const amount = _round2(expenseData.amount);
-      if (amount <= 0) throw new Error('Amount must be greater than zero');
+      // Multi-Currency & FX
+      const expenseCurrency = (expenseData.currency || trip.currency || 'INR').toUpperCase();
+      let exchangeRate = Number(expenseData.exchangeRate);
+      if (!exchangeRate || exchangeRate <= 0) {
+        exchangeRate = expenseCurrency === trip.currency ? (trip.exchangeRate || 1.0) : (DEFAULT_FX_RATES[expenseCurrency] || 1.0);
+      }
+      
+      let localAmount = _round2(expenseData.localAmount !== undefined ? expenseData.localAmount : expenseData.amount);
+      if (localAmount <= 0) throw new Error('Amount must be greater than zero');
+
+      let amount = expenseCurrency === 'INR' ? localAmount : _round2(localAmount * exchangeRate);
 
       if (!Array.isArray(plan.expenses)) plan.expenses = [];
 
@@ -419,6 +538,8 @@
               tripName: trip.name,
               planId: plan.id,
               planTitle: plan.title,
+              currency: expenseCurrency,
+              localAmount: localAmount,
               paymentMethod: expenseData.paymentMethod || expenseData.paymentMode || 'UPI'
             }
           };
@@ -446,6 +567,11 @@
         id: expId,
         title: title,
         amount: amount,
+        currency: expenseCurrency,
+        localAmount: localAmount,
+        exchangeRate: exchangeRate,
+        receiptId: expenseData.receiptId || null,
+        receiptUrl: expenseData.receiptUrl || null,
         date: expenseData.date || _todayISO(),
         paidBy: resolvePerson(expenseData.paidBy),
         sharedWith: rawShared.map(resolvePerson),
@@ -455,6 +581,16 @@
       };
 
       plan.expenses.push(expense);
+
+      // Auto-sync fuel log to linked vehicle if applicable
+      if ((expense.category === 'Fuel' || String(expense.category).toLowerCase() === 'transit' || options.syncFuelToVehicle) && trip.vehicleId) {
+        try {
+          await this.syncFuelExpenseToVehicle(tripId, expense);
+        } catch (e) {
+          console.warn('[TripService] Fuel sync error:', e);
+        }
+      }
+
       await this.saveTripToDB(trip);
       return expense;
     },
@@ -517,8 +653,18 @@
       if (!trip) throw new Error('Trip not found');
 
       const title = (expenseData && (expenseData.title || expenseData.description || expenseData.name || 'Trip Expense')).trim();
-      const amount = _round2(expenseData.amount);
-      if (amount <= 0) throw new Error('Amount must be positive');
+      
+      // Multi-Currency & FX
+      const expenseCurrency = (expenseData.currency || trip.currency || 'INR').toUpperCase();
+      let exchangeRate = Number(expenseData.exchangeRate);
+      if (!exchangeRate || exchangeRate <= 0) {
+        exchangeRate = expenseCurrency === trip.currency ? (trip.exchangeRate || 1.0) : (DEFAULT_FX_RATES[expenseCurrency] || 1.0);
+      }
+      
+      let localAmount = _round2(expenseData.localAmount !== undefined ? expenseData.localAmount : expenseData.amount);
+      if (localAmount <= 0) throw new Error('Amount must be positive');
+
+      let amount = expenseCurrency === 'INR' ? localAmount : _round2(localAmount * exchangeRate);
 
       if (!Array.isArray(trip.expenses)) trip.expenses = [];
 
@@ -539,7 +685,12 @@
             category: 'Travel',
             account: chosenAccount,
             note: `Trip: ${trip.name} · ${title}`,
-            subDetails: { tripId: trip.id, tripName: trip.name }
+            subDetails: {
+              tripId: trip.id,
+              tripName: trip.name,
+              currency: expenseCurrency,
+              localAmount: localAmount
+            }
           });
           if (recorded && recorded.id) linkedTxId = recorded.id;
         } catch (e) {
@@ -561,6 +712,11 @@
         id: expId,
         title: title,
         amount: amount,
+        currency: expenseCurrency,
+        localAmount: localAmount,
+        exchangeRate: exchangeRate,
+        receiptId: expenseData.receiptId || null,
+        receiptUrl: expenseData.receiptUrl || null,
         date: expenseData.date || _todayISO(),
         paidBy: resolvePerson(expenseData.paidBy),
         sharedWith: rawShared.map(resolvePerson),
@@ -568,6 +724,15 @@
         category: expenseData.category || 'General',
         linkedTxId: linkedTxId
       };
+
+      // Auto-sync fuel log to linked vehicle if applicable
+      if ((expense.category === 'Fuel' || String(expense.category).toLowerCase() === 'transit' || options.syncFuelToVehicle) && trip.vehicleId) {
+        try {
+          await this.syncFuelExpenseToVehicle(tripId, expense);
+        } catch (e) {
+          console.warn('[TripService] Fuel sync error:', e);
+        }
+      }
 
       trip.expenses.push(expense);
       await this.saveTripToDB(trip);
@@ -661,7 +826,21 @@
       const plannedVariance = _round2(totalPlanned - totalPlanActual);
       const usagePct = targetBudget > 0 ? _round2((totalActual / targetBudget) * 100) : 0;
 
+      // Pacing & Burn Velocity
+      const tripDays = this.calculateTripDays(trip.startDate, trip.endDate) || 1;
+      const dailyBudgetCap = budgetCap > 0 ? _round2(budgetCap / tripDays) : (totalPlanned > 0 ? _round2(totalPlanned / tripDays) : 0);
+
+      const now = new Date();
+      const start = new Date(trip.startDate);
+      const daysElapsed = Math.max(1, Math.min(tripDays, Math.ceil((now - start) / 864e5)));
+      const avgDailySpend = _round2(totalActual / daysElapsed);
+      const projectedTotal = _round2(avgDailySpend * tripDays);
+      const pacingVariance = targetBudget > 0 ? _round2(targetBudget - projectedTotal) : 0;
+      const pacingStatus = targetBudget > 0 ? (pacingVariance >= 0 ? 'on_track' : 'over_pacing') : 'unbudgeted';
+
       return {
+        currency: trip.currency || 'INR',
+        exchangeRate: trip.exchangeRate || 1.0,
         budgetCap: _round2(budgetCap),
         totalPlannedCost: _round2(totalPlanned),
         plannedTotal: _round2(totalPlanned),
@@ -674,10 +853,19 @@
         variance: plannedVariance,
         budgetUsagePercent: usagePct,
         percentBudgetUsed: usagePct,
+        tripDays: tripDays,
+        dailyBudgetCap: dailyBudgetCap,
+        daysElapsed: daysElapsed,
+        avgDailySpend: avgDailySpend,
+        projectedTotal: projectedTotal,
+        pacingVariance: pacingVariance,
+        pacingStatus: pacingStatus,
         categoryBreakdown: categoryBreakdown,
         dayBreakdown: dayBreakdown,
         planItemsCount: plans.length,
-        wishlistCount: (trip.wishlist || []).length
+        wishlistCount: (trip.wishlist || []).length,
+        documentsCount: (trip.documents || []).length,
+        packingStats: this.getPackingStats(tripId)
       };
     },
 
@@ -759,6 +947,7 @@
           fromName: d.name,
           toName: c.name,
           amount: amt,
+          upiUrl: this.getUpiIntentUrl(d.name, c.name, amt, trip.name),
           status: isSettled ? 'settled' : 'pending'
         });
 
@@ -826,8 +1015,236 @@
       return trip.settlements;
     },
 
+    getUpiIntentUrl: function (fromNameOrTripId, toNameOrId, amount, tripName = '') {
+      amount = _round2(amount);
+      let toName = toNameOrId;
+      let fromName = fromNameOrTripId;
+      let tName = tripName;
+
+      // If first argument is a trip ID
+      const trip = this.getTrip(fromNameOrTripId);
+      if (trip) {
+        tName = trip.name;
+        const target = (trip.persons || []).find(p => p.id === toNameOrId || p.name === toNameOrId);
+        if (target) toName = target.name;
+        fromName = 'Trip Partner';
+      }
+
+      const note = encodeURIComponent(`Settlement: ${tName || 'Trip'} - ${fromName} to ${toName}`);
+      const cleanName = encodeURIComponent(toName || 'Trip Partner');
+      return `upi://pay?pa=trip.settle@upi&pn=${cleanName}&am=${amount}&tn=${note}&cu=INR`;
+    },
+
     // ─────────────────────────────────────────────────────────────
-    // 9. EXPORT & SHARE SUMMARY
+    // 9. MULTI-CURRENCY & FX ENGINE
+    // ─────────────────────────────────────────────────────────────
+    SUPPORTED_CURRENCIES: ['INR', 'USD', 'EUR', 'GBP', 'AED', 'THB', 'SGD', 'JPY', 'IDR', 'CAD', 'AUD'],
+
+    convertCurrency: function (amount, fromCurrency, toCurrency = 'INR', customRate = null) {
+      fromCurrency = (fromCurrency || 'INR').toUpperCase();
+      toCurrency = (toCurrency || 'INR').toUpperCase();
+      if (fromCurrency === toCurrency) return _round2(amount);
+
+      let inrAmount = Number(amount) || 0;
+      if (customRate && customRate > 0) {
+        if (toCurrency === 'INR') return _round2(amount * customRate);
+        if (fromCurrency === 'INR') return _round2(amount / customRate);
+      }
+
+      const fromRate = DEFAULT_FX_RATES[fromCurrency] || 1.0;
+      const toRate = DEFAULT_FX_RATES[toCurrency] || 1.0;
+
+      inrAmount = (Number(amount) || 0) * fromRate;
+      return _round2(inrAmount / toRate);
+    },
+
+    setTripCurrency: async function (tripId, currency, exchangeRate = null) {
+      const trip = this.getTrip(tripId);
+      if (!trip) throw new Error('Trip not found');
+      trip.currency = (currency || 'INR').toUpperCase();
+      trip.exchangeRate = exchangeRate ? Number(exchangeRate) : (DEFAULT_FX_RATES[trip.currency] || 1.0);
+      await this.saveTripToDB(trip);
+      return trip;
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 10. PACKING CHECKLIST MANAGEMENT & PRESETS
+    // ─────────────────────────────────────────────────────────────
+    getPackingStats: function (tripId) {
+      const trip = this.getTrip(tripId);
+      if (!trip || !Array.isArray(trip.packingList)) {
+        return { total: 0, packed: 0, pending: 0, percent: 0 };
+      }
+      const total = trip.packingList.length;
+      const packed = trip.packingList.filter(i => i.packed).length;
+      const pending = total - packed;
+      const percent = total > 0 ? Math.round((packed / total) * 100) : 0;
+      return { total, packed, pending, percent };
+    },
+
+    addPackingItem: async function (tripId, itemData) {
+      const trip = this.getTrip(tripId);
+      if (!trip) throw new Error('Trip not found');
+      if (!itemData || !itemData.item) throw new Error('Item name is required');
+
+      if (!Array.isArray(trip.packingList)) trip.packingList = [];
+
+      const newItem = {
+        id: itemData.id || _generateId('pack'),
+        item: itemData.item.trim(),
+        category: itemData.category || 'general', // 'clothing' | 'toiletries' | 'electronics' | 'documents' | 'medical' | 'gear'
+        packed: Boolean(itemData.packed),
+        createdAt: new Date().toISOString()
+      };
+
+      trip.packingList.push(newItem);
+      await this.saveTripToDB(trip);
+      return newItem;
+    },
+
+    togglePackingItem: async function (tripId, itemId) {
+      const trip = this.getTrip(tripId);
+      if (!trip || !Array.isArray(trip.packingList)) throw new Error('Trip or packing list not found');
+
+      const item = trip.packingList.find(i => String(i.id) === String(itemId));
+      if (!item) throw new Error('Packing item not found');
+
+      item.packed = !item.packed;
+      await this.saveTripToDB(trip);
+      return item;
+    },
+
+    deletePackingItem: async function (tripId, itemId) {
+      const trip = this.getTrip(tripId);
+      if (!trip || !Array.isArray(trip.packingList)) return false;
+
+      trip.packingList = trip.packingList.filter(i => String(i.id) !== String(itemId));
+      await this.saveTripToDB(trip);
+      return true;
+    },
+
+    populatePackingPreset: async function (tripId, presetKey = 'general') {
+      const trip = this.getTrip(tripId);
+      if (!trip) throw new Error('Trip not found');
+
+      const presetItems = PACKING_PRESETS[presetKey] || PACKING_PRESETS.general;
+      if (!Array.isArray(trip.packingList)) trip.packingList = [];
+
+      let addedCount = 0;
+      presetItems.forEach(p => {
+        const exists = trip.packingList.some(existing => existing.item.toLowerCase() === p.item.toLowerCase());
+        if (!exists) {
+          trip.packingList.push({
+            id: _generateId('pack'),
+            item: p.item,
+            category: p.category || 'general',
+            packed: false,
+            createdAt: new Date().toISOString()
+          });
+          addedCount++;
+        }
+      });
+
+      await this.saveTripToDB(trip);
+      return { addedCount, total: trip.packingList.length };
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 11. DIGITAL DOCUMENT LOCKER
+    // ─────────────────────────────────────────────────────────────
+    addDocument: async function (tripId, docData) {
+      const trip = this.getTrip(tripId);
+      if (!trip) throw new Error('Trip not found');
+      if (!docData || !docData.title) throw new Error('Document title is required');
+
+      if (!Array.isArray(trip.documents)) trip.documents = [];
+
+      const doc = {
+        id: docData.id || _generateId('doc'),
+        title: docData.title.trim(),
+        type: docData.type || 'other', // 'flight' | 'hotel' | 'visa' | 'insurance' | 'contact' | 'other'
+        refCode: (docData.refCode || '').trim(),
+        notes: (docData.notes || '').trim(),
+        attachmentUrl: docData.attachmentUrl || null,
+        createdAt: new Date().toISOString()
+      };
+
+      trip.documents.push(doc);
+      await this.saveTripToDB(trip);
+      return doc;
+    },
+
+    updateDocument: async function (tripId, docId, updates) {
+      const trip = this.getTrip(tripId);
+      if (!trip || !Array.isArray(trip.documents)) throw new Error('Trip or documents not found');
+
+      const doc = trip.documents.find(d => String(d.id) === String(docId));
+      if (!doc) throw new Error('Document not found');
+
+      if (updates.title !== undefined) doc.title = updates.title.trim();
+      if (updates.type !== undefined) doc.type = updates.type;
+      if (updates.refCode !== undefined) doc.refCode = updates.refCode.trim();
+      if (updates.notes !== undefined) doc.notes = updates.notes.trim();
+      if (updates.attachmentUrl !== undefined) doc.attachmentUrl = updates.attachmentUrl;
+
+      await this.saveTripToDB(trip);
+      return doc;
+    },
+
+    deleteDocument: async function (tripId, docId) {
+      const trip = this.getTrip(tripId);
+      if (!trip || !Array.isArray(trip.documents)) return false;
+
+      trip.documents = trip.documents.filter(d => String(d.id) !== String(docId));
+      await this.saveTripToDB(trip);
+      return true;
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 12. VEHICLE FLEET & ROAD TRIP SYNC
+    // ─────────────────────────────────────────────────────────────
+    linkVehicle: async function (tripId, vehicleId, startOdo = null) {
+      const trip = this.getTrip(tripId);
+      if (!trip) throw new Error('Trip not found');
+      trip.vehicleId = vehicleId;
+      if (startOdo !== null) trip.startOdometer = Number(startOdo);
+      await this.saveTripToDB(trip);
+      return trip;
+    },
+
+    updateOdometer: async function (tripId, startOdo, endOdo) {
+      const trip = this.getTrip(tripId);
+      if (!trip) throw new Error('Trip not found');
+      if (startOdo !== undefined) trip.startOdometer = startOdo !== null ? Number(startOdo) : null;
+      if (endOdo !== undefined) trip.endOdometer = endOdo !== null ? Number(endOdo) : null;
+      await this.saveTripToDB(trip);
+      return trip;
+    },
+
+    syncFuelExpenseToVehicle: async function (tripId, fuelExpenseData) {
+      const trip = this.getTrip(tripId);
+      if (!trip || !trip.vehicleId) return null;
+      if (window.LM_VehicleService && typeof window.LM_VehicleService.addFuelLog === 'function') {
+        try {
+          return await window.LM_VehicleService.addFuelLog(trip.vehicleId, {
+            date: fuelExpenseData.date || _todayISO(),
+            amount: fuelExpenseData.amount,
+            odometer: fuelExpenseData.odometer || trip.startOdometer || 0,
+            liters: fuelExpenseData.liters || 0,
+            pricePerLiter: fuelExpenseData.pricePerLiter || 0,
+            fuelType: fuelExpenseData.fuelType || 'Petrol',
+            fuelStation: fuelExpenseData.fuelStation || (trip.destination + ' Fuel Station'),
+            notes: `Auto-synced from trip: ${trip.name}`
+          });
+        } catch (e) {
+          console.warn('[TripService] Fuel log auto-sync error:', e);
+        }
+      }
+      return null;
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 13. EXPORT & SHARE SUMMARY
     // ─────────────────────────────────────────────────────────────
     generateWhatsAppText: function (tripId) {
       const trip = this.getTrip(tripId);
