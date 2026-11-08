@@ -325,6 +325,7 @@
         title: title,
         category: itemData.category || 'Sightseeing', // 'Stay' | 'Food' | 'Activity' | 'Sightseeing' | 'Transit' | 'Shopping' | 'Other'
         location: (itemData.location || '').trim(),
+        mapUrl: (itemData.mapUrl || itemData.mapsUrl || '').trim(),
         sourceUrl: (itemData.sourceUrl || itemData.inspirationUrl || '').trim(),
         sourcePlatform: (itemData.sourcePlatform || '').trim(),
         notes: (itemData.notes || '').trim(),
@@ -350,6 +351,7 @@
       if (updates.title !== undefined) wish.title = updates.title.trim();
       if (updates.category !== undefined) wish.category = updates.category;
       if (updates.location !== undefined) wish.location = updates.location.trim();
+      if (updates.mapUrl !== undefined) wish.mapUrl = updates.mapUrl.trim();
       if (updates.sourceUrl !== undefined) wish.sourceUrl = updates.sourceUrl.trim();
       if (updates.notes !== undefined) wish.notes = updates.notes.trim();
       if (updates.estimatedCost !== undefined) wish.estimatedCost = _round2(updates.estimatedCost);
@@ -377,10 +379,16 @@
       const wish = trip.wishlist.find(w => String(w.id) === String(wishId));
       if (!wish) throw new Error('Wishlist item not found');
 
+      let mapUrl = (planOptions?.mapUrl || wish.mapUrl || '').trim();
+      if (!mapUrl && wish.sourceUrl && (wish.sourceUrl.includes('google.com/maps') || wish.sourceUrl.includes('maps.app.goo.gl') || wish.sourceUrl.includes('goo.gl/maps'))) {
+        mapUrl = wish.sourceUrl.trim();
+      }
+
       const planData = {
         title: planOptions?.title || wish.title,
         category: planOptions?.category || wish.category,
         location: planOptions?.location || wish.location,
+        mapUrl: mapUrl,
         notes: (planOptions?.notes || wish.notes) + (wish.sourceUrl && !planOptions?.notes ? `\n(Inspiration: ${wish.sourceUrl})` : ''),
         estimatedCost: planOptions?.estimatedCost !== undefined ? _round2(planOptions.estimatedCost) : wish.estimatedCost,
         dayNumber: planOptions?.dayNumber || 1,
@@ -418,6 +426,7 @@
         title: planData.title.trim(),
         category: planData.category || 'Activity', // 'Stay' | 'Food' | 'Activity' | 'Sightseeing' | 'Transit' | 'Shopping' | 'Other'
         location: (planData.location || '').trim(),
+        mapUrl: (planData.mapUrl || planData.mapsUrl || '').trim(),
         notes: (planData.notes || '').trim(),
         bookingRef: (planData.bookingRef || '').trim(),
         status: planData.status || 'planned', // 'planned' | 'booked' | 'completed'
@@ -450,6 +459,7 @@
       if (updates.time !== undefined) plan.time = updates.time;
       if (updates.category !== undefined) plan.category = updates.category;
       if (updates.location !== undefined) plan.location = updates.location.trim();
+      if (updates.mapUrl !== undefined) plan.mapUrl = updates.mapUrl.trim();
       if (updates.notes !== undefined) plan.notes = updates.notes.trim();
       if (updates.bookingRef !== undefined) plan.bookingRef = updates.bookingRef.trim();
       if (updates.status !== undefined) plan.status = updates.status;
@@ -462,6 +472,31 @@
 
       await this.saveTripToDB(trip);
       return plan;
+    },
+
+    getMapsUrl: function (item) {
+      if (!item) return '';
+      // 1. Direct explicit map link (e.g. maps.app.goo.gl, goo.gl/maps, google.com/maps)
+      const direct = (item.mapUrl || item.mapsUrl || '').trim();
+      if (direct && /^https?:\/\//i.test(direct)) {
+        return direct;
+      }
+      // 2. If sourceUrl is a Google Maps link (e.g. from wishlist or inspiration)
+      const src = (item.sourceUrl || item.url || '').trim();
+      if (src && /^https?:\/\//i.test(src) && (src.includes('google.com/maps') || src.includes('maps.app.goo.gl') || src.includes('goo.gl/maps'))) {
+        return src;
+      }
+      // 3. If location itself is a URL
+      const loc = (item.location || '').trim();
+      if (loc && /^https?:\/\//i.test(loc)) {
+        return loc;
+      }
+      // 4. Construct Google Maps search query
+      const query = (loc ? (loc + (item.title ? ' ' + item.title : '')) : (item.title || '')).trim();
+      if (query) {
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+      }
+      return '';
     },
 
     deletePlanItem: async function (tripId, planId, shouldRollbackTxs = false) {
@@ -1272,13 +1307,18 @@
         if (pf.estimatedCost > 0 || pf.actualTotal > 0) {
           text += ` (Est: ${_fmtINR(pf.estimatedCost)} | Actual: ${_fmtINR(pf.actualTotal)})`;
         }
+        const planMapUrl = this.getMapsUrl(plan);
+        if (planMapUrl) {
+          text += `\n  📍 Maps: ${planMapUrl}`;
+        }
         text += `\n`;
       });
 
       if (trip.wishlist && trip.wishlist.length) {
         text += `\n💡 *DISCOVERED SPOTS / WISHLIST:*\n`;
         trip.wishlist.slice(0, 5).forEach(w => {
-          text += `• ${w.title} (${_fmtINR(w.estimatedCost)})\n`;
+          const wMapUrl = this.getMapsUrl(w);
+          text += `• ${w.title} (${_fmtINR(w.estimatedCost)})${wMapUrl ? `\n  📍 Maps: ${wMapUrl}` : ''}\n`;
         });
       }
 
