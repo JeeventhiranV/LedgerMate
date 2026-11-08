@@ -599,7 +599,7 @@ function bindUI(){
   if (clearData) clearData.addEventListener('click', clearAllData);
 
   const openTripPlannerBtn = document.getElementById("openTripPlannerBtn");
-  if (openTripPlannerBtn) openTripPlannerBtn.onclick = () => openTripPlanner();
+  if (openTripPlannerBtn) openTripPlannerBtn.onclick = () => (typeof showPage === 'function' ? showPage('trips') : openTripPlanner());
 
   // file import input
   if (!document.getElementById('fileImport')) {

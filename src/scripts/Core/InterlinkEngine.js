@@ -49,7 +49,8 @@
       STOCKS: 'stocks',
       INVESTMENTS: 'investments',
       BUSINESS: 'business',
-      VEHICLES: 'vehicles'
+      VEHICLES: 'vehicles',
+      TRIPS: 'trips'
     },
 
     REF_TYPES: {
@@ -70,7 +71,8 @@
       OWNER_DRAWING: 'business_owner_drawing',
       VEH_FUEL: 'vehicle_fuel_refill',
       VEH_SERVICE: 'vehicle_maintenance',
-      VEH_INSURANCE: 'vehicle_insurance_renewal'
+      VEH_INSURANCE: 'vehicle_insurance_renewal',
+      TRIP_EXPENSE: 'trip_expense'
     },
 
     // ─────────────────────────────────────────────────────────────
@@ -107,7 +109,9 @@
           sourceId: params.sourceId || '',
           refType: refType,
           entityName: params.entityName || '',
-          subDetails: params.extraData || {},
+          subDetails: params.subDetails || params.extraData || {},
+          planId: params.planId || params.subDetails?.planId || '',
+          tripId: params.tripId || params.subDetails?.tripId || '',
           timestamp: new Date().toISOString()
         },
         createdAt: new Date().toISOString(),
@@ -762,6 +766,7 @@
       if (mod === this.MODULES.STOCKS) return 'Investment';
       if (mod === this.MODULES.INVESTMENTS) return 'Mutual Funds';
       if (mod === this.MODULES.BUSINESS) return 'Business';
+      if (mod === this.MODULES.TRIPS) return 'Travel';
       if (mod === this.MODULES.VEHICLES) {
         if (refType === this.REF_TYPES.VEH_FUEL) return 'Fuel';
         if (refType === this.REF_TYPES.VEH_INSURANCE) return 'Insurance';
@@ -786,6 +791,7 @@
       if (mod === this.MODULES.INVESTMENTS) return 'Investment SIP - ' + ent;
       if (mod === this.MODULES.BUSINESS) return 'Business Ledger - ' + ent;
       if (mod === this.MODULES.VEHICLES) return 'Vehicle Expense - ' + ent;
+      if (mod === this.MODULES.TRIPS) return 'Trip Expense - ' + ent;
       return 'Linked Transaction - ' + ent;
     },
 

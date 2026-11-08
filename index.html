@@ -63,6 +63,7 @@
 <link rel="stylesheet" href="./src/styles/stocks.css">
 <link rel="stylesheet" href="./src/styles/credit-cards.css">
 <link rel="stylesheet" href="./src/styles/investments.css">
+<link rel="stylesheet" href="./src/styles/trip-planner.css">
   <script src="./assets/vendor/tailwind.min.js"></script>
   <!-- Cloud auth + sync – MUST load before AuthManager -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -320,7 +321,7 @@
       <button class="sidebar-nav-item" onclick="showPage('templates')" data-module="templates">
         <span class="nav-icon">📋</span> <span class="nav-label">Tx Templates</span>
       </button>
-      <button class="sidebar-nav-item" id="openTripPlannerBtn" data-module="trips">
+      <button class="sidebar-nav-item" id="openTripPlannerBtn" onclick="showPage('trips')" data-module="trips">
         <span class="nav-icon">✈️</span> <span class="nav-label">Trip Planner</span>
       </button>
       <button class="sidebar-nav-item" onclick="showPage('vehicles')" data-module="vehicles">
@@ -1180,6 +1181,11 @@
         <!-- rendered by LM_MediaCompressorUI.init() in MediaCompressorUI.js -->
       </div>
 
+      <!-- ─── TRIP PLANNER & EXPENSE TRACKING PAGE ─────── -->
+      <div id="page-trips" style="display:none;">
+        <div id="tripPlannerApp"></div>
+      </div>
+
     </div><!-- /pageContent -->
   </main>
 </div>
@@ -1620,6 +1626,13 @@ function showPage(page) {
         }
       } catch (e) { console.warn('[LM] Media Compressor error:', e); }
     }
+    if (page === 'trips') {
+      try {
+        if (window.LM_TripUI && typeof window.LM_TripUI.init === 'function') {
+          window.LM_TripUI.init();
+        }
+      } catch (e) { console.warn('[LM] Trips page error:', e); }
+    }
     if (page === 'savings-goals') {
       try { renderSavingsGoals(); } catch (e) { console.warn('[LM] Savings goals error:', e); }
     }
@@ -1817,6 +1830,9 @@ function setGreeting() {
   <!-- Business Hub Module (Credits, Debits, Charges & Party Khata) -->
   <script src="./src/scripts/Modules/Business/BusinessService.js"></script>
   <script src="./src/scripts/Modules/Business/BusinessUI.js"></script>
+  <!-- Enhanced Trip Planner & Expense Tracking Module -->
+  <script src="./src/scripts/Modules/Trips/TripService.js"></script>
+  <script src="./src/scripts/Modules/Trips/TripUI.js"></script>
   <!-- Next-Gen Bank Grade Enhancements: E2EE Master Crypto, WebP Vault, AI OCR, Bill Split, FIRE Simulator -->
   <script src="./src/scripts/Auth/MasterCrypto.js"></script>
   <script src="./src/scripts/Modules/ReceiptVault.js"></script>

@@ -67,6 +67,13 @@ function formatDate(iso) {
 
 /* ---------- MAIN MODAL ---------- */
 async function openTripPlanner(onSave = null) {
+  if (typeof showPage === 'function' && document.getElementById('page-trips')) {
+    showPage('trips');
+    if (typeof onSave === 'string' && window.LM_TripUI && typeof window.LM_TripUI.openTrip === 'function') {
+      window.LM_TripUI.openTrip(onSave);
+    }
+    return;
+  }
   if (document.getElementById('tripPlannerOverlay')) return;
 
   const overlay = document.createElement('div');
