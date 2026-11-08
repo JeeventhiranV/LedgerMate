@@ -455,9 +455,12 @@
               // Calculate Day's planned vs actual
               const dayPlanned = dayPlans.reduce((s, p) => s + (p.estimatedCost || 0), 0);
               const dayActual = dayPlans.reduce((s, p) => s + (p.expenses || []).reduce((es, e) => es + e.amount, 0), 0);
-              const dayLocations = dayPlans.map(p => p.location).filter(Boolean);
+              const dayLocations = dayPlans.map(p => {
+                if (p.location && !/^https?:\/\//i.test(p.location)) return p.location;
+                return p.title;
+              }).filter(Boolean);
               const routeBtn = dayLocations.length > 1
-                ? `<a href="https://www.google.com/maps/dir/${dayLocations.map(encodeURIComponent).join('/')}" target="_blank" rel="noopener" class="tp-route-link" style="color:var(--teal); font-size:11px; text-decoration:none; display:inline-flex; align-items:center; gap:3px; background:rgba(0,240,255,0.08); padding:2px 8px; border-radius:12px;">🗺️ Day Route (${dayLocations.length} stops) ↗</a>`
+                ? `<a href="https://www.google.com/maps/dir/${dayLocations.map(encodeURIComponent).join('/')}" target="_blank" rel="noopener noreferrer" class="tp-route-link" style="color:var(--teal); font-size:11px; text-decoration:none; display:inline-flex; align-items:center; gap:3px; background:rgba(0,240,255,0.08); padding:2px 8px; border-radius:12px;">🗺️ Day Route (${dayLocations.length} stops) ↗</a>`
                 : '';
 
               return `
@@ -480,7 +483,11 @@
                         const pf = window.LM_TripService.getPlanFinancials(plan);
                         const icon = catIcons[plan.category] || '📌';
                         const timeStr = plan.time ? ` · ⏰ ${plan.time}` : '';
-                        const locStr = plan.location ? ` · <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(plan.location)}" target="_blank" rel="noopener" style="color:var(--teal); text-decoration:none;">📍 ${_esc(plan.location)} ↗</a>` : '';
+                        const mapUrl = window.LM_TripService.getMapsUrl(plan);
+                        const locLabel = (plan.location && !/^https?:\/\//i.test(plan.location)) ? plan.location : (plan.title || 'Maps');
+                        const locStr = mapUrl 
+                          ? ` · <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="tp-map-pill" title="Open in Google Maps">📍 ${_esc(locLabel)} ↗</a>` 
+                          : (plan.location ? ` · 📍 ${_esc(plan.location)}` : '');
 
                         let varBadge = '';
                         if (pf.actualTotal === 0 && pf.estimatedCost > 0) {
@@ -510,7 +517,7 @@
                                 </div>
                               </div>
                               <div class="tp-plan-actions">
-                                <a class="tp-icon-btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(plan.location || plan.title)}" target="_blank" rel="noopener" title="Navigate on Google Maps">🧭</a>
+                                ${mapUrl ? `<a class="tp-icon-btn" href="${mapUrl}" target="_blank" rel="noopener noreferrer" title="Navigate on Google Maps">🧭</a>` : ''}
                                 <button class="tp-icon-btn" title="Edit Plan" onclick="window.LM_TripUI.openAddPlanModal('${trip.id}', '${plan.id}')">✏️</button>
                                 <button class="tp-icon-btn" title="Delete Plan" onclick="window.LM_TripUI.deletePlan('${trip.id}', '${plan.id}')">🗑️</button>
                               </div>
@@ -608,6 +615,12 @@
               if (w.priority === 'must_do') prioBadge = `<span class="tp-priority-badge tp-prio-must">Must Do 🔥</span>`;
               else if (w.priority === 'backup') prioBadge = `<span class="tp-priority-badge tp-prio-back">Backup</span>`;
 
+              const wishMapUrl = window.LM_TripService.getMapsUrl(w);
+              const locLabel = (w.location && !/^https?:\/\//i.test(w.location)) ? w.location : (w.title || 'Maps');
+              const wishLocStr = wishMapUrl
+                ? `<span>· <a href="${wishMapUrl}" target="_blank" rel="noopener noreferrer" class="tp-map-pill" style="color:var(--teal);" title="Open in Google Maps">📍 ${_esc(locLabel)} ↗</a></span>`
+                : (w.location ? `<span>· 📍 ${_esc(w.location)}</span>` : '');
+
               return `
                 <div class="tp-wish-card">
                   <div class="tp-wish-top">
@@ -616,10 +629,11 @@
                       <div class="tp-wish-meta" style="margin-top:4px;">
                         ${prioBadge}
                         <span style="color:var(--teal); font-weight:600;">${_esc(w.category)}</span>
-                        ${w.location ? `<span>· 📍 ${_esc(w.location)}</span>` : ''}
+                        ${wishLocStr}
                       </div>
                     </div>
                     <div style="display:flex; gap:4px;">
+                      ${wishMapUrl ? `<a class="tp-icon-btn" href="${wishMapUrl}" target="_blank" rel="noopener noreferrer" title="Open in Google Maps">🧭</a>` : ''}
                       <button class="tp-icon-btn" title="Edit" onclick="window.LM_TripUI.openAddWishlistModal('${trip.id}', '${w.id}')">✏️</button>
                       <button class="tp-icon-btn" title="Delete" onclick="window.LM_TripUI.deleteWish('${trip.id}', '${w.id}')">🗑️</button>
                     </div>
@@ -627,11 +641,18 @@
 
                   ${w.notes ? `<div class="tp-wish-notes">${_esc(w.notes)}</div>` : ''}
 
-                  ${w.sourceUrl ? `
-                    <a href="${_esc(w.sourceUrl)}" target="_blank" rel="noopener noreferrer" class="tp-wish-url-link">
-                      <span>🔗</span> View Inspiration / Reel / Map ↗
-                    </a>
-                  ` : ''}
+                  <div style="display:flex; flex-direction:column; gap:4px; margin: 6px 0;">
+                    ${wishMapUrl ? `
+                      <a href="${_esc(wishMapUrl)}" target="_blank" rel="noopener noreferrer" class="tp-map-link-btn" title="Open in Google Maps">
+                        <span>📍</span> Open in Google Maps ↗
+                      </a>
+                    ` : ''}
+                    ${(w.sourceUrl && w.sourceUrl !== wishMapUrl) ? `
+                      <a href="${_esc(w.sourceUrl)}" target="_blank" rel="noopener noreferrer" class="tp-wish-url-link">
+                        <span>🔗</span> View Inspiration / Reel ↗
+                      </a>
+                    ` : ''}
+                  </div>
 
                   <div class="tp-wish-bottom">
                     <div>
@@ -1457,7 +1478,16 @@
             </div>
 
             <div>
-              <label class="text-xs font-semibold text-muted">Inspiration Link (Reel / Maps / YouTube / Blog)</label>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label class="text-xs font-semibold text-muted">Google Maps Link (Optional)</label>
+                <button type="button" class="tp-btn-secondary" style="font-size:10.5px; padding:2px 8px; color:var(--teal);" onclick="window.LM_TripUI.searchMapsHelper('tp_wish_loc', 'tp_wish_title')" title="Search place on Google Maps">🔍 Find on Maps ↗</button>
+              </div>
+              <input id="tp_wish_map_url" placeholder="https://maps.app.goo.gl/... or paste Maps pin URL" value="${_esc(existing?.mapUrl || '')}" class="form-input w-full" />
+              <div style="font-size:10.5px; color:var(--text-3); margin-top:2px;">Allows 1-click pin navigation to this spot</div>
+            </div>
+
+            <div>
+              <label class="text-xs font-semibold text-muted">Inspiration Link (Reel / YouTube / Blog)</label>
               <input id="tp_wish_url" placeholder="https://instagram.com/reel/..." value="${_esc(existing?.sourceUrl || '')}" class="form-input w-full" />
             </div>
 
@@ -1489,18 +1519,29 @@
 
       const category = document.getElementById('tp_wish_cat')?.value || 'Sightseeing';
       const priority = document.getElementById('tp_wish_prio')?.value || 'recommended';
-      const location = document.getElementById('tp_wish_loc')?.value.trim() || '';
-      const sourceUrl = document.getElementById('tp_wish_url')?.value.trim() || '';
+      let location = document.getElementById('tp_wish_loc')?.value.trim() || '';
+      let mapUrl = document.getElementById('tp_wish_map_url')?.value.trim() || '';
+      let sourceUrl = document.getElementById('tp_wish_url')?.value.trim() || '';
       const estimatedCost = Number(document.getElementById('tp_wish_cost')?.value) || 0;
       const notes = document.getElementById('tp_wish_notes')?.value.trim() || '';
 
+      // Auto-detect if user pasted Maps URL into location
+      if (/^https?:\/\//i.test(location) && !mapUrl) {
+        mapUrl = location;
+        location = title;
+      }
+      // If sourceUrl is a Google Maps link and mapUrl is empty, also set mapUrl
+      if (!mapUrl && sourceUrl && (sourceUrl.includes('google.com/maps') || sourceUrl.includes('maps.app.goo.gl') || sourceUrl.includes('goo.gl/maps'))) {
+        mapUrl = sourceUrl;
+      }
+
       if (wishId) {
         await window.LM_TripService.updateWishlistItem(tripId, wishId, {
-          title, category, priority, location, sourceUrl, estimatedCost, notes
+          title, category, priority, location, mapUrl, sourceUrl, estimatedCost, notes
         });
       } else {
         await window.LM_TripService.addWishlistItem(tripId, {
-          title, category, priority, location, sourceUrl, estimatedCost, notes
+          title, category, priority, location, mapUrl, sourceUrl, estimatedCost, notes
         });
       }
 
@@ -1675,6 +1716,15 @@
             </div>
 
             <div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label class="text-xs font-semibold text-muted">Google Maps Link / URL (Optional)</label>
+                <button type="button" class="tp-btn-secondary" style="font-size:10.5px; padding:2px 8px; color:var(--teal);" onclick="window.LM_TripUI.searchMapsHelper('tp_plan_loc', 'tp_plan_title')" title="Search place on Google Maps">🔍 Find on Maps ↗</button>
+              </div>
+              <input id="tp_plan_map_url" placeholder="https://maps.app.goo.gl/... or paste Maps URL" value="${_esc(existing?.mapUrl || '')}" class="form-input w-full" />
+              <div style="font-size:10.5px; color:var(--text-3); margin-top:2px;">Paste Maps link for 1-click pin navigation</div>
+            </div>
+
+            <div>
               <label class="text-xs font-semibold text-muted">Booking Reference / PNR (Optional)</label>
               <input id="tp_plan_ref" placeholder="e.g. PNR-1092, Booking #44" value="${_esc(existing?.bookingRef || '')}" class="form-input w-full" />
             </div>
@@ -1706,17 +1756,24 @@
       const status = document.getElementById('tp_plan_status')?.value || 'planned';
       const time = document.getElementById('tp_plan_time')?.value || '';
       const estimatedCost = Number(document.getElementById('tp_plan_cost')?.value) || 0;
-      const location = document.getElementById('tp_plan_loc')?.value.trim() || '';
+      let location = document.getElementById('tp_plan_loc')?.value.trim() || '';
+      let mapUrl = document.getElementById('tp_plan_map_url')?.value.trim() || '';
       const bookingRef = document.getElementById('tp_plan_ref')?.value.trim() || '';
       const notes = document.getElementById('tp_plan_notes')?.value.trim() || '';
 
+      // Auto-detect if user accidentally pasted URL into location input
+      if (/^https?:\/\//i.test(location) && !mapUrl) {
+        mapUrl = location;
+        location = title;
+      }
+
       if (planId) {
         await window.LM_TripService.updatePlanItem(tripId, planId, {
-          title, dayNumber, timeSlot, category, status, time, estimatedCost, location, bookingRef, notes
+          title, dayNumber, timeSlot, category, status, time, estimatedCost, location, mapUrl, bookingRef, notes
         });
       } else {
         await window.LM_TripService.addPlanItem(tripId, {
-          title, dayNumber, timeSlot, category, status, time, estimatedCost, location, bookingRef, notes
+          title, dayNumber, timeSlot, category, status, time, estimatedCost, location, mapUrl, bookingRef, notes
         });
       }
 
@@ -2387,6 +2444,18 @@
       const text = window.LM_TripService.generateWhatsAppText(tripId);
       if (!text) return;
       window.open(`https://wa.me/?text=${encodeURIComponent(text.substring(0, 12000))}`, '_blank');
+    },
+
+    searchMapsHelper: function (locInputId, titleInputId) {
+      const loc = (document.getElementById(locInputId)?.value || '').trim();
+      const title = (document.getElementById(titleInputId)?.value || '').trim();
+      const query = loc || title;
+      if (!query) {
+        alert('Please enter a location or spot title first to find it on Google Maps.');
+        return;
+      }
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
   };
 
