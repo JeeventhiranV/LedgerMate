@@ -68,6 +68,40 @@
     AUD: 'A$'
   };
 
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const cachedFx = localStorage.getItem('lm_cached_fx_rates');
+      if (cachedFx) {
+        const parsed = JSON.parse(cachedFx);
+        if (parsed && parsed.rates) Object.assign(DEFAULT_FX_RATES, parsed.rates);
+      }
+    }
+  } catch (e) {}
+
+  const WMO_WEATHER_MAP = {
+    0: { emoji: '☀️', desc: 'Clear sky' },
+    1: { emoji: '🌤️', desc: 'Mainly clear' },
+    2: { emoji: '⛅', desc: 'Partly cloudy' },
+    3: { emoji: '☁️', desc: 'Overcast' },
+    45: { emoji: '🌫️', desc: 'Fog' },
+    48: { emoji: '🌫️', desc: 'Depositing rime fog' },
+    51: { emoji: '🌦️', desc: 'Light drizzle' },
+    53: { emoji: '🌦️', desc: 'Moderate drizzle' },
+    55: { emoji: '🌧️', desc: 'Dense drizzle' },
+    61: { emoji: '🌧️', desc: 'Slight rain' },
+    63: { emoji: '🌧️', desc: 'Moderate rain' },
+    65: { emoji: '🌧️', desc: 'Heavy rain' },
+    71: { emoji: '🌨️', desc: 'Slight snow' },
+    73: { emoji: '🌨️', desc: 'Moderate snow' },
+    75: { emoji: '❄️', desc: 'Heavy snow' },
+    80: { emoji: '🌦️', desc: 'Rain showers' },
+    81: { emoji: '🌧️', desc: 'Moderate rain showers' },
+    82: { emoji: '⛈️', desc: 'Violent rain showers' },
+    95: { emoji: '⛈️', desc: 'Thunderstorm' },
+    96: { emoji: '⛈️', desc: 'Thunderstorm with hail' },
+    99: { emoji: '⛈️', desc: 'Heavy thunderstorm' }
+  };
+
   function _fmtCurrency(amount, currency = 'INR') {
     const curr = (currency || 'INR').toUpperCase();
     const sym = CURRENCY_SYMBOLS[curr] || (curr + ' ');
@@ -426,7 +460,7 @@
         title: planData.title.trim(),
         category: planData.category || 'Activity', // 'Stay' | 'Food' | 'Activity' | 'Sightseeing' | 'Transit' | 'Shopping' | 'Other'
         location: (planData.location || '').trim(),
-        mapUrl: (planData.mapUrl || planData.mapsUrl || '').trim(),
+        mapUrl: (planData.mapUrl || planData.mapsUrl || planData.mapsLink || planData.mapLink || '').trim(),
         notes: (planData.notes || '').trim(),
         bookingRef: (planData.bookingRef || '').trim(),
         status: planData.status || 'planned', // 'planned' | 'booked' | 'completed'
@@ -459,7 +493,9 @@
       if (updates.time !== undefined) plan.time = updates.time;
       if (updates.category !== undefined) plan.category = updates.category;
       if (updates.location !== undefined) plan.location = updates.location.trim();
-      if (updates.mapUrl !== undefined) plan.mapUrl = updates.mapUrl.trim();
+      if (updates.mapUrl !== undefined || updates.mapsUrl !== undefined || updates.mapsLink !== undefined || updates.mapLink !== undefined) {
+        plan.mapUrl = (updates.mapUrl || updates.mapsUrl || updates.mapsLink || updates.mapLink || '').trim();
+      }
       if (updates.notes !== undefined) plan.notes = updates.notes.trim();
       if (updates.bookingRef !== undefined) plan.bookingRef = updates.bookingRef.trim();
       if (updates.status !== undefined) plan.status = updates.status;
@@ -477,7 +513,7 @@
     getMapsUrl: function (item) {
       if (!item) return '';
       // 1. Direct explicit map link (e.g. maps.app.goo.gl, goo.gl/maps, google.com/maps)
-      const direct = (item.mapUrl || item.mapsUrl || '').trim();
+      const direct = (item.mapUrl || item.mapsUrl || item.mapsLink || item.mapLink || '').trim();
       if (direct && /^https?:\/\//i.test(direct)) {
         return direct;
       }
@@ -612,6 +648,8 @@
         sharedWith: rawShared.map(resolvePerson),
         paymentMethod: expenseData.paymentMethod || expenseData.paymentMode || 'Cash',
         category: expenseData.category || plan.category || 'General',
+        splitType: expenseData.splitType || 'equal', // 'equal' | 'exact' | 'shares'
+        splitDetails: (expenseData.splitDetails && typeof expenseData.splitDetails === 'object') ? expenseData.splitDetails : null,
         linkedTxId: linkedTxId
       };
 
@@ -757,6 +795,8 @@
         sharedWith: rawShared.map(resolvePerson),
         paymentMethod: expenseData.paymentMethod || expenseData.paymentMode || 'Cash',
         category: expenseData.category || 'General',
+        splitType: expenseData.splitType || 'equal', // 'equal' | 'exact' | 'shares'
+        splitDetails: (expenseData.splitDetails && typeof expenseData.splitDetails === 'object') ? expenseData.splitDetails : null,
         linkedTxId: linkedTxId
       };
 
@@ -934,11 +974,37 @@
           ? e.sharedWith
           : (Array.isArray(e.splitBetween) && e.splitBetween.length ? e.splitBetween : persons.map(p => p.id))
         ).map(resolvePersonId);
-        const perPerson = amt / (shared.length || 1);
-
-        shared.forEach(id => {
-          if (totals[id] !== undefined) totals[id] -= perPerson;
-        });
+        if (e.splitType === 'exact' && e.splitDetails && typeof e.splitDetails === 'object') {
+          Object.keys(e.splitDetails).forEach(k => {
+            const pid = resolvePersonId(k);
+            const userOwes = Number(e.splitDetails[k]) || 0;
+            if (totals[pid] !== undefined) totals[pid] -= userOwes;
+          });
+        } else if (e.splitType === 'shares' && e.splitDetails && typeof e.splitDetails === 'object') {
+          let totalShares = 0;
+          Object.keys(e.splitDetails).forEach(k => {
+            totalShares += (Number(e.splitDetails[k]) || 0);
+          });
+          if (totalShares > 0) {
+            Object.keys(e.splitDetails).forEach(k => {
+              const pid = resolvePersonId(k);
+              const userShares = Number(e.splitDetails[k]) || 0;
+              const userOwes = _round2(amt * (userShares / totalShares));
+              if (totals[pid] !== undefined) totals[pid] -= userOwes;
+            });
+          } else {
+            const perPerson = amt / (shared.length || 1);
+            shared.forEach(id => {
+              if (totals[id] !== undefined) totals[id] -= perPerson;
+            });
+          }
+        } else {
+          // Default equal split
+          const perPerson = amt / (shared.length || 1);
+          shared.forEach(id => {
+            if (totals[id] !== undefined) totals[id] -= perPerson;
+          });
+        }
 
         const payerId = resolvePersonId(e.paidBy);
         if (totals[payerId] !== undefined) {
@@ -1331,7 +1397,314 @@
       }
 
       return text;
-    }
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 14. ICALENDAR (.ICS) GENERATOR
+    // ─────────────────────────────────────────────────────────────
+    generateICalendar: function (tripId) {
+      const trip = this.getTrip(tripId);
+      if (!trip) return '';
+
+      const nowUtc = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      const cleanTripName = (trip.name || 'Trip').replace(/[^\w\s-]/g, '');
+      const lines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//LedgerMate//Trip Planner//EN',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        `X-WR-CALNAME:${cleanTripName}`,
+        'X-WR-TIMEZONE:Asia/Kolkata'
+      ];
+
+      function formatIcalDate(dateStr, timeStr) {
+        if (!dateStr) return '';
+        const cleanDate = dateStr.replace(/-/g, '');
+        if (timeStr && /^\d{2}:\d{2}$/.test(timeStr)) {
+          const cleanTime = timeStr.replace(':', '') + '00';
+          return `${cleanDate}T${cleanTime}`;
+        }
+        return `${cleanDate}`;
+      }
+
+      function addMinutes(dateStr, timeStr, mins) {
+        const d = new Date(dateStr + (timeStr ? `T${timeStr}:00` : 'T10:00:00'));
+        d.setMinutes(d.getMinutes() + mins);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const h = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        return `${y}${m}${day}T${h}${min}00`;
+      }
+
+      const tripStartDate = trip.startDate || new Date().toISOString().split('T')[0];
+
+      // Add Plans
+      (trip.plans || []).forEach(p => {
+        const dayNum = Number(p.dayNumber) || 1;
+        const planDateObj = new Date(tripStartDate);
+        planDateObj.setDate(planDateObj.getDate() + (dayNum - 1));
+        const planDate = planDateObj.toISOString().split('T')[0];
+
+        const hasTime = Boolean(p.time && /^\d{2}:\d{2}$/.test(p.time));
+        const dtStart = hasTime ? formatIcalDate(planDate, p.time) : formatIcalDate(planDate);
+        const dtEnd = hasTime ? addMinutes(planDate, p.time, 120) : formatIcalDate(planDate);
+
+        const mapUrl = this.getMapsUrl(p);
+        let desc = `Category: ${p.category || 'Activity'}\\nEstimated Cost: ₹${p.estimatedCost || 0}`;
+        if (p.bookingRef) desc += `\\nBooking Ref: ${p.bookingRef}`;
+        if (p.notes) desc += `\\nNotes: ${p.notes.replace(/\n/g, '\\n')}`;
+        if (mapUrl) desc += `\\nMaps Link: ${mapUrl}`;
+
+        lines.push('BEGIN:VEVENT');
+        lines.push(`UID:plan_${p.id}_${trip.id}@ledgermate`);
+        lines.push(`DTSTAMP:${nowUtc}`);
+        if (hasTime) {
+          lines.push(`DTSTART:${dtStart}`);
+          lines.push(`DTEND:${dtEnd}`);
+        } else {
+          lines.push(`DTSTART;VALUE=DATE:${dtStart}`);
+          lines.push(`DTEND;VALUE=DATE:${dtEnd}`);
+        }
+        lines.push(`SUMMARY:${(p.title || 'Plan').replace(/[^\w\s-]/g, '')} [${p.category || 'Plan'}]`);
+        if (desc) lines.push(`DESCRIPTION:${desc}`);
+        if (p.location) lines.push(`LOCATION:${p.location.replace(/[^\w\s,-]/g, '')}`);
+        if (mapUrl) lines.push(`URL:${mapUrl}`);
+
+        // 1-hour alarm before activity
+        lines.push('BEGIN:VALARM');
+        lines.push('TRIGGER:-PT60M');
+        lines.push('ACTION:DISPLAY');
+        lines.push(`DESCRIPTION:Reminder: ${p.title} in 1 hour`);
+        lines.push('END:VALARM');
+
+        lines.push('END:VEVENT');
+      });
+
+      // Add Flight / Booking documents as calendar events
+      (trip.documents || []).forEach(doc => {
+        if (doc.type === 'flight' || doc.type === 'hotel') {
+          lines.push('BEGIN:VEVENT');
+          lines.push(`UID:doc_${doc.id}_${trip.id}@ledgermate`);
+          lines.push(`DTSTAMP:${nowUtc}`);
+          lines.push(`DTSTART;VALUE=DATE:${tripStartDate.replace(/-/g, '')}`);
+          lines.push(`SUMMARY:${doc.type === 'flight' ? '✈️ Flight' : '🏨 Hotel'}: ${(doc.title || 'Booking').replace(/[^\w\s-]/g, '')}${doc.refCode ? ` (Ref: ${doc.refCode})` : ''}`);
+          lines.push(`DESCRIPTION:${(doc.notes || '').replace(/\n/g, '\\n')}\\nRef Code: ${doc.refCode || 'N/A'}`);
+          lines.push('END:VEVENT');
+        }
+      });
+
+      lines.push('END:VCALENDAR');
+      return lines.join('\r\n');
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 15. LIVE WEATHER FORECAST (OPEN-METEO)
+    // ─────────────────────────────────────────────────────────────
+    _weatherCache: {},
+
+    fetchWeatherForecast: async function (destination) {
+      if (!destination || typeof destination !== 'string') return null;
+      const key = destination.trim().toLowerCase();
+      const now = Date.now();
+
+      if (this._weatherCache[key] && (now - this._weatherCache[key].timestamp < 3 * 3600 * 1000)) {
+        return this._weatherCache[key].data;
+      }
+
+      if (typeof fetch === 'undefined') return null;
+
+      try {
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination.trim())}&count=1&language=en&format=json`);
+        if (!geoRes.ok) return null;
+        const geoData = await geoRes.json();
+        if (!geoData.results || !geoData.results.length) return null;
+
+        const loc = geoData.results[0];
+        const lat = loc.latitude;
+        const lon = loc.longitude;
+
+        const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto`);
+        if (!weatherRes.ok) return null;
+        const wData = await weatherRes.json();
+        if (!wData.daily || !Array.isArray(wData.daily.time)) return null;
+
+        const forecastMap = {};
+        wData.daily.time.forEach((dateStr, idx) => {
+          const code = wData.daily.weathercode?.[idx] ?? 0;
+          const info = WMO_WEATHER_MAP[code] || { emoji: '⛅', desc: 'Partly cloudy' };
+          forecastMap[dateStr] = {
+            date: dateStr,
+            code: code,
+            emoji: info.emoji,
+            desc: info.desc,
+            tempMax: Math.round(wData.daily.temperature_2m_max?.[idx] ?? 28),
+            tempMin: Math.round(wData.daily.temperature_2m_min?.[idx] ?? 20),
+            rainProb: wData.daily.precipitation_probability_max?.[idx] ?? 0
+          };
+        });
+
+        this._weatherCache[key] = {
+          timestamp: now,
+          data: forecastMap
+        };
+
+        return forecastMap;
+      } catch (e) {
+        console.warn('[TripService] Weather fetch failed:', e);
+        return null;
+      }
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 16. DASHBOARD ACTIVE / UPCOMING TRIP TELEMETRY
+    // ─────────────────────────────────────────────────────────────
+    getActiveOrUpcomingTrip: function () {
+      const trips = this.getTrips();
+      if (!trips.length) return null;
+      const today = new Date().toISOString().split('T')[0];
+
+      // 1. Actively ongoing trip
+      const active = trips.find(t => t.startDate && t.endDate && t.startDate <= today && t.endDate >= today);
+      if (active) {
+        const startD = new Date(active.startDate);
+        const curD = new Date(today);
+        const dayNum = Math.min(this.calculateTripDays(active.startDate, active.endDate), Math.max(1, Math.ceil((curD - startD) / 864e5) + 1));
+        return { trip: active, status: 'active', currentDay: dayNum, daysUntil: 0 };
+      }
+
+      // 2. Upcoming trip within next 7 days
+      const upcoming = trips
+        .filter(t => t.startDate && t.startDate > today)
+        .sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
+
+      if (upcoming) {
+        const diffDays = Math.ceil((new Date(upcoming.startDate) - new Date(today)) / (864e5));
+        if (diffDays <= 7) {
+          return { trip: upcoming, status: 'upcoming', currentDay: 0, daysUntil: diffDays };
+        }
+      }
+
+      return null;
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 17. PORTABLE TRIP PACKAGE EXPORT & IMPORT (.LM_TRIP)
+    // ─────────────────────────────────────────────────────────────
+    exportTripPackage: function (tripId, options = {}) {
+      const trip = this.getTrip(tripId);
+      if (!trip) throw new Error('Trip not found');
+
+      const clone = JSON.parse(JSON.stringify(trip));
+      if (!options.includeLedgerLinks) {
+        (clone.plans || []).forEach(p => {
+          (p.expenses || []).forEach(e => {
+            delete e.linkedTxId;
+          });
+        });
+        (clone.expenses || []).forEach(e => {
+          delete e.linkedTxId;
+        });
+      }
+
+      return JSON.stringify({
+        format: 'ledgermate_trip_v1',
+        version: '2.0',
+        exportedAt: new Date().toISOString(),
+        trip: clone
+      }, null, 2);
+    },
+
+    importTripPackage: async function (rawContent) {
+      let payload;
+      if (typeof rawContent === 'string') {
+        payload = JSON.parse(rawContent);
+      } else {
+        payload = rawContent;
+      }
+
+      const importedTrip = payload.trip || payload;
+      if (!importedTrip || !importedTrip.name) {
+        throw new Error('Invalid trip package payload');
+      }
+
+      const newTripId = _generateId('trip');
+      importedTrip.id = newTripId;
+      importedTrip.name = (importedTrip.name + ' (Imported)').trim();
+      importedTrip.createdAt = new Date().toISOString();
+      importedTrip.updatedAt = new Date().toISOString();
+
+      const planIdMap = {};
+      (importedTrip.plans || []).forEach(p => {
+        const oldId = p.id;
+        p.id = _generateId('plan');
+        planIdMap[oldId] = p.id;
+        (p.expenses || []).forEach(e => {
+          e.id = _generateId('pexp');
+          delete e.linkedTxId;
+        });
+      });
+
+      (importedTrip.wishlist || []).forEach(w => {
+        w.id = _generateId('wish');
+        if (w.scheduledPlanId && planIdMap[w.scheduledPlanId]) {
+          w.scheduledPlanId = planIdMap[w.scheduledPlanId];
+        }
+      });
+
+      (importedTrip.documents || []).forEach(d => {
+        d.id = _generateId('doc');
+      });
+
+      (importedTrip.packingList || []).forEach(item => {
+        item.id = _generateId('pack');
+      });
+
+      (importedTrip.expenses || []).forEach(e => {
+        e.id = _generateId('gexp');
+        delete e.linkedTxId;
+      });
+
+      const trips = this.getTrips();
+      trips.unshift(importedTrip);
+      await this.saveTripToDB(importedTrip);
+      return importedTrip;
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 18. LIVE FX EXCHANGE RATES REFRESH
+    // ─────────────────────────────────────────────────────────────
+    fetchLiveFXRates: async function (baseCurrency = 'INR') {
+      if (typeof fetch === 'undefined') return { success: false, rates: DEFAULT_FX_RATES };
+      try {
+        const res = await fetch(`https://api.frankfurter.app/latest?from=INR`);
+        if (!res.ok) throw new Error('FX API returned ' + res.status);
+        const data = await res.json();
+        if (data && data.rates) {
+          Object.keys(DEFAULT_FX_RATES).forEach(curr => {
+            if (data.rates[curr] && data.rates[curr] > 0) {
+              DEFAULT_FX_RATES[curr] = _round2(1 / data.rates[curr]);
+            }
+          });
+          try {
+            if (typeof localStorage !== 'undefined') {
+              localStorage.setItem('lm_cached_fx_rates', JSON.stringify({
+                timestamp: Date.now(),
+                rates: DEFAULT_FX_RATES
+              }));
+            }
+          } catch (e) {}
+          return { success: true, rates: DEFAULT_FX_RATES, date: data.date };
+        }
+      } catch (e) {
+        console.warn('[TripService] Live FX fetch error, using default/cached rates:', e);
+      }
+      return { success: false, rates: DEFAULT_FX_RATES };
+    },
+
+    WMO_WEATHER_MAP: WMO_WEATHER_MAP
   };
 
   window.LM_TripService = TripService;

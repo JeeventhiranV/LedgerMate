@@ -31,6 +31,7 @@
     VIEW_MAPPINGS: {
       executive: [
         'dashDailyBriefing',
+        'dashActiveTripSection',
         'dashHeroCard',
         'dashQuickActionsWrap',
         'cardOptimizerWidgetWrap',
@@ -41,6 +42,7 @@
       ],
       daily: [
         'dashDailyBriefing',
+        'dashActiveTripSection',
         'dashQuickActionsWrap',
         'dashAccountSummariesSection',
         'dashRecentActivitySection',
@@ -66,6 +68,7 @@
 
     ALL_DASHBOARD_SECTIONS: [
       'dashDailyBriefing',
+      'dashActiveTripSection',
       'dashHeroCard',
       'dashQuickActionsWrap',
       'cardOptimizerWidgetWrap',
@@ -96,6 +99,7 @@
 
       this.updateDockButtons();
       this.renderDailyBriefing();
+      this.renderActiveTripWidget();
       this.renderDailyRecentActivity();
       this.applyViewFilter();
       this.initInteractiveDrilldowns();
@@ -103,6 +107,7 @@
 
     refresh: function () {
       this.renderDailyBriefing();
+      this.renderActiveTripWidget();
       this.renderDailyRecentActivity();
       this.applyViewFilter();
     },
@@ -153,6 +158,14 @@
         if (cfg[secId] === false) {
           el.style.display = 'none';
           return;
+        }
+
+        // Active Trip check: only show if an active or upcoming trip exists
+        if (secId === 'dashActiveTripSection') {
+          if (!window.LM_TripService || typeof window.LM_TripService.getActiveOrUpcomingTrip !== 'function' || !window.LM_TripService.getActiveOrUpcomingTrip()) {
+            el.style.display = 'none';
+            return;
+          }
         }
 
         // Focus mode filter
@@ -321,6 +334,132 @@
       `;
 
       container.innerHTML = html;
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 🌴 ACTIVE TRAVEL COMPANION WIDGET
+    // ─────────────────────────────────────────────────────────────
+    renderActiveTripWidget: function () {
+      var container = document.getElementById('dashActiveTripSection');
+      if (!container) return;
+
+      if (!window.LM_TripService || typeof window.LM_TripService.getActiveOrUpcomingTrip !== 'function') {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+      }
+
+      var tripData = window.LM_TripService.getActiveOrUpcomingTrip();
+      if (!tripData || !tripData.trip) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+      }
+
+      var trip = tripData.trip;
+      var status = tripData.status; // 'active' or 'upcoming'
+      var currentDay = tripData.currentDay;
+      var daysUntil = tripData.daysUntil;
+      var totalDays = window.LM_TripService.calculateTripDays ? window.LM_TripService.calculateTripDays(trip.startDate, trip.endDate) : 1;
+
+      var fin = window.LM_TripService.calculateFinancials ? window.LM_TripService.calculateFinancials(trip) : { budgetCap: 0, spentTotal: 0, balance: 0 };
+
+      var badgeText = status === 'active' 
+        ? `🌴 ONGOING TRIP · Day ${currentDay} of ${totalDays}` 
+        : `✈️ UPCOMING TRIP · Starts in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}`;
+      var badgeColor = status === 'active' ? 'var(--emerald)' : 'var(--teal)';
+
+      var dailyBudget = totalDays > 0 && fin.budgetCap > 0 ? Math.round(fin.budgetCap / totalDays) : 0;
+
+      // Credit card optimization tip if available
+      var cardTip = '';
+      if (typeof state === 'object' && Array.isArray(state.creditCards) && state.creditCards.length > 0) {
+        var travelCards = state.creditCards.filter(function (c) {
+          var name = (c.name || '').toLowerCase();
+          var network = (c.network || '').toLowerCase();
+          return name.includes('travel') || name.includes('forex') || name.includes('miles') || name.includes('regalia') || name.includes('infinia') || name.includes('magnus') || name.includes('atlas') || network.includes('amex');
+        });
+        var recommendedCard = travelCards.length > 0 ? travelCards[0] : state.creditCards[0];
+        if (recommendedCard) {
+          cardTip = `<div class="dash-trip-card-tip">💳 Recommended Card: <strong>${recommendedCard.name}</strong> for ${trip.currency !== 'INR' ? 'lowest forex markup' : 'travel rewards'}</div>`;
+        }
+      }
+
+      // Next itinerary activity for current or start day
+      var nextPlanHtml = '';
+      var targetDay = status === 'active' ? currentDay : 1;
+      var targetPlans = (trip.plans || []).filter(function (p) { return Number(p.day) === Number(targetDay); });
+      if (targetPlans.length > 0) {
+        var nextPlan = targetPlans[0];
+        var mapsBtn = '';
+        if (nextPlan.mapsLink) {
+          mapsBtn = `<a href="${nextPlan.mapsLink}" target="_blank" rel="noopener noreferrer" class="dash-trip-maps-link" title="Open in Google Maps">📍 Open Map</a>`;
+        } else if (nextPlan.location || trip.destination) {
+          var query = encodeURIComponent((nextPlan.location || trip.destination) + ' ' + (nextPlan.title || ''));
+          mapsBtn = `<a href="https://www.google.com/maps/search/?api=1&query=${query}" target="_blank" rel="noopener noreferrer" class="dash-trip-maps-link" title="Search in Google Maps">📍 Map</a>`;
+        }
+        nextPlanHtml = `
+          <div class="dash-trip-plan-highlight">
+            <div style="font-size:11px; color:var(--text-3); text-transform:uppercase; letter-spacing:0.5px; font-weight:700;">
+              ${status === 'active' ? "Today's Agenda" : "Day 1 Highlight"}
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:3px; gap:8px;">
+              <span style="font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                ${nextPlan.time ? '⏰ ' + nextPlan.time + ' · ' : ''}${nextPlan.title || 'Sightseeing'}
+              </span>
+              ${mapsBtn}
+            </div>
+          </div>
+        `;
+      }
+
+      var html = `
+        <div class="dash-active-trip-card">
+          <div class="dash-active-trip-header">
+            <div class="dash-trip-status-pill" style="color:${badgeColor};">
+              <span class="live-radar-dot" style="background:${badgeColor}; box-shadow:0 0 8px ${badgeColor};"></span>
+              <span>${badgeText}</span>
+            </div>
+            <div class="dash-trip-actions">
+              <button type="button" class="dash-trip-btn-sec" onclick="if(window.LM_TripUI)LM_TripUI.openGeneralExpenseModal('${trip.id}')" title="Log Trip Expense">
+                ⚡ + Expense
+              </button>
+              <button type="button" class="dash-trip-btn-primary" onclick="if(typeof showSection==='function')showSection('trips'); if(window.LM_TripUI)LM_TripUI.openTripWorkspace('${trip.id}');" title="Open Full Trip Workspace">
+                Trip Hub →
+              </button>
+            </div>
+          </div>
+
+          <div class="dash-active-trip-body">
+            <div class="dash-trip-main-info">
+              <div class="dash-trip-name">${trip.name}</div>
+              <div class="dash-trip-dest">📍 ${trip.destination || 'Unspecified'} · 🗓️ ${trip.startDate || ''} to ${trip.endDate || ''} · 💱 ${trip.currency || 'INR'}</div>
+            </div>
+
+            <div class="dash-trip-pacing-grid">
+              <div class="dash-trip-pacing-stat">
+                <span class="dash-trip-pacing-label">Spent / Budget</span>
+                <span class="dash-trip-pacing-val font-bold">${_fmtINR(fin.spentTotal)} <span style="font-size:11px; font-weight:400; color:var(--text-3);">/ ${_fmtINR(fin.budgetCap)}</span></span>
+              </div>
+              <div class="dash-trip-pacing-stat">
+                <span class="dash-trip-pacing-label">Remaining Safe Budget</span>
+                <span class="dash-trip-pacing-val font-bold" style="color:${fin.balance >= 0 ? 'var(--emerald)' : 'var(--rose)'};">${_fmtINR(fin.balance)}</span>
+              </div>
+              ${dailyBudget > 0 ? `
+              <div class="dash-trip-pacing-stat">
+                <span class="dash-trip-pacing-label">Daily Target Pacing</span>
+                <span class="dash-trip-pacing-val font-bold" style="color:var(--teal);">${_fmtINR(dailyBudget)}/day</span>
+              </div>` : ''}
+            </div>
+
+            ${nextPlanHtml}
+            ${cardTip}
+          </div>
+        </div>
+      `;
+
+      container.innerHTML = html;
+      container.style.display = '';
     },
 
     // ─────────────────────────────────────────────────────────────
