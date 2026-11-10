@@ -120,9 +120,14 @@
                   <p class="tp-hero-subtitle">Plan destinations, collect discovered spots, and track expenses against every plan.</p>
                 </div>
               </div>
-              <button class="tp-btn-primary" onclick="window.LM_TripUI.openAddTripModal()">
-                <span>＋</span> Add New Trip
-              </button>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="tp-btn-secondary" onclick="window.LM_TripUI.openImportTripModal()" title="Import portable .lm_trip package">
+                  <span>📥</span> Import Trip
+                </button>
+                <button class="tp-btn-primary" onclick="window.LM_TripUI.openAddTripModal()">
+                  <span>＋</span> Add New Trip
+                </button>
+              </div>
             </div>
 
             <!-- MACRO KPIS -->
@@ -275,6 +280,8 @@
                 <span>←</span> All Trips
               </button>
               <div class="tp-workspace-actions">
+                <button class="tp-btn-secondary" style="color:var(--teal);" onclick="window.LM_TripUI.downloadICalendar('${trip.id}')" title="Sync all plans, flights & hotels with Google / Apple Calendar">📅 Sync Calendar</button>
+                <button class="tp-btn-secondary" onclick="window.LM_TripUI.exportTripModal('${trip.id}')" title="Export entire trip as portable package">📦 Export</button>
                 <button class="tp-btn-secondary" style="color:var(--teal);" onclick="window.LM_TripUI.startVoiceLog('${trip.id}')" title="Voice Expense / Note">🎙️ Voice</button>
                 <button class="tp-btn-secondary" onclick="window.LM_TripUI.printTripItinerary('${trip.id}')" title="Printable / PDF Itinerary">📄 PDF</button>
                 <button class="tp-btn-secondary" onclick="window.LM_TripUI.shareTrip('${trip.id}')" title="Copy WhatsApp Formatted Itinerary">💬 WhatsApp</button>
@@ -289,7 +296,7 @@
                 <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                   <h1 class="tp-hero-title" style="font-size:22px; margin:0;">${_esc(trip.name)}</h1>
                   <span class="tp-status-pill tp-status-${trip.status || 'planning'}">${_esc(trip.status || 'planning')}</span>
-                  ${trip.currency && trip.currency !== 'INR' ? `<span class="tp-currency-pill" style="background:rgba(0,240,255,0.12); color:var(--teal); font-size:11px; padding:2px 8px; border-radius:12px; font-weight:600;">💱 ${trip.currency} (1 = ₹${trip.exchangeRate || 1})</span>` : ''}
+                  ${trip.currency && trip.currency !== 'INR' ? `<span class="tp-currency-pill" style="background:rgba(0,240,255,0.12); color:var(--teal); font-size:11px; padding:2px 8px; border-radius:12px; font-weight:600; display:inline-flex; align-items:center; gap:4px;">💱 ${trip.currency} (1 = ₹${trip.exchangeRate || 1}) <button type="button" onclick="window.LM_TripUI.refreshLiveFX('${trip.id}')" style="background:none; border:none; color:var(--teal); cursor:pointer; padding:0 2px; font-size:11px;" title="Refresh live market FX rate">🔄</button></span>` : ''}
                 </div>
                 <div class="tp-trip-card-meta" style="margin-top:4px; margin-bottom:0;">
                   <span>📍 ${_esc(trip.destination || 'Unspecified')}</span>
@@ -463,11 +470,28 @@
                 ? `<a href="https://www.google.com/maps/dir/${dayLocations.map(encodeURIComponent).join('/')}" target="_blank" rel="noopener noreferrer" class="tp-route-link" style="color:var(--teal); font-size:11px; text-decoration:none; display:inline-flex; align-items:center; gap:3px; background:rgba(0,240,255,0.08); padding:2px 8px; border-radius:12px;">🗺️ Day Route (${dayLocations.length} stops) ↗</a>`
                 : '';
 
+              const tripStartDate = trip.startDate || new Date().toISOString().split('T')[0];
+              const dayDateObj = new Date(tripStartDate);
+              dayDateObj.setDate(dayDateObj.getDate() + (d - 1));
+              const dayDateStr = dayDateObj.toISOString().split('T')[0];
+
+              let weatherChip = '';
+              const destKey = (trip.destination || '').trim().toLowerCase();
+              const wMap = destKey ? window.LM_TripService?._weatherCache?.[destKey]?.data : null;
+              const dayW = wMap ? wMap[dayDateStr] : null;
+              if (dayW) {
+                weatherChip = `<span class="tp-weather-chip" title="Forecast for ${dayDateStr}: ${dayW.desc}">${dayW.emoji} ${dayW.tempMax}° / ${dayW.tempMin}°C · 💧 ${dayW.rainProb}%</span>`;
+                if (dayW.rainProb >= 50) {
+                  weatherChip += ` <span class="tp-weather-alert-chip" title="Rain probability is ${dayW.rainProb}%">🌧️ Rain Alert (${dayW.rainProb}%)</span>`;
+                }
+              }
+
               return `
                 <div class="tp-day-group">
                   <div class="tp-day-title-strip">
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                       <div class="tp-day-title-text">📅 DAY ${d}</div>
+                      ${weatherChip}
                       ${routeBtn}
                     </div>
                     <div class="tp-day-title-meta">
@@ -570,6 +594,19 @@
           </div>
         `}
       `;
+
+      // Background weather hydration if destination provided
+      if (trip.destination && typeof window !== 'undefined' && window.LM_TripService) {
+        const dKey = trip.destination.trim().toLowerCase();
+        if (!window.LM_TripService._weatherCache?.[dKey]) {
+          window.LM_TripService.fetchWeatherForecast(trip.destination).then(res => {
+            if (res && this.activeTab === 'itinerary' && this.activeTripId === trip.id) {
+              const cont = document.getElementById('tp_tab_content');
+              if (cont) this.renderItineraryTab(trip, cont);
+            }
+          });
+        }
+      }
     },
 
     setDayFilter: function (day) {
@@ -1878,6 +1915,33 @@
               </div>
             </div>
 
+            <!-- SPLIT OPTIONS & CUSTOM SHARES -->
+            <div class="tp-split-section" style="background:rgba(255, 255, 255, 0.03); border:1px solid rgba(255, 255, 255, 0.08); border-radius:10px; padding:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+                <label class="text-xs font-semibold text-muted" style="margin:0;">Split Between Travelers</label>
+                <div class="tp-split-mode-pills" style="display:flex; gap:4px;">
+                  <button type="button" class="tp-split-mode-btn active" data-mode="equal" onclick="window.LM_TripUI._setSplitMode(this, 'equal', 'tp_pexp')">Equal</button>
+                  <button type="button" class="tp-split-mode-btn" data-mode="exact" onclick="window.LM_TripUI._setSplitMode(this, 'exact', 'tp_pexp')">Exact (₹)</button>
+                  <button type="button" class="tp-split-mode-btn" data-mode="shares" onclick="window.LM_TripUI._setSplitMode(this, 'shares', 'tp_pexp')">Shares</button>
+                </div>
+              </div>
+              <input type="hidden" id="tp_pexp_split_mode" value="equal" />
+              <div id="tp_pexp_split_members_container" class="space-y-2">
+                ${(trip.persons || []).map(p => `
+                  <div class="tp-split-member-row" style="display:flex; justify-content:space-between; align-items:center; font-size:12.5px;">
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                      <input type="checkbox" class="tp-split-member-check" value="${p.id}" checked onchange="window.LM_TripUI._updateSplitBreakdown('tp_pexp')" />
+                      <span>${_esc(p.name)}</span>
+                    </label>
+                    <div class="tp-split-input-wrap" style="display:none;">
+                      <input type="number" class="tp-split-custom-input form-input" data-person="${p.id}" placeholder="0" style="width:85px; padding:3px 6px; font-size:12px; text-align:right;" oninput="window.LM_TripUI._updateSplitBreakdown('tp_pexp')" />
+                    </div>
+                    <span class="tp-split-computed-val text-xs text-muted font-mono">₹0</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
             <!-- Interlink with Central Ledger -->
             <div style="background:rgba(0, 240, 255, 0.05); border:1px solid rgba(0, 240, 255, 0.2); border-radius:10px; padding:10px 12px; margin-top:8px;">
               <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; font-weight:600; color:var(--text);">
@@ -1908,7 +1972,10 @@
       `;
 
       document.body.appendChild(modal);
-      setTimeout(() => modal.classList.add('show'), 10);
+      setTimeout(() => {
+        modal.classList.add('show');
+        this._updateSplitBreakdown('tp_pexp');
+      }, 10);
     },
 
     _savePlanExpense: async function (tripId, planId) {
@@ -1928,6 +1995,43 @@
       const receiptUrl = document.getElementById('tp_pexp_receipt_url')?.value || null;
       const localAmount = Number(document.getElementById('tp_pexp_local_amt')?.value) || amount;
 
+      const splitType = document.getElementById('tp_pexp_split_mode')?.value || 'equal';
+      let sharedWith = [];
+      let splitDetails = null;
+
+      if (splitType === 'exact') {
+        splitDetails = {};
+        let sumExact = 0;
+        document.querySelectorAll('#tp_pexp_split_members_container .tp-split-custom-input').forEach(inp => {
+          const pid = inp.dataset.person;
+          const val = Number(inp.value) || 0;
+          splitDetails[pid] = val;
+          if (val > 0) sharedWith.push(pid);
+          sumExact += val;
+        });
+        if (Math.abs(sumExact - amount) > 1) {
+          alert(`The sum of exact shares (₹${sumExact}) must match total amount (₹${amount})!`);
+          return;
+        }
+      } else if (splitType === 'shares') {
+        splitDetails = {};
+        document.querySelectorAll('#tp_pexp_split_members_container .tp-split-custom-input').forEach(inp => {
+          const pid = inp.dataset.person;
+          const s = Number(inp.value) || 0;
+          splitDetails[pid] = s;
+          if (s > 0) sharedWith.push(pid);
+        });
+        if (!sharedWith.length) {
+          alert('Please allocate shares to at least one traveler');
+          return;
+        }
+      } else {
+        document.querySelectorAll('#tp_pexp_split_members_container .tp-split-member-check:checked').forEach(chk => {
+          sharedWith.push(chk.value);
+        });
+        if (!sharedWith.length) sharedWith = (trip?.persons || []).map(p => p.id);
+      }
+
       await window.LM_TripService.addPlanExpense(tripId, planId, {
         title,
         amount,
@@ -1937,7 +2041,10 @@
         currency: trip?.currency || 'INR',
         localAmount,
         exchangeRate: trip?.exchangeRate || 1,
-        receiptUrl
+        receiptUrl,
+        sharedWith,
+        splitType,
+        splitDetails
       }, { linkToCentralLedger, syncFuelToVehicle: syncFuel });
 
       document.getElementById('tp_planExpModalOverlay')?.remove();
@@ -2041,6 +2148,33 @@
               </div>
             </div>
 
+            <!-- SPLIT OPTIONS & CUSTOM SHARES -->
+            <div class="tp-split-section" style="background:rgba(255, 255, 255, 0.03); border:1px solid rgba(255, 255, 255, 0.08); border-radius:10px; padding:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+                <label class="text-xs font-semibold text-muted" style="margin:0;">Split Between Travelers</label>
+                <div class="tp-split-mode-pills" style="display:flex; gap:4px;">
+                  <button type="button" class="tp-split-mode-btn active" data-mode="equal" onclick="window.LM_TripUI._setSplitMode(this, 'equal', 'tp_gexp')">Equal</button>
+                  <button type="button" class="tp-split-mode-btn" data-mode="exact" onclick="window.LM_TripUI._setSplitMode(this, 'exact', 'tp_gexp')">Exact (₹)</button>
+                  <button type="button" class="tp-split-mode-btn" data-mode="shares" onclick="window.LM_TripUI._setSplitMode(this, 'shares', 'tp_gexp')">Shares</button>
+                </div>
+              </div>
+              <input type="hidden" id="tp_gexp_split_mode" value="equal" />
+              <div id="tp_gexp_split_members_container" class="space-y-2">
+                ${(trip.persons || []).map(p => `
+                  <div class="tp-split-member-row" style="display:flex; justify-content:space-between; align-items:center; font-size:12.5px;">
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                      <input type="checkbox" class="tp-split-member-check" value="${p.id}" checked onchange="window.LM_TripUI._updateSplitBreakdown('tp_gexp')" />
+                      <span>${_esc(p.name)}</span>
+                    </label>
+                    <div class="tp-split-input-wrap" style="display:none;">
+                      <input type="number" class="tp-split-custom-input form-input" data-person="${p.id}" placeholder="0" style="width:85px; padding:3px 6px; font-size:12px; text-align:right;" oninput="window.LM_TripUI._updateSplitBreakdown('tp_gexp')" />
+                    </div>
+                    <span class="tp-split-computed-val text-xs text-muted font-mono">₹0</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
             <div style="background:rgba(0, 240, 255, 0.05); border:1px solid rgba(0, 240, 255, 0.2); border-radius:10px; padding:10px 12px;">
               <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; font-weight:600; color:var(--text);">
                 <input type="checkbox" id="tp_gexp_link" checked />
@@ -2066,7 +2200,10 @@
       `;
 
       document.body.appendChild(modal);
-      setTimeout(() => modal.classList.add('show'), 10);
+      setTimeout(() => {
+        modal.classList.add('show');
+        this._updateSplitBreakdown('tp_gexp');
+      }, 10);
     },
 
     _saveGeneralExpense: async function (tripId) {
@@ -2086,6 +2223,43 @@
       const receiptUrl = document.getElementById('tp_gexp_receipt_url')?.value || null;
       const localAmount = Number(document.getElementById('tp_gexp_local_amt')?.value) || amount;
 
+      const splitType = document.getElementById('tp_gexp_split_mode')?.value || 'equal';
+      let sharedWith = [];
+      let splitDetails = null;
+
+      if (splitType === 'exact') {
+        splitDetails = {};
+        let sumExact = 0;
+        document.querySelectorAll('#tp_gexp_split_members_container .tp-split-custom-input').forEach(inp => {
+          const pid = inp.dataset.person;
+          const val = Number(inp.value) || 0;
+          splitDetails[pid] = val;
+          if (val > 0) sharedWith.push(pid);
+          sumExact += val;
+        });
+        if (Math.abs(sumExact - amount) > 1) {
+          alert(`The sum of exact shares (₹${sumExact}) must match total amount (₹${amount})!`);
+          return;
+        }
+      } else if (splitType === 'shares') {
+        splitDetails = {};
+        document.querySelectorAll('#tp_gexp_split_members_container .tp-split-custom-input').forEach(inp => {
+          const pid = inp.dataset.person;
+          const s = Number(inp.value) || 0;
+          splitDetails[pid] = s;
+          if (s > 0) sharedWith.push(pid);
+        });
+        if (!sharedWith.length) {
+          alert('Please allocate shares to at least one traveler');
+          return;
+        }
+      } else {
+        document.querySelectorAll('#tp_gexp_split_members_container .tp-split-member-check:checked').forEach(chk => {
+          sharedWith.push(chk.value);
+        });
+        if (!sharedWith.length) sharedWith = (trip?.persons || []).map(p => p.id);
+      }
+
       await window.LM_TripService.addGeneralExpense(tripId, {
         title,
         amount,
@@ -2095,7 +2269,10 @@
         currency: trip?.currency || 'INR',
         localAmount,
         exchangeRate: trip?.exchangeRate || 1,
-        receiptUrl
+        receiptUrl,
+        sharedWith,
+        splitType,
+        splitDetails
       }, { linkToCentralLedger, syncFuelToVehicle: syncFuel });
 
       document.getElementById('tp_genExpModalOverlay')?.remove();
@@ -2456,6 +2633,183 @@
       }
       const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
       window.open(url, '_blank', 'noopener,noreferrer');
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 16. CALENDAR SYNC (.ICS) DOWNLOAD
+    // ─────────────────────────────────────────────────────────────
+    downloadICalendar: function (tripId) {
+      const trip = window.LM_TripService.getTrip(tripId);
+      if (!trip) return;
+      const ics = window.LM_TripService.generateICalendar(tripId);
+      if (!ics) {
+        if (typeof showToast === 'function') showToast('No itinerary items to sync', 'info');
+        return;
+      }
+      const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(trip.name || 'Trip').replace(/[^a-z0-9]/gi, '_')}_itinerary.ics`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      if (typeof showToast === 'function') showToast('📅 Calendar .ics downloaded! Tap to sync with Google/Apple Calendar', 'success');
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 17. TRIP PACKAGE EXPORT & IMPORT
+    // ─────────────────────────────────────────────────────────────
+    exportTripModal: function (tripId) {
+      const trip = window.LM_TripService.getTrip(tripId);
+      if (!trip) return;
+      const jsonStr = window.LM_TripService.exportTripPackage(tripId, { includeLedgerLinks: false });
+      const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(trip.name || 'Trip').replace(/[^a-z0-9]/gi, '_')}.lm_trip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      if (typeof showToast === 'function') showToast('📦 Trip package exported! Ready to share with companions.', 'success');
+    },
+
+    openImportTripModal: function () {
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.id = 'tp_importModalOverlay';
+      modal.style.zIndex = '99999';
+
+      modal.innerHTML = `
+        <div class="modal" style="max-width:440px; width:92vw;">
+          <div class="modal-header">
+            <h3 class="modal-title font-bold text-lg">📥 Import Trip Package</h3>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          </div>
+          <div class="modal-body space-y-4" style="padding:16px;">
+            <p style="font-size:12.5px; color:var(--text-2); margin-bottom:12px;">
+              Select a <strong>.lm_trip</strong> or JSON file exported by a travel companion to import their complete itinerary, packing list, and booked documents.
+            </p>
+            <div style="border:2px dashed rgba(255,255,255,0.15); border-radius:10px; padding:24px; text-align:center; background:rgba(255,255,255,0.02);">
+              <input type="file" id="tp_import_file_input" accept=".lm_trip,.json" style="display:none;" onchange="window.LM_TripUI._handleImportFile(this.files[0])" />
+              <button type="button" class="tp-btn-primary" onclick="document.getElementById('tp_import_file_input').click()">
+                📂 Select Trip File
+              </button>
+              <div style="font-size:11px; color:var(--text-3); margin-top:8px;">Supports .lm_trip and .json files</div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+              <button type="button" class="tp-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+      setTimeout(() => modal.classList.add('show'), 10);
+    },
+
+    _handleImportFile: async function (file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const content = e.target.result;
+          const imported = await window.LM_TripService.importTripPackage(content);
+          document.getElementById('tp_importModalOverlay')?.remove();
+          if (typeof showToast === 'function') showToast(`🎉 Trip "${imported.name}" imported successfully!`, 'success');
+          this.activeTripId = imported.id;
+          this.renderTripWorkspace(imported.id);
+        } catch (err) {
+          alert('Failed to import trip: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    },
+
+    refreshLiveFX: async function (tripId) {
+      if (typeof showToast === 'function') showToast('🔄 Refreshing live FX rates from market...', 'info');
+      const res = await window.LM_TripService.fetchLiveFXRates();
+      if (res && res.success) {
+        if (typeof showToast === 'function') showToast(`💱 Live FX rates updated as of ${res.date || 'today'}!`, 'success');
+        if (tripId) this.renderTripWorkspace(tripId);
+      } else {
+        if (typeof showToast === 'function') showToast('Could not reach FX service, using cached rates.', 'info');
+      }
+    },
+
+    _setSplitMode: function (btn, mode, prefix = 'tp_pexp') {
+      const parent = btn.closest('.tp-split-mode-pills');
+      if (parent) {
+        parent.querySelectorAll('.tp-split-mode-btn').forEach(b => b.classList.remove('active'));
+      }
+      btn.classList.add('active');
+      const hiddenInp = document.getElementById(`${prefix}_split_mode`);
+      if (hiddenInp) hiddenInp.value = mode;
+
+      const container = document.getElementById(`${prefix}_split_members_container`);
+      if (!container) return;
+
+      const inputWraps = container.querySelectorAll('.tp-split-input-wrap');
+      inputWraps.forEach(w => {
+        w.style.display = (mode === 'exact' || mode === 'shares') ? 'block' : 'none';
+        const inp = w.querySelector('.tp-split-custom-input');
+        if (inp) inp.placeholder = mode === 'exact' ? '₹ amt' : 'shares';
+      });
+
+      this._updateSplitBreakdown(prefix);
+    },
+
+    _updateSplitBreakdown: function (prefix = 'tp_pexp') {
+      const mode = document.getElementById(`${prefix}_split_mode`)?.value || 'equal';
+      const amtInput = document.getElementById(`${prefix}_amount`);
+      const totalAmt = Number(amtInput?.value) || 0;
+      const container = document.getElementById(`${prefix}_split_members_container`);
+      if (!container) return;
+
+      const rows = container.querySelectorAll('.tp-split-member-row');
+
+      if (mode === 'equal') {
+        const checkedRows = Array.from(rows).filter(r => r.querySelector('.tp-split-member-check')?.checked);
+        const count = checkedRows.length || 1;
+        const perPerson = Math.round(totalAmt / count);
+
+        rows.forEach(r => {
+          const chk = r.querySelector('.tp-split-member-check');
+          const valEl = r.querySelector('.tp-split-computed-val');
+          if (chk && chk.checked) {
+            if (valEl) valEl.textContent = `₹${perPerson}`;
+          } else {
+            if (valEl) valEl.textContent = `₹0 (excluded)`;
+          }
+        });
+      } else if (mode === 'exact') {
+        rows.forEach(r => {
+          const inp = r.querySelector('.tp-split-custom-input');
+          const valEl = r.querySelector('.tp-split-computed-val');
+          const exactVal = Number(inp?.value) || 0;
+          if (valEl) valEl.textContent = `₹${exactVal}`;
+        });
+      } else if (mode === 'shares') {
+        let totalShares = 0;
+        rows.forEach(r => {
+          const inp = r.querySelector('.tp-split-custom-input');
+          totalShares += (Number(inp?.value) || 0);
+        });
+        rows.forEach(r => {
+          const inp = r.querySelector('.tp-split-custom-input');
+          const valEl = r.querySelector('.tp-split-computed-val');
+          const s = Number(inp?.value) || 0;
+          if (totalShares > 0) {
+            const calculated = Math.round(totalAmt * (s / totalShares));
+            if (valEl) valEl.textContent = `₹${calculated} (${s} sh)`;
+          } else {
+            if (valEl) valEl.textContent = '0 sh';
+          }
+        });
+      }
     }
   };
 

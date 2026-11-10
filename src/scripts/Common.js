@@ -9319,6 +9319,7 @@ function calcRetirement() {
 ══════════════════════════════════════════════════════════════ */
 const DASHBOARD_WIDGETS = [
   { id: 'dashDailyBriefing',               label: 'Daily Financial Briefing',  icon: '🌅' },
+  { id: 'dashActiveTripSection',           label: 'Active Travel Companion',   icon: '🌴' },
   { id: 'dashHeroCard',                    label: 'Executive Hero Card',       icon: '👑' },
   { id: 'dashQuickActionsWrap',            label: 'Quick Action Speed Dial',   icon: '⚡' },
   { id: 'kpiCards',                        label: 'KPI Cards',                 icon: '📊' },
