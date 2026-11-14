@@ -551,12 +551,8 @@
                         const pf = window.LM_TripService.getPlanFinancials(plan);
                         const isVisited = plan.status === 'completed';
                         const icon = catIcons[plan.category] || '📌';
-                        const timeStr = plan.time ? ` · ⏰ ${plan.time}` : '';
                         const mapUrl = window.LM_TripService.getMapsUrl(plan);
                         const locLabel = (plan.location && !/^https?:\/\//i.test(plan.location)) ? plan.location : (plan.title || 'Maps');
-                        const locStr = mapUrl 
-                          ? ` · <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="tp-map-pill" title="Open in Google Maps">📍 ${_esc(locLabel)} ↗</a>` 
-                          : (plan.location ? ` · 📍 ${_esc(plan.location)}` : '');
 
                         let varBadge = '';
                         if (pf.actualTotal === 0 && pf.estimatedCost > 0) {
@@ -580,22 +576,27 @@
                                     ${isVisited ? `<span class="tp-visited-badge">✓ Visited</span>` : ''}
                                   </div>
                                   <div class="tp-plan-meta">
-                                    <span style="font-weight:600; color:var(--teal);">${_esc(plan.category)}</span>
-                                    <span>${timeStr}</span>
-                                    <span>${locStr}</span>
-                                    ${plan.bookingRef ? `<span style="background:rgba(255,255,255,0.06); padding:1px 6px; border-radius:4px;">Ref: ${_esc(plan.bookingRef)}</span>` : ''}
+                                    <span class="tp-meta-tag tp-meta-cat">${_esc(plan.category || 'Spot')}</span>
+                                    ${plan.time ? `<span class="tp-meta-tag tp-meta-time">⏰ ${_esc(plan.time)}</span>` : ''}
+                                    ${mapUrl 
+                                      ? `<a href="${mapUrl}" target="_blank" rel="noopener noreferrer" onclick="window.LM_TripUI.openMapsUrl(this.href); return false;" class="tp-meta-tag tp-meta-loc" title="Open in Google Maps">📍 ${_esc(locLabel)} ↗</a>` 
+                                      : (plan.location ? `<span class="tp-meta-tag tp-meta-loc">📍 ${_esc(plan.location)}</span>` : '')
+                                    }
+                                    ${plan.bookingRef ? `<span class="tp-meta-tag tp-meta-ref">Ref: ${_esc(plan.bookingRef)}</span>` : ''}
                                   </div>
-                                  ${plan.notes ? `<div style="font-size:12px; color:var(--text-2); margin-top:4px;">${_esc(plan.notes)}</div>` : ''}
+                                  ${plan.notes ? `<div class="tp-plan-notes">${_esc(plan.notes)}</div>` : ''}
                                 </div>
                               </div>
                               <div class="tp-plan-actions">
                                 <button class="tp-plan-status-pill ${isVisited ? 'visited' : 'pending'}" title="${isVisited ? 'Click to mark as Pending' : 'Click to mark as Visited'}" onclick="window.LM_TripUI.togglePlanStatus('${trip.id}', '${plan.id}')">
                                   ${isVisited ? '✅ Visited' : '⏳ Mark Visited'}
                                 </button>
-                                ${mapUrl ? `<a class="tp-icon-btn" href="${mapUrl}" target="_blank" rel="noopener noreferrer" title="Navigate on Google Maps">🧭</a>` : ''}
-                                <button class="tp-icon-btn" title="Move back to Seen &amp; Wishlist places" onclick="window.LM_TripUI.movePlanToWishlist('${trip.id}', '${plan.id}')">💡</button>
-                                <button class="tp-icon-btn" title="Edit Plan" onclick="window.LM_TripUI.openAddPlanModal('${trip.id}', '${plan.id}')">✏️</button>
-                                <button class="tp-icon-btn" title="Delete Plan" onclick="window.LM_TripUI.deletePlan('${trip.id}', '${plan.id}')">🗑️</button>
+                                <div class="tp-plan-action-icons">
+                                  ${mapUrl ? `<a class="tp-icon-btn" href="${mapUrl}" target="_blank" rel="noopener noreferrer" onclick="window.LM_TripUI.openMapsUrl(this.href); return false;" title="Navigate on Google Maps">🧭</a>` : ''}
+                                  <button class="tp-icon-btn" title="Move back to Seen &amp; Wishlist places" onclick="window.LM_TripUI.movePlanToWishlist('${trip.id}', '${plan.id}')">💡</button>
+                                  <button class="tp-icon-btn" title="Edit Plan" onclick="window.LM_TripUI.openAddPlanModal('${trip.id}', '${plan.id}')">✏️</button>
+                                  <button class="tp-icon-btn" title="Delete Plan" onclick="window.LM_TripUI.deletePlan('${trip.id}', '${plan.id}')">🗑️</button>
+                                </div>
                               </div>
                             </div>
 
