@@ -497,12 +497,9 @@
               const dayActual = dayPlans.reduce((s, p) => s + (p.expenses || []).reduce((es, e) => es + e.amount, 0), 0);
               const dayStats = itinStats.byDay[d] || { total: 0, visited: 0, pending: 0 };
               const dayProgressStr = dayStats.total > 0 ? ` · <span style="color:var(--emerald); font-weight:600;">${dayStats.visited}/${dayStats.total} visited</span>` : '';
-              const dayLocations = dayPlans.map(p => {
-                if (p.location && !/^https?:\/\//i.test(p.location)) return p.location;
-                return p.title;
-              }).filter(Boolean);
-              const routeBtn = dayLocations.length > 1
-                ? `<a href="https://www.google.com/maps/dir/${dayLocations.map(encodeURIComponent).join('/')}" target="_blank" rel="noopener noreferrer" class="tp-route-link" style="color:var(--teal); font-size:11px; text-decoration:none; display:inline-flex; align-items:center; gap:3px; background:rgba(0,240,255,0.08); padding:2px 8px; border-radius:12px;">🗺️ Day Route (${dayLocations.length} stops) ↗</a>`
+              const dayRouteUrl = window.LM_TripService.buildMultiStopRouteUrl(dayPlans);
+              const routeBtn = (dayPlans.length > 1 && dayRouteUrl)
+                ? `<a href="${dayRouteUrl}" target="_blank" rel="noopener noreferrer" onclick="window.LM_TripUI.openMapsUrl(this.href); return false;" class="tp-route-link" style="color:var(--teal); font-size:11px; text-decoration:none; display:inline-flex; align-items:center; gap:3px; background:rgba(0,240,255,0.08); padding:2px 8px; border-radius:12px;" title="Open cross-platform directions in Google Maps">🗺️ Day Route (${dayPlans.length} stops) ↗</a>`
                 : '';
 
               const tripStartDate = trip.startDate || new Date().toISOString().split('T')[0];
@@ -3557,10 +3554,10 @@
       const listCont = document.getElementById('tp_route_stops_list');
       if (!actCont || !listCont) return;
 
-      if (stops.length > 1) {
-        const dirUrl = `https://www.google.com/maps/dir/${stops.map(s => encodeURIComponent(s.location)).join('/')}`;
+      const multiRouteUrl = window.LM_TripService.buildMultiStopRouteUrl(stops);
+      if (stops.length > 1 && multiRouteUrl) {
         actCont.innerHTML = `
-          <a href="${dirUrl}" target="_blank" rel="noopener noreferrer" class="tp-btn-primary" style="display:flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; padding:10px 16px; font-weight:700;">
+          <a href="${multiRouteUrl}" target="_blank" rel="noopener noreferrer" onclick="window.LM_TripUI.openMapsUrl(this.href); return false;" class="tp-btn-primary" style="display:flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; padding:10px 16px; font-weight:700;">
             <span>🧭</span> Open Full Multi-Stop Route in Google Maps (${stops.length} stops) ↗
           </a>
           ${selectedDay !== 'all' ? `
@@ -3571,7 +3568,7 @@
         `;
       } else if (stops.length === 1 && stops[0].mapsUrl) {
         actCont.innerHTML = `
-          <a href="${stops[0].mapsUrl}" target="_blank" rel="noopener noreferrer" class="tp-btn-primary" style="display:flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; padding:10px 16px; font-weight:700;">
+          <a href="${stops[0].mapsUrl}" target="_blank" rel="noopener noreferrer" onclick="window.LM_TripUI.openMapsUrl(this.href); return false;" class="tp-btn-primary" style="display:flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; padding:10px 16px; font-weight:700;">
             <span>📍</span> Navigate to ${_esc(stops[0].title)} on Google Maps ↗
           </a>
         `;
@@ -4015,7 +4012,7 @@
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:16px; border-top:1px solid var(--border); padding-top:14px;">
             <div style="display:flex; gap:8px; align-items:center;">
               ${result.googleMapsDirUrl ? `
-                <a href="${result.googleMapsDirUrl}" target="_blank" rel="noopener noreferrer" class="tp-btn-secondary" style="font-size:12px; color:var(--teal); text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                <a href="${result.googleMapsDirUrl}" target="_blank" rel="noopener noreferrer" onclick="window.LM_TripUI.openMapsUrl(this.href); return false;" class="tp-btn-secondary" style="font-size:12px; color:var(--teal); text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
                   <span>🧭</span> Preview Full Directions in Google Maps ↗
                 </a>
               ` : ''}
@@ -4078,6 +4075,24 @@
         }
       } catch (err) {
         alert('Error reverting route: ' + err.message);
+      }
+    },
+
+    openMapsUrl: function (url) {
+      if (!url) return;
+      try {
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent || '');
+        if (isMobile) {
+          // On mobile, direct assignment invokes the native Android/iOS Maps app handler or opens mobile web cleanly
+          window.location.href = url;
+          return;
+        }
+        const win = window.open(url, '_blank', 'noopener,noreferrer');
+        if (!win || win.closed || typeof win.closed === 'undefined') {
+          window.location.href = url;
+        }
+      } catch (e) {
+        window.location.href = url;
       }
     }
   };
