@@ -528,6 +528,11 @@
                       <div class="tp-day-title-text">📅 DAY ${d}</div>
                       ${weatherChip}
                       ${routeBtn}
+                      ${dayPlans.length > 1 ? `
+                        <button type="button" class="tp-btn-secondary tp-btn-auto-align" onclick="window.LM_TripUI.openRouteOptimizerModal('${trip.id}', ${d})" title="Auto-align itinerary to nearest order based on Maps locations">
+                          ⚡ Auto-Align Nearest
+                        </button>
+                      ` : ''}
                     </div>
                     <div class="tp-day-title-meta">
                       Est: ${_fmtINR(dayPlanned)} · Spent: ${_fmtINR(dayActual)}${dayProgressStr}
@@ -3558,6 +3563,11 @@
           <a href="${dirUrl}" target="_blank" rel="noopener noreferrer" class="tp-btn-primary" style="display:flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; padding:10px 16px; font-weight:700;">
             <span>🧭</span> Open Full Multi-Stop Route in Google Maps (${stops.length} stops) ↗
           </a>
+          ${selectedDay !== 'all' ? `
+            <button type="button" class="tp-btn-secondary" style="margin-top:8px; width:100%; color:var(--teal); font-weight:600; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 12px;" onclick="window.LM_TripUI.openRouteOptimizerModal('${trip.id}', ${selectedDay})">
+              ⚡ Auto-Align Day ${selectedDay} Nearest Route Order
+            </button>
+          ` : ''}
         `;
       } else if (stops.length === 1 && stops[0].mapsUrl) {
         actCont.innerHTML = `
@@ -3789,6 +3799,285 @@
             if (valEl) valEl.textContent = '0 sh';
           }
         });
+      }
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 16. NEAREST NEIGHBOR ROUTE ALIGNMENT & OPTIMIZER MODAL
+    // ─────────────────────────────────────────────────────────────
+    openRouteOptimizerModal: async function (tripId, dayNumber, selectedStartPlanId = null) {
+      const trip = window.LM_TripService.getTrip(tripId);
+      if (!trip) return;
+
+      const dNum = Number(dayNumber);
+      const existingModal = document.getElementById('tp_routeOptimizerModalOverlay');
+      if (existingModal) existingModal.remove();
+
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.id = 'tp_routeOptimizerModalOverlay';
+      modal.style.zIndex = '99999';
+
+      modal.innerHTML = `
+        <div class="modal tp-optimizer-modal" style="max-width:760px; width:95vw; max-height:92vh; display:flex; flex-direction:column;">
+          <div class="modal-header" style="border-bottom:1px solid var(--border);">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:20px;">⚡</span>
+              <div>
+                <h3 class="modal-title font-bold text-lg" style="margin:0;">Auto-Align Day ${dNum} Route (Nearest Distance)</h3>
+                <div style="font-size:12px; color:var(--text-3);">${_esc(trip.name)} · Sequencing stops to eliminate zigzagging</div>
+              </div>
+            </div>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          </div>
+          <div class="modal-body" id="tp_optimizer_modal_body" style="padding:18px; overflow-y:auto; flex:1;">
+            <div style="text-align:center; padding:40px 16px;">
+              <div style="font-size:32px; animation:spin 1.5s linear infinite; display:inline-block; margin-bottom:12px;">🧭</div>
+              <div style="font-size:15px; font-weight:700; color:var(--text); margin-bottom:6px;">Analyzing Day ${dNum} Locations & Maps Links...</div>
+              <div style="font-size:12.5px; color:var(--text-3);">Fetching coordinates and running Nearest-Neighbor + 2-Opt solver</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+      setTimeout(() => modal.classList.add('show'), 10);
+
+      await this._renderRouteOptimizationContent(tripId, dNum, selectedStartPlanId);
+    },
+
+    _renderRouteOptimizationContent: async function (tripId, dayNumber, selectedStartPlanId = null) {
+      const bodyEl = document.getElementById('tp_optimizer_modal_body');
+      if (!bodyEl) return;
+
+      const trip = window.LM_TripService.getTrip(tripId);
+      if (!trip) return;
+
+      let result;
+      try {
+        result = await window.LM_TripService.optimizeDayItineraryRoute(tripId, dayNumber, {
+          startPlanId: selectedStartPlanId
+        });
+      } catch (err) {
+        bodyEl.innerHTML = `
+          <div style="text-align:center; padding:32px 16px; color:var(--rose);">
+            <div style="font-size:32px; margin-bottom:10px;">⚠️</div>
+            <div style="font-weight:700; font-size:15px; margin-bottom:6px;">Failed to calculate route</div>
+            <div style="font-size:12.5px; color:var(--text-3);">${_esc(err.message || 'Unknown error')}</div>
+          </div>
+        `;
+        return;
+      }
+
+      if (!result.canOptimize) {
+        bodyEl.innerHTML = `
+          <div style="text-align:center; padding:36px 16px; background:rgba(255,255,255,0.02); border-radius:12px; border:1px dashed var(--border);">
+            <div style="font-size:36px; margin-bottom:12px;">📍</div>
+            <h4 style="font-size:16px; font-weight:700; color:var(--text); margin-bottom:8px;">Insufficient Coordinates Found</h4>
+            <p style="font-size:13px; color:var(--text-3); max-width:440px; margin:0 auto 16px;">
+              ${_esc(result.reason || 'At least 2 plans need valid Google Maps links or locations to optimize.')}
+            </p>
+            <div style="background:rgba(0,240,255,0.05); border:1px solid rgba(0,240,255,0.15); border-radius:8px; padding:12px; max-width:460px; margin:0 auto; font-size:12px; text-align:left; color:var(--text-2);">
+              <div style="font-weight:700; color:var(--teal); margin-bottom:4px;">💡 Quick Tip to Enable Nearest Route:</div>
+              <div>• Edit each stop and paste its <strong>Google Maps link</strong> (e.g. <code>maps.app.goo.gl/...</code> or <code>@15.54,73.75</code>), OR</div>
+              <div>• Enter recognizable place names (e.g. <em>"Baga Beach, Goa"</em> or <em>"Colva Beach"</em>).</div>
+            </div>
+            <div style="margin-top:20px;">
+              <button class="tp-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const originalPlans = result.originalPlans || [];
+      const optimizedPlans = result.optimizedPlans || [];
+      const distBefore = result.distanceBefore;
+      const distAfter = result.distanceAfter;
+      const distSaved = result.distanceSaved;
+      const timeSaved = result.timeSavedMinutes;
+      const percentSaved = distBefore > 0 ? Math.round((distSaved / distBefore) * 100) : 0;
+
+      // Prepare start selector options
+      const startOptions = originalPlans.map((p, idx) => {
+        const isCurrentStart = selectedStartPlanId ? String(p.id) === String(selectedStartPlanId) : (idx === 0);
+        return `<option value="${p.id}" ${isCurrentStart ? 'selected' : ''}>Stop ${idx + 1}: ${_esc(p.title)} (${p.category || 'Spot'})</option>`;
+      }).join('');
+
+      bodyEl.innerHTML = `
+        <div class="space-y-4">
+          <!-- METRICS KPI STRIP -->
+          <div class="tp-optimizer-kpi-bar">
+            <div class="tp-opt-kpi-card">
+              <div class="tp-opt-kpi-label">Current Route</div>
+              <div class="tp-opt-kpi-val" style="color:var(--text-2);">${distBefore} <span style="font-size:12px;">km</span></div>
+              <div class="tp-opt-kpi-sub">Original sequence</div>
+            </div>
+            <div class="tp-opt-kpi-card highlight">
+              <div class="tp-opt-kpi-label">Optimized Route</div>
+              <div class="tp-opt-kpi-val" style="color:var(--teal);">${distAfter} <span style="font-size:12px;">km</span></div>
+              <div class="tp-opt-kpi-sub">Shortest distance</div>
+            </div>
+            <div class="tp-opt-kpi-card success">
+              <div class="tp-opt-kpi-label">Distance Saved</div>
+              <div class="tp-opt-kpi-val" style="color:var(--emerald);">${distSaved > 0 ? '−' + distSaved : '0'} <span style="font-size:12px;">km</span></div>
+              <div class="tp-opt-kpi-sub">${percentSaved > 0 ? `${percentSaved}% less driving` : 'Already optimal'}</div>
+            </div>
+            <div class="tp-opt-kpi-card">
+              <div class="tp-opt-kpi-label">Time Saved</div>
+              <div class="tp-opt-kpi-val" style="color:var(--amber);">${timeSaved > 0 ? '~' + timeSaved : '0'} <span style="font-size:12px;">mins</span></div>
+              <div class="tp-opt-kpi-sub">Less road transit</div>
+            </div>
+          </div>
+
+          <!-- DEPARTURE SPOT SELECTOR & CONTROLS -->
+          <div style="background:var(--surface-card); border:1px solid var(--border); border-radius:10px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:240px;">
+              <span style="font-size:16px;">🏨</span>
+              <label for="tp_opt_start_select" style="font-size:12.5px; font-weight:700; color:var(--text); white-space:nowrap;">Start Day Route From:</label>
+              <select id="tp_opt_start_select" class="form-input" style="padding:4px 8px; font-size:12px; flex:1; max-width:320px;" onchange="window.LM_TripUI._renderRouteOptimizationContent('${tripId}', ${dayNumber}, this.value)">
+                ${startOptions}
+              </select>
+            </div>
+            <div style="font-size:11.5px; color:var(--text-3); font-family:var(--font-m);">
+              ${result.geocodedCount} of ${result.stopsCount} stops mapped
+            </div>
+          </div>
+
+          <!-- COMPARISON TIMELINE (BEFORE vs AFTER) -->
+          <div class="tp-route-comparison-grid">
+            <!-- LEFT: ORIGINAL ORDER -->
+            <div class="tp-opt-col">
+              <div class="tp-opt-col-header" style="color:var(--text-2);">
+                <span>Current Order (${originalPlans.length} stops)</span>
+                <span>${distBefore} km</span>
+              </div>
+              <div class="tp-opt-stops-list">
+                ${originalPlans.map((p, idx) => {
+                  const leg = (result.legsBefore || []).find(l => l.fromIndex === idx);
+                  const mapUrl = window.LM_TripService.getMapsUrl(p);
+                  return `
+                    <div class="tp-route-step-card current">
+                      <div class="tp-step-num-pill">${idx + 1}</div>
+                      <div class="tp-step-info">
+                        <div class="tp-step-title">${_esc(p.title)}</div>
+                        <div class="tp-step-meta">
+                          <span>${p.category || 'Spot'}</span>
+                          ${p.time ? `<span>· ⏰ ${p.time}</span>` : ''}
+                          ${mapUrl ? `<a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="tp-map-pill">📍 Maps ↗</a>` : ''}
+                        </div>
+                      </div>
+                    </div>
+                    ${leg ? `
+                      <div class="tp-transit-badge">
+                        <span>🚗 ${leg.distanceKm} km (~${leg.estMinutes} mins)</span>
+                      </div>
+                    ` : ''}
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <!-- RIGHT: OPTIMIZED ORDER -->
+            <div class="tp-opt-col">
+              <div class="tp-opt-col-header" style="color:var(--teal);">
+                <span>⚡ Proposed Nearest Sequence (${optimizedPlans.length} stops)</span>
+                <span>${distAfter} km</span>
+              </div>
+              <div class="tp-opt-stops-list">
+                ${optimizedPlans.map((p, idx) => {
+                  const leg = (result.legsAfter || []).find(l => l.fromIndex === idx);
+                  const mapUrl = window.LM_TripService.getMapsUrl(p);
+                  return `
+                    <div class="tp-route-step-card proposed">
+                      <div class="tp-step-num-pill active">${idx + 1}</div>
+                      <div class="tp-step-info">
+                        <div class="tp-step-title" style="color:var(--teal);">${_esc(p.title)}</div>
+                        <div class="tp-step-meta">
+                          <span>${p.category || 'Spot'}</span>
+                          ${p.time ? `<span>· ⏰ ${p.time}</span>` : ''}
+                          ${mapUrl ? `<a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="tp-map-pill">📍 Maps ↗</a>` : ''}
+                        </div>
+                      </div>
+                    </div>
+                    ${leg ? `
+                      <div class="tp-transit-badge proposed">
+                        <span>🚗 ${leg.distanceKm} km (~${leg.estMinutes} mins)</span>
+                      </div>
+                    ` : ''}
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- ACTIONS FOOTER -->
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:16px; border-top:1px solid var(--border); padding-top:14px;">
+            <div style="display:flex; gap:8px; align-items:center;">
+              ${result.googleMapsDirUrl ? `
+                <a href="${result.googleMapsDirUrl}" target="_blank" rel="noopener noreferrer" class="tp-btn-secondary" style="font-size:12px; color:var(--teal); text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                  <span>🧭</span> Preview Full Directions in Google Maps ↗
+                </a>
+              ` : ''}
+              ${trip._itineraryBackup && trip._itineraryBackup.dayNumber === dayNumber ? `
+                <button type="button" class="tp-btn-secondary" style="font-size:12px; color:var(--rose);" onclick="window.LM_TripUI._revertDayRoute('${tripId}', ${dayNumber})">
+                  ↩ Undo to Previous Order
+                </button>
+              ` : ''}
+            </div>
+
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="tp-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+              <button type="button" class="tp-btn-primary" style="display:inline-flex; align-items:center; gap:6px; font-weight:700;" onclick="window.LM_TripUI._confirmApplyOptimizedRoute('${tripId}', ${dayNumber}, ${JSON.stringify(optimizedPlans.map(p => p.id)).replace(/"/g, '&quot;')})">
+                <span>✅</span> Apply Nearest Sequence to Day ${dayNumber}
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
+    _confirmApplyOptimizedRoute: async function (tripId, dayNumber, orderedPlanIds) {
+      try {
+        await window.LM_TripService.applyOptimizedDayRoute(tripId, dayNumber, orderedPlanIds, {
+          rescheduleTimes: true
+        });
+
+        const modal = document.getElementById('tp_routeOptimizerModalOverlay');
+        if (modal) modal.remove();
+
+        if (window.LM_Toast) {
+          window.LM_Toast.success(`Day ${dayNumber} route aligned! Sequential schedule updated.`);
+        }
+
+        this.renderWorkspace(tripId, 'itinerary');
+      } catch (err) {
+        if (window.LM_Toast) {
+          window.LM_Toast.error(err.message || 'Failed to apply route order');
+        } else {
+          alert('Failed to apply route order: ' + err.message);
+        }
+      }
+    },
+
+    _revertDayRoute: async function (tripId, dayNumber) {
+      try {
+        const res = await window.LM_TripService.revertOptimizedDayRoute(tripId);
+        if (res.success) {
+          const modal = document.getElementById('tp_routeOptimizerModalOverlay');
+          if (modal) modal.remove();
+
+          if (window.LM_Toast) {
+            window.LM_Toast.success(`Day ${dayNumber} route reverted to previous order.`);
+          }
+          this.renderWorkspace(tripId, 'itinerary');
+        } else {
+          if (window.LM_Toast) {
+            window.LM_Toast.warning(res.reason || 'Could not revert order');
+          }
+        }
+      } catch (err) {
+        alert('Error reverting route: ' + err.message);
       }
     }
   };
