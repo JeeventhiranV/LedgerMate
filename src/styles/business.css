@@ -1,0 +1,1008 @@
+/**
+ * LedgerMate – business.css
+ * ─────────────────────────────────────────────────────────────
+ * Production Enterprise Stylesheet for Business Hub & Accounting.
+ * Provides high-contrast, responsive layouts for Multi-Business
+ * Profiles, Ledger Timeline, Party Khata Book, P&L Analytics,
+ * and Print-Ready Tax Invoices.
+ * ─────────────────────────────────────────────────────────────
+ */
+
+:root {
+  --biz-teal: var(--teal, #00d4b4);
+  --biz-blue: #3b82f6;
+  --biz-rose: #fb7185;
+  --biz-amber: #fbbf24;
+  --biz-purple: #c084fc;
+}
+
+/* ── CONTAINER ─────────────────────────────────────────────── */
+.biz-container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 18px 16px 56px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ── COMMAND HEADER ────────────────────────────────────────── */
+.biz-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.biz-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.biz-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: rgba(0, 212, 180, 0.12);
+  border: 1px solid rgba(0, 212, 180, 0.25);
+  flex-shrink: 0;
+}
+
+.biz-header-titles {
+  min-width: 0;
+  flex: 1;
+}
+
+.biz-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text, #f8fafc);
+  margin: 0;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.biz-subtitle {
+  font-size: 12px;
+  color: var(--text3, #94a3b8);
+  margin-top: 3px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.biz-header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.biz-select-dropdown {
+  background: var(--surface, #13182b);
+  color: var(--text, #f8fafc);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  max-width: 240px;
+}
+
+/* ── BUTTONS & ACTIONS ─────────────────────────────────────── */
+.biz-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  text-decoration: none;
+  user-select: none;
+}
+
+.biz-btn:active {
+  transform: scale(0.97);
+}
+
+.biz-btn-primary {
+  background: linear-gradient(135deg, #00d4b4, #3b82f6);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0, 212, 180, 0.25);
+}
+
+.biz-btn-secondary {
+  background: var(--surface, #13182b);
+  color: var(--text2, #cbd5e1);
+  border-color: var(--border, rgba(255, 255, 255, 0.12));
+}
+
+.biz-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.biz-btn-credit {
+  background: rgba(0, 212, 180, 0.12);
+  color: var(--biz-teal, #00d4b4);
+  border-color: rgba(0, 212, 180, 0.3);
+}
+
+.biz-btn-credit:hover {
+  background: rgba(0, 212, 180, 0.2);
+}
+
+.biz-btn-debit {
+  background: rgba(244, 63, 94, 0.12);
+  color: var(--biz-rose, #fb7185);
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+.biz-btn-debit:hover {
+  background: rgba(244, 63, 94, 0.2);
+}
+
+.biz-btn-charge {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--biz-amber, #fbbf24);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.biz-btn-charge:hover {
+  background: rgba(245, 158, 11, 0.2);
+}
+
+/* ── DATE FILTER PILLS ─────────────────────────────────────── */
+.biz-date-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.biz-date-pills-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+}
+
+.biz-date-pill {
+  padding: 5px 11px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--text3, #94a3b8);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.biz-date-pill.active {
+  background: var(--card, #13182b);
+  color: var(--biz-teal, #00d4b4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.biz-date-label {
+  font-size: 11.5px;
+  color: var(--text3, #94a3b8);
+  font-weight: 500;
+}
+
+/* ── EXECUTIVE KPI GRID ────────────────────────────────────── */
+.biz-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.biz-kpi-card {
+  background: var(--surface-glass, rgba(19, 24, 43, 0.7));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  backdrop-filter: blur(16px);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.biz-kpi-card:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.biz-kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.biz-kpi-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.biz-kpi-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text, #f8fafc);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.biz-kpi-sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text3, #94a3b8);
+}
+
+.biz-kpi-card.credit { border-color: rgba(0, 212, 180, 0.22); }
+.biz-kpi-card.credit .biz-kpi-title { color: var(--biz-teal, #00d4b4); }
+
+.biz-kpi-card.debit { border-color: rgba(244, 63, 94, 0.22); }
+.biz-kpi-card.debit .biz-kpi-title { color: var(--biz-rose, #fb7185); }
+
+.biz-kpi-card.charge { border-color: rgba(245, 158, 11, 0.22); }
+.biz-kpi-card.charge .biz-kpi-title { color: var(--biz-amber, #fbbf24); }
+
+.biz-kpi-card.profit { border-color: rgba(0, 212, 180, 0.3); }
+.biz-kpi-card.profit.loss { border-color: rgba(244, 63, 94, 0.3); }
+
+.biz-kpi-card.khata { border-color: rgba(192, 132, 252, 0.25); }
+.biz-kpi-card.khata .biz-kpi-title { color: var(--biz-purple, #c084fc); }
+
+/* ── NAVIGATION TABS ───────────────────────────────────────── */
+.biz-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  margin-bottom: 18px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.biz-tabs-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.biz-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text3, #94a3b8);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.biz-tab-btn.active {
+  color: var(--biz-teal, #00d4b4);
+  border-bottom-color: var(--biz-teal, #00d4b4);
+}
+
+/* ── FILTERS BAR ───────────────────────────────────────────── */
+.biz-filters-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.biz-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.biz-filter-pill {
+  padding: 5px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: var(--surface, #13182b);
+  color: var(--text3, #94a3b8);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.biz-filter-pill.active {
+  border-color: var(--biz-teal, #00d4b4);
+  background: rgba(0, 212, 180, 0.1);
+  color: var(--biz-teal, #00d4b4);
+}
+
+.biz-filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.biz-search-input {
+  background: var(--surface, #13182b);
+  color: var(--text, #f8fafc);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  outline: none;
+  width: 180px;
+}
+
+.biz-search-input:focus {
+  border-color: var(--biz-teal, #00d4b4);
+}
+
+/* ── TRANSACTION CARDS (LEDGER TIMELINE) ───────────────────── */
+.biz-tx-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 13px 16px;
+  background: var(--surface-glass, rgba(19, 24, 43, 0.6));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  border-radius: 12px;
+  margin-bottom: 8px;
+  transition: all 0.18s ease;
+}
+
+.biz-tx-card:hover {
+  background: var(--surface-glass, rgba(19, 24, 43, 0.8));
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.biz-tx-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 240px;
+  flex: 1;
+}
+
+.biz-tx-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.biz-tx-badge.credit {
+  background: rgba(0, 212, 180, 0.12);
+  color: var(--biz-teal, #00d4b4);
+  border: 1px solid rgba(0, 212, 180, 0.25);
+}
+
+.biz-tx-badge.debit {
+  background: rgba(244, 63, 94, 0.12);
+  color: var(--biz-rose, #fb7185);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+}
+
+.biz-tx-badge.charge {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--biz-amber, #fbbf24);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.biz-tx-details {
+  min-width: 0;
+  flex: 1;
+}
+
+.biz-tx-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text, #f8fafc);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.biz-tx-ref {
+  font-size: 11px;
+  color: var(--text3, #94a3b8);
+  font-weight: 500;
+  margin-left: 6px;
+  font-family: var(--font-m, monospace);
+}
+
+.biz-tx-meta {
+  font-size: 11.5px;
+  color: var(--text3, #94a3b8);
+  margin-top: 3px;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.biz-tx-amount-col {
+  text-align: right;
+  min-width: 130px;
+}
+
+.biz-tx-amount {
+  font-size: 15.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.biz-tx-amount.credit { color: var(--biz-teal, #00d4b4); }
+.biz-tx-amount.debit { color: var(--biz-rose, #fb7185); }
+.biz-tx-amount.charge { color: var(--biz-amber, #fbbf24); }
+
+.biz-tx-status {
+  margin-top: 3px;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.biz-tx-status.paid { color: var(--biz-teal, #00d4b4); }
+.biz-tx-status.pending { color: var(--biz-rose, #fb7185); }
+.biz-tx-status.partial { color: var(--biz-amber, #fbbf24); }
+
+.biz-tx-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.biz-icon-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface, #13182b);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 8px;
+  color: var(--text2, #cbd5e1);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.biz-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.biz-icon-btn.delete {
+  background: rgba(244, 63, 94, 0.08);
+  color: var(--biz-rose, #fb7185);
+  border-color: rgba(244, 63, 94, 0.2);
+}
+
+.biz-icon-btn.delete:hover {
+  background: rgba(244, 63, 94, 0.18);
+}
+
+/* ── PARTY KHATA CARDS ─────────────────────────────────────── */
+.biz-party-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.biz-party-card {
+  background: var(--surface-glass, rgba(19, 24, 43, 0.6));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.18s ease;
+}
+
+.biz-party-card:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.biz-party-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.biz-party-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text, #f8fafc);
+  word-break: break-word;
+}
+
+.biz-party-type-badge {
+  font-size: 10.5px;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text3, #94a3b8);
+  text-transform: capitalize;
+  font-weight: 600;
+}
+
+.biz-party-stats {
+  font-size: 11.5px;
+  color: var(--text3, #94a3b8);
+  margin-bottom: 10px;
+}
+
+.biz-party-balance {
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 14px;
+}
+
+.biz-party-balance.receivable { color: var(--biz-teal, #00d4b4); }
+.biz-party-balance.payable { color: var(--biz-rose, #fb7185); }
+.biz-party-balance.settled { color: var(--text3, #94a3b8); }
+
+.biz-party-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px dashed var(--border, rgba(255, 255, 255, 0.08));
+  padding-top: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── MODALS & FORMS ────────────────────────────────────────── */
+.biz-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  animation: bizFadeIn 0.18s ease;
+}
+
+.biz-modal {
+  background: var(--card, #13182b);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 20px;
+  max-width: 620px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+  box-sizing: border-box;
+}
+
+.biz-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.biz-modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text, #f8fafc);
+  margin: 0;
+}
+
+.biz-modal-close {
+  background: none;
+  border: none;
+  color: var(--text3, #94a3b8);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.biz-modal-close:hover {
+  color: var(--text, #f8fafc);
+}
+
+.biz-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.biz-form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.biz-form-group.full {
+  grid-column: 1 / -1;
+}
+
+.biz-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3, #94a3b8);
+  margin-bottom: 4px;
+}
+
+.biz-input,
+.biz-select,
+.biz-textarea {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--text, #f8fafc);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s ease;
+  font-family: inherit;
+}
+
+.biz-input:focus,
+.biz-select:focus,
+.biz-textarea:focus {
+  border-color: var(--biz-teal, #00d4b4);
+}
+
+.biz-textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+.biz-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+}
+
+/* ── PRINTABLE INVOICE / STATEMENT MODAL ───────────────────── */
+.biz-invoice-card {
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 16px;
+  max-width: 660px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 28px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  box-sizing: border-box;
+}
+
+@keyframes bizFadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   RESPONSIVE OVERRIDES (MOBILE & TABLET)
+   ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .biz-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .biz-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .biz-select-dropdown {
+    max-width: 100%;
+    flex: 1;
+  }
+
+  .biz-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .biz-container {
+    padding: 12px 10px 48px;
+  }
+
+  .biz-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .biz-title {
+    font-size: 18px;
+  }
+
+  .biz-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .biz-quick-actions-bar {
+    display: flex;
+    width: 100%;
+    gap: 6px;
+  }
+
+  .biz-quick-actions-bar .biz-btn {
+    flex: 1;
+    padding: 8px 6px;
+    font-size: 11px;
+  }
+
+  .biz-date-strip {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .biz-date-pills-group {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .biz-date-pills-group::-webkit-scrollbar {
+    display: none;
+  }
+
+  .biz-date-pill {
+    flex-shrink: 0;
+    font-size: 11px;
+    padding: 4px 9px;
+  }
+
+  .biz-kpi-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .biz-kpi-val {
+    font-size: 20px;
+  }
+
+  .biz-tabs-bar {
+    gap: 2px;
+  }
+
+  .biz-tab-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .biz-filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .biz-filter-pills {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .biz-filter-pills::-webkit-scrollbar {
+    display: none;
+  }
+
+  .biz-filter-pill {
+    flex-shrink: 0;
+  }
+
+  .biz-filter-controls {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .biz-search-input {
+    flex: 1;
+    width: auto;
+  }
+
+  /* Transaction card mobile stacked layout */
+  .biz-tx-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .biz-tx-main {
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  .biz-tx-amount-col {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+    padding-top: 8px;
+    text-align: left;
+  }
+
+  .biz-tx-actions {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .biz-tx-actions .biz-btn {
+    flex: 1;
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+
+  /* Party Grid Mobile */
+  .biz-party-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .biz-party-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .biz-party-footer .biz-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Modal Mobile 1-Column Collapse */
+  .biz-modal {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .biz-form-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .biz-form-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .biz-form-actions .biz-btn {
+    width: 100%;
+    padding: 10px;
+  }
+
+  .biz-invoice-card {
+    padding: 18px 14px;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 400px) {
+  .biz-kpi-val {
+    font-size: 18px;
+  }
+
+  .biz-date-pill {
+    font-size: 10px;
+    padding: 4px 7px;
+  }
+
+  .biz-tab-btn {
+    font-size: 11.5px;
+    padding: 8px 10px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   PRINT MEDIA QUERY FOR CLEAN INVOICE & STATEMENT EXPORTS
+   ───────────────────────────────────────────────────────────── */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #bizInvoiceModal,
+  #bizInvoiceModal *,
+  #bizPartyModal,
+  #bizPartyModal * {
+    visibility: visible;
+  }
+
+  #bizInvoiceModal,
+  #bizPartyModal {
+    position: absolute;
+    inset: 0;
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  .biz-invoice-card {
+    box-shadow: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 20px !important;
+    color: #000000 !important;
+  }
+
+  .biz-modal-close,
+  .biz-form-actions,
+  button {
+    display: none !important;
+  }
+}

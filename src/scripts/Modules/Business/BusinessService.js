@@ -17,8 +17,65 @@
   var _transactions = [];
   var _isInitialized = false;
 
+  var BIZ_VAULT_KEY_PREFIX = 'lm_biz_entities_vault_v2';
+  var TXS_VAULT_KEY_PREFIX = 'lm_biz_txs_vault_v2';
+
   function _getProfileId() {
-    return window.LM_Auth?.getCurrentUserId?.() || 'default';
+    return window.LM_Auth?.getCurrentUserId?.() ||
+      window.LM_Auth?.getCurrentUser?.()?.id ||
+      window.LM_Auth?.getCurrentUser?.()?.uid ||
+      window.auth?.currentUser?.uid ||
+      window.currentUser?.id ||
+      'default';
+  }
+
+  function _getVaultKey(prefix) {
+    var uid = _getProfileId();
+    return uid ? prefix + '_' + uid : prefix + '_default';
+  }
+
+  function _syncLocalStorageVault() {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      var bKey = _getVaultKey(BIZ_VAULT_KEY_PREFIX);
+      var tKey = _getVaultKey(TXS_VAULT_KEY_PREFIX);
+      var bData = JSON.stringify(_businesses || []);
+      var tData = JSON.stringify(_transactions || []);
+
+      localStorage.setItem(bKey, bData);
+      localStorage.setItem(tKey, tData);
+      // Mirror to universal key for emergency zero-loss restoration
+      localStorage.setItem(BIZ_VAULT_KEY_PREFIX + '_global', bData);
+      localStorage.setItem(TXS_VAULT_KEY_PREFIX + '_global', tData);
+    } catch (e) {
+      console.warn('[BusinessService] _syncLocalStorageVault warning:', e);
+    }
+  }
+
+  function _loadFromLocalStorageVault() {
+    try {
+      if (typeof localStorage === 'undefined') return null;
+      var bKey = _getVaultKey(BIZ_VAULT_KEY_PREFIX);
+      var tKey = _getVaultKey(TXS_VAULT_KEY_PREFIX);
+      var rawB = localStorage.getItem(bKey) || localStorage.getItem(BIZ_VAULT_KEY_PREFIX + '_global') || localStorage.getItem('businesses');
+      var rawT = localStorage.getItem(tKey) || localStorage.getItem(TXS_VAULT_KEY_PREFIX + '_global') || localStorage.getItem('business_transactions');
+
+      var bList = null;
+      var tList = null;
+      if (rawB) {
+        try { bList = JSON.parse(rawB); } catch (e) {}
+      }
+      if (rawT) {
+        try { tList = JSON.parse(rawT); } catch (e) {}
+      }
+      return {
+        businesses: Array.isArray(bList) ? bList : null,
+        transactions: Array.isArray(tList) ? tList : null
+      };
+    } catch (e) {
+      console.warn('[BusinessService] _loadFromLocalStorageVault warning:', e);
+      return null;
+    }
   }
 
   function _matchesProfile(record) {
@@ -29,8 +86,8 @@
     if (!uid || uid === 'default' || uid === 'guest') return true;
     if (record.profile === uid) return true;
     var user = window.LM_Auth?.getCurrentUser?.();
-    if (user?.username && record.profile === user.username) return true;
-    if (user?.email && record.profile === user.email) return true;
+    if (user?.username && (record.profile === user.username || record.profile === user.id)) return true;
+    if (user?.email && (record.profile === user.email || record.profile === user.id)) return true;
     return false;
   }
 
@@ -94,53 +151,105 @@
     DEFAULT_CATEGORIES: DEFAULT_CATEGORIES,
 
     /**
-     * Initialize service from IndexedDB or state cache
+     * Initialize service from IndexedDB or state cache with auto-healing fail-safe vault
      */
     init: async function () {
+      var loadedFromDb = false;
       try {
         if (typeof window.getAll === 'function') {
           var bLoaded = await window.getAll('businesses');
           var tLoaded = await window.getAll('business_transactions');
 
-          if (Array.isArray(bLoaded)) {
+          if (Array.isArray(bLoaded) && bLoaded.length > 0) {
             _businesses = bLoaded.filter(_matchesProfile);
-            if (typeof state === 'object') state.businesses = _businesses;
+            loadedFromDb = true;
           }
-          if (Array.isArray(tLoaded)) {
+          if (Array.isArray(tLoaded) && tLoaded.length > 0) {
             _transactions = tLoaded.filter(_matchesProfile);
-            if (typeof state === 'object') state.business_transactions = _transactions;
+            loadedFromDb = true;
           }
         }
       } catch (err) {
-        console.warn('[BusinessService] init error, falling back to state/cache:', err);
+        console.warn('[BusinessService] init IndexedDB error, falling back to local vault:', err);
       }
 
-      if ((!_businesses || _businesses.length === 0) && typeof state === 'object' && Array.isArray(state.businesses) && state.businesses.length > 0) {
-        _businesses = state.businesses.filter(_matchesProfile);
-      }
-      if ((!_transactions || _transactions.length === 0) && typeof state === 'object' && Array.isArray(state.business_transactions) && state.business_transactions.length > 0) {
-        _transactions = state.business_transactions.filter(_matchesProfile);
+      // If DB was empty or failed, check state cache and localStorage fail-safe vault
+      if (!_businesses || _businesses.length === 0) {
+        if (typeof state === 'object' && Array.isArray(state.businesses) && state.businesses.length > 0) {
+          _businesses = state.businesses.filter(_matchesProfile);
+        } else {
+          var vaultB = _loadFromLocalStorageVault();
+          if (vaultB && Array.isArray(vaultB.businesses) && vaultB.businesses.length > 0) {
+            _businesses = vaultB.businesses.filter(_matchesProfile);
+            console.log('[BusinessService] 🛡️ Restored ' + _businesses.length + ' businesses from fail-safe vault');
+            // Auto-heal IndexedDB
+            if (typeof window.put === 'function') {
+              for (var i = 0; i < _businesses.length; i++) {
+                try { await window.put('businesses', _businesses[i]); } catch (e) {}
+              }
+            }
+          }
+        }
       }
 
-      // Auto-seed default business if brand new user has no entities
+      if (!_transactions || _transactions.length === 0) {
+        if (typeof state === 'object' && Array.isArray(state.business_transactions) && state.business_transactions.length > 0) {
+          _transactions = state.business_transactions.filter(_matchesProfile);
+        } else {
+          var vaultT = _loadFromLocalStorageVault();
+          if (vaultT && Array.isArray(vaultT.transactions) && vaultT.transactions.length > 0) {
+            _transactions = vaultT.transactions.filter(_matchesProfile);
+            console.log('[BusinessService] 🛡️ Restored ' + _transactions.length + ' transactions from fail-safe vault');
+            // Auto-heal IndexedDB
+            if (typeof window.put === 'function') {
+              for (var j = 0; j < _transactions.length; j++) {
+                try { await window.put('business_transactions', _transactions[j]); } catch (e) {}
+              }
+            }
+          }
+        }
+      }
+
+      // Sync state and localStorage vault
+      if (typeof state === 'object') {
+        state.businesses = _businesses;
+        state.business_transactions = _transactions;
+      }
+      _syncLocalStorageVault();
+
+      // Auto-seed default business ONLY if ALL tiers are truly empty
       if (!_businesses || _businesses.length === 0) {
         var defaultBiz = {
           id: 'biz_primary_' + Date.now(),
           name: 'Primary Enterprise',
+          tagline: 'Main Business Account',
           category: 'General Business',
+          currency: 'INR',
           currencySymbol: '₹',
           color: '#00d4b4',
           icon: '🏢',
+          bankDetails: {
+            bankName: '',
+            accountNumber: '',
+            ifsc: '',
+            upiId: '',
+            holderName: ''
+          },
+          address: '',
+          email: '',
+          phone: '',
           isDefault: true,
           profile: _getProfileId(),
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
         };
         _businesses = [defaultBiz];
-        if (typeof window.put === 'function') {
-          try { await window.put('businesses', defaultBiz); } catch (e) {}
-        }
         if (typeof state === 'object') {
           state.businesses = _businesses;
+        }
+        _syncLocalStorageVault();
+        if (typeof window.put === 'function') {
+          try { await window.put('businesses', defaultBiz); } catch (e) {}
         }
       }
 
@@ -166,8 +275,8 @@
     getActiveBusinessId: function () {
       var uid = _getProfileId();
       var list = this.getBusinesses();
-      var saved = localStorage.getItem('lm_u_' + uid + '_active_biz_id');
-      if (saved && list.some(function(b){ return b.id === saved; })) return saved;
+      var saved = localStorage.getItem('lm_u_' + uid + '_active_biz_id') || localStorage.getItem('lm_active_biz_id_global');
+      if (saved && (saved === 'all' || list.some(function(b){ return b.id === saved; }))) return saved;
       if (list.length > 0) {
         var def = list.find(function(b){ return b.isDefault; });
         return def ? def.id : list[0].id;
@@ -178,6 +287,7 @@
     setActiveBusinessId: function (id) {
       var uid = _getProfileId();
       localStorage.setItem('lm_u_' + uid + '_active_biz_id', id);
+      localStorage.setItem('lm_active_biz_id_global', id);
       if (window.LM_Bus) window.LM_Bus.emit('lm:business:active_changed', { businessId: id });
     },
 
@@ -226,6 +336,7 @@
       }
 
       if (typeof state === 'object') state.businesses = _businesses;
+      _syncLocalStorageVault();
 
       if (typeof window.put === 'function') {
         try { await window.put('businesses', biz); } catch (e) {
@@ -270,6 +381,7 @@
         state.businesses = _businesses;
         state.business_transactions = _transactions;
       }
+      _syncLocalStorageVault();
 
       if (typeof window.del === 'function') {
         try { await window.del('businesses', id); } catch (e) {}
@@ -428,6 +540,7 @@
       }
 
       if (typeof state === 'object') state.business_transactions = _transactions;
+      _syncLocalStorageVault();
 
       if (typeof window.put === 'function') {
         try { await window.put('business_transactions', tx); } catch (e) {
@@ -473,6 +586,7 @@
       _transactions.splice(idx, 1);
 
       if (typeof state === 'object') state.business_transactions = _transactions;
+      _syncLocalStorageVault();
 
       if (typeof window.del === 'function') {
         try { await window.del('business_transactions', id); } catch (e) {}
@@ -769,6 +883,61 @@
       return { labels: labels, values: values };
     },
 
+    // ── WHATSAPP SETTLEMENT REMINDERS & KHATA MESSAGES ───
+    generatePartyWhatsAppReminder: function (partyName, businessId) {
+      if (!partyName) return '';
+      var bId = businessId || this.getActiveBusinessId();
+      var stmt = this.getPartyStatement(partyName, bId);
+      if (!stmt) return '';
+      var biz = this.getBusinessById(bId) || this.getBusinesses()[0] || {};
+      var currSym = biz.currencySymbol || '₹';
+      var bName = biz.name || 'Our Company';
+
+      var netReceivable = stmt.netBalance; // > 0 means party owes us
+      var pendingCredits = stmt.transactions.filter(function (t) {
+        return t.type === 'credit' && t.paymentStatus !== 'paid';
+      });
+
+      var text = '👋 Hello *' + stmt.partyName + '*,\n\n';
+      if (netReceivable > 0) {
+        text += 'This is a friendly payment reminder from *' + bName + '* regarding pending dues on your account:\n\n';
+        text += '💰 *Total Outstanding Balance:* ' + currSym + ' ' + Math.round(netReceivable).toLocaleString('en-IN') + '\n';
+        if (pendingCredits.length > 0) {
+          text += '\n📋 *Pending Invoices / Orders:*\n';
+          pendingCredits.forEach(function (t, idx) {
+            var ref = t.invoiceNumber ? ' (#' + t.invoiceNumber + ')' : '';
+            var dueStr = t.dueDate ? ' · Due: ' + t.dueDate : '';
+            text += (idx + 1) + '. ' + t.date + ref + ': *' + currSym + ' ' + Math.round(t.amount).toLocaleString('en-IN') + '*' + dueStr + '\n';
+          });
+        }
+        if (biz.bankDetails && (biz.bankDetails.upiId || biz.bankDetails.accountNumber)) {
+          text += '\n💳 *Payment Details:*\n';
+          if (biz.bankDetails.upiId) text += '• UPI ID: `' + biz.bankDetails.upiId + '`\n';
+          if (biz.bankDetails.accountNumber) {
+            text += '• Bank: ' + (biz.bankDetails.bankName || 'Bank') + '\n';
+            text += '• A/C No: `' + biz.bankDetails.accountNumber + '`\n';
+            text += '• IFSC: `' + (biz.bankDetails.ifsc || '') + '`\n';
+            if (biz.bankDetails.holderName) text += '• Name: ' + biz.bankDetails.holderName + '\n';
+          }
+          if (biz.bankDetails.upiId) {
+            var payUri = 'upi://pay?pa=' + encodeURIComponent(biz.bankDetails.upiId) +
+                         '&pn=' + encodeURIComponent(bName) +
+                         '&am=' + netReceivable.toFixed(2) +
+                         '&cu=INR&tn=' + encodeURIComponent('Invoice Due: ' + stmt.partyName);
+            text += '\n⚡ *1-Tap UPI Payment Link:* ' + payUri + '\n';
+          }
+        }
+        text += '\nPlease share the payment confirmation or UTR once transferred. Thank you!';
+      } else if (netReceivable < 0) {
+        text += 'This is an account statement update from *' + bName + '*:\n\n';
+        text += '💰 *Payable to You:* ' + currSym + ' ' + Math.round(Math.abs(netReceivable)).toLocaleString('en-IN') + '\n';
+        text += 'Our team is processing the settlement according to terms. Thank you!';
+      } else {
+        text += 'Your account balance with *' + bName + '* is completely settled (₹0 balance). Thank you for your continued partnership!';
+      }
+      return text;
+    },
+
     // ── BACKUP EXPORT & IMPORT HOOKS ───────────────────────
 
     exportBusinesses: function () {
@@ -808,9 +977,11 @@
       var tCount = 0;
 
       if (Array.isArray(bList) && bList.length > 0) {
-        // If local state only had an untouched default starter "Primary Enterprise", remove it so mobile's real business shines
+        // Only prune dummy starter "Primary Enterprise" if completely untouched and without banking details or transactions
         var dummyIdx = _businesses.findIndex(function (x) {
-          return x.name === 'Primary Enterprise' && (!x.regNumber && !x.address && !x.email && !x.phone);
+          var hasCustomBank = x.bankDetails && (x.bankDetails.accountNumber || x.bankDetails.upiId || x.bankDetails.bankName);
+          var hasTransactions = _transactions.some(function (t) { return t.businessId === x.id; });
+          return x.name === 'Primary Enterprise' && (!x.regNumber && !x.address && !x.email && !x.phone && !hasCustomBank && !hasTransactions);
         });
         if (dummyIdx !== -1 && bList.some(function (b) { return b.name !== 'Primary Enterprise' || b.id !== _businesses[dummyIdx].id; })) {
           var removedDummy = _businesses.splice(dummyIdx, 1)[0];
@@ -868,6 +1039,7 @@
         state.businesses = _businesses;
         state.business_transactions = _transactions;
       }
+      _syncLocalStorageVault();
 
       if (window.LM_Bus) {
         window.LM_Bus.emit('lm:business:imported', { businessesCount: bCount, transactionsCount: tCount });
