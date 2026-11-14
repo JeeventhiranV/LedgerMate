@@ -282,9 +282,11 @@
               <div class="tp-workspace-actions">
                 <button class="tp-btn-secondary" style="color:var(--teal);" onclick="window.LM_TripUI.downloadICalendar('${trip.id}')" title="Sync all plans, flights & hotels with Google / Apple Calendar">📅 Sync Calendar</button>
                 <button class="tp-btn-secondary" onclick="window.LM_TripUI.exportTripModal('${trip.id}')" title="Export entire trip as portable package">📦 Export</button>
+                <button class="tp-btn-secondary" onclick="window.LM_TripUI.cloneTripModal('${trip.id}')" title="Duplicate this trip as a template">📑 Clone</button>
+                <button class="tp-btn-secondary" style="color:var(--teal);" onclick="window.LM_TripUI.openRouteMapModal('${trip.id}')" title="Interactive Day Route Map">🗺️ Map</button>
                 <button class="tp-btn-secondary" style="color:var(--teal);" onclick="window.LM_TripUI.startVoiceLog('${trip.id}')" title="Voice Expense / Note">🎙️ Voice</button>
-                <button class="tp-btn-secondary" onclick="window.LM_TripUI.printTripItinerary('${trip.id}')" title="Printable / PDF Itinerary">📄 PDF</button>
-                <button class="tp-btn-secondary" onclick="window.LM_TripUI.shareTrip('${trip.id}')" title="Copy WhatsApp Formatted Itinerary">💬 WhatsApp</button>
+                <button class="tp-btn-secondary" onclick="window.LM_TripUI.printTripItinerary('${trip.id}')" title="Printable / PDF Statement">📄 PDF</button>
+                <button class="tp-btn-secondary" onclick="window.LM_TripUI.shareTrip('${trip.id}')" title="WhatsApp Formatted Share">💬 WhatsApp</button>
                 <button class="tp-btn-secondary" onclick="window.LM_TripUI.openAddTripModal('${trip.id}')">✏️ Edit</button>
                 <button class="tp-btn-secondary" style="color:var(--rose);" onclick="window.LM_TripUI.deleteTrip('${trip.id}')">🗑️</button>
               </div>
@@ -398,6 +400,8 @@
     renderItineraryTab: function (trip, container) {
       const plans = Array.isArray(trip.plans) ? trip.plans : [];
       const days = window.LM_TripService.calculateTripDays(trip.startDate, trip.endDate);
+      this.itineraryFilter = this.itineraryFilter || 'all'; // 'all' | 'pending' | 'visited'
+      const itinStats = window.LM_TripService.getItineraryStats(trip.id);
 
       // Collect all days present
       const dayNumbers = [];
@@ -405,7 +409,12 @@
 
       let filteredPlans = plans;
       if (this.activeDayFilter !== 'all') {
-        filteredPlans = plans.filter(p => p.dayNumber === Number(this.activeDayFilter));
+        filteredPlans = filteredPlans.filter(p => p.dayNumber === Number(this.activeDayFilter));
+      }
+      if (this.itineraryFilter === 'pending') {
+        filteredPlans = filteredPlans.filter(p => (p.status || 'planned') !== 'completed');
+      } else if (this.itineraryFilter === 'visited') {
+        filteredPlans = filteredPlans.filter(p => p.status === 'completed');
       }
 
       // Group plans by Day
@@ -431,14 +440,38 @@
             </button>
             ${dayNumbers.map(d => `
               <button class="tp-day-pill ${this.activeDayFilter === d ? 'active' : ''}" onclick="window.LM_TripUI.setDayFilter(${d})">
-                Day ${d} (${(plansByDay[d] || []).length})
+                Day ${d} (${(plans.filter(p => p.dayNumber === d)).length})
               </button>
             `).join('')}
           </div>
 
-          <button class="tp-btn-primary" onclick="window.LM_TripUI.openAddPlanModal('${trip.id}', null, ${this.activeDayFilter === 'all' ? 1 : this.activeDayFilter})">
-            <span>＋</span> Add Plan Item
-          </button>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <button class="tp-btn-secondary" style="color:var(--teal);" onclick="window.LM_TripUI.openRouteMapModal('${trip.id}')" title="Interactive Day Route Map">
+              🗺️ Route Map
+            </button>
+            <button class="tp-btn-primary" onclick="window.LM_TripUI.openAddPlanModal('${trip.id}', null, ${this.activeDayFilter === 'all' ? 1 : this.activeDayFilter})">
+              <span>＋</span> Add Plan Item
+            </button>
+          </div>
+        </div>
+
+        <!-- Itinerary View Status Filter Strip -->
+        <div class="tp-itinerary-filter-bar">
+          <div class="tp-filter-pills-group">
+            <button class="tp-filter-pill ${this.itineraryFilter === 'all' ? 'active' : ''}" onclick="window.LM_TripUI.setItineraryFilter('all')">
+              All Spots (${itinStats.total})
+            </button>
+            <button class="tp-filter-pill ${this.itineraryFilter === 'pending' ? 'active' : ''}" onclick="window.LM_TripUI.setItineraryFilter('pending')" title="Show only pending spots to visit">
+              ⏳ Pending Only (${itinStats.pending})
+            </button>
+            <button class="tp-filter-pill ${this.itineraryFilter === 'visited' ? 'active' : ''}" onclick="window.LM_TripUI.setItineraryFilter('visited')" title="Show completed spots">
+              ✅ Visited (${itinStats.visited})
+            </button>
+          </div>
+          <div class="tp-itinerary-progress-pill" title="${itinStats.visited} of ${itinStats.total} spots visited (${itinStats.percent}%)">
+            <div class="tp-progress-bar-inline"><div style="width:${itinStats.percent}%;"></div></div>
+            <span>${itinStats.percent}% Visited (${itinStats.visited}/${itinStats.total})</span>
+          </div>
         </div>
 
         ${plans.length === 0 ? `
@@ -457,11 +490,13 @@
           <div>
             ${dayNumbers.filter(d => this.activeDayFilter === 'all' || this.activeDayFilter === d).map(d => {
               const dayPlans = plansByDay[d] || [];
-              if (this.activeDayFilter === 'all' && dayPlans.length === 0) return '';
+              if (this.activeDayFilter === 'all' && dayPlans.length === 0 && this.itineraryFilter === 'all') return '';
 
               // Calculate Day's planned vs actual
               const dayPlanned = dayPlans.reduce((s, p) => s + (p.estimatedCost || 0), 0);
               const dayActual = dayPlans.reduce((s, p) => s + (p.expenses || []).reduce((es, e) => es + e.amount, 0), 0);
+              const dayStats = itinStats.byDay[d] || { total: 0, visited: 0, pending: 0 };
+              const dayProgressStr = dayStats.total > 0 ? ` · <span style="color:var(--emerald); font-weight:600;">${dayStats.visited}/${dayStats.total} visited</span>` : '';
               const dayLocations = dayPlans.map(p => {
                 if (p.location && !/^https?:\/\//i.test(p.location)) return p.location;
                 return p.title;
@@ -495,16 +530,24 @@
                       ${routeBtn}
                     </div>
                     <div class="tp-day-title-meta">
-                      Est: ${_fmtINR(dayPlanned)} · Spent: ${_fmtINR(dayActual)}
+                      Est: ${_fmtINR(dayPlanned)} · Spent: ${_fmtINR(dayActual)}${dayProgressStr}
                     </div>
                   </div>
 
                   ${dayPlans.length === 0 ? `
-                    <div style="padding:12px; font-size:12px; color:var(--text-3); font-style:italic;">No plans scheduled for Day ${d}. <a href="javascript:void(0)" onclick="window.LM_TripUI.openAddPlanModal('${trip.id}', null, ${d})" style="color:var(--teal);">+ Add Plan</a></div>
+                    <div style="padding:14px; font-size:12.5px; color:var(--text-3); background:rgba(255,255,255,0.02); border-radius:8px; border:1px dashed var(--border); text-align:center;">
+                      ${this.itineraryFilter === 'pending'
+                        ? `🎉 All scheduled spots for Day ${d} visited! <a href="javascript:void(0)" onclick="window.LM_TripUI.setItineraryFilter('all')" style="color:var(--teal); font-weight:600;">Show All Spots</a>`
+                        : (this.itineraryFilter === 'visited'
+                          ? `No spots marked visited yet for Day ${d}.`
+                          : `No plans scheduled for Day ${d}. <a href="javascript:void(0)" onclick="window.LM_TripUI.openAddPlanModal('${trip.id}', null, ${d})" style="color:var(--teal); font-weight:600;">+ Add Plan</a>`)
+                      }
+                    </div>
                   ` : `
                     <div class="space-y-2">
                       ${dayPlans.map(plan => {
                         const pf = window.LM_TripService.getPlanFinancials(plan);
+                        const isVisited = plan.status === 'completed';
                         const icon = catIcons[plan.category] || '📌';
                         const timeStr = plan.time ? ` · ⏰ ${plan.time}` : '';
                         const mapUrl = window.LM_TripService.getMapsUrl(plan);
@@ -525,12 +568,15 @@
                         }
 
                         return `
-                          <div class="tp-plan-card">
+                          <div class="tp-plan-card ${isVisited ? 'tp-plan-visited-card' : ''}">
                             <div class="tp-plan-top">
                               <div class="tp-plan-main">
-                                <div class="tp-plan-cat-icon">${icon}</div>
+                                <div class="tp-plan-cat-icon">${isVisited ? '✅' : icon}</div>
                                 <div class="tp-plan-content">
-                                  <div class="tp-plan-title">${_esc(plan.title)}</div>
+                                  <div class="tp-plan-title ${isVisited ? 'tp-title-visited' : ''}">
+                                    ${_esc(plan.title)}
+                                    ${isVisited ? `<span class="tp-visited-badge">✓ Visited</span>` : ''}
+                                  </div>
                                   <div class="tp-plan-meta">
                                     <span style="font-weight:600; color:var(--teal);">${_esc(plan.category)}</span>
                                     <span>${timeStr}</span>
@@ -541,7 +587,11 @@
                                 </div>
                               </div>
                               <div class="tp-plan-actions">
+                                <button class="tp-plan-status-pill ${isVisited ? 'visited' : 'pending'}" title="${isVisited ? 'Click to mark as Pending' : 'Click to mark as Visited'}" onclick="window.LM_TripUI.togglePlanStatus('${trip.id}', '${plan.id}')">
+                                  ${isVisited ? '✅ Visited' : '⏳ Mark Visited'}
+                                </button>
                                 ${mapUrl ? `<a class="tp-icon-btn" href="${mapUrl}" target="_blank" rel="noopener noreferrer" title="Navigate on Google Maps">🧭</a>` : ''}
+                                <button class="tp-icon-btn" title="Move back to Seen &amp; Wishlist places" onclick="window.LM_TripUI.movePlanToWishlist('${trip.id}', '${plan.id}')">💡</button>
                                 <button class="tp-icon-btn" title="Edit Plan" onclick="window.LM_TripUI.openAddPlanModal('${trip.id}', '${plan.id}')">✏️</button>
                                 <button class="tp-icon-btn" title="Delete Plan" onclick="window.LM_TripUI.deletePlan('${trip.id}', '${plan.id}')">🗑️</button>
                               </div>
@@ -613,6 +663,30 @@
       this.activeDayFilter = day;
       const trip = window.LM_TripService.getTrip(this.activeTripId);
       if (trip) this.renderItineraryTab(trip, document.getElementById('tp_tab_content'));
+    },
+
+    setItineraryFilter: function (filter) {
+      this.itineraryFilter = filter;
+      const trip = window.LM_TripService.getTrip(this.activeTripId);
+      if (trip) this.renderItineraryTab(trip, document.getElementById('tp_tab_content'));
+    },
+
+    togglePlanStatus: async function (tripId, planId) {
+      const updated = await window.LM_TripService.togglePlanStatus(tripId, planId);
+      if (updated) {
+        const label = updated.status === 'completed' ? 'Marked as Visited! 🎉' : 'Marked as Pending/Planned';
+        if (typeof showToast === 'function') showToast(label, 'success');
+        this.renderTripWorkspace(tripId);
+      }
+    },
+
+    movePlanToWishlist: async function (tripId, planId) {
+      if (!confirm('Move this item back to your Seen & Wishlist places?')) return;
+      const res = await window.LM_TripService.convertPlanToWishlist(tripId, planId);
+      if (res) {
+        if (typeof showToast === 'function') showToast('Moved to Seen & Wishlist spots! 💡', 'success');
+        this.renderTripWorkspace(tripId);
+      }
     },
 
     // ─────────────────────────────────────────────────────────────
@@ -1178,7 +1252,7 @@
     },
 
     // ─────────────────────────────────────────────────────────────
-    // 7. TAB 5: GROUP BILL SPLIT, UPI DEEP-LINK & QR SETTLEMENTS
+    // 7. TAB 5: GROUP BILL SPLIT, COMPANIONS & SETTLEMENTS
     // ─────────────────────────────────────────────────────────────
     renderSplitTab: function (trip, container) {
       const persons = trip.persons || [];
@@ -1186,61 +1260,340 @@
       const settlements = trip.settlements || [];
 
       container.innerHTML = `
-        <div style="margin-bottom:20px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+        <div style="margin-bottom:24px;">
+          <!-- HEADER & ACTIONS BAR -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
             <div>
-              <h3 style="font-size:16px; font-weight:700; color:var(--text); margin:0;">👥 Group Expenses &amp; Settlements</h3>
-              <p style="font-size:12px; color:var(--text-3); margin:0;">Minimum-cash-flow algorithm cancels cyclic debts</p>
+              <h3 style="font-size:17px; font-weight:700; color:var(--text); margin:0; display:flex; align-items:center; gap:8px;">
+                <span>👥</span> Travel Companions &amp; Bill Splitting
+                <span style="font-size:12px; font-weight:600; background:rgba(0,240,255,0.1); color:var(--teal); padding:2px 8px; border-radius:12px;">${persons.length} Travelers</span>
+              </h3>
+              <p style="font-size:12.5px; color:var(--text-3); margin:3px 0 0;">
+                Manage travelers, individual balances, WhatsApp reminders &amp; cyclic debt simplification
+              </p>
             </div>
-            <button class="tp-btn-secondary" onclick="window.LM_TripUI.markAllSettled('${trip.id}')">
-              ✅ Mark All Settled
-            </button>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="tp-btn-primary" onclick="window.LM_TripUI.openAddFriendModal('${trip.id}')" title="Add a new friend or companion to this trip">
+                <span>＋</span> Add Friend
+              </button>
+              <button class="tp-btn-secondary" onclick="window.LM_TripUI.openWhatsAppShareModal('${trip.id}')" title="Share settlement breakdown on WhatsApp">
+                <span>💬</span> WhatsApp Audit
+              </button>
+              <button class="tp-btn-secondary" onclick="window.LM_TripUI.markAllSettled('${trip.id}')" title="Mark all debts settled">
+                <span>✅</span> Mark All Settled
+              </button>
+            </div>
           </div>
 
-          <!-- SETTLEMENT PAYMENTS -->
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px; margin-bottom:20px;">
-            ${payments.length === 0 ? `
-              <div style="grid-column:1/-1; text-align:center; padding:32px; background:var(--surface-card); border-radius:12px; color:var(--text-3); font-size:13px;">
-                🎉 All balances are settled or no shared expenses logged yet!
-              </div>
-            ` : payments.map(p => {
-              const existing = settlements.find(s => s.from === p.from && s.to === p.to);
-              const isSettled = existing && existing.status === 'collected';
-              const upiUrl = window.LM_TripService.getUpiIntentUrl(trip.id, p.to, p.amount);
+          <!-- COMPANIONS DIRECTORY GRID -->
+          <div style="margin-bottom:28px;">
+            <div style="font-size:13px; font-weight:700; color:var(--text-2); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">
+              Traveler Directory &amp; Personal Balances
+            </div>
 
-              return `
-                <div style="background:var(--surface-card); border:1px solid var(--border); border-radius:12px; padding:14px;">
-                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <div style="font-size:13.5px; font-weight:700; color:var(--text);">
-                      ${_esc(p.fromName)} <span style="color:var(--text-3);">➔</span> ${_esc(p.toName)}
-                    </div>
-                    <div style="font-family:var(--font-m); font-size:15px; font-weight:700; color:var(--teal);">
-                      ${_fmtINR(p.amount)}
-                    </div>
-                  </div>
-                  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-                    ${isSettled ? `
-                      <span style="font-size:11.5px; font-weight:700; color:var(--emerald);">✅ Confirmed Settled</span>
-                    ` : `
-                      <div style="display:flex; align-items:center; gap:6px;">
-                        <a href="${upiUrl}" class="tp-btn-primary" style="padding:4px 10px; font-size:11px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
-                          ⚡ Pay UPI
-                        </a>
-                        <button type="button" class="tp-btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="window.LM_TripUI.openUpiQrModal('${_esc(p.fromName)}', '${_esc(p.toName)}', ${p.amount}, '${_esc(trip.name)}')">
-                          📱 QR
+            ${persons.length === 0 ? `
+              <div style="text-align:center; padding:32px; background:var(--surface-card); border:1px dashed var(--border); border-radius:12px;">
+                <div style="font-size:32px; margin-bottom:8px;">👥</div>
+                <div style="font-size:14px; font-weight:600; color:var(--text);">No companions added yet</div>
+                <div style="font-size:12px; color:var(--text-3); margin-top:4px;">Add your travel buddies with their WhatsApp phone &amp; UPI ID for 1-click settlement reminders.</div>
+                <button class="tp-btn-primary" style="margin-top:12px;" onclick="window.LM_TripUI.openAddFriendModal('${trip.id}')">＋ Add First Friend</button>
+              </div>
+            ` : `
+              <div class="tp-friends-grid">
+                ${persons.map(p => {
+                  const pf = window.LM_TripService.getPersonFinancials(trip.id, p.id);
+                  const isMainUser = p.isMainUser || p.id === 'p_me' || p.id === 'user_self';
+                  
+                  let balanceBadge = '';
+                  if (pf.isOwed) {
+                    balanceBadge = `<span class="tp-balance-pill gets-back" title="Gets back from group">+${_fmtINR(pf.netBalance)} (Gets back)</span>`;
+                  } else if (pf.owes) {
+                    balanceBadge = `<span class="tp-balance-pill owes-group" title="Owes the group">-${_fmtINR(Math.abs(pf.netBalance))} (Owes group)</span>`;
+                  } else {
+                    balanceBadge = `<span class="tp-balance-pill settled" title="Even / Settled">₹0 (Settled)</span>`;
+                  }
+
+                  return `
+                    <div class="tp-friend-card">
+                      <div class="tp-friend-top">
+                        <div class="tp-friend-info">
+                          <div class="tp-friend-avatar">${_esc(p.avatarEmoji || '👤')}</div>
+                          <div>
+                            <div class="tp-friend-name">
+                              ${_esc(p.name)}
+                              ${isMainUser ? `<span class="tp-me-tag">You</span>` : ''}
+                            </div>
+                            <div class="tp-friend-contact-row">
+                              ${p.phone ? `<span class="tp-contact-chip">📱 ${_esc(p.phone)}</span>` : ''}
+                              ${p.upiId ? `<span class="tp-contact-chip tp-upi-chip">⚡ ${_esc(p.upiId)}</span>` : ''}
+                              ${(p.defaultShare && p.defaultShare !== 1) ? `<span class="tp-contact-chip">⚖️ ${p.defaultShare}x share</span>` : ''}
+                            </div>
+                          </div>
+                        </div>
+                        <div class="tp-friend-card-actions">
+                          <button class="tp-icon-btn" title="Edit companion info" onclick="window.LM_TripUI.openAddFriendModal('${trip.id}', '${p.id}')">✏️</button>
+                          ${!isMainUser ? `
+                            <button class="tp-icon-btn" title="Remove companion" onclick="window.LM_TripUI.deleteFriend('${trip.id}', '${p.id}')" style="color:var(--rose);">🗑️</button>
+                          ` : ''}
+                        </div>
+                      </div>
+
+                      <div class="tp-friend-financials">
+                        <div class="tp-friend-fin-col">
+                          <span class="tp-fin-label">Paid</span>
+                          <span class="tp-fin-val" style="color:var(--emerald);">${_fmtINR(pf.paidTotal)}</span>
+                        </div>
+                        <div class="tp-friend-fin-col">
+                          <span class="tp-fin-label">Share</span>
+                          <span class="tp-fin-val" style="color:var(--text);">${_fmtINR(pf.shareTotal)}</span>
+                        </div>
+                        <div class="tp-friend-fin-col tp-friend-net-col">
+                          <span class="tp-fin-label">Net Balance</span>
+                          ${balanceBadge}
+                        </div>
+                      </div>
+
+                      <div class="tp-friend-footer">
+                        <button class="tp-btn-wa-remind" onclick="window.LM_TripUI.sendFriendSettlementWhatsApp('${trip.id}', '${p.id}')" title="Send personalized WhatsApp balance summary & UPI link">
+                          <span>💬</span> WhatsApp Reminder
                         </button>
                       </div>
-                      <button class="tp-btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="window.LM_TripUI.confirmSettlement('${trip.id}', '${p.from}', '${p.to}', ${p.amount})">
-                        Mark Paid
-                      </button>
-                    `}
-                  </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            `}
+          </div>
+
+          <!-- OPTIMIZED DEBT SETTLEMENTS (MINIMUM CASH FLOW) -->
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+              <div>
+                <h4 style="font-size:14px; font-weight:700; color:var(--text); margin:0;">⚡ Optimized Debt Settlements</h4>
+                <p style="font-size:11.5px; color:var(--text-3); margin:2px 0 0;">Minimum cash flow transfers that settle everyone's balances with fewest transactions</p>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">
+              ${payments.length === 0 ? `
+                <div style="grid-column:1/-1; text-align:center; padding:32px; background:var(--surface-card); border-radius:12px; color:var(--text-3); font-size:13px;">
+                  🎉 All balances are settled or no shared expenses logged yet!
                 </div>
-              `;
-            }).join('')}
+              ` : payments.map(p => {
+                const existing = settlements.find(s => s.from === p.from && s.to === p.to);
+                const isSettled = existing && existing.status === 'collected';
+                const upiUrl = window.LM_TripService.getUpiIntentUrl(trip.id, p.to, p.amount);
+
+                return `
+                  <div style="background:var(--surface-card); border:1px solid var(--border); border-radius:12px; padding:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                      <div style="font-size:13.5px; font-weight:700; color:var(--text);">
+                        ${_esc(p.fromName)} <span style="color:var(--text-3);">➔</span> ${_esc(p.toName)}
+                      </div>
+                      <div style="font-family:var(--font-m); font-size:15px; font-weight:700; color:var(--teal);">
+                        ${_fmtINR(p.amount)}
+                      </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                      ${isSettled ? `
+                        <span style="font-size:11.5px; font-weight:700; color:var(--emerald);">✅ Confirmed Settled</span>
+                      ` : `
+                        <div style="display:flex; align-items:center; gap:6px;">
+                          <a href="${upiUrl}" class="tp-btn-primary" style="padding:4px 10px; font-size:11px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                            ⚡ Pay UPI
+                          </a>
+                          <button type="button" class="tp-btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="window.LM_TripUI.openUpiQrModal('${_esc(p.fromName)}', '${_esc(p.toName)}', ${p.amount}, '${_esc(trip.name)}')">
+                            📱 QR
+                          </button>
+                        </div>
+                        <button class="tp-btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="window.LM_TripUI.confirmSettlement('${trip.id}', '${p.from}', '${p.to}', ${p.amount})">
+                          Mark Paid
+                        </button>
+                      `}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
           </div>
         </div>
       `;
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 7.1 TRAVEL COMPANION (FRIEND) MANAGEMENT
+    // ─────────────────────────────────────────────────────────────
+    openAddFriendModal: function (tripId, existingPersonId = null, refreshExpensePrefix = null) {
+      const trip = window.LM_TripService.getTrip(tripId);
+      if (!trip) return;
+
+      const existing = existingPersonId ? (trip.persons || []).find(p => p.id === existingPersonId) : null;
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.id = 'tp_friendModalOverlay';
+      modal.style.zIndex = '100000';
+
+      modal.innerHTML = `
+        <div class="modal" style="max-width:440px; width:92vw;">
+          <div class="modal-header">
+            <h3 class="modal-title font-bold text-lg">${existing ? '✏️ Edit Travel Companion' : '👥 Add Travel Companion'}</h3>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          </div>
+          <div class="modal-body space-y-3" style="padding:16px;">
+            <div class="grid-2" style="display:grid; grid-template-columns:3fr 1fr; gap:10px;">
+              <div>
+                <label class="text-xs font-semibold text-muted">Friend Name *</label>
+                <input id="tp_friend_name" placeholder="e.g. Rahul Sharma" value="${_esc(existing?.name || '')}" class="form-input w-full" autofocus />
+              </div>
+              <div>
+                <label class="text-xs font-semibold text-muted">Avatar</label>
+                <input id="tp_friend_emoji" placeholder="👤" value="${_esc(existing?.avatarEmoji || '👤')}" class="form-input w-full text-center" />
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs font-semibold text-muted">WhatsApp Phone Number</label>
+              <input id="tp_friend_phone" placeholder="e.g. +91 98765 43210" value="${_esc(existing?.phone || '')}" class="form-input w-full" />
+              <div style="font-size:11px; color:var(--text-3); margin-top:2px;">Used for 1-click WhatsApp balance reminders</div>
+            </div>
+
+            <div>
+              <label class="text-xs font-semibold text-muted">UPI ID / VPA (Optional)</label>
+              <input id="tp_friend_upi" placeholder="e.g. rahul@oksbi" value="${_esc(existing?.upiId || '')}" class="form-input w-full" />
+              <div style="font-size:11px; color:var(--text-3); margin-top:2px;">Enables 1-tap "Pay UPI" direct payment deep-links</div>
+            </div>
+
+            <div>
+              <label class="text-xs font-semibold text-muted">Default Share Weight (Ratio)</label>
+              <input type="number" step="0.1" id="tp_friend_share" placeholder="1.0" value="${existing?.defaultShare || 1}" class="form-input w-full" />
+              <div style="font-size:11px; color:var(--text-3); margin-top:2px;">e.g. 1.0 for normal share, 0.5 for child or half share</div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+              <button type="button" class="tp-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+              <button type="button" class="tp-btn-primary" onclick="window.LM_TripUI.saveFriend('${trip.id}', ${existingPersonId ? `'${existingPersonId}'` : 'null'}, ${refreshExpensePrefix ? `'${refreshExpensePrefix}'` : 'null'})">
+                ${existing ? 'Save Changes' : 'Add Companion'}
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+      setTimeout(() => modal.classList.add('show'), 10);
+    },
+
+    saveFriend: async function (tripId, existingPersonId = null, refreshExpensePrefix = null) {
+      const name = (document.getElementById('tp_friend_name')?.value || '').trim();
+      const avatarEmoji = (document.getElementById('tp_friend_emoji')?.value || '👤').trim();
+      const phone = (document.getElementById('tp_friend_phone')?.value || '').trim();
+      const upiId = (document.getElementById('tp_friend_upi')?.value || '').trim();
+      const defaultShare = Number(document.getElementById('tp_friend_share')?.value) || 1;
+
+      if (!name) {
+        alert('Please enter a friend name');
+        return;
+      }
+
+      if (existingPersonId) {
+        await window.LM_TripService.updatePerson(tripId, existingPersonId, {
+          name, avatarEmoji, phone, upiId, defaultShare
+        });
+        if (typeof showToast === 'function') showToast(`Updated ${name}!`, 'success');
+      } else {
+        await window.LM_TripService.addPerson(tripId, {
+          name, avatarEmoji, phone, upiId, defaultShare
+        });
+        if (typeof showToast === 'function') showToast(`Added ${name} to travelers! 🎉`, 'success');
+      }
+
+      document.getElementById('tp_friendModalOverlay')?.remove();
+
+      if (refreshExpensePrefix) {
+        this._refreshExpenseModalMembers(tripId, refreshExpensePrefix);
+      } else {
+        this.renderTripWorkspace(tripId);
+      }
+    },
+
+    deleteFriend: async function (tripId, personId) {
+      const trip = window.LM_TripService.getTrip(tripId);
+      const person = (trip?.persons || []).find(p => p.id === personId);
+      if (!confirm(`Remove "${person?.name || 'companion'}" from this trip?`)) return;
+
+      try {
+        await window.LM_TripService.deletePerson(tripId, personId);
+        if (typeof showToast === 'function') showToast('Companion removed.', 'info');
+        this.renderTripWorkspace(tripId);
+      } catch (err) {
+        alert(err.message || 'Could not delete companion.');
+      }
+    },
+
+    sendFriendSettlementWhatsApp: function (tripId, personId) {
+      const msg = window.LM_TripService.generatePersonSettlementWhatsAppMessage(tripId, personId);
+      if (!msg) {
+        alert('Could not generate settlement reminder.');
+        return;
+      }
+      const trip = window.LM_TripService.getTrip(tripId);
+      const person = (trip?.persons || []).find(p => p.id === personId);
+      const cleanPhone = (person?.phone || '').replace(/[^0-9]/g, '');
+
+      let waUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+      if (cleanPhone) {
+        waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
+      }
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
+    },
+
+    _refreshExpenseModalMembers: function (tripId, prefix) {
+      const trip = window.LM_TripService.getTrip(tripId);
+      if (!trip) return;
+
+      // Refresh "Paid By" select dropdown
+      const paidBySelect = document.getElementById(`${prefix}_paidby`);
+      if (paidBySelect) {
+        const curVal = paidBySelect.value;
+        paidBySelect.innerHTML = (trip.persons || []).map(p => `
+          <option value="${p.id}" ${p.id === curVal ? 'selected' : ''}>${_esc(p.name)}</option>
+        `).join('');
+      }
+
+      // Refresh split members checkboxes container
+      const container = document.getElementById(`${prefix}_split_members_container`);
+      if (container) {
+        // preserve checked states of existing members
+        const checkedMap = {};
+        container.querySelectorAll('.tp-split-member-check').forEach(chk => {
+          checkedMap[chk.value] = chk.checked;
+        });
+        const customValues = {};
+        container.querySelectorAll('.tp-split-custom-input').forEach(inp => {
+          customValues[inp.dataset.person] = inp.value;
+        });
+
+        const mode = document.getElementById(`${prefix}_split_mode`)?.value || 'equal';
+
+        container.innerHTML = (trip.persons || []).map(p => {
+          const isChecked = checkedMap[p.id] !== undefined ? checkedMap[p.id] : true;
+          const customVal = customValues[p.id] || '';
+          return `
+            <div class="tp-split-member-row" style="display:flex; justify-content:space-between; align-items:center; font-size:12.5px;">
+              <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                <input type="checkbox" class="tp-split-member-check" value="${p.id}" ${isChecked ? 'checked' : ''} onchange="window.LM_TripUI._updateSplitBreakdown('${prefix}')" />
+                <span>${_esc(p.name)}</span>
+              </label>
+              <div class="tp-split-input-wrap" style="${(mode === 'exact' || mode === 'shares') ? 'block' : 'none'};">
+                <input type="number" class="tp-split-custom-input form-input" data-person="${p.id}" value="${customVal}" placeholder="0" style="width:85px; padding:3px 6px; font-size:12px; text-align:right;" oninput="window.LM_TripUI._updateSplitBreakdown('${prefix}')" />
+              </div>
+              <span class="tp-split-computed-val text-xs text-muted font-mono">₹0</span>
+            </div>
+          `;
+        }).join('');
+
+        this._updateSplitBreakdown(prefix);
+      }
     },
 
     // ─────────────────────────────────────────────────────────────
@@ -1898,7 +2251,10 @@
 
             <div class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
               <div>
-                <label class="text-xs font-semibold text-muted">Paid By</label>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <label class="text-xs font-semibold text-muted">Paid By</label>
+                  <button type="button" style="font-size:10.5px; color:var(--teal); background:none; border:none; cursor:pointer; padding:0;" onclick="window.LM_TripUI.openAddFriendModal('${trip.id}', null, 'tp_pexp')">＋ Add Friend</button>
+                </div>
                 <select id="tp_pexp_paidby" class="form-input w-full">
                   ${(trip.persons || []).map(p => `<option value="${p.id}">${_esc(p.name)}</option>`).join('')}
                 </select>
@@ -1918,7 +2274,10 @@
             <!-- SPLIT OPTIONS & CUSTOM SHARES -->
             <div class="tp-split-section" style="background:rgba(255, 255, 255, 0.03); border:1px solid rgba(255, 255, 255, 0.08); border-radius:10px; padding:12px;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
-                <label class="text-xs font-semibold text-muted" style="margin:0;">Split Between Travelers</label>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <label class="text-xs font-semibold text-muted" style="margin:0;">Split Between Travelers</label>
+                  <button type="button" style="font-size:10.5px; color:var(--teal); background:none; border:none; cursor:pointer; padding:0;" onclick="window.LM_TripUI.openAddFriendModal('${trip.id}', null, 'tp_pexp')">＋ Add Friend</button>
+                </div>
                 <div class="tp-split-mode-pills" style="display:flex; gap:4px;">
                   <button type="button" class="tp-split-mode-btn active" data-mode="equal" onclick="window.LM_TripUI._setSplitMode(this, 'equal', 'tp_pexp')">Equal</button>
                   <button type="button" class="tp-split-mode-btn" data-mode="exact" onclick="window.LM_TripUI._setSplitMode(this, 'exact', 'tp_pexp')">Exact (₹)</button>
@@ -2133,7 +2492,10 @@
 
             <div class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
               <div>
-                <label class="text-xs font-semibold text-muted">Paid By</label>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <label class="text-xs font-semibold text-muted">Paid By</label>
+                  <button type="button" style="font-size:10.5px; color:var(--teal); background:none; border:none; cursor:pointer; padding:0;" onclick="window.LM_TripUI.openAddFriendModal('${trip.id}', null, 'tp_gexp')">＋ Add Friend</button>
+                </div>
                 <select id="tp_gexp_paidby" class="form-input w-full">
                   ${(trip.persons || []).map(p => `<option value="${p.id}">${_esc(p.name)}</option>`).join('')}
                 </select>
@@ -2151,7 +2513,10 @@
             <!-- SPLIT OPTIONS & CUSTOM SHARES -->
             <div class="tp-split-section" style="background:rgba(255, 255, 255, 0.03); border:1px solid rgba(255, 255, 255, 0.08); border-radius:10px; padding:12px;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
-                <label class="text-xs font-semibold text-muted" style="margin:0;">Split Between Travelers</label>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <label class="text-xs font-semibold text-muted" style="margin:0;">Split Between Travelers</label>
+                  <button type="button" style="font-size:10.5px; color:var(--teal); background:none; border:none; cursor:pointer; padding:0;" onclick="window.LM_TripUI.openAddFriendModal('${trip.id}', null, 'tp_gexp')">＋ Add Friend</button>
+                </div>
                 <div class="tp-split-mode-pills" style="display:flex; gap:4px;">
                   <button type="button" class="tp-split-mode-btn active" data-mode="equal" onclick="window.LM_TripUI._setSplitMode(this, 'equal', 'tp_gexp')">Equal</button>
                   <button type="button" class="tp-split-mode-btn" data-mode="exact" onclick="window.LM_TripUI._setSplitMode(this, 'exact', 'tp_gexp')">Exact (₹)</button>
@@ -2603,7 +2968,7 @@
     },
 
     printTripItinerary: function (tripId) {
-      window.print();
+      this.openPrintableStatementModal(tripId);
     },
 
     confirmSettlement: async function (tripId, fromId, toId, amount) {
@@ -2618,9 +2983,624 @@
     },
 
     shareTrip: function (tripId) {
-      const text = window.LM_TripService.generateWhatsAppText(tripId);
-      if (!text) return;
-      window.open(`https://wa.me/?text=${encodeURIComponent(text.substring(0, 12000))}`, '_blank');
+      this.openWhatsAppShareModal(tripId);
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 15.1 ENTERPRISE WHATSAPP AUDIT & SHARE MODAL
+    // ─────────────────────────────────────────────────────────────
+    openWhatsAppShareModal: function (tripId) {
+      const trip = window.LM_TripService.getTrip(tripId);
+      if (!trip) return;
+
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.id = 'tp_waShareModalOverlay';
+      modal.style.zIndex = '99999';
+
+      modal.innerHTML = `
+        <div class="modal" style="max-width:580px; width:94vw; max-height:90vh; display:flex; flex-direction:column;">
+          <div class="modal-header">
+            <h3 class="modal-title font-bold text-lg">💬 Share Trip on WhatsApp</h3>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          </div>
+          <div class="modal-body space-y-3" style="padding:16px; overflow-y:auto; flex:1;">
+            <p style="font-size:12.5px; color:var(--text-2); margin-bottom:10px;">
+              Choose a report format to generate formatted WhatsApp messages with calculations, net balances and direct UPI links:
+            </p>
+
+            <div class="tp-wa-mode-strip" style="display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap;">
+              <button type="button" class="tp-tab-btn active" id="tp_wamode_full" onclick="window.LM_TripUI._switchWhatsAppMode('${trip.id}', 'full')">
+                📊 Full Audit &amp; Split
+              </button>
+              <button type="button" class="tp-tab-btn" id="tp_wamode_settle" onclick="window.LM_TripUI._switchWhatsAppMode('${trip.id}', 'settlement_only')">
+                👥 Split Math &amp; UPI Only
+              </button>
+              <button type="button" class="tp-tab-btn" id="tp_wamode_itin" onclick="window.LM_TripUI._switchWhatsAppMode('${trip.id}', 'itinerary_only')">
+                📅 Itinerary Schedule Only
+              </button>
+            </div>
+
+            <div>
+              <label class="text-xs font-semibold text-muted" style="display:flex; justify-content:space-between;">
+                <span>Message Preview</span>
+                <span id="tp_wa_char_count" style="font-weight:normal; color:var(--text-3);">0 chars</span>
+              </label>
+              <textarea id="tp_wa_preview_box" class="form-input w-full" rows="12" style="font-family:var(--font-m); font-size:11.5px; line-height:1.45; white-space:pre-wrap; background:rgba(0,0,0,0.25);"></textarea>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:16px;">
+              <button type="button" class="tp-btn-secondary" onclick="window.LM_TripUI._copyWhatsAppText()">
+                📋 Copy Message
+              </button>
+              <div style="display:flex; gap:8px;">
+                <button type="button" class="tp-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+                <button type="button" class="tp-btn-primary" style="background:#25D366; color:#000; font-weight:700;" onclick="window.LM_TripUI._sendWhatsAppNow()">
+                  💬 Open in WhatsApp
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+      setTimeout(() => {
+        modal.classList.add('show');
+        this._switchWhatsAppMode(trip.id, 'full');
+      }, 10);
+    },
+
+    _switchWhatsAppMode: function (tripId, mode) {
+      document.querySelectorAll('.tp-wa-mode-strip .tp-tab-btn').forEach(b => b.classList.remove('active'));
+      if (mode === 'full') document.getElementById('tp_wamode_full')?.classList.add('active');
+      else if (mode === 'settlement_only') document.getElementById('tp_wamode_settle')?.classList.add('active');
+      else if (mode === 'itinerary_only') document.getElementById('tp_wamode_itin')?.classList.add('active');
+
+      const text = window.LM_TripService.generateWhatsAppText(tripId, { mode });
+      const txtBox = document.getElementById('tp_wa_preview_box');
+      if (txtBox) {
+        txtBox.value = text || '';
+        const cnt = document.getElementById('tp_wa_char_count');
+        if (cnt) cnt.textContent = `${(text || '').length} characters`;
+      }
+    },
+
+    _copyWhatsAppText: function () {
+      const txt = document.getElementById('tp_wa_preview_box')?.value || '';
+      if (!txt) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(() => {
+          if (typeof showToast === 'function') showToast('📋 WhatsApp message copied to clipboard!', 'success');
+        }).catch(() => {
+          const txtBox = document.getElementById('tp_wa_preview_box');
+          txtBox?.select();
+          document.execCommand('copy');
+          if (typeof showToast === 'function') showToast('📋 Copied!', 'success');
+        });
+      } else {
+        const txtBox = document.getElementById('tp_wa_preview_box');
+        txtBox?.select();
+        document.execCommand('copy');
+        if (typeof showToast === 'function') showToast('📋 Copied!', 'success');
+      }
+    },
+
+    _sendWhatsAppNow: function () {
+      const txt = document.getElementById('tp_wa_preview_box')?.value || '';
+      if (!txt) return;
+      window.open(`https://wa.me/?text=${encodeURIComponent(txt.substring(0, 12000))}`, '_blank');
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 15.2 PRINTABLE EXECUTIVE FINANCIAL STATEMENT & AUDIT (PDF)
+    // ─────────────────────────────────────────────────────────────
+    openPrintableStatementModal: function (tripId) {
+      const trip = window.LM_TripService.getTrip(tripId);
+      if (!trip) return;
+
+      const fin = window.LM_TripService.getTripFinancials(trip.id);
+      const settlements = window.LM_TripService.calculateSettlements(trip.id);
+      const itinStats = window.LM_TripService.getItineraryStats(trip.id);
+      const plans = trip.plans || [];
+      const generalExpenses = trip.expenses || [];
+      const persons = trip.persons || [];
+
+      // Collect all expenses into chronological itemized ledger
+      const ledger = [];
+      plans.forEach(p => {
+        (p.expenses || []).forEach(e => {
+          ledger.push({
+            date: e.date || trip.startDate || '',
+            title: `${p.title}: ${e.title}`,
+            category: p.category || 'Plan',
+            paidBy: e.paidByName || (persons.find(x => x.id === e.paidBy)?.name) || 'Self',
+            paymentMethod: e.paymentMethod || 'Cash',
+            amount: e.amount || 0
+          });
+        });
+      });
+      generalExpenses.forEach(e => {
+        ledger.push({
+          date: e.date || trip.startDate || '',
+          title: e.title,
+          category: e.category || 'General',
+          paidBy: e.paidByName || (persons.find(x => x.id === e.paidBy)?.name) || 'Self',
+          paymentMethod: e.paymentMethod || 'Cash',
+          amount: e.amount || 0
+        });
+      });
+      ledger.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.id = 'tp_statementModalOverlay';
+      modal.style.zIndex = '99999';
+
+      modal.innerHTML = `
+        <div class="modal tp-statement-modal" style="max-width:880px; width:95vw; max-height:92vh; display:flex; flex-direction:column; background:var(--bg-main, #0f172a); color:var(--text, #f8fafc);">
+          <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding:12px 16px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:20px;">📄</span>
+              <h3 class="modal-title font-bold text-lg" style="margin:0;">Executive Trip &amp; Financial Statement</h3>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button type="button" class="tp-btn-primary" onclick="window.LM_TripUI._printStatementNow()" style="display:inline-flex; align-items:center; gap:6px;">
+                <span>🖨️</span> Print / Save PDF
+              </button>
+              <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+            </div>
+          </div>
+          <div class="modal-body tp-statement-body" id="tp_printable_statement_content" style="padding:24px; overflow-y:auto; flex:1;">
+            
+            <!-- STATEMENT HEADER -->
+            <div class="tp-stmt-header" style="border-bottom:2px solid var(--border); padding-bottom:16px; margin-bottom:20px;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+                <div>
+                  <h1 style="font-size:24px; font-weight:800; margin:0 0 4px; color:var(--text);">
+                    ${_esc(trip.coverEmoji || '✈️')} ${_esc(trip.name)}
+                  </h1>
+                  <div style="font-size:13px; color:var(--text-2);">
+                    📍 ${_esc(trip.destination || 'Not Specified')} &nbsp;·&nbsp; 
+                    📅 ${_esc(trip.startDate || '')} to ${_esc(trip.endDate || '')} (${window.LM_TripService.calculateTripDays(trip.startDate, trip.endDate)} Days)
+                  </div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:11px; text-transform:uppercase; color:var(--text-3); font-weight:700; letter-spacing:0.5px;">LEDGERMATE AUDIT STATEMENT</div>
+                  <div style="font-size:12px; color:var(--teal); font-weight:600; margin-top:2px;">Generated on ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                  <div style="font-size:11px; color:var(--text-3);">${persons.length} Travel Companions</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- KPI SUMMARY STRIP -->
+            <div class="tp-stmt-kpi-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:12px; margin-bottom:24px;">
+              <div class="tp-stmt-kpi-card" style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; padding:12px;">
+                <div style="font-size:11px; color:var(--text-3); text-transform:uppercase; font-weight:600;">Total Budget</div>
+                <div style="font-size:18px; font-weight:800; color:var(--text); font-family:var(--font-m); margin-top:4px;">${_fmtINR(fin.totalBudget)}</div>
+              </div>
+              <div class="tp-stmt-kpi-card" style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; padding:12px;">
+                <div style="font-size:11px; color:var(--text-3); text-transform:uppercase; font-weight:600;">Total Spent</div>
+                <div style="font-size:18px; font-weight:800; color:var(--emerald); font-family:var(--font-m); margin-top:4px;">${_fmtINR(fin.totalSpent)}</div>
+              </div>
+              <div class="tp-stmt-kpi-card" style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; padding:12px;">
+                <div style="font-size:11px; color:var(--text-3); text-transform:uppercase; font-weight:600;">Budget Balance</div>
+                <div style="font-size:18px; font-weight:800; color:${fin.remainingBudget >= 0 ? 'var(--emerald)' : 'var(--rose)'}; font-family:var(--font-m); margin-top:4px;">
+                  ${fin.remainingBudget >= 0 ? `+${_fmtINR(fin.remainingBudget)}` : `-${_fmtINR(Math.abs(fin.remainingBudget))}`}
+                </div>
+              </div>
+              <div class="tp-stmt-kpi-card" style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; padding:12px;">
+                <div style="font-size:11px; color:var(--text-3); text-transform:uppercase; font-weight:600;">Spots Completed</div>
+                <div style="font-size:18px; font-weight:800; color:var(--teal); font-family:var(--font-m); margin-top:4px;">
+                  ${itinStats.visited}/${itinStats.total} (${itinStats.percent}%)
+                </div>
+              </div>
+            </div>
+
+            <!-- COMPANIONS & NET SPLIT BALANCES TABLE -->
+            <div style="margin-bottom:24px;">
+              <h3 style="font-size:14px; font-weight:700; color:var(--text); margin:0 0 10px; text-transform:uppercase; letter-spacing:0.5px;">
+                👥 Travelers &amp; Net Balances Ledger
+              </h3>
+              <table style="width:100%; border-collapse:collapse; font-size:12.5px; border:1px solid var(--border);">
+                <thead>
+                  <tr style="background:rgba(255,255,255,0.05); text-align:left;">
+                    <th style="padding:8px 12px; border:1px solid var(--border);">Traveler</th>
+                    <th style="padding:8px 12px; border:1px solid var(--border);">UPI / Phone</th>
+                    <th style="padding:8px 12px; border:1px solid var(--border); text-align:right;">Total Paid</th>
+                    <th style="padding:8px 12px; border:1px solid var(--border); text-align:right;">Their Share</th>
+                    <th style="padding:8px 12px; border:1px solid var(--border); text-align:right;">Net Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${persons.map(p => {
+                    const pf = window.LM_TripService.getPersonFinancials(trip.id, p.id);
+                    return `
+                      <tr>
+                        <td style="padding:8px 12px; border:1px solid var(--border); font-weight:600;">
+                          ${_esc(p.avatarEmoji || '👤')} ${_esc(p.name)}
+                        </td>
+                        <td style="padding:8px 12px; border:1px solid var(--border); color:var(--text-2); font-family:var(--font-m); font-size:11.5px;">
+                          ${_esc(p.upiId || p.phone || '—')}
+                        </td>
+                        <td style="padding:8px 12px; border:1px solid var(--border); text-align:right; color:var(--emerald); font-family:var(--font-m);">
+                          ${_fmtINR(pf.paidTotal)}
+                        </td>
+                        <td style="padding:8px 12px; border:1px solid var(--border); text-align:right; font-family:var(--font-m);">
+                          ${_fmtINR(pf.shareTotal)}
+                        </td>
+                        <td style="padding:8px 12px; border:1px solid var(--border); text-align:right; font-family:var(--font-m); font-weight:700; color:${pf.isOwed ? 'var(--emerald)' : (pf.owes ? 'var(--rose)' : 'var(--text-3)')};">
+                          ${pf.isOwed ? `+${_fmtINR(pf.netBalance)}` : (pf.owes ? `-${_fmtINR(Math.abs(pf.netBalance))}` : '₹0')}
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- SIMPLIFIED DEBTS MATRIX -->
+            ${settlements.length > 0 ? `
+              <div style="margin-bottom:24px;">
+                <h3 style="font-size:14px; font-weight:700; color:var(--text); margin:0 0 10px; text-transform:uppercase; letter-spacing:0.5px;">
+                  ⚡ Minimum Cash-Flow Debt Settlements
+                </h3>
+                <table style="width:100%; border-collapse:collapse; font-size:12.5px; border:1px solid var(--border);">
+                  <thead>
+                    <tr style="background:rgba(255,255,255,0.05); text-align:left;">
+                      <th style="padding:8px 12px; border:1px solid var(--border);">Debtor (From)</th>
+                      <th style="padding:8px 12px; border:1px solid var(--border);">Creditor (To)</th>
+                      <th style="padding:8px 12px; border:1px solid var(--border); text-align:right;">Amount</th>
+                      <th style="padding:8px 12px; border:1px solid var(--border);">Settlement Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${settlements.map(s => {
+                      const isSettled = (trip.settlements || []).some(x => x.from === s.from && x.to === s.to && x.status === 'collected');
+                      return `
+                        <tr>
+                          <td style="padding:8px 12px; border:1px solid var(--border); font-weight:600;">${_esc(s.fromName)}</td>
+                          <td style="padding:8px 12px; border:1px solid var(--border); font-weight:600; color:var(--teal);">${_esc(s.toName)}</td>
+                          <td style="padding:8px 12px; border:1px solid var(--border); text-align:right; font-weight:700; font-family:var(--font-m);">${_fmtINR(s.amount)}</td>
+                          <td style="padding:8px 12px; border:1px solid var(--border); color:${isSettled ? 'var(--emerald)' : 'var(--amber)'}; font-weight:600;">
+                            ${isSettled ? '✅ Confirmed Paid' : '⏳ Pending'}
+                          </td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            ` : ''}
+
+            <!-- COMPLETE ITEMIZED LEDGER -->
+            <div style="margin-bottom:24px;">
+              <h3 style="font-size:14px; font-weight:700; color:var(--text); margin:0 0 10px; text-transform:uppercase; letter-spacing:0.5px;">
+                🧾 Complete Itemized Expense Ledger (${ledger.length} Transactions)
+              </h3>
+              ${ledger.length === 0 ? `
+                <div style="padding:16px; font-size:12px; color:var(--text-3); font-style:italic; border:1px dashed var(--border); border-radius:8px; text-align:center;">No expenses recorded yet</div>
+              ` : `
+                <table style="width:100%; border-collapse:collapse; font-size:12px; border:1px solid var(--border);">
+                  <thead>
+                    <tr style="background:rgba(255,255,255,0.05); text-align:left;">
+                      <th style="padding:6px 10px; border:1px solid var(--border);">Date</th>
+                      <th style="padding:6px 10px; border:1px solid var(--border);">Description</th>
+                      <th style="padding:6px 10px; border:1px solid var(--border);">Category</th>
+                      <th style="padding:6px 10px; border:1px solid var(--border);">Paid By</th>
+                      <th style="padding:6px 10px; border:1px solid var(--border);">Method</th>
+                      <th style="padding:6px 10px; border:1px solid var(--border); text-align:right;">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${ledger.map(row => `
+                      <tr>
+                        <td style="padding:6px 10px; border:1px solid var(--border); white-space:nowrap; font-family:var(--font-m);">${_esc(row.date)}</td>
+                        <td style="padding:6px 10px; border:1px solid var(--border);">${_esc(row.title)}</td>
+                        <td style="padding:6px 10px; border:1px solid var(--border); color:var(--teal);">${_esc(row.category)}</td>
+                        <td style="padding:6px 10px; border:1px solid var(--border); font-weight:600;">${_esc(row.paidBy)}</td>
+                        <td style="padding:6px 10px; border:1px solid var(--border);">${_esc(row.paymentMethod)}</td>
+                        <td style="padding:6px 10px; border:1px solid var(--border); text-align:right; font-family:var(--font-m); font-weight:700;">${_fmtINR(row.amount)}</td>
+                      </tr>
+                    `).join('')}
+                    <tr style="background:rgba(255,255,255,0.05); font-weight:700;">
+                      <td colspan="5" style="padding:8px 10px; border:1px solid var(--border); text-align:right;">TOTAL EXPENDITURE:</td>
+                      <td style="padding:8px 10px; border:1px solid var(--border); text-align:right; font-family:var(--font-m); color:var(--emerald);">${_fmtINR(fin.totalSpent)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              `}
+            </div>
+
+            <!-- ITINERARY SCHEDULE OVERVIEW -->
+            <div>
+              <h3 style="font-size:14px; font-weight:700; color:var(--text); margin:0 0 10px; text-transform:uppercase; letter-spacing:0.5px;">
+                🗺️ Itinerary Schedule &amp; Completion Status
+              </h3>
+              <table style="width:100%; border-collapse:collapse; font-size:12px; border:1px solid var(--border);">
+                <thead>
+                  <tr style="background:rgba(255,255,255,0.05); text-align:left;">
+                    <th style="padding:6px 10px; border:1px solid var(--border);">Day</th>
+                    <th style="padding:6px 10px; border:1px solid var(--border);">Time</th>
+                    <th style="padding:6px 10px; border:1px solid var(--border);">Spot / Activity</th>
+                    <th style="padding:6px 10px; border:1px solid var(--border);">Category</th>
+                    <th style="padding:6px 10px; border:1px solid var(--border);">Location</th>
+                    <th style="padding:6px 10px; border:1px solid var(--border); text-align:center;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${plans.map(p => `
+                    <tr>
+                      <td style="padding:6px 10px; border:1px solid var(--border); font-weight:600; white-space:nowrap;">Day ${p.dayNumber || 1}</td>
+                      <td style="padding:6px 10px; border:1px solid var(--border); font-family:var(--font-m);">${_esc(p.time || '—')}</td>
+                      <td style="padding:6px 10px; border:1px solid var(--border); font-weight:600;">${_esc(p.title)}</td>
+                      <td style="padding:6px 10px; border:1px solid var(--border); color:var(--teal);">${_esc(p.category)}</td>
+                      <td style="padding:6px 10px; border:1px solid var(--border);">${_esc(p.location || '—')}</td>
+                      <td style="padding:6px 10px; border:1px solid var(--border); text-align:center; font-weight:600; color:${p.status === 'completed' ? 'var(--emerald)' : 'var(--amber)'};">
+                        ${p.status === 'completed' ? '✅ Visited' : '⏳ Pending'}
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+      setTimeout(() => modal.classList.add('show'), 10);
+    },
+
+    _printStatementNow: function () {
+      window.print();
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 15.3 TRIP CLONING / DUPLICATION MODAL
+    // ─────────────────────────────────────────────────────────────
+    cloneTripModal: function (tripId) {
+      const trip = window.LM_TripService.getTrip(tripId);
+      if (!trip) return;
+
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.id = 'tp_cloneModalOverlay';
+      modal.style.zIndex = '99999';
+
+      modal.innerHTML = `
+        <div class="modal" style="max-width:440px; width:92vw;">
+          <div class="modal-header">
+            <h3 class="modal-title font-bold text-lg">📑 Clone Trip as Template</h3>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          </div>
+          <div class="modal-body space-y-3" style="padding:16px;">
+            <p style="font-size:12.5px; color:var(--text-2); margin-bottom:10px;">
+              Create a duplicate of <strong>${_esc(trip.name)}</strong> to plan another edition or reuse your itinerary structure.
+            </p>
+
+            <div>
+              <label class="text-xs font-semibold text-muted">Cloned Trip Name *</label>
+              <input id="tp_clone_name" value="${_esc(trip.name)} (Copy)" class="form-input w-full" autofocus />
+            </div>
+
+            <div class="grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+              <div>
+                <label class="text-xs font-semibold text-muted">New Start Date</label>
+                <input type="date" id="tp_clone_start" value="${trip.startDate || new Date().toISOString().split('T')[0]}" class="form-input w-full" />
+              </div>
+              <div>
+                <label class="text-xs font-semibold text-muted">New End Date</label>
+                <input type="date" id="tp_clone_end" value="${trip.endDate || new Date().toISOString().split('T')[0]}" class="form-input w-full" />
+              </div>
+            </div>
+
+            <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:10px; margin-top:8px;">
+              <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; cursor:pointer;">
+                <input type="checkbox" id="tp_clone_reset_exp" checked />
+                <span>Reset all logged expenses &amp; settlements to ₹0</span>
+              </label>
+              <div style="font-size:11px; color:var(--text-3); margin-left:22px;">Keeps itinerary plans, packing items &amp; wishlist places without previous costs.</div>
+
+              <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; cursor:pointer; margin-top:8px;">
+                <input type="checkbox" id="tp_clone_reset_vis" checked />
+                <span>Reset visit status (mark all spots as Pending)</span>
+              </label>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+              <button type="button" class="tp-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+              <button type="button" class="tp-btn-primary" onclick="window.LM_TripUI._confirmCloneTrip('${trip.id}')">
+                Clone Trip
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+      setTimeout(() => modal.classList.add('show'), 10);
+    },
+
+    _confirmCloneTrip: async function (tripId) {
+      const name = (document.getElementById('tp_clone_name')?.value || '').trim();
+      const startDate = document.getElementById('tp_clone_start')?.value || '';
+      const endDate = document.getElementById('tp_clone_end')?.value || '';
+      const resetExpenses = document.getElementById('tp_clone_reset_exp')?.checked ?? true;
+      const resetVisitStatus = document.getElementById('tp_clone_reset_vis')?.checked ?? true;
+
+      if (!name) {
+        alert('Please enter a name for the cloned trip.');
+        return;
+      }
+
+      const cloned = await window.LM_TripService.duplicateTrip(tripId, {
+        newName: name,
+        startDate,
+        endDate,
+        resetExpenses,
+        resetVisitStatus
+      });
+
+      document.getElementById('tp_cloneModalOverlay')?.remove();
+      if (cloned) {
+        if (typeof showToast === 'function') showToast(`🎉 Trip cloned successfully as "${cloned.name}"!`, 'success');
+        this.activeTripId = cloned.id;
+        this.renderTripWorkspace(cloned.id);
+      }
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 15.4 INTERACTIVE MULTI-STOP ROUTE MAP MODAL
+    // ─────────────────────────────────────────────────────────────
+    openRouteMapModal: function (tripId) {
+      const trip = window.LM_TripService.getTrip(tripId);
+      if (!trip) return;
+
+      const plans = trip.plans || [];
+      const days = window.LM_TripService.calculateTripDays(trip.startDate, trip.endDate);
+
+      // Collect stops for all plans
+      const allStops = plans.map(p => ({
+        day: p.dayNumber || 1,
+        title: p.title,
+        location: (p.location && !/^https?:\/\//i.test(p.location)) ? p.location : p.title,
+        category: p.category,
+        time: p.time,
+        status: p.status,
+        mapsUrl: window.LM_TripService.getMapsUrl(p)
+      })).filter(s => s.location);
+
+      const dayNumbers = [];
+      for (let i = 1; i <= days; i++) dayNumbers.push(i);
+
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.id = 'tp_routeMapModalOverlay';
+      modal.style.zIndex = '99999';
+
+      modal.innerHTML = `
+        <div class="modal" style="max-width:640px; width:94vw; max-height:90vh; display:flex; flex-direction:column;">
+          <div class="modal-header">
+            <h3 class="modal-title font-bold text-lg">🗺️ Interactive Route Map Navigator</h3>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          </div>
+          <div class="modal-body space-y-3" style="padding:16px; overflow-y:auto; flex:1;">
+            <p style="font-size:12.5px; color:var(--text-2); margin-bottom:12px;">
+              Select a day or view all stops across <strong>${_esc(trip.name)}</strong> with 1-tap Google Maps multi-stop navigation:
+            </p>
+
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+              <button type="button" class="tp-day-pill active" id="tp_routemap_pill_all" onclick="window.LM_TripUI._filterRouteMapStops('${trip.id}', 'all')">
+                All Stops (${allStops.length})
+              </button>
+              ${dayNumbers.map(d => {
+                const dayCount = allStops.filter(s => s.day === d).length;
+                return `
+                  <button type="button" class="tp-day-pill" id="tp_routemap_pill_${d}" onclick="window.LM_TripUI._filterRouteMapStops('${trip.id}', ${d})">
+                    Day ${d} (${dayCount})
+                  </button>
+                `;
+              }).join('')}
+            </div>
+
+            <!-- ROUTE ACTION BAR -->
+            <div id="tp_route_action_container" style="margin-bottom:16px;"></div>
+
+            <!-- STOPS TIMELINE -->
+            <div id="tp_route_stops_list" class="space-y-2"></div>
+
+            <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+              <button type="button" class="tp-btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+      setTimeout(() => {
+        modal.classList.add('show');
+        this._filterRouteMapStops(trip.id, 'all');
+      }, 10);
+    },
+
+    _filterRouteMapStops: function (tripId, selectedDay) {
+      const trip = window.LM_TripService.getTrip(tripId);
+      if (!trip) return;
+
+      document.querySelectorAll('#tp_routeMapModalOverlay .tp-day-pill').forEach(b => b.classList.remove('active'));
+      const activePill = document.getElementById(selectedDay === 'all' ? 'tp_routemap_pill_all' : `tp_routemap_pill_${selectedDay}`);
+      if (activePill) activePill.classList.add('active');
+
+      const plans = trip.plans || [];
+      let stops = plans.map(p => ({
+        day: p.dayNumber || 1,
+        title: p.title,
+        location: (p.location && !/^https?:\/\//i.test(p.location)) ? p.location : p.title,
+        category: p.category,
+        time: p.time,
+        status: p.status,
+        mapsUrl: window.LM_TripService.getMapsUrl(p)
+      })).filter(s => s.location);
+
+      if (selectedDay !== 'all') {
+        stops = stops.filter(s => s.day === Number(selectedDay));
+      }
+
+      const actCont = document.getElementById('tp_route_action_container');
+      const listCont = document.getElementById('tp_route_stops_list');
+      if (!actCont || !listCont) return;
+
+      if (stops.length > 1) {
+        const dirUrl = `https://www.google.com/maps/dir/${stops.map(s => encodeURIComponent(s.location)).join('/')}`;
+        actCont.innerHTML = `
+          <a href="${dirUrl}" target="_blank" rel="noopener noreferrer" class="tp-btn-primary" style="display:flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; padding:10px 16px; font-weight:700;">
+            <span>🧭</span> Open Full Multi-Stop Route in Google Maps (${stops.length} stops) ↗
+          </a>
+        `;
+      } else if (stops.length === 1 && stops[0].mapsUrl) {
+        actCont.innerHTML = `
+          <a href="${stops[0].mapsUrl}" target="_blank" rel="noopener noreferrer" class="tp-btn-primary" style="display:flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; padding:10px 16px; font-weight:700;">
+            <span>📍</span> Navigate to ${_esc(stops[0].title)} on Google Maps ↗
+          </a>
+        `;
+      } else {
+        actCont.innerHTML = '';
+      }
+
+      if (stops.length === 0) {
+        listCont.innerHTML = `
+          <div style="text-align:center; padding:24px; color:var(--text-3); font-size:13px; background:rgba(255,255,255,0.02); border-radius:10px;">
+            No destination stops found for this selection. Add plans with locations or titles to plot your route!
+          </div>
+        `;
+        return;
+      }
+
+      listCont.innerHTML = stops.map((s, idx) => `
+        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--surface-card); border:1px solid var(--border); border-radius:10px; padding:10px 14px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:26px; height:26px; border-radius:50%; background:rgba(0,240,255,0.15); color:var(--teal); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px;">
+              ${idx + 1}
+            </div>
+            <div>
+              <div style="font-size:13.5px; font-weight:700; color:var(--text);">
+                ${_esc(s.title)}
+                ${s.status === 'completed' ? `<span style="font-size:11px; color:var(--emerald); margin-left:6px;">✓ Visited</span>` : ''}
+              </div>
+              <div style="font-size:11.5px; color:var(--text-3);">
+                Day ${s.day} ${s.time ? `· ⏰ ${s.time}` : ''} · 📍 ${_esc(s.location)}
+              </div>
+            </div>
+          </div>
+          <div>
+            ${s.mapsUrl ? `
+              <a href="${s.mapsUrl}" target="_blank" rel="noopener noreferrer" class="tp-icon-btn" title="Open in Google Maps">🧭</a>
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
     },
 
     searchMapsHelper: function (locInputId, titleInputId) {

@@ -1478,3 +1478,367 @@
   border-left: 3px solid var(--teal, #00f0ff);
 }
 
+/* ─────────────────────────────────────────────────────────────
+   ENTERPRISE TRIP SUITE: ITINERARY FILTER STRIP & STATUS PILLS
+   ───────────────────────────────────────────────────────────── */
+.tp-itinerary-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: var(--r-md, 10px);
+  padding: 8px 12px;
+  margin-bottom: 16px;
+}
+
+.tp-filter-pills-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tp-filter-pill {
+  padding: 5px 12px;
+  border-radius: var(--r-full, 9999px);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-2, #94a3b8);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tp-filter-pill:hover {
+  color: var(--text, #f8fafc);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tp-filter-pill.active {
+  color: #050b14;
+  background: var(--teal, #00f0ff);
+  border-color: var(--teal, #00f0ff);
+  font-weight: 700;
+}
+
+.tp-itinerary-progress-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--text-2, #94a3b8);
+  font-family: var(--font-m, monospace);
+  font-weight: 600;
+}
+
+.tp-progress-bar-inline {
+  width: 70px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.tp-progress-bar-inline > div,
+.tp-progress-bar-inline > span {
+  display: block;
+  height: 100%;
+  background: var(--emerald, #10b981);
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* Plan Visited State & Status Pills */
+.tp-plan-status-pill {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.tp-plan-status-pill.pending {
+  background: rgba(234, 179, 8, 0.12);
+  color: #eab308;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.tp-plan-status-pill.pending:hover {
+  background: rgba(234, 179, 8, 0.22);
+}
+
+.tp-plan-status-pill.visited {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--emerald, #10b981);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.tp-plan-status-pill.visited:hover {
+  background: rgba(16, 185, 129, 0.25);
+}
+
+.tp-plan-card.tp-plan-visited-card {
+  opacity: 0.85;
+  background: rgba(15, 23, 42, 0.45);
+  border-left: 3px solid var(--emerald, #10b981);
+}
+
+.tp-plan-card.tp-plan-visited-card:hover {
+  opacity: 1;
+}
+
+.tp-title-visited {
+  color: var(--text-2, #94a3b8);
+}
+
+.tp-visited-badge {
+  font-size: 10.5px;
+  color: var(--emerald, #10b981);
+  background: rgba(16, 185, 129, 0.12);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  font-weight: 600;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   ENTERPRISE TRAVEL COMPANIONS DIRECTORY & SPLIT TAB
+   ───────────────────────────────────────────────────────────── */
+.tp-friends-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 14px;
+}
+
+.tp-friend-card {
+  background: var(--surface-card, rgba(15, 23, 42, 0.7));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: var(--r-lg, 14px);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.tp-friend-card:hover {
+  border-color: rgba(0, 240, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.tp-friend-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tp-friend-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tp-friend-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 240, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.tp-friend-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text, #f8fafc);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tp-me-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  background: rgba(0, 240, 255, 0.15);
+  color: var(--teal, #00f0ff);
+  padding: 1px 5px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.tp-friend-contact-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.tp-contact-chip {
+  font-size: 10.5px;
+  color: var(--text-3, #64748b);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: var(--font-m, monospace);
+}
+
+.tp-contact-chip.tp-upi-chip {
+  color: var(--teal, #00f0ff);
+  background: rgba(0, 240, 255, 0.08);
+}
+
+.tp-friend-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tp-friend-financials {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.3fr;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.tp-friend-fin-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tp-fin-label {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  color: var(--text-3, #64748b);
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.tp-fin-val {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-m, monospace);
+}
+
+.tp-balance-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  display: inline-block;
+  white-space: nowrap;
+  font-family: var(--font-m, monospace);
+}
+
+.tp-balance-pill.gets-back {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--emerald, #10b981);
+}
+
+.tp-balance-pill.owes-group {
+  background: rgba(244, 63, 94, 0.15);
+  color: var(--rose, #f43f5e);
+}
+
+.tp-balance-pill.settled {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-3, #64748b);
+}
+
+.tp-friend-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tp-btn-wa-remind {
+  background: rgba(37, 211, 102, 0.12);
+  border: 1px solid rgba(37, 211, 102, 0.3);
+  color: #25d366;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+  width: 100%;
+  justify-content: center;
+}
+
+.tp-btn-wa-remind:hover {
+  background: rgba(37, 211, 102, 0.22);
+  border-color: #25d366;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   EXECUTIVE STATEMENT & PRINT STYLESHEET
+   ───────────────────────────────────────────────────────────── */
+.tp-statement-modal {
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #tp_statementModalOverlay,
+  #tp_printable_statement_content,
+  #tp_printable_statement_content * {
+    visibility: visible;
+  }
+  #tp_statementModalOverlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+    background: #ffffff !important;
+    color: #000000 !important;
+    z-index: 9999999;
+  }
+  .tp-statement-modal {
+    max-width: 100% !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .tp-statement-modal .modal-header,
+  .tp-statement-modal .modal-close {
+    display: none !important;
+  }
+  .tp-statement-body {
+    padding: 0 !important;
+    color: #1e293b !important;
+  }
+  .tp-stmt-kpi-card {
+    border: 1px solid #cbd5e1 !important;
+    background: #f8fafc !important;
+    color: #0f172a !important;
+  }
+  table, th, td {
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+  }
+}
+
