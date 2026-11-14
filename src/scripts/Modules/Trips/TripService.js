@@ -2194,6 +2194,476 @@
       return { success: false, rates: DEFAULT_FX_RATES };
     },
 
+    // ─────────────────────────────────────────────────────────────
+    // 19. NEAREST NEIGHBOR ROUTE OPTIMIZER & MAPS COORDINATE SEQUENCING
+    // ─────────────────────────────────────────────────────────────
+    _geoCoordsCache: {},
+
+    extractCoordinates: function (item) {
+      if (!item) return null;
+      // 1. Direct lat/lng numeric properties on item
+      if (typeof item === 'object') {
+        const directLat = Number(item.lat ?? item.latitude);
+        const directLng = Number(item.lng ?? item.longitude ?? item.lon);
+        if (!isNaN(directLat) && !isNaN(directLng) && Math.abs(directLat) <= 90 && Math.abs(directLng) <= 180 && (directLat !== 0 || directLng !== 0)) {
+          return { lat: directLat, lng: directLng };
+        }
+      }
+
+      // 2. Candidate strings to search for coordinates
+      const candidates = [];
+      if (typeof item === 'string') {
+        candidates.push(item);
+      } else if (typeof item === 'object') {
+        ['mapUrl', 'mapsUrl', 'mapsLink', 'mapLink', 'sourceUrl', 'url', 'location'].forEach(k => {
+          if (item[k] && typeof item[k] === 'string') candidates.push(item[k]);
+        });
+      }
+
+      for (const text of candidates) {
+        if (!text || typeof text !== 'string') continue;
+        const trimmed = text.trim();
+
+        // Pattern A: @lat,lng (e.g. google.com/maps/@15.549112,73.753544,15z)
+        const matchAt = trimmed.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+        if (matchAt) {
+          const lat = parseFloat(matchAt[1]);
+          const lng = parseFloat(matchAt[2]);
+          if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) return { lat, lng };
+        }
+
+        // Pattern B: ?q=lat,lng or &q=lat,lng or ?query=lat,lng or ?ll=lat,lng
+        const matchQ = trimmed.match(/[?&](?:q|query|ll|center|destination|origin)=(-?\d+\.\d+),(-?\d+\.\d+)/i);
+        if (matchQ) {
+          const lat = parseFloat(matchQ[1]);
+          const lng = parseFloat(matchQ[2]);
+          if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) return { lat, lng };
+        }
+
+        // Pattern C: /dir/.../lat,lng or /search/.../lat,lng or /place/lat,lng
+        const matchDir = trimmed.match(/\/(?:dir|search|place|maps)\/.*?(-?\d+\.\d+),(-?\d+\.\d+)/i);
+        if (matchDir) {
+          const lat = parseFloat(matchDir[1]);
+          const lng = parseFloat(matchDir[2]);
+          if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) return { lat, lng };
+        }
+
+        // Pattern D: Raw comma-separated coordinates, e.g. "15.549112, 73.753544" or "15.549112,73.753544"
+        const matchRaw = trimmed.match(/^[-+]?([1-8]?\d(?:\.\d+)?|90(?:\.0+)?),\s*[-+]?(180(?:\.0+)?|(?:1[0-7]\d|\d{1,2})(?:\.\d+)?)$/);
+        if (matchRaw) {
+          const lat = parseFloat(matchRaw[1]);
+          const lng = parseFloat(matchRaw[2]);
+          if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) return { lat, lng };
+        }
+      }
+
+      return null;
+    },
+
+    resolvePlanCoordinates: async function (plan, tripDestination = '') {
+      if (!plan) return null;
+      // 1. Check if already extracted
+      const extracted = this.extractCoordinates(plan);
+      if (extracted) {
+        plan.lat = extracted.lat;
+        plan.lng = extracted.lng;
+        return extracted;
+      }
+
+      // 2. Location name or title for geocoding lookup
+      const placeName = (plan.location && !/^https?:\/\//i.test(plan.location)) ? plan.location : plan.title;
+      if (!placeName || typeof placeName !== 'string') return null;
+
+      const cacheKey = (placeName + '|' + (tripDestination || '')).toLowerCase().trim();
+      if (this._geoCoordsCache[cacheKey]) {
+        plan.lat = this._geoCoordsCache[cacheKey].lat;
+        plan.lng = this._geoCoordsCache[cacheKey].lng;
+        return this._geoCoordsCache[cacheKey];
+      }
+
+      // Check localStorage cache if available
+      try {
+        if (typeof localStorage !== 'undefined') {
+          const savedCache = localStorage.getItem('lm_geo_coords_cache');
+          if (savedCache) {
+            const parsed = JSON.parse(savedCache);
+            if (parsed && parsed[cacheKey]) {
+              this._geoCoordsCache[cacheKey] = parsed[cacheKey];
+              plan.lat = parsed[cacheKey].lat;
+              plan.lng = parsed[cacheKey].lng;
+              return parsed[cacheKey];
+            }
+          }
+        }
+      } catch (e) {}
+
+      // 3. Geocode with Open-Meteo or Nominatim
+      if (typeof fetch === 'undefined') return null;
+
+      try {
+        const query = (tripDestination && !placeName.toLowerCase().includes(tripDestination.toLowerCase()))
+          ? `${placeName}, ${tripDestination}`
+          : placeName;
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.results && data.results.length > 0) {
+            const coords = { lat: Number(data.results[0].latitude), lng: Number(data.results[0].longitude) };
+            this._geoCoordsCache[cacheKey] = coords;
+            plan.lat = coords.lat;
+            plan.lng = coords.lng;
+            this._persistGeoCache();
+            return coords;
+          }
+        }
+      } catch (e) {
+        console.warn('[TripService] Open-Meteo geocoding fallback failed:', e);
+      }
+
+      // Secondary fallback: OpenStreetMap Nominatim
+      try {
+        const query = (tripDestination && !placeName.toLowerCase().includes(tripDestination.toLowerCase()))
+          ? `${placeName}, ${tripDestination}`
+          : placeName;
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`, {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            const coords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+            this._geoCoordsCache[cacheKey] = coords;
+            plan.lat = coords.lat;
+            plan.lng = coords.lng;
+            this._persistGeoCache();
+            return coords;
+          }
+        }
+      } catch (e) {
+        console.warn('[TripService] Nominatim geocoding fallback failed:', e);
+      }
+
+      return null;
+    },
+
+    _persistGeoCache: function () {
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('lm_geo_coords_cache', JSON.stringify(this._geoCoordsCache));
+        }
+      } catch (e) {}
+    },
+
+    calculateHaversineDistance: function (lat1, lon1, lat2, lon2) {
+      if (lat1 === lat2 && lon1 === lon2) return 0;
+      const R = 6371; // Earth's radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return Math.round(R * c * 100) / 100;
+    },
+
+    calculateRouteTotalDistance: function (plans) {
+      if (!Array.isArray(plans) || plans.length < 2) {
+        return { totalKm: 0, legs: [] };
+      }
+      let totalKm = 0;
+      const legs = [];
+
+      for (let i = 0; i < plans.length - 1; i++) {
+        const p1 = plans[i];
+        const p2 = plans[i + 1];
+        const c1 = this.extractCoordinates(p1);
+        const c2 = this.extractCoordinates(p2);
+
+        if (c1 && c2) {
+          const d = this.calculateHaversineDistance(c1.lat, c1.lng, c2.lat, c2.lng);
+          totalKm += d;
+          legs.push({
+            fromIndex: i,
+            toIndex: i + 1,
+            fromTitle: p1.title,
+            toTitle: p2.title,
+            distanceKm: d,
+            estMinutes: Math.max(5, Math.round((d / 35) * 60))
+          });
+        }
+      }
+
+      return {
+        totalKm: Math.round(totalKm * 100) / 100,
+        legs: legs
+      };
+    },
+
+    optimizeDayItineraryRoute: async function (tripId, dayNumber, options = {}) {
+      const trip = this.getTrip(tripId);
+      if (!trip) throw new Error('Trip not found');
+
+      const dNum = Number(dayNumber);
+      const allPlans = trip.plans || [];
+      const dayPlans = allPlans.filter(p => (p.dayNumber || p.day || 1) === dNum);
+
+      if (dayPlans.length === 0) {
+        return {
+          canOptimize: false,
+          reason: 'No plans found for Day ' + dNum,
+          dayNumber: dNum,
+          originalPlans: [],
+          optimizedPlans: [],
+          distanceBefore: 0,
+          distanceAfter: 0,
+          distanceSaved: 0,
+          timeSavedMinutes: 0
+        };
+      }
+
+      // Resolve coordinates for all day plans
+      for (const p of dayPlans) {
+        await this.resolvePlanCoordinates(p, trip.destination);
+      }
+
+      const withCoords = [];
+      const withoutCoords = [];
+      dayPlans.forEach(p => {
+        const c = this.extractCoordinates(p);
+        if (c) {
+          withCoords.push({ plan: p, coords: c });
+        } else {
+          withoutCoords.push(p);
+        }
+      });
+
+      if (withCoords.length < 2) {
+        const origDistance = this.calculateRouteTotalDistance(dayPlans).totalKm;
+        return {
+          canOptimize: false,
+          reason: 'At least 2 plans need map links or recognizable locations to calculate nearest route',
+          dayNumber: dNum,
+          originalPlans: dayPlans,
+          optimizedPlans: dayPlans,
+          distanceBefore: origDistance,
+          distanceAfter: origDistance,
+          distanceSaved: 0,
+          timeSavedMinutes: 0
+        };
+      }
+
+      // Pick start plan
+      let startIdx = 0;
+      if (options.startPlanId) {
+        const foundIdx = withCoords.findIndex(item => String(item.plan.id) === String(options.startPlanId));
+        if (foundIdx !== -1) startIdx = foundIdx;
+      } else {
+        // Look for stay/hotel category
+        const stayIdx = withCoords.findIndex(item => {
+          const cat = (item.plan.category || '').toLowerCase();
+          const title = (item.plan.title || '').toLowerCase();
+          return cat === 'stay' || cat === 'hotel' || title.includes('hotel') || title.includes('resort');
+        });
+        if (stayIdx !== -1) startIdx = stayIdx;
+      }
+
+      // Nearest Neighbor Greedy Selection
+      const unvisited = [...withCoords];
+      const startNode = unvisited.splice(startIdx, 1)[0];
+      const orderedNodes = [startNode];
+
+      while (unvisited.length > 0) {
+        const current = orderedNodes[orderedNodes.length - 1];
+        let nearestIdx = 0;
+        let minDistance = Infinity;
+
+        for (let i = 0; i < unvisited.length; i++) {
+          const candidate = unvisited[i];
+          const dist = this.calculateHaversineDistance(
+            current.coords.lat,
+            current.coords.lng,
+            candidate.coords.lat,
+            candidate.coords.lng
+          );
+          if (dist < minDistance) {
+            minDistance = dist;
+            nearestIdx = i;
+          }
+        }
+
+        orderedNodes.push(unvisited.splice(nearestIdx, 1)[0]);
+      }
+
+      // 2-Opt Refinement Pass to untangle any crossed edges
+      if (orderedNodes.length >= 4) {
+        let improved = true;
+        let iter = 0;
+        while (improved && iter < 50) {
+          improved = false;
+          iter++;
+          for (let i = 1; i < orderedNodes.length - 1; i++) {
+            for (let k = i + 1; k < orderedNodes.length; k++) {
+              const pA = orderedNodes[i - 1].coords;
+              const pB = orderedNodes[i].coords;
+              const pC = orderedNodes[k].coords;
+              const pD = (k + 1 < orderedNodes.length) ? orderedNodes[k + 1].coords : null;
+
+              const curDist = this.calculateHaversineDistance(pA.lat, pA.lng, pB.lat, pB.lng) +
+                (pD ? this.calculateHaversineDistance(pC.lat, pC.lng, pD.lat, pD.lng) : 0);
+              const newDist = this.calculateHaversineDistance(pA.lat, pA.lng, pC.lat, pC.lng) +
+                (pD ? this.calculateHaversineDistance(pB.lat, pB.lng, pD.lat, pD.lng) : 0);
+
+              if (newDist < curDist - 0.05) { // At least 50m improvement
+                const segment = orderedNodes.slice(i, k + 1).reverse();
+                orderedNodes.splice(i, segment.length, ...segment);
+                improved = true;
+                break;
+              }
+            }
+            if (improved) break;
+          }
+        }
+      }
+
+      // Combine optimized stops + non-geocoded stops (kept at the end)
+      const optimizedPlans = orderedNodes.map(item => item.plan).concat(withoutCoords);
+
+      const beforeMetrics = this.calculateRouteTotalDistance(dayPlans);
+      const afterMetrics = this.calculateRouteTotalDistance(optimizedPlans);
+
+      const distanceSaved = Math.max(0, Math.round((beforeMetrics.totalKm - afterMetrics.totalKm) * 100) / 100);
+      const timeSavedMinutes = Math.max(0, Math.round((distanceSaved / 35) * 60));
+
+      // Build Google Maps Multi-stop directions URL
+      const dirStops = optimizedPlans.map(p => {
+        const c = this.extractCoordinates(p);
+        if (c) return `${c.lat},${c.lng}`;
+        if (p.location && !/^https?:\/\//i.test(p.location)) return encodeURIComponent(p.location);
+        return encodeURIComponent(p.title);
+      }).filter(Boolean);
+
+      const googleMapsDirUrl = dirStops.length > 1
+        ? `https://www.google.com/maps/dir/${dirStops.join('/')}`
+        : (dirStops.length === 1 ? `https://www.google.com/maps/search/?api=1&query=${dirStops[0]}` : '');
+
+      return {
+        success: true,
+        canOptimize: true,
+        dayNumber: dNum,
+        originalPlans: dayPlans,
+        optimizedPlans: optimizedPlans,
+        distanceBefore: beforeMetrics.totalKm,
+        distanceAfter: afterMetrics.totalKm,
+        distanceSaved: distanceSaved,
+        timeSavedMinutes: timeSavedMinutes,
+        legsBefore: beforeMetrics.legs,
+        legsAfter: afterMetrics.legs,
+        googleMapsDirUrl: googleMapsDirUrl,
+        stopsCount: optimizedPlans.length,
+        geocodedCount: withCoords.length
+      };
+    },
+
+    applyOptimizedDayRoute: async function (tripId, dayNumber, orderedPlanIds, options = {}) {
+      const trip = this.getTrip(tripId);
+      if (!trip) throw new Error('Trip not found');
+
+      const dNum = Number(dayNumber);
+      trip.plans = trip.plans || [];
+
+      // Save backup for 1-click revert
+      trip._itineraryBackup = {
+        dayNumber: dNum,
+        timestamp: Date.now(),
+        plans: JSON.parse(JSON.stringify(trip.plans))
+      };
+
+      // Collect day plans and other plans
+      const dayPlans = trip.plans.filter(p => (p.dayNumber || p.day || 1) === dNum);
+      const otherPlans = trip.plans.filter(p => (p.dayNumber || p.day || 1) !== dNum);
+
+      // Map day plans by id
+      const planMap = new Map();
+      dayPlans.forEach(p => planMap.set(String(p.id), p));
+
+      const reorderedDayPlans = [];
+      const seenIds = new Set();
+
+      (orderedPlanIds || []).forEach(id => {
+        const sId = String(id);
+        if (planMap.has(sId)) {
+          reorderedDayPlans.push(planMap.get(sId));
+          seenIds.add(sId);
+        }
+      });
+
+      // Add any remaining day plans that weren't in orderedPlanIds
+      dayPlans.forEach(p => {
+        if (!seenIds.has(String(p.id))) {
+          reorderedDayPlans.push(p);
+        }
+      });
+
+      // Optionally re-assign chronological sequential times if options.rescheduleTimes !== false
+      if (options.rescheduleTimes !== false && reorderedDayPlans.length > 0) {
+        let currentTimeMinutes = 9 * 60 + 30; // default 09:30 AM
+        const firstTime = reorderedDayPlans[0].time;
+        if (firstTime && /^\d{2}:\d{2}$/.test(firstTime)) {
+          const [hh, mm] = firstTime.split(':').map(Number);
+          currentTimeMinutes = hh * 60 + mm;
+        }
+
+        reorderedDayPlans.forEach((plan, idx) => {
+          if (idx === 0) {
+            const h = String(Math.floor(currentTimeMinutes / 60) % 24).padStart(2, '0');
+            const m = String(currentTimeMinutes % 60).padStart(2, '0');
+            plan.time = `${h}:${m}`;
+          } else {
+            const prevPlan = reorderedDayPlans[idx - 1];
+            let transitMins = 30;
+            const c1 = this.extractCoordinates(prevPlan);
+            const c2 = this.extractCoordinates(plan);
+            if (c1 && c2) {
+              const dist = this.calculateHaversineDistance(c1.lat, c1.lng, c2.lat, c2.lng);
+              transitMins = Math.max(15, Math.round((dist / 35) * 60));
+            }
+            const visitMins = (plan.category === 'Stay' || plan.category === 'Hotel') ? 60 : 90;
+            currentTimeMinutes += (transitMins + visitMins);
+            const h = String(Math.floor(currentTimeMinutes / 60) % 24).padStart(2, '0');
+            const m = String(currentTimeMinutes % 60).padStart(2, '0');
+            plan.time = `${h}:${m}`;
+          }
+        });
+      }
+
+      // Update trip.plans with reordered day plans
+      trip.plans = [...otherPlans, ...reorderedDayPlans];
+      trip.updatedAt = new Date().toISOString();
+
+      await this.saveTripToDB(trip);
+      return {
+        success: true,
+        trip: trip,
+        reorderedCount: reorderedDayPlans.length
+      };
+    },
+
+    revertOptimizedDayRoute: async function (tripId) {
+      const trip = this.getTrip(tripId);
+      if (!trip) throw new Error('Trip not found');
+
+      if (!trip._itineraryBackup || !Array.isArray(trip._itineraryBackup.plans)) {
+        return { success: false, reason: 'No previous route backup available to revert' };
+      }
+
+      trip.plans = trip._itineraryBackup.plans;
+      delete trip._itineraryBackup;
+      trip.updatedAt = new Date().toISOString();
+
+      await this.saveTripToDB(trip);
+      return { success: true, trip };
+    },
+
     WMO_WEATHER_MAP: WMO_WEATHER_MAP
   };
 
