@@ -343,6 +343,257 @@
     },
 
     // ─────────────────────────────────────────────────────────────
+    // 2B. COMPANION / FRIEND MANAGEMENT ("Split with Friends")
+    // ─────────────────────────────────────────────────────────────
+    addPerson: async function (tripId, personData) {
+      const trip = this.getTrip(tripId);
+      if (!trip) throw new Error('Trip not found');
+      if (!Array.isArray(trip.persons)) trip.persons = [];
+
+      const name = (personData && (personData.name || personData.title || '')).trim();
+      if (!name) throw new Error('Companion name is required');
+
+      // Check if duplicate name
+      const existing = trip.persons.find(p => p.name.toLowerCase() === name.toLowerCase());
+      if (existing) return existing;
+
+      const pid = personData.id || _generateId('p');
+      const newPerson = {
+        id: pid,
+        name: name,
+        phone: (personData.phone || '').trim(),
+        upiId: (personData.upiId || personData.upi || '').trim(),
+        avatarEmoji: personData.avatarEmoji || '👤',
+        defaultShare: Number(personData.defaultShare) || 1
+      };
+
+      trip.persons.push(newPerson);
+      await this.saveTripToDB(trip);
+      return newPerson;
+    },
+
+    updatePerson: async function (tripId, personId, updates) {
+      const trip = this.getTrip(tripId);
+      if (!trip) throw new Error('Trip not found');
+      if (!Array.isArray(trip.persons)) throw new Error('No persons found');
+
+      const person = trip.persons.find(p => String(p.id) === String(personId));
+      if (!person) throw new Error('Companion not found');
+
+      if (updates.name !== undefined && updates.name.trim()) person.name = updates.name.trim();
+      if (updates.phone !== undefined) person.phone = updates.phone.trim();
+      if (updates.upiId !== undefined) person.upiId = updates.upiId.trim();
+      if (updates.avatarEmoji !== undefined) person.avatarEmoji = updates.avatarEmoji;
+      if (updates.defaultShare !== undefined) person.defaultShare = Math.max(0.1, Number(updates.defaultShare) || 1);
+
+      await this.saveTripToDB(trip);
+      return person;
+    },
+
+    deletePerson: async function (tripId, personId) {
+      const trip = this.getTrip(tripId);
+      if (!trip) throw new Error('Trip not found');
+      if (!Array.isArray(trip.persons)) return false;
+
+      // Safety check: ensure person is not the only traveler
+      if (trip.persons.length <= 1) {
+        throw new Error('Trip must have at least one traveler');
+      }
+
+      // Check if person has paid any expenses
+      const allExpenses = [];
+      (trip.plans || []).forEach(p => (p.expenses || []).forEach(e => allExpenses.push(e)));
+      (trip.expenses || []).forEach(e => allExpenses.push(e));
+
+      const hasPaid = allExpenses.some(e => String(e.paidBy) === String(personId));
+      if (hasPaid) {
+        throw new Error('Cannot remove companion who has logged expenses. Reassign or delete their expenses first.');
+      }
+
+      trip.persons = trip.persons.filter(p => String(p.id) !== String(personId));
+
+      // Clean up split exclusions and shares for this person in existing expenses
+      allExpenses.forEach(e => {
+        if (Array.isArray(e.sharedWith)) {
+          e.sharedWith = e.sharedWith.filter(id => String(id) !== String(personId));
+        }
+        if (Array.isArray(e.excludedMembers)) {
+          e.excludedMembers = e.excludedMembers.filter(id => String(id) !== String(personId));
+        }
+        if (e.splitDetails && typeof e.splitDetails === 'object') {
+          delete e.splitDetails[personId];
+        }
+      });
+
+      // Remove from settlements if any
+      if (Array.isArray(trip.settlements)) {
+        trip.settlements = trip.settlements.filter(s => String(s.from) !== String(personId) && String(s.to) !== String(personId));
+      }
+
+      await this.saveTripToDB(trip);
+      return true;
+    },
+
+    getPersonFinancials: function (tripId, personId) {
+      const trip = this.getTrip(tripId);
+      if (!trip) return { totalPaid: 0, totalShare: 0, netBalance: 0, expensesCount: 0 };
+
+      const allExpenses = [];
+      (trip.plans || []).forEach(p => (p.expenses || []).forEach(e => allExpenses.push(e)));
+      (trip.expenses || []).forEach(e => allExpenses.push(e));
+
+      let totalPaid = 0;
+      let totalShare = 0;
+      let count = 0;
+
+      const persons = trip.persons || [];
+      const pidStr = String(personId);
+
+      allExpenses.forEach(e => {
+        const amt = Number(e.amount) || 0;
+        const payerId = String(e.paidBy);
+        if (payerId === pidStr) {
+          totalPaid += amt;
+          count++;
+        }
+
+        // Calculate this person's share in this expense
+        const shared = (Array.isArray(e.sharedWith) && e.sharedWith.length
+          ? e.sharedWith
+          : persons.map(p => p.id)
+        ).map(String);
+
+        if (e.splitType === 'exact' && e.splitDetails && typeof e.splitDetails === 'object') {
+          if (e.splitDetails[personId] !== undefined) {
+            totalShare += (Number(e.splitDetails[personId]) || 0);
+          }
+        } else if (e.splitType === 'shares' && e.splitDetails && typeof e.splitDetails === 'object') {
+          let totalShares = 0;
+          Object.keys(e.splitDetails).forEach(k => { totalShares += (Number(e.splitDetails[k]) || 0); });
+          if (totalShares > 0 && e.splitDetails[personId] !== undefined) {
+            const userShares = Number(e.splitDetails[personId]) || 0;
+            totalShare += _round2(amt * (userShares / totalShares));
+          } else if (shared.includes(pidStr)) {
+            totalShare += _round2(amt / (shared.length || 1));
+          }
+        } else {
+          // Equal split
+          if (shared.includes(pidStr)) {
+            totalShare += _round2(amt / (shared.length || 1));
+          }
+        }
+      });
+
+      totalPaid = _round2(totalPaid);
+      totalShare = _round2(totalShare);
+      const netBalance = _round2(totalPaid - totalShare);
+
+      return {
+        totalPaid: totalPaid,
+        paidTotal: totalPaid,
+        totalShare: totalShare,
+        shareTotal: totalShare,
+        netBalance: netBalance,
+        isOwed: netBalance > 0.01,
+        owes: netBalance < -0.01,
+        isEven: Math.abs(netBalance) <= 0.01,
+        expensesCount: count
+      };
+    },
+
+    generatePersonSettlementWhatsAppMessage: function (tripId, personId) {
+      const trip = this.getTrip(tripId);
+      if (!trip) return '';
+
+      const person = (trip.persons || []).find(p => String(p.id) === String(personId));
+      if (!person) return '';
+
+      const pf = this.getPersonFinancials(tripId, personId);
+      const settlements = this.calculateSettlements(tripId);
+
+      // What this person owes to others
+      const debtsToPay = settlements.filter(s => String(s.fromId) === String(personId) || String(s.from) === String(person.name) || String(s.from) === String(personId));
+      // What others owe to this person
+      const creditsToReceive = settlements.filter(s => String(s.toId) === String(personId) || String(s.to) === String(person.name) || String(s.to) === String(personId));
+
+      let msg = `👋 *Hey ${person.name}!*\n`;
+      msg += `Here is your spending & settlement summary for *${trip.name}* (${trip.destination || ''}):\n\n`;
+      msg += `💰 *Total You Paid:* ${_fmtINR(pf.totalPaid)}\n`;
+      msg += `📊 *Your Calculated Share:* ${_fmtINR(pf.totalShare)}\n`;
+
+      if (pf.netBalance > 0) {
+        msg += `🟢 *Net Position:* You are owed *${_fmtINR(pf.netBalance)}*\n\n`;
+        if (creditsToReceive.length) {
+          msg += `*Pending settlements to receive from:*\n`;
+          creditsToReceive.forEach(c => {
+            msg += `• *${c.fromName}*: ${_fmtINR(c.amount)}\n`;
+          });
+        }
+      } else if (pf.netBalance < 0) {
+        msg += `🔴 *Net Position:* You owe *${_fmtINR(Math.abs(pf.netBalance))}*\n\n`;
+        if (debtsToPay.length) {
+          msg += `*Please settle with:*\n`;
+          debtsToPay.forEach(d => {
+            const upiUrl = this.getUpiIntentUrl(tripId, d.toId || d.to, d.amount);
+            msg += `• *${d.toName}*: ${_fmtINR(d.amount)}\n`;
+            if (upiUrl) {
+              msg += `  👉 Pay via UPI: ${upiUrl}\n`;
+            }
+          });
+        }
+      } else {
+        msg += `✅ *All Settled:* Your balance is zero!\n`;
+      }
+
+      msg += `\n_Generated via LedgerMate Travel Financial Intelligence_ ✈️`;
+      return msg;
+    },
+
+    duplicateTrip: async function (tripId, options = {}) {
+      const original = this.getTrip(tripId);
+      if (!original) throw new Error('Trip not found');
+
+      let newName = typeof options === 'string' ? options : (options && options.newName);
+      let startDate = (options && options.startDate) || original.startDate;
+      let endDate = (options && options.endDate) || original.endDate;
+      let resetExpenses = (options && options.resetExpenses !== undefined) ? options.resetExpenses : true;
+      let resetVisitStatus = (options && options.resetVisitStatus !== undefined) ? options.resetVisitStatus : true;
+
+      const cloned = JSON.parse(JSON.stringify(original));
+      const newTripId = _generateId('trip');
+      const now = new Date().toISOString();
+
+      cloned.id = newTripId;
+      cloned.name = (newName && typeof newName === 'string' && newName.trim()) ? newName.trim() : `${original.name} (Copy)`;
+      cloned.startDate = startDate;
+      cloned.endDate = endDate;
+      cloned.createdAt = now;
+      cloned.updatedAt = now;
+      cloned.completed = false;
+      cloned.status = 'planning';
+
+      if (resetExpenses) {
+        cloned.expenses = [];
+        cloned.settlements = [];
+      }
+      (cloned.plans || []).forEach(p => {
+        p.id = _generateId('plan');
+        if (resetExpenses) p.expenses = [];
+        if (resetVisitStatus) p.status = 'planned';
+      });
+      (cloned.wishlist || []).forEach(w => {
+        w.id = _generateId('wish');
+        w.scheduledPlanId = null;
+      });
+      (cloned.documents || []).forEach(d => {
+        d.id = _generateId('doc');
+      });
+
+      await this.saveTripToDB(cloned);
+      return cloned;
+    },
+
+    // ─────────────────────────────────────────────────────────────
     // 3. TIER 1: SEEN & DISCOVERED PLACES (WISHLIST COLLECTOR)
     // ─────────────────────────────────────────────────────────────
     addWishlistItem: async function (tripId, itemData) {
@@ -508,6 +759,100 @@
 
       await this.saveTripToDB(trip);
       return plan;
+    },
+
+    togglePlanStatus: async function (tripId, planId) {
+      const trip = this.getTrip(tripId);
+      if (!trip || !Array.isArray(trip.plans)) throw new Error('Trip or plans not found');
+
+      const plan = trip.plans.find(p => String(p.id) === String(planId));
+      if (!plan) throw new Error('Plan item not found');
+
+      const isCompleted = plan.status === 'completed' || plan.status === 'visited';
+      plan.status = isCompleted ? 'planned' : 'completed';
+
+      await this.saveTripToDB(trip);
+      return plan;
+    },
+
+    convertPlanToWishlist: async function (tripId, planId) {
+      const trip = this.getTrip(tripId);
+      if (!trip || !Array.isArray(trip.plans)) throw new Error('Trip or plans not found');
+
+      const planIdx = trip.plans.findIndex(p => String(p.id) === String(planId));
+      if (planIdx === -1) throw new Error('Plan item not found');
+
+      const plan = trip.plans[planIdx];
+
+      // Add to wishlist
+      if (!Array.isArray(trip.wishlist)) trip.wishlist = [];
+      const wishId = _generateId('wish');
+      const wishItem = {
+        id: wishId,
+        title: plan.title,
+        category: plan.category || 'Sightseeing',
+        location: plan.location || '',
+        mapUrl: plan.mapUrl || '',
+        sourceUrl: '',
+        sourcePlatform: '',
+        notes: plan.notes || '',
+        estimatedCost: plan.estimatedCost || 0,
+        priority: 'medium',
+        scheduledPlanId: null
+      };
+
+      trip.wishlist.push(wishItem);
+
+      // Preserve any expenses logged under this plan by moving them to general expenses
+      if (Array.isArray(plan.expenses) && plan.expenses.length > 0) {
+        if (!Array.isArray(trip.expenses)) trip.expenses = [];
+        plan.expenses.forEach(e => {
+          e.title = `[From: ${plan.title}] ${e.title}`;
+          trip.expenses.push(e);
+        });
+      }
+
+      // Remove from plans
+      trip.plans.splice(planIdx, 1);
+
+      await this.saveTripToDB(trip);
+      return wishItem;
+    },
+
+    getItineraryStats: function (tripId) {
+      const trip = this.getTrip(tripId);
+      if (!trip || !Array.isArray(trip.plans)) {
+        return { total: 0, pending: 0, visited: 0, percent: 0, byDay: {} };
+      }
+
+      const total = trip.plans.length;
+      let visited = 0;
+      const byDay = {};
+
+      trip.plans.forEach(p => {
+        const d = Number(p.dayNumber) || 1;
+        if (!byDay[d]) byDay[d] = { total: 0, pending: 0, visited: 0 };
+        byDay[d].total++;
+
+        const isDone = p.status === 'completed' || p.status === 'visited';
+        if (isDone) {
+          visited++;
+          byDay[d].visited++;
+        } else {
+          byDay[d].pending++;
+        }
+      });
+
+      const pending = total - visited;
+      const percent = total > 0 ? Math.round((visited / total) * 100) : 0;
+
+      return {
+        total: total,
+        pending: pending,
+        visited: visited,
+        percent: percent,
+        byDay: byDay
+      };
     },
 
     getMapsUrl: function (item) {
@@ -1048,7 +1393,7 @@
           fromName: d.name,
           toName: c.name,
           amount: amt,
-          upiUrl: this.getUpiIntentUrl(d.name, c.name, amt, trip.name),
+          upiUrl: this.getUpiIntentUrl(trip.id, c.id, amt),
           status: isSettled ? 'settled' : 'pending'
         });
 
@@ -1124,16 +1469,20 @@
 
       // If first argument is a trip ID
       const trip = this.getTrip(fromNameOrTripId);
+      let upiPa = 'trip.settle@upi';
       if (trip) {
         tName = trip.name;
         const target = (trip.persons || []).find(p => p.id === toNameOrId || p.name === toNameOrId);
-        if (target) toName = target.name;
+        if (target) {
+          toName = target.name;
+          if (target.upiId && target.upiId.trim()) upiPa = target.upiId.trim();
+        }
         fromName = 'Trip Partner';
       }
 
       const note = encodeURIComponent(`Settlement: ${tName || 'Trip'} - ${fromName} to ${toName}`);
       const cleanName = encodeURIComponent(toName || 'Trip Partner');
-      return `upi://pay?pa=trip.settle@upi&pn=${cleanName}&am=${amount}&tn=${note}&cu=INR`;
+      return `upi://pay?pa=${upiPa}&pn=${cleanName}&am=${amount}&tn=${note}&cu=INR`;
     },
 
     // ─────────────────────────────────────────────────────────────
@@ -1347,55 +1696,196 @@
     // ─────────────────────────────────────────────────────────────
     // 13. EXPORT & SHARE SUMMARY
     // ─────────────────────────────────────────────────────────────
-    generateWhatsAppText: function (tripId) {
+    generateWhatsAppText: function (tripId, options = {}) {
       const trip = this.getTrip(tripId);
       if (!trip) return '';
 
+      const mode = (options && options.mode) ? options.mode : 'full'; // 'full' | 'settlement_only' | 'itinerary_only'
       const fin = this.getTripFinancials(tripId);
       const days = this.calculateTripDays(trip.startDate, trip.endDate);
+      const persons = trip.persons || [];
+      const settlements = this.calculateSettlements(tripId);
 
-      let text = `✈️ *${trip.name}*\n`;
+      // Collect all expenses
+      const allExpenses = [];
+      (trip.plans || []).forEach(p => {
+        (p.expenses || []).forEach(e => {
+          allExpenses.push({
+            title: `${p.title} · ${e.title || 'Expense'}`,
+            amount: Number(e.amount) || 0,
+            currency: e.currency || 'INR',
+            localAmount: e.localAmount,
+            paidBy: e.paidBy,
+            category: p.category || 'Plan',
+            date: e.date || p.date || trip.startDate
+          });
+        });
+      });
+      (trip.expenses || []).forEach(e => {
+        allExpenses.push({
+          title: e.title || 'General Expense',
+          amount: Number(e.amount) || 0,
+          currency: e.currency || 'INR',
+          localAmount: e.localAmount,
+          paidBy: e.paidBy,
+          category: e.category || 'General',
+          date: e.date || trip.startDate
+        });
+      });
+
+      function resolveName(pid) {
+        const found = persons.find(p => String(p.id) === String(pid) || p.name === pid);
+        return found ? found.name : (pid || 'Partner');
+      }
+
+      if (mode === 'settlement_only') {
+        let text = `✈️ *${trip.name} · Group Settlement & Math Summary*\n`;
+        text += `📍 *Destination:* ${trip.destination || 'Unspecified'}\n`;
+        text += `📅 *Dates:* ${trip.startDate} → ${trip.endDate}\n\n`;
+
+        text += `💰 *FINANCIAL OVERVIEW:*\n`;
+        text += `• Total Group Spend: *${_fmtINR(fin.totalActualExpenses)}*\n`;
+        text += `• Total Expenses Logged: *${allExpenses.length}*\n`;
+        text += `• Travelers (${persons.length}): ${persons.map(p => p.name).join(', ')}\n\n`;
+
+        text += `💳 *WHO PAID WHAT:*\n`;
+        persons.forEach(p => {
+          const pf = this.getPersonFinancials(tripId, p.id);
+          text += `• *${p.name}:* ${_fmtINR(pf.totalPaid)} (${pf.expensesCount} items)\n`;
+        });
+        text += `\n`;
+
+        text += `⚖️ *INDIVIDUAL SHARE & NET BALANCES:*\n`;
+        persons.forEach(p => {
+          const pf = this.getPersonFinancials(tripId, p.id);
+          const sign = pf.netBalance >= 0 ? '+' : '';
+          const statusEmoji = pf.netBalance > 0 ? '🟢 Gets back' : (pf.netBalance < 0 ? '🔴 Owes' : '✅ Settled');
+          text += `• *${p.name}:* Paid ${_fmtINR(pf.totalPaid)} · Share ${_fmtINR(pf.totalShare)} ➔ *${sign}${_fmtINR(pf.netBalance)}* (${statusEmoji})\n`;
+        });
+        text += `\n`;
+
+        if (settlements.length > 0) {
+          text += `💸 *SETTLEMENT TRANSFERS (Minimum Cash Flow):*\n`;
+          settlements.forEach((s, idx) => {
+            text += `${idx + 1}. *${s.fromName}* owes *${s.toName}*: *${_fmtINR(s.amount)}*\n`;
+            if (s.upiUrl) {
+              text += `   👉 1-Tap UPI: ${s.upiUrl}\n`;
+            }
+          });
+        } else {
+          text += `🎉 *All group expenses are completely balanced and settled!*\n`;
+        }
+
+        text += `\n_Generated via LedgerMate Travel Financial Intelligence_ 🌴`;
+        return text;
+      }
+
+      if (mode === 'itinerary_only') {
+        let text = `✈️ *${trip.name} · Complete Itinerary*\n`;
+        text += `📍 *Destination:* ${trip.destination || 'Unspecified'}\n`;
+        text += `📅 *Dates:* ${trip.startDate} → ${trip.endDate} (${days} Days)\n\n`;
+
+        const plans = Array.isArray(trip.plans) ? trip.plans : [];
+        let currentDay = -1;
+
+        plans.forEach(plan => {
+          if (plan.dayNumber !== currentDay) {
+            currentDay = plan.dayNumber;
+            text += `\n*── DAY ${currentDay} ──*\n`;
+          }
+          const isDone = plan.status === 'completed' || plan.status === 'visited';
+          const statusMark = isDone ? '✅ [Visited]' : '⏳ [Pending]';
+          const timeStr = plan.time ? ` ⏰ ${plan.time}` : '';
+          text += `• ${statusMark} *${plan.title}* [${plan.category || 'Activity'}]${timeStr}\n`;
+          if (plan.location) text += `  📍 Location: ${plan.location}\n`;
+          const planMapUrl = this.getMapsUrl(plan);
+          if (planMapUrl) text += `  🧭 Maps: ${planMapUrl}\n`;
+          if (plan.notes) text += `  📝 Notes: ${plan.notes}\n`;
+        });
+
+        text += `\n_Generated via LedgerMate Travel Financial Intelligence_ 🌴`;
+        return text;
+      }
+
+      // Default: Mode 'full'
+      let text = `✈️ *${trip.name} · Executive Travel & Financial Audit Report*\n`;
       text += `📍 *Destination:* ${trip.destination || 'Unspecified'}\n`;
       text += `📅 *Dates:* ${trip.startDate} → ${trip.endDate} (${days} Days)\n`;
-      text += `💰 *Budget:* ${_fmtINR(fin.budgetCap || fin.totalPlannedCost)} | *Spent:* ${_fmtINR(fin.totalActualExpenses)}\n\n`;
+      text += `👥 *Travelers (${persons.length}):* ${persons.map(p => p.name).join(', ')}\n\n`;
 
-      text += `🗺️ *ITINERARY & PLAN EXPENSES:*\n`;
+      text += `💰 *EXECUTIVE FINANCIAL SUMMARY:*\n`;
+      text += `• Total Budget: *${_fmtINR(fin.budgetCap || fin.totalPlannedCost)}*\n`;
+      text += `• Total Spent: *${_fmtINR(fin.totalActualExpenses)}*\n`;
+      text += `• Remaining Safe Balance: *${_fmtINR(fin.remainingBudget)}*\n`;
+      if (fin.dailyBudgetCap > 0) {
+        text += `• Daily Burn Allowance: *${_fmtINR(fin.dailyBudgetCap)}/day*\n`;
+      }
+      text += `\n`;
+
+      if (fin.categoryBreakdown && Object.keys(fin.categoryBreakdown).length > 0) {
+        text += `📊 *SPENDING BY CATEGORY:*\n`;
+        Object.keys(fin.categoryBreakdown).forEach(cat => {
+          const item = fin.categoryBreakdown[cat];
+          text += `• ${cat}: *${_fmtINR(item.actual || 0)}*\n`;
+        });
+        text += `\n`;
+      }
+
+      text += `💳 *WHO PAID WHAT:*\n`;
+      persons.forEach(p => {
+        const pf = this.getPersonFinancials(tripId, p.id);
+        text += `• *${p.name}:* ${_fmtINR(pf.totalPaid)} (${pf.expensesCount} expenses)\n`;
+      });
+      text += `\n`;
+
+      text += `⚖️ *INDIVIDUAL SHARE & NET BALANCES:*\n`;
+      persons.forEach(p => {
+        const pf = this.getPersonFinancials(tripId, p.id);
+        const sign = pf.netBalance >= 0 ? '+' : '';
+        const statusEmoji = pf.netBalance > 0 ? '🟢 Gets back' : (pf.netBalance < 0 ? '🔴 Owes' : '✅ Settled');
+        text += `• *${p.name}:* Paid ${_fmtINR(pf.totalPaid)} · Share ${_fmtINR(pf.totalShare)} ➔ *${sign}${_fmtINR(pf.netBalance)}* (${statusEmoji})\n`;
+      });
+      text += `\n`;
+
+      if (settlements.length > 0) {
+        text += `💸 *SETTLEMENT TRANSFERS:*\n`;
+        settlements.forEach((s, idx) => {
+          text += `${idx + 1}. *${s.fromName}* owes *${s.toName}*: *${_fmtINR(s.amount)}*\n`;
+          if (s.upiUrl) {
+            text += `   👉 UPI Intent: ${s.upiUrl}\n`;
+          }
+        });
+        text += `\n`;
+      }
+
+      if (allExpenses.length > 0) {
+        text += `📝 *ITEMIZED EXPENSE LEDGER (${allExpenses.length} transactions):*\n`;
+        allExpenses.forEach((e, idx) => {
+          const payer = resolveName(e.paidBy);
+          const fxStr = (e.currency && e.currency !== 'INR' && e.localAmount) ? ` (${window.LM_TripService.fmtCurrency(e.localAmount, e.currency)})` : '';
+          text += `${idx + 1}. [${e.date || ''}] ${e.title} [${e.category}] - *${_fmtINR(e.amount)}*${fxStr} (Paid by ${payer})\n`;
+        });
+        text += `\n`;
+      }
+
+      text += `🗺️ *ITINERARY SCHEDULE:*\n`;
       const plans = Array.isArray(trip.plans) ? trip.plans : [];
-      let currentDay = -1;
-
+      let curDay = -1;
       plans.forEach(plan => {
-        if (plan.dayNumber !== currentDay) {
-          currentDay = plan.dayNumber;
-          text += `\n*── DAY ${currentDay} ──*\n`;
+        if (plan.dayNumber !== curDay) {
+          curDay = plan.dayNumber;
+          text += `\n*── DAY ${curDay} ──*\n`;
         }
-        const pf = this.getPlanFinancials(plan);
-        text += `• ${plan.title} [${plan.category}]`;
-        if (pf.estimatedCost > 0 || pf.actualTotal > 0) {
-          text += ` (Est: ${_fmtINR(pf.estimatedCost)} | Actual: ${_fmtINR(pf.actualTotal)})`;
-        }
+        const isDone = plan.status === 'completed' || plan.status === 'visited';
+        const statusMark = isDone ? '✅' : '⏳';
+        const timeStr = plan.time ? ` ⏰ ${plan.time}` : '';
+        text += `• ${statusMark} ${plan.title}${timeStr}`;
         const planMapUrl = this.getMapsUrl(plan);
-        if (planMapUrl) {
-          text += `\n  📍 Maps: ${planMapUrl}`;
-        }
+        if (planMapUrl) text += `\n  📍 Maps: ${planMapUrl}`;
         text += `\n`;
       });
 
-      if (trip.wishlist && trip.wishlist.length) {
-        text += `\n💡 *DISCOVERED SPOTS / WISHLIST:*\n`;
-        trip.wishlist.slice(0, 5).forEach(w => {
-          const wMapUrl = this.getMapsUrl(w);
-          text += `• ${w.title} (${_fmtINR(w.estimatedCost)})${wMapUrl ? `\n  📍 Maps: ${wMapUrl}` : ''}\n`;
-        });
-      }
-
-      const settlements = this.calculateSettlements(tripId);
-      if (settlements.length) {
-        text += `\n🤝 *SETTLEMENTS:*\n`;
-        settlements.forEach(s => {
-          text += `• ${s.fromName} owes ${s.toName}: ${_fmtINR(s.amount)}\n`;
-        });
-      }
-
+      text += `\n_Report generated via LedgerMate Travel Financial Intelligence_ 🌴`;
       return text;
     },
 
