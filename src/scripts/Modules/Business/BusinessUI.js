@@ -367,20 +367,26 @@
           </div>
 
           <!-- ── SUB-TABS NAVIGATION ── -->
-          <div class="biz-tabs-bar">
+          <div class="biz-tabs-bar" role="tablist">
             ` + [
-              { k: 'ledger', icon: '📋', label: 'Ledger Timeline' },
-              { k: 'parties', icon: '👥', label: 'Party Book (Khata)' },
-              { k: 'analytics', icon: '📊', label: 'P&L Analytics' },
-              { k: 'settings', icon: '⚙️', label: 'Business Profile' }
+              { k: 'ledger', icon: '📋', label: 'Ledger Timeline', mobileLabel: 'Ledger' },
+              { k: 'parties', icon: '👥', label: 'Party Book (Khata)', mobileLabel: 'Khata Book' },
+              { k: 'analytics', icon: '📊', label: 'P&L Analytics', mobileLabel: 'Analytics' },
+              { k: 'settings', icon: '⚙️', label: 'Business Profile', mobileLabel: 'Profile' }
             ].map(function (tab) {
               var isAct = _activeTab === tab.k;
-              return '<button class="biz-tab-btn' + (isAct ? ' active' : '') + '" onclick="window.LM_BusinessUI.setTab(\'' + tab.k + '\')"><span>' + tab.icon + '</span> ' + tab.label + '</button>';
+              return '<button class="biz-tab-btn' + (isAct ? ' active' : '') + '" role="tab" aria-selected="' + (isAct ? 'true' : 'false') + '" onclick="window.LM_BusinessUI.setTab(\'' + tab.k + '\')">' +
+                '<span>' + tab.icon + '</span> ' +
+                '<span class="biz-tab-label-full">' + tab.label + '</span>' +
+                '<span class="biz-tab-label-short">' + (tab.mobileLabel || tab.label) + '</span>' +
+              '</button>';
             }).join('') + `
           </div>
 
           <!-- ── SUB-TAB CONTENT RENDERING ── -->
-          ` + this.renderSubTabContent(activeBiz, metrics, dateRange) + `
+          <div class="biz-subtab-container" id="bizSubtabContainer">
+            ` + this.renderSubTabContent(activeBiz, metrics, dateRange) + `
+          </div>
 
         </div>
       `;

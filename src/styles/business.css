@@ -286,40 +286,71 @@
 
 /* ── NAVIGATION TABS ───────────────────────────────────────── */
 .biz-tabs-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
-  margin-bottom: 18px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08)) !important;
+  margin-bottom: 20px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  padding: 2px 2px 8px 2px !important;
 }
 
 .biz-tabs-bar::-webkit-scrollbar {
-  display: none;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .biz-tab-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  border: none;
-  background: transparent;
-  color: var(--text3, #94a3b8);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  white-space: nowrap;
-  transition: all 0.15s ease;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 9px 16px !important;
+  border: 1px solid transparent !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: var(--text3, #94a3b8) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  transition: all 0.18s ease !important;
+  user-select: none !important;
+}
+
+.biz-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--text, #f8fafc) !important;
 }
 
 .biz-tab-btn.active {
-  color: var(--biz-teal, #00d4b4);
-  border-bottom-color: var(--biz-teal, #00d4b4);
+  background: rgba(0, 212, 180, 0.14) !important;
+  color: var(--biz-teal, #00d4b4) !important;
+  border-color: rgba(0, 212, 180, 0.35) !important;
+  box-shadow: 0 2px 8px rgba(0, 212, 180, 0.15) !important;
+}
+
+.biz-tab-label-short {
+  display: none;
+}
+
+.biz-subtab-container {
+  width: 100% !important;
+  clear: both !important;
+  display: block !important;
+  position: relative !important;
+  min-height: 200px !important;
 }
 
 /* ── FILTERS BAR ───────────────────────────────────────────── */
@@ -820,8 +851,12 @@
   }
 
   .biz-kpi-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .biz-kpi-card.khata {
+    grid-column: 1 / -1 !important;
   }
 
   .biz-kpi-val {
@@ -829,12 +864,26 @@
   }
 
   .biz-tabs-bar {
-    gap: 2px;
+    gap: 8px !important;
+    padding: 3px 2px 8px 2px !important;
+    margin-bottom: 16px !important;
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
   }
 
   .biz-tab-btn {
-    padding: 8px 12px;
-    font-size: 12px;
+    padding: 8px 13px !important;
+    font-size: 12px !important;
+    border-radius: 9px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .biz-tab-label-full {
+    display: none !important;
+  }
+
+  .biz-tab-label-short {
+    display: inline !important;
   }
 
   .biz-filters-bar {
@@ -962,7 +1011,8 @@
 
   .biz-tab-btn {
     font-size: 11.5px;
-    padding: 8px 10px;
+    padding: 7px 10px !important;
+    flex-shrink: 0 !important;
   }
 }
 
