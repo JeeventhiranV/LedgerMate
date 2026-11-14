@@ -2399,6 +2399,61 @@
       };
     },
 
+    buildMultiStopRouteUrl: function (plans) {
+      if (!Array.isArray(plans) || plans.length === 0) return '';
+
+      const stops = [];
+      for (const p of plans) {
+        if (!p) continue;
+
+        // 1. Check coordinates first (most accurate and universally supported across mobile & desktop)
+        const coords = this.extractCoordinates(p);
+        if (coords && coords.lat && coords.lng) {
+          stops.push(`${coords.lat},${coords.lng}`);
+          continue;
+        }
+
+        // 2. Location name or title (strictly non-URL to prevent malformed queries)
+        let loc = '';
+        if (typeof p === 'string') {
+          loc = p.trim();
+        } else if (typeof p === 'object') {
+          if (p.location && typeof p.location === 'string' && !/^https?:\/\//i.test(p.location.trim())) {
+            loc = p.location.trim();
+          } else if (p.title && typeof p.title === 'string') {
+            loc = p.title.trim();
+          }
+        }
+
+        if (loc) {
+          loc = loc.replace(/^https?:\/\/\S+/gi, '').replace(/[\r\n]+/g, ' ').trim();
+          if (loc) stops.push(loc);
+        }
+      }
+
+      if (stops.length === 0) return '';
+
+      // Single stop -> Search view
+      if (stops.length === 1) {
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stops[0])}`;
+      }
+
+      // 2 stops -> Direct origin and destination
+      const origin = stops[0];
+      const destination = stops[stops.length - 1];
+
+      if (stops.length === 2) {
+        return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+      }
+
+      // 3 or more stops -> Cross-platform universal Google Maps URL with waypoints
+      // Google Maps URLs API supports up to 9 intermediate waypoints
+      const intermediate = stops.slice(1, -1).slice(0, 9);
+      const waypointsParam = intermediate.join('|');
+
+      return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&waypoints=${encodeURIComponent(waypointsParam)}&travelmode=driving`;
+    },
+
     optimizeDayItineraryRoute: async function (tripId, dayNumber, options = {}) {
       const trip = this.getTrip(tripId);
       if (!trip) throw new Error('Trip not found');
@@ -2534,17 +2589,8 @@
       const distanceSaved = Math.max(0, Math.round((beforeMetrics.totalKm - afterMetrics.totalKm) * 100) / 100);
       const timeSavedMinutes = Math.max(0, Math.round((distanceSaved / 35) * 60));
 
-      // Build Google Maps Multi-stop directions URL
-      const dirStops = optimizedPlans.map(p => {
-        const c = this.extractCoordinates(p);
-        if (c) return `${c.lat},${c.lng}`;
-        if (p.location && !/^https?:\/\//i.test(p.location)) return encodeURIComponent(p.location);
-        return encodeURIComponent(p.title);
-      }).filter(Boolean);
-
-      const googleMapsDirUrl = dirStops.length > 1
-        ? `https://www.google.com/maps/dir/${dirStops.join('/')}`
-        : (dirStops.length === 1 ? `https://www.google.com/maps/search/?api=1&query=${dirStops[0]}` : '');
+      // Build Cross-Platform Universal Google Maps Multi-stop directions URL
+      const googleMapsDirUrl = this.buildMultiStopRouteUrl(optimizedPlans);
 
       return {
         success: true,
