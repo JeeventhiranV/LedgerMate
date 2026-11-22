@@ -29,8 +29,29 @@
   }
 
   /**
-   * Load local backup data from localStorage
+   * Load local backup data from IndexedDB or localStorage
    */
+  async function loadData(uid) {
+    try {
+      if (typeof window.getAll === 'function' && window.db && window.db.objectStoreNames.contains('stock_holdings')) {
+        var records = await window.getAll('stock_holdings');
+        var myRecord = (records || []).find(function (r) {
+          return r && (r.id === 'stk_' + uid || r.profile === uid || r.user_id === uid);
+        });
+        if (myRecord && (myRecord.portfolios || myRecord.holdings)) {
+          _portfolios = myRecord.portfolios || [];
+          _activePortfolioId = myRecord.activePortfolioId || (_portfolios[0] ? _portfolios[0].id : null);
+          _holdings = myRecord.holdings || [];
+          _transactions = myRecord.transactions || [];
+          return true;
+        }
+      }
+    } catch (idbErr) {
+      console.warn('[StockPortfolioService] IndexedDB read fallback:', idbErr);
+    }
+    return loadLocalData(uid);
+  }
+
   function loadLocalData(uid) {
     try {
       var raw = localStorage.getItem(getStorageKey(uid));
@@ -49,18 +70,32 @@
   }
 
   /**
-   * Save current state to localStorage
+   * Save current state to IndexedDB and mirror to localStorage
    */
   function saveLocalData() {
     try {
       var payload = {
+        id: 'stk_' + _userId,
+        profile: _userId,
+        user_id: _userId,
         portfolios: _portfolios,
         activePortfolioId: _activePortfolioId,
         holdings: _holdings,
         transactions: _transactions,
         updated_at: new Date().toISOString()
       };
-      localStorage.setItem(getStorageKey(_userId), JSON.stringify(payload));
+      // 1. IndexedDB persistence (Quota-free)
+      if (typeof window.put === 'function' && window.db && window.db.objectStoreNames.contains('stock_holdings')) {
+        window.put('stock_holdings', payload).catch(function (e) {
+          console.warn('[StockPortfolioService] IDB put failed:', e);
+        });
+      }
+      // 2. localStorage mirror
+      try {
+        localStorage.setItem(getStorageKey(_userId), JSON.stringify(payload));
+      } catch (lsErr) {
+        console.warn('[StockPortfolioService] localStorage mirror full, backed by IndexedDB:', lsErr);
+      }
     } catch (e) {
       console.error('[StockPortfolioService] Save local data error:', e);
     }
@@ -215,7 +250,7 @@
      */
     init: async function (userId) {
       _userId = userId || (window.LM_Auth?.getCurrentUserId()) || 'guest';
-      loadLocalData(_userId);
+      await loadData(_userId);
       ensureDefaultPortfolio();
       _initialized = true;
 

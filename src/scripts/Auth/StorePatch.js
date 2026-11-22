@@ -32,7 +32,10 @@
     'vehicles',                                /* Bike & vehicle tracking */
     'receipt_attachments',                     /* Offline receipts vault cache */
     'businesses',                              /* Business Hub profiles */
-    'business_transactions'                    /* Business Hub ledger */
+    'business_transactions',                   /* Business Hub ledger */
+    'stock_holdings',                          /* Indian Stock Portfolios */
+    'category_rules_store',                    /* Auto categorization rules */
+    'bill_splits_store'                        /* Group bill splits */
   ]);
 
   /* Stores shared between all users (categories, etc.) */
@@ -204,6 +207,29 @@
   window.LM_lsGet    = lsGet;
   window.LM_lsSet    = lsSet;
   window.LM_lsRemove = lsRemove;
+
+  /* ── Claim unassigned or guest records into an authenticated profile ── */
+  window.LM_claimUnassignedRecords = async function claimUnassigned(targetProfile) {
+    if (!targetProfile || targetProfile === 'default' || targetProfile === 'guest') return 0;
+    if (!window.db) return 0;
+    let claimed = 0;
+    for (const store of USER_DATA_STORES) {
+      if (!window.db.objectStoreNames.contains(store)) continue;
+      try {
+        const records = await _origGetAll(store);
+        for (const r of (records || [])) {
+          if (!r.profile || r.profile === 'default' || r.profile === 'guest') {
+            const updated = { ...r, profile: targetProfile, updatedAt: new Date().toISOString() };
+            await _origPut(store, updated);
+            claimed++;
+          }
+        }
+      } catch (e) {
+        console.warn('[StorePatch] Error claiming records in ' + store + ':', e);
+      }
+    }
+    return claimed;
+  };
 
   /* ── Kick off once DOM is ready ─────────────────────── */
   if (document.readyState === 'loading') {

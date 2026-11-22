@@ -24,19 +24,39 @@
     { pattern: 'dividend|interest|cashback|reward|refund', category: 'Interest & Rewards', type: 'in' }
   ];
 
+  var _cachedRules = null;
+
   function getRules() {
+    if (_cachedRules && Array.isArray(_cachedRules) && _cachedRules.length) {
+      return _cachedRules;
+    }
     if (typeof window.LM_lsGet === 'function') {
       var saved = window.LM_lsGet(STORAGE_KEY, null);
-      if (saved && Array.isArray(saved) && saved.length) return saved;
+      if (saved && Array.isArray(saved) && saved.length) {
+        _cachedRules = saved;
+        return saved;
+      }
     }
-    return DEFAULT_RULES.slice();
+    _cachedRules = DEFAULT_RULES.slice();
+    return _cachedRules;
   }
 
   function saveRules(rules) {
+    _cachedRules = Array.isArray(rules) ? rules.slice() : [];
     if (typeof window.LM_lsSet === 'function') {
       window.LM_lsSet(STORAGE_KEY, rules);
     } else {
-      localStorage.setItem('lm_' + STORAGE_KEY, JSON.stringify(rules));
+      try { localStorage.setItem('lm_' + STORAGE_KEY, JSON.stringify(rules)); } catch (e) {}
+    }
+    // Also mirror to IndexedDB store
+    var uid = window.LM_Auth?.getCurrentUserId?.() || 'default';
+    if (typeof window.put === 'function' && window.db && window.db.objectStoreNames.contains('category_rules_store')) {
+      window.put('category_rules_store', {
+        id: 'rules_' + uid,
+        profile: uid,
+        rules: rules,
+        updatedAt: new Date().toISOString()
+      }).catch(function (e) {});
     }
   }
 

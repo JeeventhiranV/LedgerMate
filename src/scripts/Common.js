@@ -147,7 +147,7 @@ let db = null;
 async function openDB() {
     return new Promise((resolve, reject) => {
         const DB_NAME    = "ledgermate_db";
-        const DB_VERSION = 20;
+        const DB_VERSION = 21;
 
         const req = indexedDB.open(DB_NAME, DB_VERSION);
 
@@ -224,6 +224,9 @@ async function openDB() {
             ensureStore("receipt_attachments", { keyPath: "id" }, ["userId", "transactionId", "profile"]);
             ensureStore("businesses",          { keyPath: "id" }, ["profile", "name", "category"]);
             ensureStore("business_transactions", { keyPath: "id" }, ["profile", "businessId", "type", "date", "partyName", "paymentStatus"]);
+            ensureStore("stock_holdings",       { keyPath: "id" }, ["profile"]);
+            ensureStore("category_rules_store", { keyPath: "id" }, ["profile"]);
+            ensureStore("bill_splits_store",    { keyPath: "id" }, ["profile"]);
             console.log("✅ DB schema upgrade complete");
         };
     });
@@ -700,13 +703,24 @@ async function showBudgetsModal() {
       const overAlert = percentSpent >= alertPercent;
       const progressColor = overAlert ? 'bg-rose-500' : 'bg-emerald-500';
 
+      const rolloverBadge = b.rollover
+        ? `<button type="button" class="toggleRollover px-2 py-0.5 text-[11px] rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-pointer font-medium hover:bg-emerald-500/30 transition-colors" data-id="${b.id}" title="Click to toggle rollover">🔄 Rollover ON</button>`
+        : `<button type="button" class="toggleRollover px-2 py-0.5 text-[11px] rounded bg-slate-700/50 text-slate-400 border border-slate-600/30 cursor-pointer font-medium hover:bg-slate-700 transition-colors" data-id="${b.id}" title="Click to toggle rollover">Rollover OFF</button>`;
+
+      const rolloverExtra = (b.rollover && b.rolledOverAmount > 0)
+        ? `<span class="text-[11px] text-emerald-400 font-medium"> (incl. ${fmtINR(b.rolledOverAmount)} rolled over)</span>`
+        : '';
+
       return `
         <div class="p-3 rounded-lg border flex flex-col gap-2" style="background: var(--glass-bg); border-color: var(--glass-border);">
           <div class="flex justify-between items-center">
             <div>
-              <div class="font-semibold text-[var(--text)]">${b.category}</div>
+              <div class="font-semibold text-[var(--text)] flex items-center gap-2">
+                <span>${b.category}</span>
+                ${rolloverBadge}
+              </div>
               <div class="text-xs text-[var(--text-muted)]">
-                Limit: ${fmtINR(b.limit)} • Alert: ${alertPercent}%
+                Limit: ${fmtINR(b.limit)}${rolloverExtra} • Alert: ${alertPercent}%
               </div>
             </div>
             <div class="flex gap-1">
@@ -757,7 +771,7 @@ async function showBudgetsModal() {
       const limit = Number(document.getElementById('budgetLimit').value);
       const alertThreshold = Number(document.getElementById('budgetAlert').value)/100;
       const rollover = document.getElementById('budgetRollover')?.checked || false;
-      const budget = { id: uid('budget'), month, category: cat, limit, alertThreshold, rollover };
+      const budget = { id: uid('budget'), month, category: cat, baseLimit: limit, limit, alertThreshold, rollover };
       await put('budgets', budget);
       state.budgets.push(budget);
       autoBackup();
@@ -774,16 +788,36 @@ async function showBudgetsModal() {
       const budget = state.budgets.find(b => b.id === id);
       if (!budget) return;
 
-      const newLimit = prompt(`Edit limit for ${budget.category}:`, budget.limit);
+      const newLimit = prompt(`Edit limit for ${budget.category}:`, budget.baseLimit || budget.limit);
       if (!newLimit) return;
       const newAlert = prompt(`Edit alert % for ${budget.category}:`, budget.alertThreshold*100);
       if (!newAlert) return;
 
-      budget.limit = Number(newLimit);
+      const base = Number(newLimit);
+      budget.baseLimit = base;
+      budget.limit = base + (budget.rolledOverAmount || 0);
       budget.alertThreshold = Number(newAlert)/100;
       await put('budgets', budget);
       showBudgetsModal();
       showToast('Budget updated!', 'success');
+      renderBudgetOverview();
+    };
+  });
+
+  // Toggle Rollover handler
+  document.querySelectorAll('.toggleRollover').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.id;
+      const budget = state.budgets.find(b => b.id === id);
+      if (!budget) return;
+      budget.rollover = !budget.rollover;
+      if (budget.rollover && !budget.baseLimit) {
+        budget.baseLimit = budget.limit;
+      }
+      await put('budgets', budget);
+      autoBackup();
+      showBudgetsModal();
+      showToast(`Rollover ${budget.rollover ? 'enabled' : 'disabled'} for ${budget.category}!`, 'info');
       renderBudgetOverview();
     };
   });
@@ -5041,6 +5075,91 @@ async function FinalJson(){
   return JSON.stringify(payload, null, 2);
 }
 
+async function migrateLocalStorageStoresToIndexedDB() {
+  try {
+    const userId = window.LM_Auth?.getCurrentUserId?.() || 'default';
+    if (!window.db) return;
+
+    // 1. Stock holdings migration
+    if (window.db.objectStoreNames.contains('stock_holdings')) {
+      const existing = await getAll('stock_holdings');
+      if (!existing || existing.length === 0) {
+        const rawStock = localStorage.getItem(`lm_u_${userId}_stock_portfolio_data`) ||
+                         localStorage.getItem('stock_portfolio_data') ||
+                         localStorage.getItem('lm_u_guest_stock_portfolio_data');
+        if (rawStock) {
+          try {
+            const parsed = JSON.parse(rawStock);
+            const doc = {
+              id: 'stk_' + userId,
+              profile: userId,
+              user_id: userId,
+              portfolios: parsed.portfolios || [],
+              activePortfolioId: parsed.activePortfolioId || null,
+              holdings: parsed.holdings || [],
+              transactions: parsed.transactions || [],
+              updated_at: new Date().toISOString()
+            };
+            await put('stock_holdings', doc);
+            console.log('✅ Migrated stock portfolio data from localStorage into IndexedDB stock_holdings');
+          } catch(e) {}
+        }
+      }
+    }
+
+    // 2. Category rules migration
+    if (window.db.objectStoreNames.contains('category_rules_store')) {
+      const existingRules = await getAll('category_rules_store');
+      if (!existingRules || existingRules.length === 0) {
+        const rawRules = localStorage.getItem(`lm_u_${userId}_category_rules_v1`) ||
+                         localStorage.getItem('category_rules_v1') ||
+                         localStorage.getItem('lm_category_rules_v1');
+        if (rawRules) {
+          try {
+            const rules = JSON.parse(rawRules);
+            if (Array.isArray(rules) && rules.length > 0) {
+              await put('category_rules_store', {
+                id: 'rules_' + userId,
+                profile: userId,
+                rules: rules,
+                updatedAt: new Date().toISOString()
+              });
+              console.log('✅ Migrated category rules from localStorage into IndexedDB category_rules_store');
+            }
+          } catch(e) {}
+        }
+      }
+    }
+
+    // 3. Bill splits migration
+    if (window.db.objectStoreNames.contains('bill_splits_store')) {
+      const existingSplits = await getAll('bill_splits_store');
+      if (!existingSplits || existingSplits.length === 0) {
+        const rawSplits = localStorage.getItem(`lm_u_${userId}_bill_splits_v1`) ||
+                          localStorage.getItem('lm_bill_splits_v1') ||
+                          localStorage.getItem('bill_splits_v1');
+        if (rawSplits) {
+          try {
+            const splits = JSON.parse(rawSplits);
+            if (Array.isArray(splits) && splits.length > 0) {
+              await put('bill_splits_store', {
+                id: 'splits_' + userId,
+                profile: userId,
+                groups: splits,
+                updatedAt: new Date().toISOString()
+              });
+              console.log('✅ Migrated bill splits from localStorage into IndexedDB bill_splits_store');
+            }
+          } catch(e) {}
+        }
+      }
+    }
+  } catch(err) {
+    console.warn('[LM] LocalStorage to IndexedDB migration notice:', err);
+  }
+}
+window.migrateLocalStorageStoresToIndexedDB = migrateLocalStorageStoresToIndexedDB;
+
 // ----------------------------
 // Start
 // ----------------------------
@@ -5055,6 +5174,7 @@ window.LM_StartApp = async function LM_StartApp() {
     await openDB();
     await seedDefaults();
     await loadAllFromDB();
+    await migrateLocalStorageStoresToIndexedDB();
   } catch (err) {
     console.error("❌ Failed to open / load IndexedDB:", err);
     return;
@@ -6226,9 +6346,10 @@ function renderBudgetOverview() {
     const pct = Math.min(rawPct, 100);
     const cls = rawPct >= 100 ? 'over' : pct > 90 ? 'danger' : pct > 70 ? 'warning' : 'safe';
     const pctLabel = rawPct > 100 ? `<span style="color:var(--rose);font-weight:700;font-size:11px;">+${rawPct-100}% over</span>` : `${rawPct}%`;
+    const rolloverTag = b.rollover ? `<span title="Rollover Active" style="font-size:10px;padding:1px 5px;border-radius:4px;background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);margin-left:5px;font-weight:600;">🔄 Rollover</span>` : '';
     return `<div class="budget-item">
       <div class="budget-item-header">
-        <span class="budget-item-name">${b.category}</span>
+        <span class="budget-item-name">${b.category}${rolloverTag}</span>
         <span class="budget-item-amounts">${fmtINR(actual)} / ${fmtINR(b.limit)} &nbsp;${pctLabel}</span>
       </div>
       <div class="budget-bar-bg"><div class="budget-bar-fill ${cls}" style="width:${pct}%"></div></div>
@@ -7567,23 +7688,55 @@ async function checkBudgetRollover() {
     if (lastRollover === thisMonth) return; // already done this month
 
     let rolled = 0;
-    for (const b of budgets) {
-      if (!b.rollover) continue; // only rollover-enabled budgets
-      const spent = state.transactions
-        .filter(t => (t.type === 'expense' || t.type === 'out') && t.category === b.category && (t.date || '').startsWith(prevMonth))
+    // Find all rollover-enabled budgets from previous month
+    const prevBudgets = budgets.filter(b => b.month === prevMonth && b.rollover);
+
+    for (const pb of prevBudgets) {
+      const base = pb.baseLimit || pb.limit || 0;
+      const spent = (state.transactions || [])
+        .filter(t => (t.type === 'expense' || t.type === 'out') && t.category === pb.category && (t.date || '').startsWith(prevMonth))
         .reduce((s, t) => s + parseFloat(t.amount || 0), 0);
-      const unspent = Math.max(0, (b.limit || 0) - spent);
-      if (unspent > 0) {
-        const updated = { ...b, limit: (b.limit || 0) + unspent, rolledOverAmount: unspent, rolledOverFrom: prevMonth };
-        await put('budgets', updated);
-        state.budgets = state.budgets.map(x => x.id === b.id ? updated : x);
+      const unspent = Math.max(0, base - spent);
+
+      // Check if current month already has a budget for this category
+      const currBudget = (state.budgets || []).find(b => b.month === thisMonth && b.category === pb.category);
+      if (currBudget) {
+        if (currBudget.rolledOverFrom !== prevMonth && unspent > 0) {
+          const currBase = currBudget.baseLimit || currBudget.limit;
+          currBudget.baseLimit = currBase;
+          currBudget.limit = currBase + unspent;
+          currBudget.rolledOverAmount = unspent;
+          currBudget.rolledOverFrom = prevMonth;
+          currBudget.rollover = true;
+          await put('budgets', currBudget);
+          rolled++;
+        }
+      } else {
+        // Auto-create envelope for thisMonth carrying forward base limit + unspent
+        const newBudget = {
+          id: typeof uid === 'function' ? uid('budget') : ('budget_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)),
+          month: thisMonth,
+          category: pb.category,
+          baseLimit: base,
+          limit: base + unspent,
+          alertThreshold: pb.alertThreshold || 0.8,
+          rollover: true,
+          rolledOverAmount: unspent,
+          rolledOverFrom: prevMonth,
+          profile: pb.profile || (window.LM_Auth?.getCurrentUserId() || 'default')
+        };
+        await put('budgets', newBudget);
+        state.budgets.push(newBudget);
         rolled++;
       }
     }
 
     state.settings = { ...(state.settings || {}), lastBudgetRollover: thisMonth };
     await saveSettingsToStore();
-    if (rolled > 0) showToast(`Budget rollover: ${rolled} categories carried forward.`, 'success');
+    if (rolled > 0) {
+      showToast(`Budget rollover: ${rolled} categories carried forward to ${thisMonth}.`, 'success');
+      renderBudgetOverview();
+    }
   } catch (e) { console.warn('[LM] Budget rollover failed:', e); }
 }
 

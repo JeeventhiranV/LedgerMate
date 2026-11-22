@@ -1162,6 +1162,10 @@
     /**
      * Show Pay Bill Modal with Celebratory Potential
      */
+    openPayModal: function (cardId) {
+      return this.showPayBillModal(cardId);
+    },
+
     showPayBillModal: function (cardId) {
       var card = window.LM_CreditCardsService?.getCardById(cardId);
       if (!card) return;

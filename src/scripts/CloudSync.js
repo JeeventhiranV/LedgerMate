@@ -340,7 +340,8 @@
     'essentials_settings','savings_goals','subscriptions',
     'fd_rd','tx_templates','users','dropdowns',
     'credit_cards','dashboard_config','recurringTransactions',
-    'vehicles','receipt_attachments','businesses','business_transactions'
+    'vehicles','receipt_attachments','businesses','business_transactions',
+    'stock_holdings','category_rules_store','bill_splits_store'
   ];
 
   // Clear all user-data stores so cloud import is always a full replace
