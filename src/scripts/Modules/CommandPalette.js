@@ -13,6 +13,7 @@
   var _selectedIdx = 0;
 
   var STATIC_COMMANDS = [
+    { title: '⊞ Executive Apps & Modules Hub', desc: 'Browse all 40+ features, live telemetry & tools', icon: '⊞', action: () => { if (typeof showPage === 'function') showPage('modules'); } },
     { title: '➕ Quick Add Transaction', desc: 'Type "+tx 500 Coffee" or select this', icon: '💸', action: () => openAddTxPrompt() },
     { title: '📈 Indian Stock Portfolio', desc: 'Track NSE/BSE stocks, profit/loss & portfolio analytics', icon: '📈', action: () => { if (typeof showPage === 'function') showPage('stocks'); } },
     { title: '🛒 Record Stock Buy/Sell', desc: 'Add a new equity purchase or sale order', icon: '🛒', action: () => { if (typeof showPage === 'function') showPage('stocks'); setTimeout(() => window.LM_StockPortfolioUI?.openAddTransactionModal(), 100); } },

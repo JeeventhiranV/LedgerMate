@@ -579,6 +579,7 @@ function bindUI(){
     if (e.key === '/' || e.key === 'f') { e.preventDefault(); document.getElementById('searchTx')?.focus(); }
     if (e.key === 'd') { e.preventDefault(); showPage('dashboard'); }
     if (e.key === 't') { e.preventDefault(); showPage('transactions'); }
+    if (e.key === 'm') { e.preventDefault(); showPage('modules'); }
   });
 
   const searchTx = document.getElementById('searchTx');
@@ -5079,6 +5080,9 @@ window._LM_restoreLastPage = function() {
   const userId   = window.LM_Auth?.getCurrentUserId() || 'default';
   const uKey     = `lm_u_${userId}_lastPage`;
   const lastPage = localStorage.getItem(uKey) || localStorage.getItem('ledgerMate_lastPage') || 'dashboard';
+  if (window.LM_ModuleHubUI && typeof window.LM_ModuleHubUI.syncSidebarPinned === 'function') {
+    try { window.LM_ModuleHubUI.syncSidebarPinned(); } catch (e) {}
+  }
   if (typeof showPage === 'function') showPage(lastPage);
 };
 
