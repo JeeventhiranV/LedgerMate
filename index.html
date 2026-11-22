@@ -542,9 +542,6 @@
         <!-- ⊞ Executive Apps Hub -->
         <button class="icon-btn" title="All Modules & Tools Hub (⌘M)" onclick="showPage('modules')" style="font-size:15px;color:var(--teal,#00f0ff);font-weight:700;">⊞</button>
 
-        <!-- 🌊 Cashflow Visualizer -->
-        <button class="icon-btn" title="Cashflow Visualizer (Flow Diagram)" onclick="window.LM_Sankey ? window.LM_Sankey.showModal() : (typeof openSankeyModal==='function'&&openSankeyModal())" style="font-size:14px;">🌊</button>
-
         <!-- 🔍 Search -->
         <button class="icon-btn srch-trigger-btn" title="Search (Ctrl+K)" onclick="window.LM_CommandPalette ? window.LM_CommandPalette.open() : openSearch()">🔍</button>
 
@@ -554,9 +551,6 @@
           <span id="notifDot" class="notif-dot" style="display:none"></span>
           <span id="notifCount" class="notif-count-badge">0</span>
         </button>
-
-        <!-- 👁️ Privacy Peek Shield (Shift+P) -->
-        <button id="privacyShieldBtn" class="icon-btn" title="Privacy Shield (Blur Balances - Shift+P)" onclick="window.LM_togglePrivacyShield ? window.LM_togglePrivacyShield() : null" style="font-size:14px;">👁️</button>
 
         <!-- ☁️ / 💾 Dynamic Sync / Backup Pill with Health Cockpit -->
         <div id="cloudSyncPill" class="topbar-sync-pill" title="Cloud Sync Cockpit · Click for sync status" onclick="window.LM_SyncHealthModal ? window.LM_SyncHealthModal.show() : (window.LM_handleTopbarSyncClick && window.LM_handleTopbarSyncClick())" role="button" tabindex="0">
