@@ -65,6 +65,7 @@
 <link rel="stylesheet" href="./src/styles/investments.css">
 <link rel="stylesheet" href="./src/styles/trip-planner.css">
 <link rel="stylesheet" href="./src/styles/business.css">
+<link rel="stylesheet" href="./src/styles/module-hub.css">
   <script src="./assets/vendor/tailwind.min.js"></script>
   <!-- Cloud auth + sync – MUST load before AuthManager -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -216,6 +217,18 @@
       <button class="sidebar-nav-item" onclick="showPage('analytics')" data-module="analytics">
         <span class="nav-icon">📈</span> <span class="nav-label">Analytics</span>
       </button>
+      <button class="sidebar-nav-item sidebar-hub-highlight" onclick="showPage('modules')" data-module="modules" id="openModuleHubSidebar">
+        <span class="nav-icon">⊞</span> <span class="nav-label">All Modules</span><span class="sidebar-hub-badge">40+</span>
+      </button>
+    </div>
+
+    <!-- ── PINNED FAVORITES ───────────────────────────────── -->
+    <div class="sidebar-section sidebar-pinned-section" id="sidebarPinnedSection" style="display:none;">
+      <div class="sidebar-section-label" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>⭐ Pinned Favorites</span>
+        <span style="font-size:10px;cursor:pointer;color:var(--teal,#00f0ff);font-weight:600;text-transform:none;" onclick="showPage('modules')">Edit</span>
+      </div>
+      <div id="sidebarPinnedList"></div>
     </div>
 
     <!-- ── MONEY MANAGEMENT ───────────────────────────────── -->
@@ -411,6 +424,9 @@
           <span class="switch-icon">📚</span>
           <span class="switch-text">Study Hub</span>
         </a>
+
+        <!-- ⊞ Executive Apps Hub -->
+        <button class="icon-btn" title="All Modules & Tools Hub (⌘M)" onclick="showPage('modules')" style="font-size:15px;color:var(--teal,#00f0ff);font-weight:700;">⊞</button>
 
         <!-- 🌊 Cashflow Visualizer -->
         <button class="icon-btn" title="Cashflow Visualizer (Flow Diagram)" onclick="window.LM_Sankey ? window.LM_Sankey.showModal() : (typeof openSankeyModal==='function'&&openSankeyModal())" style="font-size:14px;">🌊</button>
@@ -1190,6 +1206,11 @@
         <div id="tripPlannerApp"></div>
       </div>
 
+      <!-- ─── EXECUTIVE MODULAR HUB & APP LAUNCHER PAGE ── -->
+      <div id="page-modules" style="display:none;">
+        <!-- rendered dynamically by LM_ModuleHubUI.init() in ModuleHubUI.js -->
+      </div>
+
     </div><!-- /pageContent -->
   </main>
 </div>
@@ -1207,6 +1228,10 @@
   <button class="bnav-item" id="bnav-transactions">
     <span class="bnav-icon">↕️</span>
     <span class="bnav-label">Transactions</span>
+  </button>
+  <button class="bnav-item hub-center-btn" id="bnav-modules" onclick="showPage('modules')">
+    <span class="bnav-icon">⊞</span>
+    <span class="bnav-label">Modules</span>
   </button>
   <button class="bnav-item" id="bnav-loans">
     <span class="bnav-icon">💰</span>
@@ -1520,7 +1545,7 @@ function showPage(page) {
   if (sideBtn) sideBtn.classList.add('active');
 
   // 3. Bottom nav active
-  const mainPages = ['dashboard', 'transactions', 'loans', 'stocks', 'gold'];
+  const mainPages = ['dashboard', 'transactions', 'modules', 'loans', 'stocks', 'gold'];
   if (mainPages.includes(page)) {
     document.querySelectorAll('.bnav-item').forEach(i => i.classList.remove('active'));
     const bnav = document.getElementById('bnav-' + page);
@@ -1636,6 +1661,13 @@ function showPage(page) {
           window.LM_TripUI.init();
         }
       } catch (e) { console.warn('[LM] Trips page error:', e); }
+    }
+    if (page === 'modules') {
+      try {
+        if (window.LM_ModuleHubUI && typeof window.LM_ModuleHubUI.init === 'function') {
+          window.LM_ModuleHubUI.init();
+        }
+      } catch (e) { console.warn('[LM] Module Hub error:', e); }
     }
     if (page === 'savings-goals') {
       try { renderSavingsGoals(); } catch (e) { console.warn('[LM] Savings goals error:', e); }
@@ -1848,6 +1880,8 @@ function setGreeting() {
   <!-- Media Compressor Module (Lossless EXIF Photos & Videos) -->
   <script src="./src/scripts/Modules/MediaCompressor/MediaCompressorService.js"></script>
   <script src="./src/scripts/Modules/MediaCompressor/MediaCompressorUI.js"></script>
+  <!-- Executive Modular Cockpit & Apps Hub -->
+  <script src="./src/scripts/Modules/ModuleHubUI.js"></script>
   <!-- PWA install prompt — works on any page -->
   <script src="./src/scripts/pwa-install.js"></script>
   <!-- Real-time push notifications -->
@@ -1869,6 +1903,8 @@ function setGreeting() {
               window.LM_BillSplitter.openBillSplitterModal();
             } else if (action === 'credit-cards' && typeof showPage === 'function') {
               showPage('credit-cards');
+            } else if (action === 'modules' && typeof showPage === 'function') {
+              showPage('modules');
             }
           }, 600);
         });
