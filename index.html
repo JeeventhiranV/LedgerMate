@@ -555,8 +555,17 @@
           <span id="notifCount" class="notif-count-badge">0</span>
         </button>
 
-        <!-- ☁️ / 💾 Dynamic Sync / Backup -->
-        <button id="cloudSyncBtn" class="icon-btn" title="Sync / Backup" onclick="window.LM_handleTopbarSyncClick ? window.LM_handleTopbarSyncClick() : (window.LM_manualSync && window.LM_manualSync())">☁️</button>
+        <!-- 👁️ Privacy Peek Shield (Shift+P) -->
+        <button id="privacyShieldBtn" class="icon-btn" title="Privacy Shield (Blur Balances - Shift+P)" onclick="window.LM_togglePrivacyShield ? window.LM_togglePrivacyShield() : null" style="font-size:14px;">👁️</button>
+
+        <!-- ☁️ / 💾 Dynamic Sync / Backup Pill with Health Cockpit -->
+        <div id="cloudSyncPill" class="topbar-sync-pill" title="Cloud Sync Cockpit · Click for sync status" onclick="window.LM_SyncHealthModal ? window.LM_SyncHealthModal.show() : (window.LM_handleTopbarSyncClick && window.LM_handleTopbarSyncClick())" role="button" tabindex="0">
+          <span class="sync-pill-dot synced" id="cloudSyncDot"></span>
+          <span class="sync-pill-icon" id="cloudSyncIcon">☁️</span>
+          <span class="sync-pill-text" id="cloudSyncText">Synced</span>
+        </div>
+        <!-- Hidden button fallback for legacy selectors -->
+        <button id="cloudSyncBtn" style="display:none;" aria-hidden="true"></button>
 
         <!-- 👤 User profile (far right) -->
         <div style="position:relative;">
@@ -2007,6 +2016,16 @@ function setGreeting() {
   <script src="./src/scripts/Modules/ModuleHubUI.js"></script>
   <!-- Sidebar Collapsible Submenu Navigation OS -->
   <script src="./src/scripts/Modules/SidebarNavUI.js"></script>
+  <!-- Bulletproof Zero-Sync Architecture: Sync Health Cockpit Modal -->
+  <script src="./src/scripts/Common/SyncHealthModal.js"></script>
+  <!-- Executive User Features: Smart Quick Add & SMS Parser -->
+  <script src="./src/scripts/Modules/SmartQuickAdd.js"></script>
+  <!-- Safe to Spend Real-time Liquidity Cockpit -->
+  <script src="./src/scripts/Modules/SafeToSpendWidget.js"></script>
+  <!-- Best Card to Use Today Billing Cycle Engine -->
+  <script src="./src/scripts/Modules/BestCardEngine.js"></script>
+  <!-- Unified Upcoming Dues & Commitments Timeline -->
+  <script src="./src/scripts/Modules/UnifiedDuesTimeline.js"></script>
   <!-- PWA install prompt — works on any page -->
   <script src="./src/scripts/pwa-install.js"></script>
   <!-- Real-time push notifications -->
@@ -2090,32 +2109,76 @@ function setGreeting() {
     if (menu && chip && !chip.contains(e.target)) menu.classList.remove('open');
   });
 
-  /* ── Dynamic Topbar Sync & Backup Handler ───────────────── */
+  /* ── Dynamic Topbar Sync & Health Cockpit Handler ───────────────── */
   var _syncLastSaved = null;
   var _syncBusy = false;
 
-  window.LM_updateTopbarSyncButton = function () {
-    const btn = document.getElementById('cloudSyncBtn');
-    if (!btn) return;
+  window.LM_updateTopbarSyncButton = function (statusState) {
+    const pill = document.getElementById('cloudSyncPill');
+    const dot = document.getElementById('cloudSyncDot');
+    const icon = document.getElementById('cloudSyncIcon');
+    const text = document.getElementById('cloudSyncText');
+    const legacyBtn = document.getElementById('cloudSyncBtn');
+
     const isOffline = (window.LM_CloudSync && typeof window.LM_CloudSync.isOfflineMode === 'function')
       ? window.LM_CloudSync.isOfflineMode()
       : (localStorage.getItem('lm_sync_mode') === 'offline');
 
     if (isOffline) {
-      btn.textContent = '💾';
-      btn.title = 'Offline Mode · Click to save local backup';
-      btn.setAttribute('aria-label', 'Save local backup');
-    } else {
-      btn.textContent = '☁️';
-      const timeStr = _syncLastSaved ? (' · Last saved ' + _syncLastSaved.toLocaleTimeString()) : '';
-      btn.title = 'Cloud Sync' + timeStr + ' · Click to sync';
-      btn.setAttribute('aria-label', 'Sync to cloud');
+      if (dot) dot.className = 'sync-pill-dot offline';
+      if (icon) icon.textContent = '💾';
+      if (text) text.textContent = 'Offline';
+      if (pill) pill.title = 'Offline Mode · Click to manage vault & save backup';
+      if (legacyBtn) legacyBtn.textContent = '💾';
+      return;
     }
+
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+    if (!isOnline) {
+      if (dot) dot.className = 'sync-pill-dot offline';
+      if (icon) icon.textContent = '📡';
+      if (text) text.textContent = 'Offline';
+      if (pill) pill.title = 'No internet connection · Local changes are safe in IndexedDB';
+      if (legacyBtn) legacyBtn.textContent = '📡';
+      return;
+    }
+
+    if (statusState === 'in-progress' || _syncBusy) {
+      if (dot) dot.className = 'sync-pill-dot syncing';
+      if (icon) icon.textContent = '🔄';
+      if (text) text.textContent = 'Syncing...';
+      if (pill) pill.title = 'Syncing with Supabase Cloud...';
+      if (legacyBtn) legacyBtn.textContent = '⏳';
+      return;
+    }
+
+    const pendingQueue = (window.LM_CloudSync && typeof window.LM_CloudSync.getPendingQueue === 'function')
+      ? window.LM_CloudSync.getPendingQueue()
+      : [];
+    const isDirty = (window.LM_CloudSync && typeof window.LM_CloudSync.isDirty === 'function')
+      ? window.LM_CloudSync.isDirty()
+      : false;
+
+    if (pendingQueue.length > 0 || isDirty) {
+      if (dot) dot.className = 'sync-pill-dot pending';
+      if (icon) icon.textContent = '☁️';
+      if (text) text.textContent = pendingQueue.length > 0 ? (pendingQueue.length + ' Pending') : 'Unsaved';
+      if (pill) pill.title = (pendingQueue.length || 1) + ' unsaved change(s) queued for sync · Click for health cockpit';
+      if (legacyBtn) legacyBtn.textContent = '☁️';
+      return;
+    }
+
+    // Synced
+    if (dot) dot.className = 'sync-pill-dot synced';
+    if (icon) icon.textContent = '☁️';
+    const timeStr = _syncLastSaved ? (' · ' + _syncLastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) : '';
+    if (text) text.textContent = 'Synced';
+    if (pill) pill.title = 'All data synchronized with Supabase' + timeStr + ' · Click for health cockpit';
+    if (legacyBtn) legacyBtn.textContent = '☁️';
   };
 
   window.LM_handleTopbarSyncClick = async function () {
     if (_syncBusy) return;
-    const btn = document.getElementById('cloudSyncBtn');
     const isOffline = (window.LM_CloudSync && typeof window.LM_CloudSync.isOfflineMode === 'function')
       ? window.LM_CloudSync.isOfflineMode()
       : (localStorage.getItem('lm_sync_mode') === 'offline');
@@ -2123,7 +2186,7 @@ function setGreeting() {
     if (isOffline) {
       if (!window.LM_LocalBackup) return;
       _syncBusy = true;
-      if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+      window.LM_updateTopbarSyncButton('in-progress');
       let offlineSuccess = true;
       try {
         const info = await window.LM_LocalBackup.getFolderInfo();
@@ -2143,7 +2206,7 @@ function setGreeting() {
         }
       }
       _syncBusy = false;
-      if (btn) { btn.textContent = offlineSuccess ? '✅' : '❌'; btn.disabled = false; }
+      window.LM_updateTopbarSyncButton(offlineSuccess ? 'synced' : 'error');
       setTimeout(() => { window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton(); }, 1800);
     } else {
       if (!window.LM_CloudSync) return;
@@ -2151,12 +2214,12 @@ function setGreeting() {
         if (typeof window.showToast === 'function') {
           window.showToast('⚠️ No internet connection — changes are safe locally', 'warning');
         }
-        if (btn) { btn.textContent = '⚠️'; }
+        window.LM_updateTopbarSyncButton('offline');
         setTimeout(() => { window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton(); }, 1800);
         return;
       }
       _syncBusy = true;
-      if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+      window.LM_updateTopbarSyncButton('in-progress');
       let cloudSuccess = true;
       try {
         if (window.LM_CloudSync && typeof window.LM_CloudSync.syncBidirectional === 'function') {
@@ -2197,21 +2260,69 @@ function setGreeting() {
         }
       }
       _syncBusy = false;
-      if (btn) { btn.textContent = cloudSuccess ? '✅' : '❌'; btn.disabled = false; }
+      window.LM_updateTopbarSyncButton(cloudSuccess ? 'synced' : 'error');
       setTimeout(() => { window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton(); }, 1800);
     }
   };
 
   window.LM_manualSync = window.LM_handleTopbarSyncClick;
 
-  /* Reactive Listeners for Topbar Sync Button */
+  /* ── Privacy "Peek Shield" Masking System (Shift+P) ───────────────── */
+  window.LM_togglePrivacyShield = function () {
+    const isActive = document.body.classList.toggle('privacy-shield-active');
+    try {
+      localStorage.setItem('lm_privacy_shield', isActive ? 'true' : 'false');
+    } catch(e) {}
+    const btn = document.getElementById('privacyShieldBtn');
+    if (btn) {
+      btn.textContent = isActive ? '🙈' : '👁️';
+      btn.title = isActive ? 'Privacy Shield ACTIVE (Balances blurred) · Click or Shift+P to reveal' : 'Privacy Shield (Blur Balances - Shift+P)';
+      btn.classList.toggle('active', isActive);
+    }
+    if (typeof window.showToast === 'function') {
+      window.showToast(isActive ? '🙈 Privacy Shield ON (Balances blurred)' : '👁️ Privacy Shield OFF (Balances visible)', 'info');
+    }
+  };
+
+  try {
+    if (localStorage.getItem('lm_privacy_shield') === 'true') {
+      document.body.classList.add('privacy-shield-active');
+      const btn = document.getElementById('privacyShieldBtn');
+      if (btn) {
+        btn.textContent = '🙈';
+        btn.classList.add('active');
+      }
+    }
+  } catch(e) {}
+
+  window.addEventListener('keydown', function(e) {
+    if ((e.shiftKey && (e.key === 'P' || e.key === 'p')) && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) {
+      e.preventDefault();
+      window.LM_togglePrivacyShield();
+    }
+  });
+
+  /* Reactive Listeners for Topbar Sync Button & Health Pill */
   if (window.LM_Bus) {
     LM_Bus.on('lm:sync:mode-changed', function () {
       window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton();
     });
+    LM_Bus.on('lm:sync:in-progress', function () {
+      window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton('in-progress');
+    });
+    LM_Bus.on('lm:sync:success', function () {
+      _syncLastSaved = new Date();
+      window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton('synced');
+    });
+    LM_Bus.on('lm:sync:pending', function () {
+      window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton();
+    });
+    LM_Bus.on('lm:sync:error', function () {
+      window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton('error');
+    });
     LM_Bus.on('lm:cloud:saved', function () {
       _syncLastSaved = new Date();
-      window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton();
+      window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton('synced');
     });
     LM_Bus.on('lm:local-backup:status-changed', function () {
       window.LM_updateTopbarSyncButton && window.LM_updateTopbarSyncButton();

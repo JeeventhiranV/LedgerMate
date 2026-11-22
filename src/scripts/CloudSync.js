@@ -22,6 +22,98 @@
   var _dirty     = false;
   var _isImporting = false;
 
+  // ── Client Session Identifier (prevents realtime echo loops) ──
+  var _clientSessionId = (function () {
+    try {
+      var sid = sessionStorage.getItem('lm_client_session_id');
+      if (!sid) {
+        sid = 'client_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+        sessionStorage.setItem('lm_client_session_id', sid);
+      }
+      return sid;
+    } catch (e) {
+      return 'client_' + Date.now();
+    }
+  })();
+
+  // ── Persistent Offline Mutation Queue ────────────────────────
+  var SYNC_QUEUE_KEY = 'lm_sync_pending_stores';
+  function getPendingQueue() {
+    try {
+      var raw = localStorage.getItem(SYNC_QUEUE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return []; }
+  }
+
+  function markStorePending(storeName) {
+    try {
+      var q = getPendingQueue();
+      if (storeName && !q.includes(storeName)) {
+        q.push(storeName);
+        localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(q));
+      }
+    } catch (e) {}
+  }
+
+  function clearPendingQueue() {
+    try {
+      localStorage.removeItem(SYNC_QUEUE_KEY);
+    } catch (e) {}
+  }
+
+  // ── Deletion Tombstone Registry ──────────────────────────────
+  var TOMBSTONES_KEY = 'lm_deleted_tombstones_v1';
+  function getTombstones() {
+    try {
+      var raw = localStorage.getItem(TOMBSTONES_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function addTombstone(store, id) {
+    if (!store || id == null) return;
+    try {
+      var list = getTombstones();
+      list = list.filter(function (t) { return !(t.store === store && String(t.id) === String(id)); });
+      list.push({
+        store: store,
+        id: String(id),
+        deletedAt: new Date().toISOString()
+      });
+      // Keep up to 30 days of tombstones or max 500 records
+      var cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
+      list = list.filter(function (t) {
+        return new Date(t.deletedAt).getTime() > cutoff;
+      }).slice(-500);
+      localStorage.setItem(TOMBSTONES_KEY, JSON.stringify(list));
+      markStorePending(store);
+      console.log('[CloudSync] 🪦 Added tombstone for ' + store + ':' + id);
+    } catch (e) {
+      console.warn('[CloudSync] Failed to add tombstone:', e);
+    }
+  }
+
+  function mergeTombstones(remoteTombstones) {
+    if (!Array.isArray(remoteTombstones) || !remoteTombstones.length) return;
+    try {
+      var local = getTombstones();
+      var map = new Map();
+      local.forEach(function (t) { map.set(t.store + ':::' + t.id, t); });
+      remoteTombstones.forEach(function (rt) {
+        if (!rt || !rt.store || rt.id == null) return;
+        var k = rt.store + ':::' + rt.id;
+        var existing = map.get(k);
+        if (!existing || new Date(rt.deletedAt) > new Date(existing.deletedAt)) {
+          map.set(k, rt);
+        }
+      });
+      var merged = Array.from(map.values()).slice(-500);
+      localStorage.setItem(TOMBSTONES_KEY, JSON.stringify(merged));
+    } catch (e) {}
+  }
+
   // ── Sync Mode (Cloud vs Offline) ───────────────────────────
   function getSyncMode() {
     try {
@@ -82,7 +174,14 @@
   // ── Native Gzip Compression Helper ──────────────────────────
   async function compressPayload(jsonStr) {
     if (typeof CompressionStream === 'undefined') {
-      try { return JSON.parse(jsonStr); } catch { return jsonStr; }
+      try {
+        var obj = JSON.parse(jsonStr);
+        if (obj && typeof obj === 'object') {
+          obj._clientId = _clientSessionId;
+          obj._tombstones = getTombstones();
+        }
+        return obj;
+      } catch { return jsonStr; }
     }
     try {
       const stream = new Blob([jsonStr]).stream().pipeThrough(new CompressionStream('gzip'));
@@ -96,6 +195,8 @@
         _compressed: true,
         _format: 'gzip-b64',
         _v: 2,
+        _clientId: _clientSessionId,
+        _tombstones: getTombstones(),
         payload: btoa(binary)
       };
     } catch (e) {
@@ -119,7 +220,12 @@
         }
         const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
         const text = await new Response(stream).text();
-        return JSON.parse(text);
+        const parsed = JSON.parse(text);
+        if (parsed && typeof parsed === 'object') {
+          if (remoteData._clientId && !parsed._clientId) parsed._clientId = remoteData._clientId;
+          if (remoteData._tombstones && !parsed._tombstones) parsed._tombstones = remoteData._tombstones;
+        }
+        return parsed;
       } catch (e) {
         console.error('[CloudSync] Decompression failed:', e);
         return null;
@@ -134,12 +240,15 @@
     if (isOfflineMode() || (typeof navigator !== 'undefined' && !navigator.onLine)) {
       return Promise.resolve();
     }
+    if (window.LM_Bus) LM_Bus.emit('lm:sync:in-progress');
     return _uid().then(function (uid) {
       if (!uid) return;
       var rev = 'rev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
       return compressPayload(jsonStr).then(function (dataToSave) {
         if (dataToSave && typeof dataToSave === 'object') {
           dataToSave._rev = rev;
+          dataToSave._clientId = _clientSessionId;
+          dataToSave._tombstones = getTombstones();
         }
         var nowIso = new Date().toISOString();
         return _supabase
@@ -154,7 +263,10 @@
             if (r.error) {
               console.warn('[CloudSync] save error:', r.error.message);
               if (typeof showToast === 'function') showToast('☁️ Cloud sync failed — will retry', 'error');
-              if (window.LM_Bus) LM_Bus.emit('lm:cloud:failed', { message: 'Cloud sync failed — check connection' });
+              if (window.LM_Bus) {
+                LM_Bus.emit('lm:cloud:failed', { message: 'Cloud sync failed — check connection' });
+                LM_Bus.emit('lm:sync:error', { error: r.error });
+              }
             } else {
               console.log('[CloudSync] ✅ saved to cloud (Gzip compressed ~95%)');
               var actualIso = (r.data && r.data.updated_at) ? String(r.data.updated_at) : nowIso;
@@ -164,7 +276,12 @@
                 localStorage.setItem('lm_last_synced_remote_updated_at', actualIso);
                 localStorage.setItem('lm_last_synced_rev', rev);
               } catch (e) {}
-              if (window.LM_Bus) LM_Bus.emit('lm:cloud:saved', { updatedAt: actualIso, rev: rev });
+              clearPendingQueue();
+              _dirty = false;
+              if (window.LM_Bus) {
+                LM_Bus.emit('lm:cloud:saved', { updatedAt: actualIso, rev: rev });
+                LM_Bus.emit('lm:sync:success', { updatedAt: actualIso, rev: rev });
+              }
             }
           });
       });
@@ -199,8 +316,10 @@
   }
 
   // ── Public: debounced save (call after any mutation) ────────
-  function queueSave(ms) {
+  function queueSave(ms, storeName) {
     _dirty = true;
+    if (storeName) markStorePending(storeName);
+    if (window.LM_Bus) LM_Bus.emit('lm:sync:pending', { dirtyCount: getPendingQueue().length });
     clearTimeout(_saveTimer);
     _saveTimer = setTimeout(save, ms != null ? ms : 4000);
   }
@@ -302,12 +421,13 @@
   }
 
   // ── Public: fetch cloud data and import into IndexedDB ──────
-  // Clears stale local data FIRST so cloud is always the source of truth.
-  function load() {
+  // Uses non-destructive merge when local un-synced changes exist.
+  function load(options) {
     if (isOfflineMode() || (typeof navigator !== 'undefined' && !navigator.onLine)) {
       console.log('[CloudSync] Offline mode or no internet — skipping cloud load and using local data');
       return Promise.resolve(false);
     }
+    if (window.LM_Bus) LM_Bus.emit('lm:sync:in-progress');
     return _uid().then(function (uid) {
       if (!uid) return false;
       return _supabase
@@ -342,30 +462,59 @@
               try { localStorage.setItem('lm_last_synced_rev', payload._rev); } catch(e){}
             }
 
+            // Merge remote tombstones so deletions propagate across devices
+            if (payload._tombstones) {
+              mergeTombstones(payload._tombstones);
+            }
+
             var jsonStr = typeof payload === 'string' ? payload : JSON.stringify(payload);
 
             _isImporting = true;
             clearTimeout(_saveTimer);
-            _dirty = false;
 
-            // Wipe IndexedDB first — guarantees no stale local rows survive
-            return _clearDataStores().then(function () {
-              var p;
-              if (typeof window.fullImportJSONText === 'function') {
-                p = window.fullImportJSONText(jsonStr, 'CloudSync');
-              } else if (typeof window.mergeRestore === 'function') {
-                p = window.mergeRestore(payload);
+            var hasLocalUnsaved = _dirty || getPendingQueue().length > 0;
+            var forceWipe = !!(options && options.forceWipe);
+
+            var executeImport = function () {
+              if (hasLocalUnsaved && typeof window.mergeRestore === 'function') {
+                console.log('[CloudSync] 🔀 Local uncommitted changes detected — executing non-destructive merge');
+                return window.mergeRestore(payload).then(function () {
+                  _isImporting = false;
+                  _dirty = true;
+                  queueSave(3000);
+                  return true;
+                });
+              } else if (forceWipe) {
+                return _clearDataStores().then(function () {
+                  if (typeof window.fullImportJSONText === 'function') {
+                    return window.fullImportJSONText(jsonStr, 'CloudSync');
+                  }
+                  return window.mergeRestore ? window.mergeRestore(payload) : false;
+                });
               } else {
-                p = Promise.resolve(false);
+                if (typeof window.mergeRestore === 'function') {
+                  return window.mergeRestore(payload);
+                } else if (typeof window.fullImportJSONText === 'function') {
+                  return _clearDataStores().then(function () {
+                    return window.fullImportJSONText(jsonStr, 'CloudSync');
+                  });
+                }
+                return Promise.resolve(false);
               }
-              return Promise.resolve(p).then(function () {
-                _isImporting = false;
+            };
+
+            return Promise.resolve(executeImport()).then(function () {
+              _isImporting = false;
+              if (!hasLocalUnsaved) {
                 _dirty = false;
-                clearTimeout(_saveTimer);
-                return true;
-              });
+                clearPendingQueue();
+              }
+              clearTimeout(_saveTimer);
+              if (window.LM_Bus) LM_Bus.emit('lm:sync:success', { updatedAt: remoteIso });
+              return true;
             }).catch(function (err) {
               _isImporting = false;
+              if (window.LM_Bus) LM_Bus.emit('lm:sync:error', { error: err });
               throw err;
             });
           });
@@ -373,6 +522,7 @@
     }).catch(function (e) {
       _isImporting = false;
       console.warn('[CloudSync] load exception (retaining local data):', e && e.message || e);
+      if (window.LM_Bus) LM_Bus.emit('lm:sync:error', { error: e });
       return false;
     });
   }
@@ -477,6 +627,13 @@
               { event: '*', schema: 'public', table: TABLE, filter: 'user_id=eq.' + uid },
               function (payload) {
                 if (_saving || _isImporting || isOfflineMode()) return;
+                // Fast check: if payload has _clientId matching our current tab session, ignore self-echo
+                if (payload && payload.new && payload.new.data) {
+                  var remoteRaw = payload.new.data;
+                  if (remoteRaw._clientId && remoteRaw._clientId === _clientSessionId) {
+                    return;
+                  }
+                }
                 var evIso = payload && payload.new && payload.new.updated_at ? String(payload.new.updated_at) : '';
                 var evMs = evIso ? new Date(evIso).getTime() : 0;
                 var lastSyncedMs = Number(localStorage.getItem('lm_last_cloud_sync_time') || 0);
@@ -522,6 +679,13 @@
       _initRealtime();
     }
 
+    // Flush any pending offline queue on boot
+    if (getPendingQueue().length > 0 && typeof navigator !== 'undefined' && navigator.onLine && !isOfflineMode()) {
+      console.log('[CloudSync] 🔄 Uncommitted mutations found in offline queue (' + getPendingQueue().length + ' stores) — scheduling sync');
+      _dirty = true;
+      queueSave(1500);
+    }
+
     console.log('[CloudSync] 🔄 auto-save & realtime sync initialized (Mode: ' + getSyncMode() + ')');
   }
 
@@ -532,12 +696,29 @@
     checkAndSyncBackground : checkAndSyncBackground,
     syncBidirectional      : syncBidirectional,
     isImporting            : function () { return _isImporting; },
+    isDirty                : function () { return _dirty || getPendingQueue().length > 0; },
     queueSave              : queueSave,
     saveOnLogout           : saveOnLogout,
     startAutoSave          : startAutoSave,
     getSyncMode            : getSyncMode,
     setSyncMode            : setSyncMode,
-    isOfflineMode          : isOfflineMode
+    isOfflineMode          : isOfflineMode,
+    addTombstone           : addTombstone,
+    getTombstones          : getTombstones,
+    getPendingQueue        : getPendingQueue,
+    getClientSessionId     : function () { return _clientSessionId; },
+    getSyncStats           : function () {
+      return {
+        mode: getSyncMode(),
+        isDirty: _dirty || getPendingQueue().length > 0,
+        pendingStores: getPendingQueue(),
+        lastSyncMs: Number(localStorage.getItem('lm_last_cloud_sync_time') || 0),
+        lastRemoteIso: localStorage.getItem('lm_last_synced_remote_updated_at') || null,
+        lastRev: localStorage.getItem('lm_last_synced_rev') || null,
+        tombstoneCount: getTombstones().length,
+        sessionId: _clientSessionId
+      };
+    }
   };
 
 }());

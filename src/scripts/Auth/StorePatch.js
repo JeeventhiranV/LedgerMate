@@ -111,6 +111,9 @@
             obj = { ...obj, profile: 'default' };
           }
         }
+        if (!obj.updatedAt) {
+          obj = { ...obj, updatedAt: new Date().toISOString() };
+        }
       }
       const result = await _origPut(storeName, obj);
       /* Notify CloudSync that data changed so it queues a debounced save (suppressed during cloud import) */
@@ -129,6 +132,9 @@
     const _origDel = window.del;
     if (typeof _origDel === 'function') {
       window.del = async function patchedDel(storeName, key) {
+        if (USER_DATA_STORES.has(storeName) && window.LM_CloudSync && typeof window.LM_CloudSync.addTombstone === 'function') {
+          window.LM_CloudSync.addTombstone(storeName, key);
+        }
         const result = await _origDel(storeName, key);
         if (USER_DATA_STORES.has(storeName) && window.LM_Bus) {
           const isImp = (window.LM_CloudSync && typeof window.LM_CloudSync.isImporting === 'function')

@@ -2936,6 +2936,9 @@ function openAddTransactionModal(prefill = {}) {
   setTimeout(() => {
     const overlay = document.getElementById('addTxOverlay');
     if (overlay) overlay.classList.add('show');
+    if (window.LM_SmartQuickAdd && typeof window.LM_SmartQuickAdd.injectQuickAddBar === 'function') {
+      try { window.LM_SmartQuickAdd.injectQuickAddBar(); } catch(e) {}
+    }
   }, 10);
 
   const closeModal = () => {
@@ -3806,6 +3809,16 @@ async function mergeRestore(payload) {
       if (!item || typeof item !== 'object') continue;
       try {
         if (item.id != null) {
+          if (typeof get === 'function') {
+            try {
+              const existing = await get(store, item.id);
+              if (existing && existing.updatedAt && item.updatedAt) {
+                if (new Date(existing.updatedAt) > new Date(item.updatedAt)) {
+                  continue; // local record is newer, preserve local
+                }
+              }
+            } catch (e) {}
+          }
           await put(store, item);
         } else {
           await put(store, { id: uid(store.slice(0, 3)), ...item });
@@ -3815,6 +3828,17 @@ async function mergeRestore(payload) {
       }
     }
   };
+
+  /* ── Prune Deleted Items via Tombstones ──────────────── */
+  if (Array.isArray(payload._tombstones)) {
+    for (const t of payload._tombstones) {
+      if (t && t.store && t.id != null && db && db.objectStoreNames.contains(t.store)) {
+        try {
+          if (typeof del === 'function') await del(t.store, t.id);
+        } catch (e) {}
+      }
+    }
+  }
 
   await upsertList('transactions',        payload.transactions || []);
   await upsertList('budgets',             payload.budgets || []);
@@ -4990,6 +5014,23 @@ async function FinalJson(){
         return raw ? JSON.parse(raw) : [];
       } catch(e) { return []; }
     })(),
+    _tombstones: (function(){
+      try {
+        if (window.LM_CloudSync && typeof window.LM_CloudSync.getTombstones === 'function') {
+          return window.LM_CloudSync.getTombstones();
+        }
+        var raw = localStorage.getItem('lm_deleted_tombstones_v1');
+        return raw ? JSON.parse(raw) : [];
+      } catch(e) { return []; }
+    })(),
+    _clientId: (function(){
+      try {
+        if (window.LM_CloudSync && typeof window.LM_CloudSync.getClientSessionId === 'function') {
+          return window.LM_CloudSync.getClientSessionId();
+        }
+        return sessionStorage.getItem('lm_client_session_id') || 'client_default';
+      } catch(e) { return 'client_default'; }
+    })(),
     meta: {
       exportedAt   : new Date().toISOString(),
       exportedBy   : window.LM_Auth?.getCurrentUser?.()?.username || 'user',
@@ -5815,6 +5856,9 @@ setTimeout(() => {
     if (typeof renderWealthDashboard === 'function') renderWealthDashboard();
     else renderDashboardWealthWidget();
   } catch (e) { console.warn('[LM] wealth widget:', e); }
+  try { if (window.LM_SafeToSpend && typeof window.LM_SafeToSpend.render === 'function') window.LM_SafeToSpend.render(); } catch (e) { console.warn('[LM] safe to spend widget:', e); }
+  try { if (window.LM_BestCardEngine && typeof window.LM_BestCardEngine.render === 'function') window.LM_BestCardEngine.render(); } catch (e) { console.warn('[LM] best card engine:', e); }
+  try { if (window.LM_UnifiedDues && typeof window.LM_UnifiedDues.render === 'function') window.LM_UnifiedDues.render(); } catch (e) { console.warn('[LM] unified dues timeline:', e); }
 }
 
 /* ============================================================
