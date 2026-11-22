@@ -5099,6 +5099,9 @@ window._LM_restoreLastPage = function() {
   if (window.LM_ModuleHubUI && typeof window.LM_ModuleHubUI.syncSidebarPinned === 'function') {
     try { window.LM_ModuleHubUI.syncSidebarPinned(); } catch (e) {}
   }
+  if (window.LM_SidebarNav && typeof window.LM_SidebarNav.init === 'function') {
+    try { window.LM_SidebarNav.init(); } catch (e) {}
+  }
   if (typeof showPage === 'function') showPage(lastPage);
 };
 

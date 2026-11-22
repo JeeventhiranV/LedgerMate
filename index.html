@@ -231,153 +231,267 @@
       <div id="sidebarPinnedList"></div>
     </div>
 
-    <!-- ── MONEY MANAGEMENT ───────────────────────────────── -->
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">Money</div>
-      <button class="sidebar-nav-item" id="openBudgets" data-module="budgets">
-        <span class="nav-icon">🎯</span> <span class="nav-label">Budgets</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('loans')" data-module="loans">
-        <span class="nav-icon">🏦</span> <span class="nav-label">Loans &amp; EMIs</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('credit-cards')" id="openCreditCards" data-module="credit-cards">
-        <span class="nav-icon">💳</span> <span class="nav-label">Credit Cards</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('investments')" id="openInvestments" data-module="investments">
-        <span class="nav-icon">💼</span> <span class="nav-label">Investments</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('stocks')" id="openStockPortfolio" data-module="stocks">
-        <span class="nav-icon">📈</span> <span class="nav-label">Stocks &amp; Portfolio</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('subscriptions')" data-module="subscriptions">
-        <span class="nav-icon">🔄</span> <span class="nav-label">Subscriptions</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('savings-goals')" data-module="savings-goals">
-        <span class="nav-icon">🏆</span> <span class="nav-label">Savings Goals</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('emergency-fund')" data-module="emergency-fund">
-        <span class="nav-icon">🛡️</span> <span class="nav-label">Emergency Fund</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('debt-payoff')" data-module="debt-payoff">
-        <span class="nav-icon">⚡</span> <span class="nav-label">Debt Payoff</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('business')" id="openBusinessHub" data-module="business">
-        <span class="nav-icon">🏢</span> <span class="nav-label">Business Hub</span>
-      </button>
-    </div>
+    <!-- ── INTERACTIVE MODULE GROUPS & SUBMENUS ───────────── -->
+    <div class="sidebar-section" style="padding-top:2px;">
+      <div class="sidebar-section-label" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span>Modules &amp; Tools</span>
+        <span style="font-size:10px;cursor:pointer;color:var(--teal,#00f0ff);font-weight:600;text-transform:none;" onclick="showPage('modules')" title="Open Full Visual Hub">App Hub ↗</span>
+      </div>
 
-    <!-- ── WEALTH & GOALS ────────────────────────────────── -->
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">Wealth</div>
-      <button class="sidebar-nav-item" onclick="showPage('wealth')" data-module="wealth">
-        <span class="nav-icon">💎</span> <span class="nav-label">Net Worth</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('wealth-goals')" data-module="wealth-goals">
-        <span class="nav-icon">🎖️</span> <span class="nav-label">Goals &amp; Milestones</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('essentials')" data-module="essentials">
-        <span class="nav-icon">📦</span> <span class="nav-label">Essentials</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('gold')" data-module="gold">
-        <span class="nav-icon">🪙</span> <span class="nav-label">Gold &amp; Silver Rates</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('tax-planner')" data-module="tax-planner">
-        <span class="nav-icon">📑</span> <span class="nav-label">Tax Planner</span>
-      </button>
-    </div>
+      <!-- 1. BANKING & CREDIT -->
+      <div class="sidebar-nav-group" id="sidebarGroup-banking" data-group="banking">
+        <button type="button" class="sidebar-nav-group-header" onclick="window.LM_SidebarNav?.toggleGroup('banking', event)" aria-expanded="false">
+          <span class="sidebar-nav-group-icon">💳</span>
+          <span class="sidebar-nav-group-label">Banking &amp; Credit</span>
+          <span class="sidebar-nav-group-badge">4</span>
+          <span class="sidebar-nav-chevron">›</span>
+        </button>
+        <div class="sidebar-nav-submenu-wrap">
+          <div class="sidebar-nav-submenu">
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('credit-cards')" id="openCreditCards" data-module="credit-cards">
+              <span class="sidebar-nav-subitem-icon">💳</span>
+              <span class="sidebar-nav-subitem-label">Credit Cards</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" id="openBudgets" data-module="budgets">
+              <span class="sidebar-nav-subitem-icon">🎯</span>
+              <span class="sidebar-nav-subitem-label">Budgets</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('subscriptions')" data-module="subscriptions">
+              <span class="sidebar-nav-subitem-icon">🔄</span>
+              <span class="sidebar-nav-subitem-label">Subscriptions</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('templates')" data-module="templates">
+              <span class="sidebar-nav-subitem-icon">📋</span>
+              <span class="sidebar-nav-subitem-label">Tx Templates</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
-    <!-- ── REPORTS ────────────────────────────────────────── -->
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">Reports &amp; Analytics</div>
-      <button class="sidebar-nav-item" onclick="window.LM_Sankey ? window.LM_Sankey.showModal() : (typeof openSankeyModal==='function'&&openSankeyModal())" data-module="analytics">
-        <span class="nav-icon">🌊</span> <span class="nav-label">Cashflow Flow (Sankey)</span>
-      </button>
-      <button class="sidebar-nav-item" id="openMonthlySummary" data-module="analytics">
-        <span class="nav-icon">📅</span> <span class="nav-label">Monthly Summary</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('fy-summary')" data-module="fy-summary">
-        <span class="nav-icon">📋</span> <span class="nav-label">FY Annual Summary</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('month-comparison')" data-module="month-comparison">
-        <span class="nav-icon">⚖️</span> <span class="nav-label">Month vs Month</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('spending-heatmap')" data-module="spending-heatmap">
-        <span class="nav-icon">🗓️</span> <span class="nav-label">Spend Heatmap</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('cash-flow-calendar')" data-module="cash-flow-calendar">
-        <span class="nav-icon">📆</span> <span class="nav-label">Cash Flow Calendar</span>
-      </button>
-    </div>
+      <!-- 2. ENTERPRISE & BUSINESS -->
+      <div class="sidebar-nav-group" id="sidebarGroup-business" data-group="business">
+        <button type="button" class="sidebar-nav-group-header" onclick="window.LM_SidebarNav?.toggleGroup('business', event)" aria-expanded="false">
+          <span class="sidebar-nav-group-icon">🏢</span>
+          <span class="sidebar-nav-group-label">Enterprise &amp; Business</span>
+          <span class="sidebar-nav-group-badge">3</span>
+          <span class="sidebar-nav-chevron">›</span>
+        </button>
+        <div class="sidebar-nav-submenu-wrap">
+          <div class="sidebar-nav-submenu">
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('business')" id="openBusinessHub" data-module="business">
+              <span class="sidebar-nav-subitem-icon">🏢</span>
+              <span class="sidebar-nav-subitem-label">Business Hub</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('business'); setTimeout(()=>window.LM_BusinessUI?.switchTab('khata'), 150);" data-module="business">
+              <span class="sidebar-nav-subitem-icon">🤝</span>
+              <span class="sidebar-nav-subitem-label">Khata &amp; Reminders</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('tax-planner')" data-module="tax-planner">
+              <span class="sidebar-nav-subitem-icon">📑</span>
+              <span class="sidebar-nav-subitem-label">Tax Planner</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
-    <!-- ── CALCULATORS ───────────────────────────────────── -->
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">Calculators</div>
-      <button class="sidebar-nav-item" onclick="window.LM_DebtOptimizer?.showModal()" data-module="loans">
-        <span class="nav-icon">🎯</span> <span class="nav-label">Debt Optimizer</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="openEMIModal()" data-module="loans">
-        <span class="nav-icon">🧮</span> <span class="nav-label">EMI Calculator</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="openWhatIfModal()" data-module="analytics">
-        <span class="nav-icon">🔮</span> <span class="nav-label">What-If Simulator</span>
-      </button>
-    </div>
+      <!-- 3. DEBT & LIABILITIES -->
+      <div class="sidebar-nav-group" id="sidebarGroup-debt" data-group="debt">
+        <button type="button" class="sidebar-nav-group-header" onclick="window.LM_SidebarNav?.toggleGroup('debt', event)" aria-expanded="false">
+          <span class="sidebar-nav-group-icon">🏦</span>
+          <span class="sidebar-nav-group-label">Debt &amp; Liabilities</span>
+          <span class="sidebar-nav-group-badge">4</span>
+          <span class="sidebar-nav-chevron">›</span>
+        </button>
+        <div class="sidebar-nav-submenu-wrap">
+          <div class="sidebar-nav-submenu">
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('loans')" data-module="loans">
+              <span class="sidebar-nav-subitem-icon">🏦</span>
+              <span class="sidebar-nav-subitem-label">Loans &amp; EMIs</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('debt-payoff')" data-module="debt-payoff">
+              <span class="sidebar-nav-subitem-icon">⚡</span>
+              <span class="sidebar-nav-subitem-label">Debt Payoff</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="window.LM_DebtOptimizer?.showModal()" data-module="loans">
+              <span class="sidebar-nav-subitem-icon">🎯</span>
+              <span class="sidebar-nav-subitem-label">Debt Optimizer</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="openEMIModal()" data-module="loans">
+              <span class="sidebar-nav-subitem-icon">🧮</span>
+              <span class="sidebar-nav-subitem-label">EMI Calculator</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
-    <!-- ── PRODUCTIVITY ───────────────────────────────────── -->
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">Productivity</div>
-      <button class="sidebar-nav-item" onclick="window.LM_CommandPalette?.open()">
-        <span class="nav-icon">⚡</span> <span class="nav-label">Command Palette</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showNotesModal();" id="openNotes1" data-module="notes">
-        <span class="nav-icon">📝</span> <span class="nav-label">Quick Notes</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('templates')" data-module="templates">
-        <span class="nav-icon">📋</span> <span class="nav-label">Tx Templates</span>
-      </button>
-      <button class="sidebar-nav-item" id="openTripPlannerBtn" onclick="showPage('trips')" data-module="trips">
-        <span class="nav-icon">✈️</span> <span class="nav-label">Trip Planner</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('vehicles')" data-module="vehicles">
-        <span class="nav-icon">🏍️</span> <span class="nav-label">Bike &amp; Vehicles</span>
-      </button>
-      <button onclick="window.open('./study/index.html','_self')" class="sidebar-nav-item" data-module="views-browser">
-        <span class="nav-icon">📚</span> <span class="nav-label">Study Resources</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="openWidgetPage()" data-module="widget">
-        <span class="nav-icon">📱</span> <span class="nav-label">Home Widget</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="showPage('media-compressor')" data-module="media-compressor">
-        <span class="nav-icon">🗜️</span> <span class="nav-label">Media Compressor</span>
-      </button>
-    </div>
+      <!-- 4. WEALTH & INVESTMENTS -->
+      <div class="sidebar-nav-group" id="sidebarGroup-wealth" data-group="wealth">
+        <button type="button" class="sidebar-nav-group-header" onclick="window.LM_SidebarNav?.toggleGroup('wealth', event)" aria-expanded="false">
+          <span class="sidebar-nav-group-icon">📈</span>
+          <span class="sidebar-nav-group-label">Wealth &amp; Markets</span>
+          <span class="sidebar-nav-group-badge">8</span>
+          <span class="sidebar-nav-chevron">›</span>
+        </button>
+        <div class="sidebar-nav-submenu-wrap">
+          <div class="sidebar-nav-submenu">
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('stocks')" id="openStockPortfolio" data-module="stocks">
+              <span class="sidebar-nav-subitem-icon">📈</span>
+              <span class="sidebar-nav-subitem-label">Stocks &amp; Portfolio</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('investments')" id="openInvestments" data-module="investments">
+              <span class="sidebar-nav-subitem-icon">💼</span>
+              <span class="sidebar-nav-subitem-label">Investments</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('wealth')" data-module="wealth">
+              <span class="sidebar-nav-subitem-icon">💎</span>
+              <span class="sidebar-nav-subitem-label">Net Worth</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('wealth-goals')" data-module="wealth-goals">
+              <span class="sidebar-nav-subitem-icon">🎖️</span>
+              <span class="sidebar-nav-subitem-label">Goals &amp; Milestones</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('savings-goals')" data-module="savings-goals">
+              <span class="sidebar-nav-subitem-icon">🏆</span>
+              <span class="sidebar-nav-subitem-label">Savings Goals</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('emergency-fund')" data-module="emergency-fund">
+              <span class="sidebar-nav-subitem-icon">🛡️</span>
+              <span class="sidebar-nav-subitem-label">Emergency Fund</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('essentials')" data-module="essentials">
+              <span class="sidebar-nav-subitem-icon">📦</span>
+              <span class="sidebar-nav-subitem-label">Essentials</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('gold')" data-module="gold">
+              <span class="sidebar-nav-subitem-icon">🪙</span>
+              <span class="sidebar-nav-subitem-label">Gold &amp; Silver</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
-    <!-- ── SETTINGS ──────────────────────────────────────── -->
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">Settings</div>
-      <button class="sidebar-nav-item" onclick="window.LM_CategoryRules?.showRulesModal()" data-module="transactions">
-        <span class="nav-icon">🏷️</span> <span class="nav-label">Category Rules</span>
-      </button>
-      <button class="sidebar-nav-item" onclick="openDashboardCustomizer()" data-module="dashboard-config">
-        <span class="nav-icon">🎛️</span> <span class="nav-label">Customize Dashboard</span>
-      </button>
-      <button class="sidebar-nav-item" id="openDropdownManagerBtn" data-module="transactions">
-        <span class="nav-icon">🔽</span> <span class="nav-label">Dropdown Manager</span>
-      </button>
-      <button class="sidebar-nav-item pwa-install-trigger" id="pwaInstallBtn" style="display:none;color:var(--teal,#00d4b4);" onclick="window.LM_PWA?.install()">
-        <span class="nav-icon">⬇️</span> <span class="nav-label">Install App</span>
-      </button>
-    </div>
+      <!-- 5. LIFESTYLE & TRAVEL -->
+      <div class="sidebar-nav-group" id="sidebarGroup-lifestyle" data-group="lifestyle">
+        <button type="button" class="sidebar-nav-group-header" onclick="window.LM_SidebarNav?.toggleGroup('lifestyle', event)" aria-expanded="false">
+          <span class="sidebar-nav-group-icon">✈️</span>
+          <span class="sidebar-nav-group-label">Lifestyle &amp; Travel</span>
+          <span class="sidebar-nav-group-badge">6</span>
+          <span class="sidebar-nav-chevron">›</span>
+        </button>
+        <div class="sidebar-nav-submenu-wrap">
+          <div class="sidebar-nav-submenu">
+            <button type="button" class="sidebar-nav-subitem" id="openTripPlannerBtn" onclick="showPage('trips')" data-module="trips">
+              <span class="sidebar-nav-subitem-icon">✈️</span>
+              <span class="sidebar-nav-subitem-label">Trip Planner</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('vehicles')" data-module="vehicles">
+              <span class="sidebar-nav-subitem-icon">🏍️</span>
+              <span class="sidebar-nav-subitem-label">Bike &amp; Vehicles</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showNotesModal();" id="openNotes1" data-module="notes">
+              <span class="sidebar-nav-subitem-icon">📝</span>
+              <span class="sidebar-nav-subitem-label">Quick Notes</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('media-compressor')" data-module="media-compressor">
+              <span class="sidebar-nav-subitem-icon">🗜️</span>
+              <span class="sidebar-nav-subitem-label">Media Compressor</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="openWidgetPage()" data-module="widget">
+              <span class="sidebar-nav-subitem-icon">📱</span>
+              <span class="sidebar-nav-subitem-label">Home Widget</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="window.open('./study/index.html','_self')" data-module="views-browser">
+              <span class="sidebar-nav-subitem-icon">📚</span>
+              <span class="sidebar-nav-subitem-label">Study Resources</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
-    <!-- ── DATA ──────────────────────────────────────────── -->
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">Data</div>
-      <button class="sidebar-nav-item" onclick="window.LM_StatementParser?.openFilePicker()">
-        <span class="nav-icon">📄</span> <span class="nav-label">Import Statement (CSV)</span>
-      </button>
-      <button class="sidebar-nav-item" id="clearData">
-        <span class="nav-icon">🗑️</span> <span class="nav-label">Clear All Data</span>
-      </button>
+      <!-- 6. REPORTS & INTELLIGENCE -->
+      <div class="sidebar-nav-group" id="sidebarGroup-reports" data-group="reports">
+        <button type="button" class="sidebar-nav-group-header" onclick="window.LM_SidebarNav?.toggleGroup('reports', event)" aria-expanded="false">
+          <span class="sidebar-nav-group-icon">📊</span>
+          <span class="sidebar-nav-group-label">Reports &amp; Intelligence</span>
+          <span class="sidebar-nav-group-badge">7</span>
+          <span class="sidebar-nav-chevron">›</span>
+        </button>
+        <div class="sidebar-nav-submenu-wrap">
+          <div class="sidebar-nav-submenu">
+            <button type="button" class="sidebar-nav-subitem" onclick="window.LM_Sankey ? window.LM_Sankey.showModal() : (typeof openSankeyModal==='function'&&openSankeyModal())" data-module="analytics">
+              <span class="sidebar-nav-subitem-icon">🌊</span>
+              <span class="sidebar-nav-subitem-label">Cashflow Flow (Sankey)</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" id="openMonthlySummary" data-module="analytics">
+              <span class="sidebar-nav-subitem-icon">📅</span>
+              <span class="sidebar-nav-subitem-label">Monthly Summary</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('fy-summary')" data-module="fy-summary">
+              <span class="sidebar-nav-subitem-icon">📋</span>
+              <span class="sidebar-nav-subitem-label">FY Annual Summary</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('month-comparison')" data-module="month-comparison">
+              <span class="sidebar-nav-subitem-icon">⚖️</span>
+              <span class="sidebar-nav-subitem-label">Month vs Month</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('spending-heatmap')" data-module="spending-heatmap">
+              <span class="sidebar-nav-subitem-icon">🗓️</span>
+              <span class="sidebar-nav-subitem-label">Spend Heatmap</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="showPage('cash-flow-calendar')" data-module="cash-flow-calendar">
+              <span class="sidebar-nav-subitem-icon">📆</span>
+              <span class="sidebar-nav-subitem-label">Cash Flow Calendar</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="openWhatIfModal()" data-module="analytics">
+              <span class="sidebar-nav-subitem-icon">🔮</span>
+              <span class="sidebar-nav-subitem-label">What-If Simulator</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. SETTINGS & SYSTEM -->
+      <div class="sidebar-nav-group" id="sidebarGroup-settings" data-group="settings">
+        <button type="button" class="sidebar-nav-group-header" onclick="window.LM_SidebarNav?.toggleGroup('settings', event)" aria-expanded="false">
+          <span class="sidebar-nav-group-icon">⚙️</span>
+          <span class="sidebar-nav-group-label">Settings &amp; Tools</span>
+          <span class="sidebar-nav-group-badge">5</span>
+          <span class="sidebar-nav-chevron">›</span>
+        </button>
+        <div class="sidebar-nav-submenu-wrap">
+          <div class="sidebar-nav-submenu">
+            <button type="button" class="sidebar-nav-subitem" onclick="openDashboardCustomizer()" data-module="dashboard-config">
+              <span class="sidebar-nav-subitem-icon">🎛️</span>
+              <span class="sidebar-nav-subitem-label">Customize Dashboard</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="window.LM_CategoryRules?.showRulesModal()" data-module="transactions">
+              <span class="sidebar-nav-subitem-icon">🏷️</span>
+              <span class="sidebar-nav-subitem-label">Category Rules</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" id="openDropdownManagerBtn" data-module="transactions">
+              <span class="sidebar-nav-subitem-icon">🔽</span>
+              <span class="sidebar-nav-subitem-label">Dropdown Manager</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="window.LM_CommandPalette?.open()">
+              <span class="sidebar-nav-subitem-icon">⚡</span>
+              <span class="sidebar-nav-subitem-label">Command Palette</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" onclick="window.LM_StatementParser?.openFilePicker()">
+              <span class="sidebar-nav-subitem-icon">📄</span>
+              <span class="sidebar-nav-subitem-label">Import Statement</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem pwa-install-trigger" id="pwaInstallBtn" style="display:none;color:var(--teal,#00d4b4);" onclick="window.LM_PWA?.install()">
+              <span class="sidebar-nav-subitem-icon">⬇️</span>
+              <span class="sidebar-nav-subitem-label">Install App</span>
+            </button>
+            <button type="button" class="sidebar-nav-subitem" id="clearData" style="color:var(--rose);">
+              <span class="sidebar-nav-subitem-icon">🗑️</span>
+              <span class="sidebar-nav-subitem-label">Clear All Data</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Hidden programmatic hooks for import/export -->
       <button id="btnSetFolder" style="display:none;"><span id="folderLabel"></span></button>
       <button id="btnFullExport" style="display:none;"></button>
@@ -1545,9 +1659,13 @@ function showPage(page) {
   }
 
   // 2. Sidebar active
-  document.querySelectorAll('.sidebar-nav-item').forEach(i => i.classList.remove('active'));
-  const sideBtn = document.querySelector(`.sidebar-nav-item[onclick="showPage('${page}')"]`);
-  if (sideBtn) sideBtn.classList.add('active');
+  if (window.LM_SidebarNav && typeof window.LM_SidebarNav.syncActiveRoute === 'function') {
+    window.LM_SidebarNav.syncActiveRoute(page);
+  } else {
+    document.querySelectorAll('#sidebar .sidebar-nav-item, #sidebar .sidebar-nav-subitem').forEach(i => i.classList.remove('active'));
+    const sideBtn = document.querySelector(`#sidebar .sidebar-nav-item[onclick*="showPage('${page}')"], #sidebar .sidebar-nav-subitem[onclick*="showPage('${page}')"]`);
+    if (sideBtn) sideBtn.classList.add('active');
+  }
 
   // 3. Bottom nav active
   const mainPages = ['dashboard', 'transactions', 'modules', 'loans', 'stocks', 'gold'];
@@ -1887,6 +2005,8 @@ function setGreeting() {
   <script src="./src/scripts/Modules/MediaCompressor/MediaCompressorUI.js"></script>
   <!-- Executive Modular Cockpit & Apps Hub -->
   <script src="./src/scripts/Modules/ModuleHubUI.js"></script>
+  <!-- Sidebar Collapsible Submenu Navigation OS -->
+  <script src="./src/scripts/Modules/SidebarNavUI.js"></script>
   <!-- PWA install prompt — works on any page -->
   <script src="./src/scripts/pwa-install.js"></script>
   <!-- Real-time push notifications -->
