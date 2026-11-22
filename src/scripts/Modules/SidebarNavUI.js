@@ -62,6 +62,10 @@
     _initialized: false,
 
     init: function () {
+      var modSec = document.getElementById('sidebarModulesSection') || document.querySelector('.sidebar-modules-section');
+      if (modSec) {
+        modSec.classList.remove('collapsed');
+      }
       this.loadSavedState();
       this.renderStateToDOM();
 
