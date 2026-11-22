@@ -148,6 +148,9 @@
       if (typeof window.LM_StartApp === 'function') {
         await window.LM_StartApp();
       }
+      if (typeof window.LM_claimUnassignedRecords === 'function') {
+        window.LM_claimUnassignedRecords(user.id).catch(() => {});
+      }
 
       return session;
     } else {
@@ -170,6 +173,9 @@
 
       if (typeof window.LM_StartApp === 'function') {
         await window.LM_StartApp();
+      }
+      if (typeof window.LM_claimUnassignedRecords === 'function') {
+        window.LM_claimUnassignedRecords(user.id).catch(() => {});
       }
 
       return session;

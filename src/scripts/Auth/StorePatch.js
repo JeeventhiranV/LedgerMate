@@ -232,10 +232,12 @@
   };
 
   /* ── Kick off once DOM is ready ─────────────────────── */
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', applyPatches);
-  } else {
-    applyPatches();
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', applyPatches);
+    } else {
+      applyPatches();
+    }
   }
 
   /* Also export for manual call if needed */

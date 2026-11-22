@@ -5217,6 +5217,12 @@ window.LM_StartApp = async function LM_StartApp() {
 
     // 5. Non-blocking Background Services (SWR CloudSync, Stocks, Credit Cards, Schedulers)
     setTimeout(async () => {
+      // Auto-claim any unassigned or guest records into authenticated profile
+      const curUid = window.LM_Auth?.getCurrentUserId();
+      if (curUid && curUid !== 'default' && curUid !== 'guest' && typeof window.LM_claimUnassignedRecords === 'function') {
+        window.LM_claimUnassignedRecords(curUid).catch(() => {});
+      }
+
       const syncMode = (typeof window.LM_CloudSync?.getSyncMode === 'function')
         ? window.LM_CloudSync.getSyncMode()
         : (localStorage.getItem('lm_sync_mode') || 'cloud');
@@ -8432,6 +8438,103 @@ function renderViewsBrowser() {
 let _cfcYear  = new Date().getFullYear();
 let _cfcMonth = new Date().getMonth(); // 0-indexed
 
+function _calculateCashflowForecast(days = 30) {
+  const today = new Date();
+  const todayISO = today.toISOString().slice(0, 10);
+  
+  // Starting liquid cash from transactions
+  let currentLiquid = (state.transactions || []).reduce((sum, t) => {
+    return sum + (t.type === 'in' ? (parseFloat(t.amount) || 0) : -(parseFloat(t.amount) || 0));
+  }, 0);
+
+  // Trailing 30d discretionary burn rate
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const past30Expenses = (state.transactions || [])
+    .filter(t => t.type !== 'in' && t.date >= thirtyDaysAgo && t.date <= todayISO)
+    .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+  const dailyBurn = Math.max(0, Math.round(past30Expenses / 30));
+
+  // Upcoming scheduled commitments
+  const scheduleMap = {}; // dateISO -> array of { type, title, amount, id }
+  
+  // 1. Credit Cards
+  (state.credit_cards || []).forEach(c => {
+    const due = Number(c.current_due || 0);
+    if (due > 0 && c.due_day) {
+      let dDate = new Date(today.getFullYear(), today.getMonth(), c.due_day);
+      if (dDate < today) dDate = new Date(today.getFullYear(), today.getMonth() + 1, c.due_day);
+      const ds = dDate.toISOString().slice(0, 10);
+      if (!scheduleMap[ds]) scheduleMap[ds] = [];
+      scheduleMap[ds].push({ type: 'Credit Card', title: `${c.card_name || 'Card'} Bill Due`, amount: due, id: c.id });
+    }
+  });
+
+  // 2. Loans EMIs
+  (state.loans || []).forEach(l => {
+    if (l.type === 'taken' && l.pendingAmount > 0 && l.nextDueDate) {
+      const ds = String(l.nextDueDate).slice(0, 10);
+      const emi = parseFloat(l.emiAmount) || parseFloat(l.pendingAmount) || 0;
+      if (emi > 0) {
+        if (!scheduleMap[ds]) scheduleMap[ds] = [];
+        scheduleMap[ds].push({ type: 'Loan EMI', title: `${l.borrower || 'Loan'} EMI Due`, amount: emi, id: l.id });
+      }
+    }
+  });
+
+  // 3. Reminders
+  (state.reminders || []).forEach(r => {
+    if (!r.paid && r.date) {
+      const ds = String(r.date).slice(0, 10);
+      const amt = parseFloat(r.amount) || 0;
+      if (amt > 0) {
+        if (!scheduleMap[ds]) scheduleMap[ds] = [];
+        scheduleMap[ds].push({ type: 'Bill', title: r.title || 'Bill Due', amount: amt, id: r.id });
+      }
+    }
+  });
+
+  // Build 30-day timeline points
+  const points = [];
+  let runningBal = currentLiquid;
+  let minBal = currentLiquid;
+  let minDate = todayISO;
+  let totalScheduledOut = 0;
+
+  for (let i = 0; i < days; i++) {
+    const curDate = new Date(today.getTime() + i * 86400000);
+    const ds = curDate.toISOString().slice(0, 10);
+    const dayCommitments = scheduleMap[ds] || [];
+    const dayOut = dayCommitments.reduce((s, c) => s + c.amount, 0);
+
+    totalScheduledOut += dayOut;
+    runningBal = runningBal - dayOut - (i > 0 ? dailyBurn : 0);
+
+    if (runningBal < minBal) {
+      minBal = runningBal;
+      minDate = ds;
+    }
+
+    points.push({
+      dayIndex: i,
+      date: ds,
+      balance: Math.round(runningBal),
+      commitments: dayCommitments,
+      dayOut
+    });
+  }
+
+  return {
+    startingLiquid: Math.round(currentLiquid),
+    dailyBurn,
+    totalScheduledOut: Math.round(totalScheduledOut),
+    minBalance: Math.round(minBal),
+    minDate,
+    endBalance: Math.round(runningBal),
+    points,
+    scheduleMap
+  };
+}
+
 function renderCashFlowCalendar(year, month) {
   if (year  !== undefined) _cfcYear  = year;
   if (month !== undefined) _cfcMonth = month;
@@ -8455,6 +8558,8 @@ function renderCashFlowCalendar(year, month) {
     if (t.type === 'in') dayMap[t.date].income += amt;
     else dayMap[t.date].expense += amt;
   });
+
+  const forecast = _calculateCashflowForecast(30);
 
   // Calendar grid — weeks start Monday
   const firstDay = new Date(y, m, 1);
@@ -8488,12 +8593,15 @@ function renderCashFlowCalendar(year, month) {
     const isToday = ds === new Date().toISOString().slice(0,10);
     const net  = data ? data.income - data.expense : 0;
     const hasData = !!data;
+    const dayScheduled = forecast.scheduleMap[ds] || [];
+    const scheduledDueAmt = dayScheduled.reduce((s, c) => s + c.amount, 0);
 
     let cls = 'cfc-cell';
     if (isToday)       cls += ' cfc-today';
-    if (!hasData)      cls += ' cfc-nodata';
+    if (!hasData && !dayScheduled.length) cls += ' cfc-nodata';
     else if (net > 0)  cls += ' cfc-income';
     else if (net < 0)  cls += ' cfc-expense';
+    else if (dayScheduled.length) cls += ' cfc-neutral';
     else               cls += ' cfc-neutral';
 
     const bar = hasData ? (() => {
@@ -8510,15 +8618,85 @@ function renderCashFlowCalendar(year, month) {
       ? `<div class="cfc-amt">${net >= 0 ? '+' : ''}${Math.abs(net) >= 1000 ? (Math.abs(net)/1000).toFixed(1)+'k' : Math.round(Math.abs(net))}</div>`
       : '';
 
+    const scheduledBadge = scheduledDueAmt > 0
+      ? `<div style="font-size:9px;background:rgba(239,68,68,0.2);color:#ef4444;border-radius:4px;padding:1px 3px;margin-top:2px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🚨 ${fmtINR(scheduledDueAmt)}</div>`
+      : '';
+
     cells += `
-      <div class="${cls}" onclick="cfcDayDrill('${ds}')" title="${ds}${data ? ': +'+fmtINR(data.income)+' / -'+fmtINR(data.expense) : ''}">
+      <div class="${cls}" onclick="cfcDayDrill('${ds}')" title="${ds}${data ? ': +'+fmtINR(data.income)+' / -'+fmtINR(data.expense) : ''}${scheduledDueAmt ? ' | Scheduled Dues: ' + fmtINR(scheduledDueAmt) : ''}">
         <div class="cfc-day-num">${d}</div>
         ${bar}
         ${amtLabel}
+        ${scheduledBadge}
       </div>`;
   }
 
+  // Calculate SVG projection sparkline
+  const minB = Math.min(...forecast.points.map(p => p.balance), 0);
+  const maxB = Math.max(...forecast.points.map(p => p.balance), forecast.startingLiquid, 1000);
+  const rangeB = maxB - minB || 1;
+  const svgW = 500;
+  const svgH = 80;
+  const pad = 10;
+  const usableH = svgH - pad * 2;
+  const usableW = svgW - pad * 2;
+
+  const polyPoints = forecast.points.map((p, idx) => {
+    const x = pad + (idx / (forecast.points.length - 1)) * usableW;
+    const y = pad + (1 - (p.balance - minB) / rangeB) * usableH;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  const statusColor = forecast.minBalance < 0 ? 'var(--rose)' : forecast.minBalance < 15000 ? '#f59e0b' : 'var(--emerald)';
+  const statusLabel = forecast.minBalance < 0 ? '⚠️ Projected Overdraft Risk' : forecast.minBalance < 15000 ? '⚡ Tight Liquidity Buffer' : '🛡️ Safe Cashflow Runway';
+
   el.innerHTML = `
+    <!-- 30-Day Forward Cashflow Runway & Projection Curve Banner -->
+    <div style="background:var(--card-bg, #111424);border:1px solid var(--border,#262f45);border-radius:16px;padding:18px 20px;margin-bottom:18px;box-shadow:0 12px 30px rgba(0,0,0,0.25);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div>
+          <h3 style="margin:0;font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;">
+            <span>📈 30-Day Projected Cashflow Runway</span>
+            <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:rgba(255,255,255,0.06);color:${statusColor};border:1px solid ${statusColor};">
+              ${statusLabel}
+            </span>
+          </h3>
+          <p style="margin:2px 0 0;font-size:12px;color:var(--text-3);">Forward bank balance projection factoring upcoming EMIs, credit card bills, and daily burn rate</p>
+        </div>
+        <div style="font-size:12px;color:var(--text-2);text-align:right;">
+          <span>Daily Discretionary Burn: <strong>${fmtINR(forecast.dailyBurn)}/day</strong></span>
+        </div>
+      </div>
+
+      <!-- Forecast Metrics Grid -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:14px;">
+        <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:11px;color:var(--text-3);">Current Liquid Balance</div>
+          <div style="font-size:16px;font-weight:700;color:var(--text);margin-top:2px;">${fmtINR(forecast.startingLiquid)}</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:11px;color:var(--text-3);">30d Scheduled Dues</div>
+          <div style="font-size:16px;font-weight:700;color:var(--rose);margin-top:2px;">−${fmtINR(forecast.totalScheduledOut)}</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:11px;color:var(--text-3);">Lowest Projected Dip</div>
+          <div style="font-size:16px;font-weight:700;color:${statusColor};margin-top:2px;">${fmtINR(forecast.minBalance)}</div>
+          <div style="font-size:10px;color:var(--text-3);">On ${forecast.minDate}</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:11px;color:var(--text-3);">End of 30d Projection</div>
+          <div style="font-size:16px;font-weight:700;color:${forecast.endBalance>=0?'var(--teal)':'var(--rose)'};margin-top:2px;">${fmtINR(forecast.endBalance)}</div>
+        </div>
+      </div>
+
+      <!-- Projection Sparkline Curve -->
+      <div style="width:100%;height:85px;background:rgba(0,0,0,0.25);border-radius:10px;padding:4px 8px;border:1px solid rgba(255,255,255,0.05);overflow:hidden;">
+        <svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;height:100%;overflow:visible;">
+          <polyline fill="none" stroke="${statusColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${polyPoints}"/>
+        </svg>
+      </div>
+    </div>
+
     <!-- Stats strip -->
     <div class="cfc-stats">
       <div class="cfc-stat">
@@ -8544,7 +8722,7 @@ function renderCashFlowCalendar(year, month) {
       <div class="cfc-nav">
         <button class="cfc-nav-btn" onclick="renderCashFlowCalendar(${m===0?y-1:y},${m===0?11:m-1})">‹</button>
         <span class="cfc-nav-title">${MON_NAMES[m]} ${y}</span>
-        <button class="cfc-nav-btn" onclick="renderCashFlowCalendar(${m===11?y+1:y},${m===11?0:m+1})" ${monthKey >= new Date().toISOString().slice(0,7) ? 'disabled style="opacity:0.3"' : ''}>›</button>
+        <button class="cfc-nav-btn" onclick="renderCashFlowCalendar(${m===11?y+1:y},${m===11?0:m+1})">›</button>
       </div>
 
       <!-- Day-of-week headers -->
@@ -8561,7 +8739,8 @@ function renderCashFlowCalendar(year, month) {
       <div class="cfc-legend">
         <span class="cfc-legend-dot" style="background:var(--emerald)"></span> Income &nbsp;
         <span class="cfc-legend-dot" style="background:var(--rose)"></span> Expense &nbsp;
-        <span class="cfc-legend-dot" style="background:var(--bg3);border:1px solid var(--border)"></span> No activity
+        <span class="cfc-legend-dot" style="background:var(--bg3);border:1px solid var(--border)"></span> No activity &nbsp;
+        <span style="color:#ef4444;font-size:11px;font-weight:700;">🚨 Scheduled Dues</span>
         ${topCat ? `&nbsp;· Top: <b>${topCat[0]}</b> ${fmtINR(topCat[1])}` : ''}
       </div>
     </div>`;
@@ -8576,35 +8755,60 @@ function cfcDayDrill(dateStr) {
   const txs = state.transactions.filter(t => t.date === dateStr)
     .sort((a,b) => new Date(b.createdAt||b.date) - new Date(a.createdAt||a.date));
 
+  const forecast = _calculateCashflowForecast(60);
+  const scheduled = forecast.scheduleMap[dateStr] || [];
+
   const d = new Date(dateStr);
   title.textContent = `📅 ${d.toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'})}`;
 
-  if (!txs.length) {
-    body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-3);">No transactions on this day</div>';
+  let scheduledHtml = '';
+  if (scheduled.length > 0) {
+    scheduledHtml = `
+      <div style="margin-bottom:14px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:10px 12px;">
+        <div style="font-size:12px;font-weight:700;color:var(--rose);margin-bottom:6px;">⚠️ Scheduled Commitments on this Day:</div>
+        ${scheduled.map(s => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;">
+            <div>
+              <strong style="color:var(--text);">${s.title}</strong>
+              <span style="color:var(--text-3);font-size:11px;"> · ${s.type}</span>
+            </div>
+            <div style="font-weight:700;color:var(--rose);">${fmtINR(s.amount)}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  if (!txs.length && !scheduled.length) {
+    body.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-3);">No transactions or scheduled commitments on this day</div>';
   } else {
     const totIn  = txs.filter(t=>t.type==='in').reduce((s,t)=>s+parseFloat(t.amount||0),0);
     const totOut = txs.filter(t=>t.type!=='in').reduce((s,t)=>s+parseFloat(t.amount||0),0);
     body.innerHTML = `
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <div style="flex:1;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:8px;padding:8px;text-align:center;">
-          <div style="font-size:13px;font-weight:700;color:var(--emerald)">${fmtINR(totIn)}</div>
-          <div style="font-size:10px;color:var(--text-3)">Income</div>
-        </div>
-        <div style="flex:1;background:rgba(251,113,133,0.1);border:1px solid rgba(251,113,133,0.2);border-radius:8px;padding:8px;text-align:center;">
-          <div style="font-size:13px;font-weight:700;color:var(--rose)">${fmtINR(totOut)}</div>
-          <div style="font-size:10px;color:var(--text-3)">Expense</div>
-        </div>
-      </div>
-      ${txs.map(t => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
-          <div>
-            <div style="font-size:13px;font-weight:600;color:var(--text)">${t.note || '(No note)'}</div>
-            <div style="font-size:11px;color:var(--text-3)">${t.category || '—'} · ${t.account || '—'}</div>
+      ${scheduledHtml}
+      ${txs.length > 0 ? `
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <div style="flex:1;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:8px;padding:8px;text-align:center;">
+            <div style="font-size:13px;font-weight:700;color:var(--emerald)">${fmtINR(totIn)}</div>
+            <div style="font-size:10px;color:var(--text-3)">Income</div>
           </div>
-          <div style="font-size:13px;font-weight:700;font-family:var(--font-m);color:${t.type==='in'?'var(--emerald)':'var(--rose)'}">
-            ${t.type==='in'?'+':'−'}${fmtINR(t.amount)}
+          <div style="flex:1;background:rgba(251,113,133,0.1);border:1px solid rgba(251,113,133,0.2);border-radius:8px;padding:8px;text-align:center;">
+            <div style="font-size:13px;font-weight:700;color:var(--rose)">${fmtINR(totOut)}</div>
+            <div style="font-size:10px;color:var(--text-3)">Expense</div>
           </div>
-        </div>`).join('')}`;
+        </div>
+        ${txs.map(t => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text)">${t.note || '(No note)'}</div>
+              <div style="font-size:11px;color:var(--text-3)">${t.category || '—'} · ${t.account || '—'}</div>
+            </div>
+            <div style="font-size:13px;font-weight:700;font-family:var(--font-m);color:${t.type==='in'?'var(--emerald)':'var(--rose)'}">
+              ${t.type==='in'?'+':'−'}${fmtINR(t.amount)}
+            </div>
+          </div>`).join('')}
+      ` : '<div style="text-align:center;padding:12px;color:var(--text-3);font-size:12px;">No historical transactions logged on this day</div>'}
+    `;
   }
   modal.style.display = 'flex';
 }

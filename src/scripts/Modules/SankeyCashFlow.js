@@ -1,19 +1,33 @@
 /**
  * LedgerMate – SankeyCashFlow.js
  * ─────────────────────────────────────────────────────────────
- * Interactive Cash Flow Sankey Visualizer
- * Maps Monthly Income ➔ Allocations (Needs, Wants, Savings, Debt) ➔ Categories
- * Exposes: window.LM_Sankey
+ * Interactive Cash Flow Sankey Visualizer with dynamic period
+ * filtering (This Month, Last 3 Months, YTD, All-Time) and
+ * vector SVG / high-res PNG export engine.
+ * Exposes: window.LM_Sankey, window.openSankeyModal
  * ─────────────────────────────────────────────────────────────
  */
 (function () {
   'use strict';
 
-  function calculateFlowData(monthStr) {
+  var activePeriod = 'current_month';
+
+  function calculateFlowData(periodKey) {
     var txs = (window.state && window.state.transactions) ? window.state.transactions : [];
-    if (monthStr) {
-      txs = txs.filter(t => (t.date || '').startsWith(monthStr));
-    }
+    var now = new Date();
+    var curMonth = now.toISOString().slice(0, 7);
+    var key = periodKey || 'current_month';
+
+    if (key === 'current_month' || /^\d{4}-\d{2}$/.test(key)) {
+      var targetMonth = key === 'current_month' ? curMonth : key;
+      txs = txs.filter(function (t) { return (t.date || '').startsWith(targetMonth); });
+    } else if (key === 'last_3_months') {
+      var d90 = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      txs = txs.filter(function (t) { return (t.date || '') >= d90; });
+    } else if (key === 'ytd') {
+      var startOfYear = now.getFullYear() + '-01-01';
+      txs = txs.filter(function (t) { return (t.date || '') >= startOfYear; });
+    } // else 'all_time': keep all
 
     var incomeSources = {};
     var expenseCategories = {};
@@ -35,27 +49,21 @@
     });
 
     if (totalIncome === 0 && totalExpense === 0) {
-      // Demo fallback if no transactions in selected month
+      // Demo fallback if no transactions in selected period
       return {
         isEmpty: true,
+        period: key,
         totalIncome: 100000,
         totalExpense: 65000,
-        nodes: [
-          { name: 'Salary', value: 90000, col: 0 },
-          { name: 'Investments / Misc', value: 10000, col: 0 },
-          { name: 'Total Inflow', value: 100000, col: 1 },
-          { name: 'Needs (50%)', value: 40000, col: 2 },
-          { name: 'Wants (30%)', value: 25000, col: 2 },
-          { name: 'Savings & Surplus (20%)', value: 35000, col: 2 },
-          { name: 'Rent & Bills', value: 25000, col: 3 },
-          { name: 'Groceries', value: 15000, col: 3 },
-          { name: 'Dining & Outings', value: 15000, col: 3 },
-          { name: 'Shopping', value: 10000, col: 3 }
-        ]
+        netSavings: 35000,
+        incomeSources: { 'Salary': 90000, 'Investments': 10000 },
+        needsTotal: 40000,
+        wantsTotal: 25000,
+        detailedNeeds: { 'Rent': 25000, 'Groceries': 15000 },
+        detailedWants: { 'Dining': 15000, 'Shopping': 10000 }
       };
     }
 
-    // Classify expenses into Needs (Essentials), Wants (Discretionary), and Savings
     var needsCats = ['Bills & Utilities', 'Bills', 'Groceries', 'Rent', 'Healthcare', 'Transport & Fuel', 'Education'];
     var wantsCats = ['Food & Dining', 'Food', 'Shopping', 'Entertainment', 'Subscriptions', 'Travel', 'Personal Care'];
 
@@ -64,10 +72,10 @@
 
     Object.keys(expenseCategories).forEach(function (c) {
       var val = expenseCategories[c];
-      if (needsCats.some(nc => c.toLowerCase().includes(nc.toLowerCase()))) {
+      if (needsCats.some(function (nc) { return c.toLowerCase().includes(nc.toLowerCase()); })) {
         needsTotal += val;
         detailedNeeds[c] = val;
-      } else if (wantsCats.some(wc => c.toLowerCase().includes(wc.toLowerCase()))) {
+      } else if (wantsCats.some(function (wc) { return c.toLowerCase().includes(wc.toLowerCase()); })) {
         wantsTotal += val;
         detailedWants[c] = val;
       } else {
@@ -80,6 +88,7 @@
 
     return {
       isEmpty: false,
+      period: key,
       totalIncome: totalIncome,
       totalExpense: totalExpense,
       netSavings: netSavings,
@@ -91,34 +100,117 @@
     };
   }
 
-  function renderSankeySVG(containerId, monthStr) {
+  function exportSankeySVG(containerId) {
+    var svg = document.querySelector('#' + containerId + ' svg');
+    if (!svg) return;
+    try {
+      var serializer = new XMLSerializer();
+      var source = serializer.serializeToString(svg);
+      var blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'LedgerMate-CashFlow-Sankey-' + activePeriod + '.svg';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      if (typeof showToast === 'function') showToast('✅ Sankey SVG exported!', 'success');
+    } catch (e) {
+      if (typeof showToast === 'function') showToast('Export failed: ' + e.message, 'error');
+    }
+  }
+
+  function exportSankeyPNG(containerId) {
+    var svg = document.querySelector('#' + containerId + ' svg');
+    if (!svg) return;
+    try {
+      var serializer = new XMLSerializer();
+      var source = serializer.serializeToString(svg);
+      var img = new Image();
+      var svgBlob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+      var url = URL.createObjectURL(svgBlob);
+      img.onload = function () {
+        var canvas = document.createElement('canvas');
+        canvas.width = 1520;
+        canvas.height = 640;
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#11151f';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        var pngUrl = canvas.toDataURL('image/png');
+        var a = document.createElement('a');
+        a.href = pngUrl;
+        a.download = 'LedgerMate-CashFlow-Sankey-' + activePeriod + '.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        if (typeof showToast === 'function') showToast('✅ Sankey PNG exported!', 'success');
+      };
+      img.src = url;
+    } catch (e) {
+      if (typeof showToast === 'function') showToast('Export failed: ' + e.message, 'error');
+    }
+  }
+
+  function renderSankeySVG(containerId, periodKey) {
     var container = document.getElementById(containerId);
     if (!container) return;
 
-    var data = calculateFlowData(monthStr);
-    var width = container.clientWidth || 720;
-    var height = 360;
+    activePeriod = periodKey || activePeriod || 'current_month';
+    var data = calculateFlowData(activePeriod);
 
-    var incList = Object.keys(data.incomeSources || {});
-    if (!incList.length) incList = ['Income'];
+    var fmt = function (v) {
+      if (typeof window.fmtINR === 'function') return window.fmtINR(v);
+      return '₹' + Math.round(v).toLocaleString('en-IN');
+    };
 
-    var needsList = Object.keys(data.detailedNeeds || {});
-    var wantsList = Object.keys(data.detailedWants || {});
+    var periodLabels = {
+      'current_month': 'This Month',
+      'last_3_months': 'Last 3 Months',
+      'ytd': 'Year to Date',
+      'all_time': 'All Time'
+    };
 
-    var fmt = (v) => '₹' + Math.round(v).toLocaleString('en-IN');
+    var periodBtnsHtml = Object.keys(periodLabels).map(function (k) {
+      var isActive = (activePeriod === k);
+      var activeStyle = isActive
+        ? 'background:var(--teal,#00d4b4);color:#0a0e17;font-weight:700;border-color:transparent;'
+        : 'background:rgba(255,255,255,0.05);color:var(--text2,#8896b8);border:1px solid rgba(255,255,255,0.1);';
+      return '<button class="lm-sankey-period-btn" data-period="' + k + '" style="padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;transition:all 0.15s;' + activeStyle + '">' + periodLabels[k] + '</button>';
+    }).join(' ');
 
     container.innerHTML = `
       <div style="background:var(--card,#151922);border:1px solid var(--border,#262f45);border-radius:14px;padding:20px;color:var(--text,#e8eaf6);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <!-- Top Toolbar: Period Filtering & Export Options -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
           <div>
-            <h4 style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:6px;">🌊 Cash Flow Sankey Diagram</h4>
-            <p style="font-size:11px;color:var(--text2,#8896b8);">Visualize how money moves from income sources into needs, wants, and savings.</p>
+            <h4 style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:6px;margin:0 0 4px 0;">🌊 Cash Flow Sankey Diagram</h4>
+            <p style="font-size:11px;color:var(--text2,#8896b8);margin:0;">Visualize money flow from income sources into essential needs, discretionary wants, and savings.</p>
           </div>
-          <div style="display:flex;gap:12px;font-size:12px;">
-            <span style="color:#10b981;">● Inflow: ${fmt(data.totalIncome)}</span>
-            <span style="color:#f43f5e;">● Outflow: ${fmt(data.totalExpense)}</span>
-            <span style="color:#00d4b4;">● Savings: ${fmt(data.netSavings)}</span>
+
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div style="display:flex;gap:4px;background:rgba(0,0,0,0.25);padding:3px;border-radius:24px;">
+              ${periodBtnsHtml}
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button id="lm-sankey-exp-svg" class="btn-secondary" style="padding:5px 10px;font-size:11px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;" title="Export as Vector SVG">
+                📥 SVG
+              </button>
+              <button id="lm-sankey-exp-png" class="btn-secondary" style="padding:5px 10px;font-size:11px;border-radius:6px;display:inline-flex;align-items:center;gap:4px;" title="Export as High-Res PNG">
+                📷 PNG
+              </button>
+            </div>
           </div>
+        </div>
+
+        <!-- Metric Badges -->
+        <div style="display:flex;gap:14px;font-size:12px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.05);flex-wrap:wrap;">
+          <span style="color:#10b981;font-weight:600;">● Total Inflow: ${fmt(data.totalIncome)}</span>
+          <span style="color:#f43f5e;font-weight:600;">● Total Outflow: ${fmt(data.totalExpense)}</span>
+          <span style="color:#00d4b4;font-weight:600;">● Net Savings: ${fmt(data.netSavings)}</span>
+          ${data.isEmpty ? '<span style="color:#f59e0b;font-size:11px;font-style:italic;">(Sample demonstration preview – log transactions to populate real figures)</span>' : ''}
         </div>
 
         <svg viewBox="0 0 760 320" style="width:100%;height:auto;overflow:visible;font-family:Inter,sans-serif;">
@@ -181,12 +273,12 @@
           <!-- Level 1 Nodes: Inflow Sources -->
           <g transform="translate(10, 45)">
             <rect width="110" height="50" rx="8" fill="#152620" stroke="#10b981" stroke-width="1.5"/>
-            <text x="10" y="22" font-size="11" font-weight="600" fill="#10b981">💼 Primary Income</text>
+            <text x="10" y="22" font-size="11" font-weight="600" fill="#10b981">💼 Primary Inflow</text>
             <text x="10" y="38" font-size="12" font-weight="700" fill="#ffffff">${fmt(data.totalIncome * 0.85)}</text>
           </g>
           <g transform="translate(10, 155)">
             <rect width="110" height="50" rx="8" fill="#152620" stroke="#10b981" stroke-width="1.5"/>
-            <text x="10" y="22" font-size="11" font-weight="600" fill="#10b981">📈 Other Inflow</text>
+            <text x="10" y="22" font-size="11" font-weight="600" fill="#10b981">📈 Secondary Inflow</text>
             <text x="10" y="38" font-size="12" font-weight="700" fill="#ffffff">${fmt(data.totalIncome * 0.15)}</text>
           </g>
 
@@ -219,6 +311,21 @@
         </svg>
       </div>
     `;
+
+    // Bind period button clicks
+    container.querySelectorAll('.lm-sankey-period-btn').forEach(function (btn) {
+      btn.onclick = function () {
+        var p = btn.getAttribute('data-period');
+        renderSankeySVG(containerId, p);
+      };
+    });
+
+    // Bind export button clicks
+    var btnSvg = container.querySelector('#lm-sankey-exp-svg');
+    if (btnSvg) btnSvg.onclick = function () { exportSankeySVG(containerId); };
+
+    var btnPng = container.querySelector('#lm-sankey-exp-png');
+    if (btnPng) btnPng.onclick = function () { exportSankeyPNG(containerId); };
   }
 
   function showSankeyModal() {
@@ -251,20 +358,22 @@
     }
 
     document.getElementById('lm-sankey-close').onclick = closeModal;
-    modal.onclick = function(e) {
+    modal.onclick = function (e) {
       if (e.target === modal) closeModal();
     };
 
-    var currentMonth = new Date().toISOString().slice(0, 7);
-    renderSankeySVG('lm-sankey-body', currentMonth);
+    renderSankeySVG('lm-sankey-body', activePeriod || 'current_month');
   }
 
   window.LM_Sankey = {
     render: renderSankeySVG,
-    showModal: showSankeyModal
+    showModal: showSankeyModal,
+    calculateFlowData: calculateFlowData,
+    exportSVG: exportSankeySVG,
+    exportPNG: exportSankeyPNG
   };
   window.openSankeyModal = showSankeyModal;
   window.LM_openCashFlowVisualizer = showSankeyModal;
 
-  console.log('[LM] SankeyCashFlow module initialized.');
+  console.log('[LM] SankeyCashFlow module initialized with period filtering & SVG/PNG export.');
 })();
