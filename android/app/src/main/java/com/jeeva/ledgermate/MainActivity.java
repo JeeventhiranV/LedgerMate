@@ -57,9 +57,13 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+import android.webkit.MimeTypeMap;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -397,6 +401,26 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> request.grant(request.getResources()));
             }
 
+    private boolean isStrictlyMediaPicker(String[] acceptTypes) {
+        if (acceptTypes == null || acceptTypes.length == 0) return false;
+        for (String type : acceptTypes) {
+            if (type == null) continue;
+            String t = type.trim().toLowerCase();
+            if (t.isEmpty() || t.equals("*/*")) return false;
+            // If it starts with a file extension or matches non-media mime types, it's not strictly media
+            if (t.startsWith(".") || t.contains("json") || t.contains("csv") || t.contains("gz") ||
+                    t.contains("gzip") || t.contains("octet-stream") || t.contains("pdf") ||
+                    t.contains("zip") || t.contains("text/")) {
+                return false;
+            }
+            if (!t.startsWith("image/") && !t.startsWith("video/")) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+
             @Override
             public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
                 if (MainActivity.this.filePathCallback != null) {
@@ -407,14 +431,11 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     String[] acceptTypes = fileChooserParams.getAcceptTypes();
                     boolean isMultiple = (fileChooserParams.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
-
-                    // Check if folder-wise or general storage browsing is requested
-                    boolean isAllOrFolder = (acceptTypes == null || acceptTypes.length == 0 ||
-                            (acceptTypes.length == 1 && (acceptTypes[0].equals("*/*") || acceptTypes[0].isEmpty())));
+                    boolean strictlyMedia = isStrictlyMediaPicker(acceptTypes);
 
                     Intent chooser;
-                    if (isAllOrFolder) {
-                        // Document file picker allowing browsing all device folders and SD card
+                    if (!strictlyMedia) {
+                        // Document / Backup / General file picker allowing browsing all device folders, Downloads, SD card, Drive
                         Intent docIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
                         docIntent.addCategory(Intent.CATEGORY_OPENABLE);
                         docIntent.setType("*/*");
@@ -423,14 +444,64 @@ public class MainActivity extends AppCompatActivity {
                         }
                         docIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
 
+                        // Map extensions to valid MIME types so DocumentsUI never rejects or greys out archives
+                        List<String> validMimeTypes = new ArrayList<>();
+                        boolean allowAllFiles = false;
+
+                        if (acceptTypes == null || acceptTypes.length == 0) {
+                            allowAllFiles = true;
+                        } else {
+                            for (String t : acceptTypes) {
+                                if (t == null) continue;
+                                String trimmed = t.trim().toLowerCase();
+                                if (trimmed.isEmpty() || trimmed.equals("*/*")) {
+                                    allowAllFiles = true;
+                                    break;
+                                }
+                                if (trimmed.equals(".json") || trimmed.equals("application/json")) {
+                                    validMimeTypes.add("application/json");
+                                } else if (trimmed.equals(".csv") || trimmed.equals("text/csv")) {
+                                    validMimeTypes.add("text/csv");
+                                    validMimeTypes.add("text/comma-separated-values");
+                                    validMimeTypes.add("text/plain");
+                                } else if (trimmed.equals(".gz") || trimmed.equals(".gzip") || trimmed.equals(".json.gz") ||
+                                        trimmed.equals("application/gzip") || trimmed.equals("application/x-gzip")) {
+                                    validMimeTypes.add("application/gzip");
+                                    validMimeTypes.add("application/x-gzip");
+                                    validMimeTypes.add("application/octet-stream"); // Android SAF commonly tags .gz as octet-stream
+                                } else if (trimmed.equals("application/octet-stream")) {
+                                    validMimeTypes.add("application/octet-stream");
+                                } else if (trimmed.contains("/")) {
+                                    validMimeTypes.add(trimmed);
+                                } else if (trimmed.startsWith(".")) {
+                                    String ext = trimmed.substring(1);
+                                    String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
+                                    if (mime != null) {
+                                        validMimeTypes.add(mime);
+                                    } else {
+                                        allowAllFiles = true;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (!allowAllFiles && !validMimeTypes.isEmpty()) {
+                            Set<String> set = new LinkedHashSet<>(validMimeTypes);
+                            docIntent.putExtra(Intent.EXTRA_MIME_TYPES, set.toArray(new String[0]));
+                        }
+
                         Intent getContentIntent = new Intent(Intent.ACTION_GET_CONTENT);
                         getContentIntent.addCategory(Intent.CATEGORY_OPENABLE);
                         getContentIntent.setType("*/*");
                         if (isMultiple) {
                             getContentIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
                         }
+                        if (!allowAllFiles && !validMimeTypes.isEmpty()) {
+                            Set<String> set = new LinkedHashSet<>(validMimeTypes);
+                            getContentIntent.putExtra(Intent.EXTRA_MIME_TYPES, set.toArray(new String[0]));
+                        }
 
-                        chooser = Intent.createChooser(docIntent, "Browse Folders & Files");
+                        chooser = Intent.createChooser(docIntent, "Select Backup or File");
                         chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{getContentIntent});
                     } else {
                         // Media-focused picker (Gallery / Photos) with folder browser option
@@ -448,7 +519,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                         docIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-                        chooser = Intent.createChooser(mediaIntent, "Select Photos, Videos or Folders");
+                        chooser = Intent.createChooser(mediaIntent, "Select Photos or Videos");
                         chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{docIntent});
                     }
 
