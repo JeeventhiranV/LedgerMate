@@ -14,6 +14,9 @@
 
   var _activeCategory = 'all';
   var _searchQuery = '';
+  var _viewMode = 'grid'; // 'grid' | 'list'
+  var _sortMode = 'pinned'; // 'pinned' | 'recent' | 'name' | 'telemetry' | 'category'
+  var _focusedIndex = -1;
   var _pinnedModules = null;
   var _recentModules = null;
 
@@ -31,6 +34,43 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  function _highlightMatch(text, query) {
+    if (!text) return '';
+    if (!query) return _esc(text);
+    var q = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var regex = new RegExp('(' + q + ')', 'gi');
+    return text.split(regex).map(function (part) {
+      if (part.toLowerCase() === query.toLowerCase()) {
+        return '<mark class="mod-search-highlight">' + _esc(part) + '</mark>';
+      }
+      return _esc(part);
+    }).join('');
+  }
+
+  function _loadViewMode() {
+    try {
+      return localStorage.getItem('lm_module_view_mode_' + _getUid()) || 'grid';
+    } catch (e) { return 'grid'; }
+  }
+
+  function _saveViewMode(mode) {
+    try {
+      localStorage.setItem('lm_module_view_mode_' + _getUid(), mode);
+    } catch (e) {}
+  }
+
+  function _loadSortMode() {
+    try {
+      return localStorage.getItem('lm_module_sort_mode_' + _getUid()) || 'pinned';
+    } catch (e) { return 'pinned'; }
+  }
+
+  function _saveSortMode(mode) {
+    try {
+      localStorage.setItem('lm_module_sort_mode_' + _getUid(), mode);
+    } catch (e) {}
   }
 
   function _loadPinned() {
@@ -98,7 +138,14 @@
       tags: ['transactions', 'income', 'expense', 'ledger', 'cashflow', 'history'],
       badge: 'Core Ledger',
       badgeType: 'info',
-      route: function () { showPage('transactions'); }
+      route: function () { showPage('transactions'); },
+      quickAction: {
+        label: '+ Add Tx',
+        title: 'Quick Record Transaction',
+        action: function () {
+          if (typeof openAddTransactionModal === 'function') openAddTransactionModal();
+        }
+      }
     },
     {
       id: 'credit-cards',
@@ -109,7 +156,18 @@
       tags: ['credit', 'cards', 'statement', 'rewards', 'due date', 'limit'],
       badge: 'Bill Alerts',
       badgeType: 'warning',
-      route: function () { showPage('credit-cards'); }
+      route: function () { showPage('credit-cards'); },
+      quickAction: {
+        label: '+ Add Card',
+        title: 'Add New Credit Card',
+        action: function () {
+          if (window.LM_CreditCardsUI && typeof window.LM_CreditCardsUI.showAddEditModal === 'function') {
+            window.LM_CreditCardsUI.showAddEditModal();
+          } else {
+            showPage('credit-cards');
+          }
+        }
+      }
     },
     {
       id: 'budgets',
@@ -124,6 +182,13 @@
         var el = document.getElementById('openBudgets');
         if (el) el.click();
         else if (typeof openBudgetsModal === 'function') openBudgetsModal();
+      },
+      quickAction: {
+        label: '🎯 Limits',
+        title: 'Open Budget Limits',
+        action: function () {
+          if (typeof openBudgetsModal === 'function') openBudgetsModal();
+        }
       }
     },
     {
@@ -173,7 +238,18 @@
       tags: ['stocks', 'portfolio', 'shares', 'nifty', 'sensex', 'equity'],
       badge: 'Live Market',
       badgeType: 'success',
-      route: function () { showPage('stocks'); }
+      route: function () { showPage('stocks'); },
+      quickAction: {
+        label: '+ Buy/Sell',
+        title: 'Record Stock Order',
+        action: function () {
+          if (window.LM_StockPortfolioUI && typeof window.LM_StockPortfolioUI.openAddTransactionModal === 'function') {
+            window.LM_StockPortfolioUI.openAddTransactionModal();
+          } else {
+            showPage('stocks');
+          }
+        }
+      }
     },
     {
       id: 'investments',
@@ -291,6 +367,17 @@
         } else if (typeof openDebtOptimizerModal === 'function') {
           openDebtOptimizerModal();
         }
+      },
+      quickAction: {
+        label: '⚡ Optimize',
+        title: 'Run Debt Snowball Optimizer',
+        action: function () {
+          if (window.LM_DebtOptimizer && typeof window.LM_DebtOptimizer.showModal === 'function') {
+            window.LM_DebtOptimizer.showModal();
+          } else if (typeof openDebtOptimizerModal === 'function') {
+            openDebtOptimizerModal();
+          }
+        }
       }
     },
     {
@@ -304,6 +391,13 @@
       badgeType: 'info',
       route: function () {
         if (typeof openEMIModal === 'function') openEMIModal();
+      },
+      quickAction: {
+        label: '🧮 Calc EMI',
+        title: 'Calculate Loan EMI',
+        action: function () {
+          if (typeof openEMIModal === 'function') openEMIModal();
+        }
       }
     },
 
@@ -317,7 +411,19 @@
       tags: ['business', 'pnl', 'revenue', 'expenses', 'enterprise', 'charges'],
       badge: 'P&L Hub',
       badgeType: 'success',
-      route: function () { showPage('business'); }
+      route: function () { showPage('business'); },
+      quickAction: {
+        label: '🤝 Khata',
+        title: 'Open Business Khata & Reminders',
+        action: function () {
+          showPage('business');
+          setTimeout(function () {
+            if (window.LM_BusinessUI && typeof window.LM_BusinessUI.setTab === 'function') {
+              window.LM_BusinessUI.setTab('parties');
+            }
+          }, 150);
+        }
+      }
     },
     {
       id: 'khata',
@@ -379,6 +485,15 @@
         if (window.LM_CategoryRules && typeof window.LM_CategoryRules.showRulesModal === 'function') {
           window.LM_CategoryRules.showRulesModal();
         }
+      },
+      quickAction: {
+        label: '🏷️ Rules',
+        title: 'Configure Automated Category Rules',
+        action: function () {
+          if (window.LM_CategoryRules && typeof window.LM_CategoryRules.showRulesModal === 'function') {
+            window.LM_CategoryRules.showRulesModal();
+          }
+        }
       }
     },
 
@@ -392,7 +507,18 @@
       tags: ['trip', 'travel', 'itinerary', 'vacation', 'route optimizer', 'split'],
       badge: 'Smart Routes',
       badgeType: 'success',
-      route: function () { showPage('trips'); }
+      route: function () { showPage('trips'); },
+      quickAction: {
+        label: '+ Plan Trip',
+        title: 'Create New Trip',
+        action: function () {
+          if (window.LM_TripUI && typeof window.LM_TripUI.openAddTripModal === 'function') {
+            window.LM_TripUI.openAddTripModal();
+          } else {
+            showPage('trips');
+          }
+        }
+      }
     },
     {
       id: 'vehicles',
@@ -427,6 +553,13 @@
       badgeType: 'info',
       route: function () {
         if (typeof showNotesModal === 'function') showNotesModal();
+      },
+      quickAction: {
+        label: '+ New Note',
+        title: 'Create Quick Note',
+        action: function () {
+          if (typeof showNotesModal === 'function') showNotesModal();
+        }
       }
     },
     {
@@ -441,6 +574,19 @@
       route: function () {
         if (window.LM_BillSplitter && typeof window.LM_BillSplitter.open === 'function') {
           window.LM_BillSplitter.open();
+        } else if (window.LM_BillSplitter && typeof window.LM_BillSplitter.openBillSplitterModal === 'function') {
+          window.LM_BillSplitter.openBillSplitterModal();
+        }
+      },
+      quickAction: {
+        label: '⚡ Split Bill',
+        title: 'Open Group Bill Splitter',
+        action: function () {
+          if (window.LM_BillSplitter && typeof window.LM_BillSplitter.openBillSplitterModal === 'function') {
+            window.LM_BillSplitter.openBillSplitterModal();
+          } else if (window.LM_BillSplitter && typeof window.LM_BillSplitter.open === 'function') {
+            window.LM_BillSplitter.open();
+          }
         }
       }
     },
@@ -495,6 +641,17 @@
           window.LM_Sankey.showModal();
         } else if (typeof openSankeyModal === 'function') {
           openSankeyModal();
+        }
+      },
+      quickAction: {
+        label: '🌊 Flow',
+        title: 'Open Cashflow Flow Diagram',
+        action: function () {
+          if (window.LM_Sankey && typeof window.LM_Sankey.showModal === 'function') {
+            window.LM_Sankey.showModal();
+          } else if (typeof openSankeyModal === 'function') {
+            openSankeyModal();
+          }
         }
       }
     },
@@ -553,6 +710,13 @@
       badgeType: 'info',
       route: function () {
         if (typeof openWhatIfModal === 'function') openWhatIfModal();
+      },
+      quickAction: {
+        label: '🔮 Model',
+        title: 'Run What-If Scenario',
+        action: function () {
+          if (typeof openWhatIfModal === 'function') openWhatIfModal();
+        }
       }
     },
     {
@@ -567,6 +731,15 @@
       route: function () {
         if (window.LM_MonteCarloFIRE && typeof window.LM_MonteCarloFIRE.open === 'function') {
           window.LM_MonteCarloFIRE.open();
+        }
+      },
+      quickAction: {
+        label: '🔥 Simulate',
+        title: 'Monte Carlo FIRE Simulator',
+        action: function () {
+          if (window.LM_MonteCarloFIRE && typeof window.LM_MonteCarloFIRE.open === 'function') {
+            window.LM_MonteCarloFIRE.open();
+          }
         }
       }
     },
@@ -598,6 +771,15 @@
         if (window.LM_StatementParser && typeof window.LM_StatementParser.openFilePicker === 'function') {
           window.LM_StatementParser.openFilePicker();
         }
+      },
+      quickAction: {
+        label: '📄 Import',
+        title: 'Import Bank Statement CSV',
+        action: function () {
+          if (window.LM_StatementParser && typeof window.LM_StatementParser.openFilePicker === 'function') {
+            window.LM_StatementParser.openFilePicker();
+          }
+        }
       }
     },
     {
@@ -612,6 +794,15 @@
       route: function () {
         if (window.LM_ReceiptVault && typeof window.LM_ReceiptVault.open === 'function') {
           window.LM_ReceiptVault.open();
+        }
+      },
+      quickAction: {
+        label: '📷 Scan OCR',
+        title: 'Scan Receipt OCR',
+        action: function () {
+          if (window.LM_ReceiptOCR && typeof window.LM_ReceiptOCR.openReceiptScannerModal === 'function') {
+            window.LM_ReceiptOCR.openReceiptScannerModal();
+          }
         }
       }
     },
@@ -655,6 +846,15 @@
       route: function () {
         if (window.LM_CommandPalette && typeof window.LM_CommandPalette.open === 'function') {
           window.LM_CommandPalette.open();
+        }
+      },
+      quickAction: {
+        label: '⌘K Open',
+        title: 'Open Command Palette',
+        action: function () {
+          if (window.LM_CommandPalette && typeof window.LM_CommandPalette.open === 'function') {
+            window.LM_CommandPalette.open();
+          }
         }
       }
     }
@@ -733,19 +933,53 @@
     },
 
     init: function () {
+      _viewMode = _loadViewMode();
+      _sortMode = _loadSortMode();
       _pinnedModules = _loadPinned();
       _recentModules = _loadRecents();
+      _focusedIndex = -1;
       this.render();
       this.syncSidebarPinned();
+      this._bindKeyboardEvents();
+    },
+
+    setViewMode: function (mode) {
+      if (mode !== 'grid' && mode !== 'list') return;
+      _viewMode = mode;
+      _saveViewMode(mode);
+      _focusedIndex = -1;
+      if (typeof showToast === 'function') {
+        showToast(mode === 'grid' ? '▦ Switched to Executive Grid View' : '☰ Switched to Compact List View', 'info');
+      }
+      this.render();
+    },
+
+    setSortMode: function (mode) {
+      _sortMode = mode;
+      _saveSortMode(mode);
+      _focusedIndex = -1;
+      var sortLabels = {
+        pinned: '⭐ Starred First',
+        recent: '⚡ Recently Used',
+        name: '🔤 Name (A–Z)',
+        telemetry: '🔔 Action Alerts First',
+        category: '📁 By Category'
+      };
+      if (typeof showToast === 'function') {
+        showToast('Sorted by: ' + (sortLabels[mode] || mode), 'info');
+      }
+      this.render();
     },
 
     setCategory: function (catId) {
       _activeCategory = catId;
+      _focusedIndex = -1;
       this.render();
     },
 
     setSearch: function (q) {
       _searchQuery = (q || '').toLowerCase().trim();
+      _focusedIndex = -1;
       this.render();
       var input = document.getElementById('modHubSearchInput');
       if (input) {
@@ -754,6 +988,31 @@
         // place cursor at end
         var len = input.value.length;
         input.setSelectionRange(len, len);
+      }
+    },
+
+    clearSearch: function () {
+      _searchQuery = '';
+      _focusedIndex = -1;
+      this.render();
+      var input = document.getElementById('modHubSearchInput');
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+    },
+
+    triggerQuickAction: function (modId, ev) {
+      if (ev) ev.stopPropagation();
+      var mod = MODULES.find(function (m) { return m.id === modId; });
+      if (!mod || !mod.quickAction) return;
+      _recordRecent(modId);
+      if (typeof mod.quickAction.action === 'function') {
+        try {
+          mod.quickAction.action();
+        } catch (err) {
+          console.error('[ModuleHub] Quick action error:', err);
+        }
       }
     },
 
@@ -805,6 +1064,104 @@
     },
 
     /**
+     * Sort items helper
+     */
+    _sortItems: function (items, sortMode, pinned, recents, self) {
+      var arr = items.slice();
+      if (sortMode === 'pinned') {
+        arr.sort(function (a, b) {
+          var aPin = pinned.indexOf(a.id) !== -1 ? 1 : 0;
+          var bPin = pinned.indexOf(b.id) !== -1 ? 1 : 0;
+          if (bPin !== aPin) return bPin - aPin;
+          return a.title.localeCompare(b.title);
+        });
+      } else if (sortMode === 'recent') {
+        arr.sort(function (a, b) {
+          var aIdx = recents.indexOf(a.id);
+          var bIdx = recents.indexOf(b.id);
+          if (aIdx === -1 && bIdx === -1) return a.title.localeCompare(b.title);
+          if (aIdx === -1) return 1;
+          if (bIdx === -1) return -1;
+          return aIdx - bIdx;
+        });
+      } else if (sortMode === 'name') {
+        arr.sort(function (a, b) {
+          return a.title.localeCompare(b.title);
+        });
+      } else if (sortMode === 'telemetry') {
+        var weight = { danger: 4, warning: 3, success: 2, info: 1, muted: 0 };
+        arr.sort(function (a, b) {
+          var ta = self.getLiveTelemetry(a);
+          var tb = self.getLiveTelemetry(b);
+          var wa = weight[ta.type] || 0;
+          var wb = weight[tb.type] || 0;
+          if (wb !== wa) return wb - wa;
+          return a.title.localeCompare(b.title);
+        });
+      } else if (sortMode === 'category') {
+        arr.sort(function (a, b) {
+          if (a.category !== b.category) return a.category.localeCompare(b.category);
+          return a.title.localeCompare(b.title);
+        });
+      }
+      return arr;
+    },
+
+    /**
+     * Keyboard navigation bindings (Arrow keys, Enter, Esc)
+     */
+    _bindKeyboardEvents: function () {
+      if (this._kbdBound) return;
+      this._kbdBound = true;
+      var self = this;
+      document.addEventListener('keydown', function (e) {
+        var page = document.getElementById('page-modules');
+        if (!page || page.classList.contains('hidden') || page.style.display === 'none') {
+          return;
+        }
+        var searchInput = document.getElementById('modHubSearchInput');
+        var isSearchFocused = document.activeElement === searchInput;
+
+        if (e.key === 'Escape') {
+          if (isSearchFocused && searchInput && searchInput.value) {
+            e.preventDefault();
+            self.clearSearch();
+          }
+          return;
+        }
+
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          var cards = page.querySelectorAll('.mod-card, .mod-list-row');
+          if (!cards || cards.length === 0) return;
+          e.preventDefault();
+          if (e.key === 'ArrowDown') {
+            _focusedIndex = (_focusedIndex + 1) % cards.length;
+          } else {
+            _focusedIndex = (_focusedIndex - 1 + cards.length) % cards.length;
+          }
+          cards.forEach(function (c, idx) {
+            if (idx === _focusedIndex) {
+              c.classList.add('is-keyboard-focused');
+              c.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            } else {
+              c.classList.remove('is-keyboard-focused');
+            }
+          });
+        } else if (e.key === 'Enter') {
+          var cards = page.querySelectorAll('.mod-card, .mod-list-row');
+          if (_focusedIndex >= 0 && _focusedIndex < cards.length) {
+            var activeCard = cards[_focusedIndex];
+            var modId = activeCard.getAttribute('data-mod-id');
+            if (modId) {
+              e.preventDefault();
+              self.launch(modId);
+            }
+          }
+        }
+      });
+    },
+
+    /**
      * Main Renderer for #page-modules
      */
     render: function () {
@@ -812,6 +1169,8 @@
       if (!container) return;
 
       var self = this;
+      _viewMode = _loadViewMode();
+      _sortMode = _loadSortMode();
       var pinned = _loadPinned();
       var recents = _loadRecents();
 
@@ -833,10 +1192,9 @@
         return matchCat && matchSearch;
       });
 
-      // Group modules by category for presentation
+      // Group modules by category or unified sort presentation
       var categoriesToRender = [];
-      if (_activeCategory === 'all' && !_searchQuery) {
-        // Group by standard order
+      if (_activeCategory === 'all' && !_searchQuery && _sortMode === 'category') {
         var catOrder = ['banking', 'wealth', 'debt', 'business', 'lifestyle', 'reports', 'vault'];
         catOrder.forEach(function (cId) {
           var catDef = CATEGORIES.find(function (c) { return c.id === cId; });
@@ -846,8 +1204,25 @@
           }
         });
       } else {
-        var currentCatDef = CATEGORIES.find(function (c) { return c.id === _activeCategory; }) || { label: 'Search Results', icon: '🔍' };
-        categoriesToRender.push({ def: currentCatDef, items: filtered });
+        var sorted = self._sortItems(filtered, _sortMode, pinned, recents, self);
+        var label = 'Modules';
+        var icon = '⊞';
+        if (_searchQuery) {
+          label = 'Search Results for "' + _searchQuery + '"';
+          icon = '🔍';
+        } else if (_activeCategory !== 'all') {
+          var curCat = CATEGORIES.find(function (c) { return c.id === _activeCategory; });
+          if (curCat) { label = curCat.label; icon = curCat.icon; }
+        } else {
+          var sortLabels = {
+            pinned: 'Starred & Favorite Modules First',
+            recent: 'Recently Used Modules First',
+            name: 'Alphabetical (A–Z)',
+            telemetry: 'Action & Telemetry Alerts First'
+          };
+          label = sortLabels[_sortMode] || 'All Modules';
+        }
+        categoriesToRender.push({ def: { label: label, icon: icon }, items: sorted });
       }
 
       // Recent chips
@@ -877,36 +1252,73 @@
             </div>
           </div>
 
-          <!-- ── SEARCH BAR & CATEGORY BAR ── -->
+          <!-- ── SEARCH BAR & CONTROLS ── -->
           <div class="mod-hub-controls">
             <div class="mod-search-bar">
               <span class="mod-search-icon">🔍</span>
               <input type="text" id="modHubSearchInput" class="mod-search-input"
-                placeholder="Search modules, tools, calculators, reports (e.g. 'stocks', 'sankey', 'emi', 'whatsapp')…"
+                placeholder="Search modules, tools, calculators, reports (e.g. 'stocks', 'sankey', 'emi', 'khata')…"
                 value="` + _esc(_searchQuery) + `"
                 oninput="window.LM_ModuleHubUI.setSearch(this.value)" />
+              ` + (_searchQuery ? `
+                <button class="mod-search-clear-btn" onclick="window.LM_ModuleHubUI.clearSearch()" title="Clear Search (Esc)">✕</button>
+              ` : '') + `
               <span class="mod-search-kbd">⌘M</span>
             </div>
 
-            <!-- Categories Bar -->
-            <div class="mod-categories-bar">
-              ` + CATEGORIES.map(function (cat) {
-                var isAct = _activeCategory === cat.id;
-                var count = (cat.id === 'all')
-                  ? MODULES.length
-                  : (cat.id === 'pinned'
-                      ? pinned.length
-                      : MODULES.filter(function (m) { return m.category === cat.id; }).length);
-                return `
-                  <button class="mod-category-pill` + (isAct ? ' active' : '') + `" onclick="window.LM_ModuleHubUI.setCategory('` + cat.id + `')">
-                    <span>` + cat.icon + `</span>
-                    <span>` + cat.label + `</span>
-                    <span class="mod-category-count">` + count + `</span>
+            <!-- Categories & View/Sort Toolbar -->
+            <div class="mod-hub-toolbar">
+              <div class="mod-categories-bar">
+                ` + CATEGORIES.map(function (cat) {
+                  var isAct = _activeCategory === cat.id;
+                  var count = (cat.id === 'all')
+                    ? MODULES.length
+                    : (cat.id === 'pinned'
+                        ? pinned.length
+                        : MODULES.filter(function (m) { return m.category === cat.id; }).length);
+                  return `
+                    <button class="mod-category-pill` + (isAct ? ' active' : '') + `" onclick="window.LM_ModuleHubUI.setCategory('` + cat.id + `')">
+                      <span>` + cat.icon + `</span>
+                      <span>` + cat.label + `</span>
+                      <span class="mod-category-count">` + count + `</span>
+                    </button>
+                  `;
+                }).join('') + `
+              </div>
+
+              <div class="mod-toolbar-right">
+                <div class="mod-sort-wrap">
+                  <span class="mod-sort-label">Sort:</span>
+                  <select class="mod-sort-select" onchange="window.LM_ModuleHubUI.setSortMode(this.value)">
+                    <option value="pinned"` + (_sortMode === 'pinned' ? ' selected' : '') + `>⭐ Starred First</option>
+                    <option value="recent"` + (_sortMode === 'recent' ? ' selected' : '') + `>⚡ Recently Used</option>
+                    <option value="name"` + (_sortMode === 'name' ? ' selected' : '') + `>🔤 Name (A–Z)</option>
+                    <option value="telemetry"` + (_sortMode === 'telemetry' ? ' selected' : '') + `>🔔 Action Alerts First</option>
+                    <option value="category"` + (_sortMode === 'category' ? ' selected' : '') + `>📁 By Category</option>
+                  </select>
+                </div>
+
+                <div class="mod-view-switcher" role="group" aria-label="View Mode">
+                  <button class="mod-view-btn` + (_viewMode === 'grid' ? ' active' : '') + `"
+                    onclick="window.LM_ModuleHubUI.setViewMode('grid')" title="Executive Grid View">
+                    ▦ Grid
                   </button>
-                `;
-              }).join('') + `
+                  <button class="mod-view-btn` + (_viewMode === 'list' ? ' active' : '') + `"
+                    onclick="window.LM_ModuleHubUI.setViewMode('list')" title="Compact Power-User List View">
+                    ☰ List
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
+
+          <!-- Search Status Bar -->
+          ` + (_searchQuery ? `
+            <div class="mod-search-status">
+              <span>Found <strong>` + filtered.length + `</strong> matching module` + (filtered.length === 1 ? '' : 's') + ` for "<em>` + _esc(_searchQuery) + `</em>"</span>
+              <button class="mod-search-status-clear" onclick="window.LM_ModuleHubUI.clearSearch()">Clear Filter ✕</button>
+            </div>
+          ` : '') + `
 
           <!-- ── RECENTLY LAUNCHED STRIP ── -->
           ` + (!_searchQuery && recentItems.length > 0 ? `
@@ -923,7 +1335,7 @@
             </div>
           ` : '') + `
 
-          <!-- ── MODULE SECTIONS & GRIDS ── -->
+          <!-- ── MODULE SECTIONS & GRIDS / LISTS ── -->
           ` + (filtered.length === 0 ? `
             <div style="background:var(--hub-card-bg);border:1px solid var(--hub-border);border-radius:18px;padding:48px 24px;text-align:center;color:var(--text-2);">
               <div style="font-size:36px;margin-bottom:12px;">🔍</div>
@@ -944,34 +1356,91 @@
                   <span class="mod-section-badge">` + sec.items.length + ` apps</span>
                 </div>
 
-                <div class="mod-grid">
-                  ` + sec.items.map(function (m) {
-                    var isPinned = pinned.indexOf(m.id) !== -1;
-                    var telemetry = self.getLiveTelemetry(m);
-                    return `
-                      <div class="mod-card` + (isPinned ? ' pinned' : '') + `" onclick="window.LM_ModuleHubUI.launch('` + m.id + `')">
-                        <div>
-                          <div class="mod-card-top">
-                            <div class="mod-card-icon-wrap">` + m.icon + `</div>
+                ` + (_viewMode === 'list' ? `
+                  <div class="mod-list-view">
+                    ` + sec.items.map(function (m) {
+                      var isPinned = pinned.indexOf(m.id) !== -1;
+                      var telemetry = self.getLiveTelemetry(m);
+                      var titleHl = _highlightMatch(m.title, _searchQuery);
+                      var descHl = _highlightMatch(m.desc, _searchQuery);
+                      return `
+                        <div class="mod-list-row cat-` + m.category + (isPinned ? ' pinned' : '') + `"
+                          data-mod-id="` + m.id + `"
+                          onclick="window.LM_ModuleHubUI.launch('` + m.id + `')">
+                          <div class="mod-list-left">
+                            <div class="mod-list-icon">` + m.icon + `</div>
+                            <div class="mod-list-meta">
+                              <div class="mod-list-title">
+                                <span>` + titleHl + `</span>
+                                <span class="mod-list-cat-pill">` + m.category + `</span>
+                              </div>
+                              <div class="mod-list-desc">` + descHl + `</div>
+                            </div>
+                          </div>
+
+                          <div class="mod-list-right">
+                            <span class="mod-card-badge ` + telemetry.type + `">` + _esc(telemetry.text) + `</span>
+                            ` + (m.quickAction ? `
+                              <button class="mod-list-action-btn"
+                                onclick="window.LM_ModuleHubUI.triggerQuickAction('` + m.id + `', event)"
+                                title="` + _esc(m.quickAction.title || m.quickAction.label) + `">
+                                ` + _esc(m.quickAction.label) + `
+                              </button>
+                            ` : '') + `
                             <button class="mod-card-pin-btn` + (isPinned ? ' pinned' : '') + `"
                               onclick="window.LM_ModuleHubUI.togglePin('` + m.id + `', event)"
                               title="` + (isPinned ? 'Unpin from favorites' : 'Pin to favorites') + `">
                               ` + (isPinned ? '⭐' : '☆') + `
                             </button>
+                            <span class="mod-card-arrow">→</span>
+                          </div>
+                        </div>
+                      `;
+                    }).join('') + `
+                  </div>
+                ` : `
+                  <div class="mod-grid">
+                    ` + sec.items.map(function (m) {
+                      var isPinned = pinned.indexOf(m.id) !== -1;
+                      var telemetry = self.getLiveTelemetry(m);
+                      var titleHl = _highlightMatch(m.title, _searchQuery);
+                      var descHl = _highlightMatch(m.desc, _searchQuery);
+                      return `
+                        <div class="mod-card cat-` + m.category + (isPinned ? ' pinned' : '') + `"
+                          data-mod-id="` + m.id + `"
+                          onclick="window.LM_ModuleHubUI.launch('` + m.id + `')">
+                          <div>
+                            <div class="mod-card-top">
+                              <div class="mod-card-icon-wrap">` + m.icon + `</div>
+                              <div class="mod-card-top-actions">
+                                ` + (m.quickAction ? `
+                                  <button class="mod-card-action-btn"
+                                    onclick="window.LM_ModuleHubUI.triggerQuickAction('` + m.id + `', event)"
+                                    title="` + _esc(m.quickAction.title || m.quickAction.label) + `">
+                                    ` + _esc(m.quickAction.label) + `
+                                  </button>
+                                ` : '') + `
+                                <button class="mod-card-pin-btn` + (isPinned ? ' pinned' : '') + `"
+                                  onclick="window.LM_ModuleHubUI.togglePin('` + m.id + `', event)"
+                                  title="` + (isPinned ? 'Unpin from favorites' : 'Pin to favorites') + `">
+                                  ` + (isPinned ? '⭐' : '☆') + `
+                                </button>
+                              </div>
+                            </div>
+
+                            <div class="mod-card-title">` + titleHl + `</div>
+                            <div class="mod-card-desc">` + descHl + `</div>
                           </div>
 
-                          <div class="mod-card-title">` + _esc(m.title) + `</div>
-                          <div class="mod-card-desc">` + _esc(m.desc) + `</div>
+                          <div class="mod-card-footer">
+                            <span class="mod-card-badge ` + telemetry.type + `">` + _esc(telemetry.text) + `</span>
+                            <span class="mod-card-arrow">→</span>
+                          </div>
                         </div>
-
-                        <div class="mod-card-footer">
-                          <span class="mod-card-badge ` + telemetry.type + `">` + _esc(telemetry.text) + `</span>
-                          <span class="mod-card-arrow">→</span>
-                        </div>
-                      </div>
-                    `;
-                  }).join('') + `
-                </div>
+                      `;
+                    }).join('') + `
+                  </div>
+                `) + `
               </div>
             `;
           }).join('')) + `
