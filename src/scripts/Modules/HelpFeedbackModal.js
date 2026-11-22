@@ -41,6 +41,14 @@
         {
           q: 'How do I filter, search, and export transaction data?',
           a: 'Navigate to the **Transactions** ledger to search by merchant, note, or tag. Filter by date ranges (7d, 30d, 90d, 1y, Custom) and accounts. You can export filtered or complete financial records in standard **CSV** or encrypted **JSON** formats at any time.'
+        },
+        {
+          q: 'How does Rollover Budgeting work and how do I roll over unspent money?',
+          a: 'In the **Budgets** modal, tap the **🔄 Rollover: ON / OFF** chip on any envelope. When enabled, any unspent surplus at the end of the month automatically rolls over into your next month\'s spending limit (e.g., ₹2,000 saved in October increases your November limit by ₹2,000). Visual `🔄 Rollover` badges and details display your base and carried-over amounts in real time.'
+        },
+        {
+          q: 'How does the 30-Day Forward Projected Cashflow Runway and Calendar Sparkline work?',
+          a: 'The **Cash Flow Calendar** projects your end-of-day bank balance for the next 30 days by factoring in your trailing daily discretionary burn rate and all scheduled obligations (Credit Card bills, Loan EMIs, recurring reminders). It graphs an interactive SVG trajectory curve, flags your **Lowest Projected Dip** amount and date, and lets you drill into any future date to preview scheduled commitments.'
         }
       ]
     },
@@ -54,6 +62,10 @@
         {
           q: 'How do I track Personal, Home, Vehicle loans, and EMIs?',
           a: 'In the **Loans & Liabilities** module, enter the principal loan amount, annual interest rate (reducing or flat), tenure in months, and start date. LedgerMate computes your exact monthly EMI, total interest payable, remaining principal balance, and scheduled payoff date.'
+        },
+        {
+          q: 'How does the Loan Prepayment & Savings Simulator (\'🧮 Prepay Sim\') work?',
+          a: 'Tap the **🧮 Prepay Sim** button on any active loan in **Liabilities**. You can enter an ad-hoc lump-sum part-payment (e.g. ₹50,000) and choose between two payoff strategies:\n- **⚡ Reduce Loan Tenure**: Keeps your monthly EMI unchanged and calculates exact months cut from your loan tenure plus total interest saved.\n- **📉 Reduce Monthly EMI**: Keeps your original loan tenure, lowers your recurring monthly EMI, and calculates your monthly cashflow savings.\nTap **✅ Apply Prepayment** to update your outstanding loan principal in IndexedDB in 1 tap.'
         },
         {
           q: 'How does the Debt Payoff Planner (Snowball vs. Avalanche) work?',
@@ -83,6 +95,10 @@
         {
           q: 'How does the Monthly Net Worth Snapshot tracking work?',
           a: 'On the 1st of every month (or on-demand), LedgerMate saves a timestamped financial snapshot. This powers the historical Net Worth Sparkline chart and Month-over-Month (MoM) asset growth analytics.'
+        },
+        {
+          q: 'How does AMFI India Live NAV Auto-Refresh work for Mutual Funds and SIPs?',
+          a: 'When adding or editing a Mutual Fund or SIP, enter the 6-digit **AMFI Scheme Code** (e.g. `120503` for Axis Bluechip) and tap **⚡ Fetch** to pull the latest official Net Asset Value directly from AMFI India (`api.mfapi.in`). Tap **⚡ Refresh NAVs** in the Wealth header anytime to auto-refresh all your fund valuations. Rates are cached locally for 24 hours to ensure fast, offline-friendly loading.'
         }
       ]
     },
@@ -146,6 +162,44 @@
         {
           q: 'How do bill dues reminders and statement cycles work?',
           a: 'Track total credit limits, current outstanding balances, utilization ratios (< 30% recommended for high CIBIL scores), and receive automated payment alerts before due dates.'
+        },
+        {
+          q: 'How does 1-Tap Bill Payment from the Unified Dues Timeline work?',
+          a: 'When an upcoming credit card due appears in your **Unified Dues Timeline**, tapping **Pay** immediately prompts to settle the bill. Confirming automatically updates the card\'s outstanding balance, resets credit utilization, records the payment in your card history, and optionally logs an expense transaction in your bank ledger—preventing duplicate entries.'
+        }
+      ]
+    },
+    {
+      id: 'business_khata',
+      name: 'Business Hub & WhatsApp Digital Khata',
+      icon: '💼',
+      color: '#06b6d4',
+      badge: 'MSME & Invoicing',
+      questions: [
+        {
+          q: 'How do I manage Business transactions, customer Udhar/Jama, and net profit margins?',
+          a: 'In the **Business Hub**, create multiple business profiles, record sales invoices and operational expenses, and track your Net Profit Margin in real time. The **Digital Khata Ledger** maintains distinct customer and supplier balances with instant Udhar (To Receive) and Jama (To Pay) ledgers.'
+        },
+        {
+          q: 'How do WhatsApp Digital Khata payment reminders with dynamic 1-tap UPI links work?',
+          a: 'When viewing customer dues in Digital Khata, tap **Send WhatsApp Reminder**. LedgerMate formats a professional message with statement breakdown and an instant 1-tap `upi://pay` deep link targeted directly to the customer\'s phone. Clients can tap the link to pay you directly via Google Pay, PhonePe, Paytm, or BHIM UPI.'
+        }
+      ]
+    },
+    {
+      id: 'sankey_analytics',
+      name: 'Cash Flow Sankey & Visual Analytics',
+      icon: '🌊',
+      color: '#3b82f6',
+      badge: 'Visual Flows',
+      questions: [
+        {
+          q: 'What is the Cash Flow Sankey Visualizer and what does it show?',
+          a: 'The **Cash Flow Sankey Diagram** visualizes the kinetic movement of money from your Inflow Sources (Salary, Freelance, Dividends) into your Central Hub, dynamically distributing into **🛡️ Essential Needs (50%)**, **🎉 Lifestyle & Wants (30%)**, and **💰 Net Savings & Wealth (20%)** with animated energy flow streams.'
+        },
+        {
+          q: 'How do I filter Sankey time periods and export vector SVG / high-res PNG images?',
+          a: 'Use the period filter chips at the top of the Sankey diagram to switch between **This Month**, **Last 3 Months** (90 days), **Year to Date (YTD)**, or **All Time**. Tap **📥 SVG** to download a lossless vector graphic, or **📷 PNG** to export a high-resolution image perfect for annual financial reviews or presentations.'
         }
       ]
     },
@@ -205,6 +259,14 @@
         {
           q: 'How does Supabase Free Tier delta sync with Gzip compression work?',
           a: 'Cloud sync uses gzip compression and header-only etag polling. Instead of transferring megabytes on every change, tiny delta payloads (< 80KB) are transmitted, using 95% less bandwidth and database quota.'
+        },
+        {
+          q: 'How does IndexedDB Schema v21 prevent browser storage quota crashes?',
+          a: 'LedgerMate version 21 migrated all stock holdings, category keyword rules, and group bill splits from browser `localStorage` into native **IndexedDB** (`ledgermate_db`). This completely eliminates the restrictive 5MB browser storage ceiling and prevents `QuotaExceededError` crashes, allowing you to store thousands of transactions, order histories, and receipts with zero performance degradation.'
+        },
+        {
+          q: 'How does Multi-Tenant Profile Claim & Privacy Isolation protect my data on shared devices?',
+          a: 'When switching user accounts on a shared device, LedgerMate strictly isolates records so User B cannot see User A\'s financial data. When logging in from an offline guest session, LedgerMate automatically prompts to claim your local records into your authenticated account, guaranteeing zero data loss while enforcing complete cryptographic boundaries.'
         }
       ]
     },
