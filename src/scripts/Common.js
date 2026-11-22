@@ -1845,23 +1845,39 @@ function renderAll(){
   _renderAllTimer = setTimeout(_doRenderAll, 60);
 }
 if (typeof window !== 'undefined') window.renderAll = renderAll;
+window.LM_getActivePage = function() {
+  if (typeof window !== 'undefined' && window._currentActivePage) return window._currentActivePage;
+  const activeEl = typeof document !== 'undefined' ? document.querySelector('[id^="page-"].active-page') : null;
+  if (activeEl && activeEl.id) return activeEl.id.replace('page-', '');
+  const _lmUid = (typeof window !== 'undefined' && window.LM_Auth?.getCurrentUserId) ? window.LM_Auth.getCurrentUserId() : 'default';
+  return (typeof localStorage !== 'undefined' ? (localStorage.getItem(`lm_u_${_lmUid}_lastPage`) || localStorage.getItem('ledgerMate_lastPage')) : null) || 'dashboard';
+};
+
 function _doRenderAll(){
   _renderAllTimer = null;
   renderDropdowns();
-  try { renderHeroCard(); } catch(e) { console.warn('[LM] renderHeroCard error:', e); }
-  renderKPIs();
-  renderCharts();
-  refreshRecentList();
-  renderHeatmap();
   checkBudgetAlerts();
   //renderNotifications();
   processRecurringTransactions();
-  renderBudgetOverview();
-  renderDashboardCreditCardReminders();
-  try { renderDashboardVehicleAlerts(); } catch (e) {}
-  try { window.LM_InterlinkEngine?.renderDashboardInterlinkAnalysis(); } catch(e) {}
-  try { window.LM_DashboardUpgrade?.refresh(); } catch(e) {}
-  try { applyDashboardConfig(); } catch(e) {}
+
+  const curPage = window.LM_getActivePage ? window.LM_getActivePage() : 'dashboard';
+
+  // Only render dashboard-specific DOM trees if the user is currently on the dashboard
+  if (curPage === 'dashboard') {
+    try { renderHeroCard(); } catch(e) { console.warn('[LM] renderHeroCard error:', e); }
+    renderKPIs();
+    renderCharts();
+    refreshRecentList();
+    renderHeatmap();
+    renderBudgetOverview();
+    renderDashboardCreditCardReminders();
+    try { renderDashboardVehicleAlerts(); } catch (e) {}
+    try { window.LM_InterlinkEngine?.renderDashboardInterlinkAnalysis(); } catch(e) {}
+    try { window.LM_DashboardUpgrade?.refresh(); } catch(e) {}
+    try { applyDashboardConfig(); } catch(e) {}
+  } else if (curPage === 'transactions') {
+    refreshRecentList();
+  }
 }
 
 function renderDropdowns(){
@@ -9375,9 +9391,21 @@ function applyDashboardConfig() {
     const el = document.getElementById(w.id) || document.querySelector(`.${w.id}`);
     if (!el) return;
     const visible = cfg[w.id] !== false;
-    const section = el.closest('.fade-up') || el.closest('.card') || el.parentElement;
-    const target = (w.id === 'recentList' || w.id === 'kpiCards') ? el.parentElement : section;
-    if (target) target.style.display = visible ? '' : 'none';
+    let target;
+    if (w.id === 'kpiCards') {
+      target = el;
+    } else if (w.id === 'recentList') {
+      target = el.closest('#recentTxSection') || el;
+    } else {
+      target = el.closest('.fade-up') || el.closest('.card') || el;
+    }
+    // Strict Guard: NEVER mutate page containers or document.body
+    if (target && target.id && target.id.startsWith('page-')) {
+      target = el; // Fall back to element itself if closest section resolved to page container
+    }
+    if (target && target !== document.body && !target.id?.startsWith('page-')) {
+      target.style.display = visible ? '' : 'none';
+    }
   });
   try { window.LM_DashboardUpgrade?.applyViewFilter(); } catch(e) {}
 }

@@ -499,7 +499,7 @@
     <div id="pageContent">
 
       <!-- ─── DASHBOARD PAGE ───────────────────────── -->
-      <div id="page-dashboard">
+      <div id="page-dashboard" class="active-page">
 
         <div class="page-header fade-up fade-up-1">
           <div class="page-header-left">
@@ -1039,7 +1039,7 @@
       </div>
 
       <!-- ─── TRANSACTIONS PAGE ───────────────────────── -->
-        <div id="page-transactions">
+        <div id="page-transactions" style="display:none;">
          <div class="fade-up fade-up-5">
           <div>
       <div class="page-greeting">Smart Financial Tracking</div>
@@ -1103,7 +1103,7 @@
 </div>
 </div>
 <!-- ─── LOANS PAGE ───────────────────────── -->
-        <div id="page-loans">
+        <div id="page-loans" style="display:none;">
          <div class="fade-up fade-up-5">
           <div>
       <div class="page-greeting">Manage borrowings</div>
@@ -1528,10 +1528,15 @@ function showPage(page) {
   try { window.LM_Haptic?.light(); } catch (e) {}
   if (typeof window.closeSidebar === 'function') window.closeSidebar();
   updateFabVisibility(page);
-  // 1. Show / hide pages
-  document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
+  // 1. Show / hide pages with strict class & style enforcement
+  window._currentActivePage = page;
+  document.querySelectorAll('[id^="page-"]').forEach(p => {
+    p.classList.remove('active-page');
+    p.style.display = 'none';
+  });
   const pageEl = document.getElementById('page-' + page);
   if (pageEl) {
+    pageEl.classList.add('active-page');
     pageEl.style.display = 'block';
     pageEl.classList.remove('page-enter');
     void pageEl.offsetWidth; // force reflow for smooth re-entry
