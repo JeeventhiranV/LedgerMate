@@ -517,21 +517,60 @@ function autoSortDropdowns(data) {
 // ----------------------------
 // UI Bindings
 // ----------------------------
-// File Import Handler
+// File Import Handler & Universal Decompression
 // ----------------------------
+async function isGzipData(file) {
+  if (!file) return false;
+  const lowerName = (file.name || '').toLowerCase();
+  if (lowerName.endsWith('.gz') || lowerName.endsWith('.gzip') || file.type === 'application/gzip' || file.type === 'application/x-gzip') {
+    return true;
+  }
+  // Check 2-byte GZIP magic header: 0x1f, 0x8b
+  try {
+    if (typeof file.slice === 'function') {
+      const slice = file.slice(0, 2);
+      const buf = await slice.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      return bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b;
+    }
+  } catch {}
+  return false;
+}
+
+async function decompressGzip(file) {
+  if (typeof DecompressionStream === 'undefined') {
+    throw new Error('GZIP decompression not supported in this browser/device.');
+  }
+  const ds = new DecompressionStream('gzip');
+  let stream;
+  if (typeof file.stream === 'function') {
+    stream = file.stream();
+  } else {
+    stream = new Response(file).body;
+  }
+  const decompressedStream = stream.pipeThrough(ds);
+  return await new Response(decompressedStream).text();
+}
+
 async function readFileTextOrGzip(file) {
   if (!file) return '';
-  const lowerName = (file.name || '').toLowerCase();
-  if (lowerName.endsWith('.gz')) {
-    if (typeof DecompressionStream !== 'undefined') {
-      const ds = new DecompressionStream('gzip');
-      const decompressedStream = file.stream().pipeThrough(ds);
-      return await new Response(decompressedStream).text();
+  const isGz = await isGzipData(file);
+  if (isGz) {
+    try {
+      return await decompressGzip(file);
+    } catch (decompErr) {
+      console.warn('[LM] GZIP decompression failed, attempting raw text read:', decompErr);
+      try {
+        return await file.text();
+      } catch {
+        throw decompErr;
+      }
     }
-    throw new Error('GZIP decompression not supported in this environment.');
   }
   return await file.text();
 }
+window.LM_readFileTextOrGzip = readFileTextOrGzip;
+window.LM_isGzipData = isGzipData;
 
 window.importData = async function(e) {
   const file = e?.target?.files?.[0];
@@ -539,7 +578,7 @@ window.importData = async function(e) {
   try {
     const txt = await readFileTextOrGzip(file);
     const lowerName = (file.name || '').toLowerCase();
-    if (lowerName.endsWith('.csv')) {
+    if (lowerName.endsWith('.csv') || lowerName.endsWith('.csv.gz')) {
       await importCSVText(txt);
     } else {
       await fullImportJSONText(txt, 'Manual');
@@ -604,16 +643,23 @@ function bindUI(){
 
   // file import input
   if (!document.getElementById('fileImport')) {
-    const fi = document.createElement('input'); fi.type='file'; fi.accept='.csv,.json,.gz,.json.gz'; fi.id='fileImport'; fi.style.display='none';
+    const fi = document.createElement('input');
+    fi.type = 'file';
+    fi.accept = '.json,.csv,.gz,.gzip,.json.gz,application/json,text/csv,application/gzip,application/x-gzip,application/octet-stream,*/*';
+    fi.id = 'fileImport';
+    fi.style.display = 'none';
     fi.onchange = async(e)=>{
       const f = e.target.files[0];
       if (!f) return;
       try {
         const txt = await readFileTextOrGzip(f);
-        if (f.name.toLowerCase().endsWith('.csv')) await smartImportCSV(txt);
+        const lowerName = (f.name || '').toLowerCase();
+        if (lowerName.endsWith('.csv') || lowerName.endsWith('.csv.gz')) await smartImportCSV(txt);
         else await fullImportJSONText(txt);
       } catch (err) {
         if (typeof showToast === 'function') showToast('❌ Import error: ' + (err?.message || err), 'error');
+      } finally {
+        e.target.value = '';
       }
     };
     document.body.appendChild(fi);

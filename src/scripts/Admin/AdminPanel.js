@@ -1897,7 +1897,7 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
 <div class="admin-form-card" style="margin-bottom:16px;background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px;">
   <div class="admin-section-title" style="font-size:13px;margin-bottom:12px;border:none;">📥 Restore / Import</div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-    <input type="file" id="restoreFile" accept=".json,.gz,.json.gz" class="form-input" style="max-width:320px;">
+    <input type="file" id="restoreFile" accept=".json,.gz,.gzip,.json.gz,application/json,application/gzip,application/x-gzip,application/octet-stream,*/*" class="form-input" style="max-width:320px;">
     <button id="adminImportBtn" class="btn-submit" onclick="window.LM_Admin.importBackup()">📥 Restore Backup</button>
   </div>
   <div style="font-size:11px;color:var(--text-3);margin-top:8px;">Merges backup records into the database.</div>
@@ -1959,16 +1959,22 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
     if (btn) { btn.disabled = true; btn.textContent = '⏳ Restoring…'; }
     try {
       let text;
-      if (file.name.toLowerCase().endsWith('.gz')) {
-        if (typeof DecompressionStream !== 'undefined') {
-          const ds = new DecompressionStream('gzip');
-          const decompressedStream = file.stream().pipeThrough(ds);
-          text = await new Response(decompressedStream).text();
-        } else {
-          throw new Error('GZIP decompression not supported in this browser.');
-        }
+      if (typeof window.LM_readFileTextOrGzip === 'function') {
+        text = await window.LM_readFileTextOrGzip(file);
       } else {
-        text = await file.text();
+        const lowerName = (file.name || '').toLowerCase();
+        const isGz = lowerName.endsWith('.gz') || lowerName.endsWith('.gzip') || file.type === 'application/gzip' || file.type === 'application/x-gzip';
+        if (isGz) {
+          if (typeof DecompressionStream !== 'undefined') {
+            const ds = new DecompressionStream('gzip');
+            const stream = (typeof file.stream === 'function') ? file.stream() : new Response(file).body;
+            text = await new Response(stream.pipeThrough(ds)).text();
+          } else {
+            throw new Error('GZIP decompression not supported in this browser.');
+          }
+        } else {
+          text = await file.text();
+        }
       }
       let payload;
       try { payload = JSON.parse(text); } catch (e) { throw new Error('Not valid JSON: ' + e.message); }
