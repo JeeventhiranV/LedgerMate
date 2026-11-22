@@ -1,0 +1,13 @@
+{
+  "name": "ledgermate",
+  "version": "2.0.0",
+  "description": "LedgerMate - Enterprise Personal Finance & Business Accounting",
+  "private": true,
+  "scripts": {
+    "test": "node tests/run_all_tests.js",
+    "test:syntax": "node .github/scripts/run_regression_tests.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

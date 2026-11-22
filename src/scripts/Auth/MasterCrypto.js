@@ -36,7 +36,7 @@
         hash: 'SHA-256'
       },
       keyMaterial,
-      { name: 'AES-256-GCM', length: 256 },
+      { name: 'AES-GCM', length: 256 },
       false,
       ['encrypt', 'decrypt']
     );
@@ -80,7 +80,7 @@
     _masterKey = await deriveKeyFromSecret(passphraseOrPin, saltBytes);
     resetAutoLock();
     console.log('[MasterCrypto] 🔐 Zero-Knowledge encryption engine initialized (AES-256-GCM).');
-    return true;
+    return { success: true, salt: _activeSalt };
   }
 
   /**
@@ -98,7 +98,7 @@
       var enc = new TextEncoder();
       var iv = crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV for AES-GCM
       var encryptedBuffer = await crypto.subtle.encrypt(
-        { name: 'AES-256-GCM', iv: iv },
+        { name: 'AES-GCM', iv: iv },
         _masterKey,
         enc.encode(plaintext)
       );
@@ -138,7 +138,7 @@
       var dataBytes = new Uint8Array(atob(encryptedPackage.data).split('').map(c => c.charCodeAt(0)));
 
       var decryptedBuffer = await crypto.subtle.decrypt(
-        { name: 'AES-256-GCM', iv: ivBytes },
+        { name: 'AES-GCM', iv: ivBytes },
         _masterKey,
         dataBytes
       );

@@ -109,7 +109,10 @@
           map.set(k, rt);
         }
       });
-      var merged = Array.from(map.values()).slice(-500);
+      var cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
+      var merged = Array.from(map.values()).filter(function (t) {
+        return new Date(t.deletedAt).getTime() > cutoff;
+      }).slice(-500);
       localStorage.setItem(TOMBSTONES_KEY, JSON.stringify(merged));
     } catch (e) {}
   }
@@ -706,6 +709,9 @@
     isOfflineMode          : isOfflineMode,
     addTombstone           : addTombstone,
     getTombstones          : getTombstones,
+    mergeTombstones        : mergeTombstones,
+    markStorePending       : markStorePending,
+    clearPendingQueue      : clearPendingQueue,
     getPendingQueue        : getPendingQueue,
     getClientSessionId     : function () { return _clientSessionId; },
     getSyncStats           : function () {

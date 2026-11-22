@@ -20,6 +20,18 @@ import sys
 import time
 from datetime import date
 
+# ── Pre-Deployment Automated Regression Test Gate ─────────────────────────────
+print("🔒 [CI/CD Deployment Gate] Running universal test suite across all modules...")
+root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+test_runner = os.path.join(root_dir, "tests", "run_all_tests.js")
+
+if os.path.exists(test_runner):
+    test_proc = subprocess.run(["node", test_runner], cwd=root_dir)
+    if test_proc.returncode != 0:
+        print("::error::[CI/CD Deployment Gate] Pre-deployment regression tests failed! Aborting deployment.", file=sys.stderr)
+        sys.exit(1)
+    print("✅ [CI/CD Deployment Gate] 100% test pass verified. Proceeding with deployment.")
+
 url          = os.environ.get("SUPABASE_URL",     "").strip()
 anon         = os.environ.get("SUPABASE_ANON",    "").strip()
 vapid_pubkey = os.environ.get("VAPID_PUBLIC_KEY", "").strip()
