@@ -235,7 +235,10 @@
     <div class="sidebar-section" style="padding-top:2px;">
       <div class="sidebar-section-label" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
         <span>Modules &amp; Tools</span>
-        <span style="font-size:10px;cursor:pointer;color:var(--teal,#00f0ff);font-weight:600;text-transform:none;" onclick="showPage('modules')" title="Open Full Visual Hub">App Hub ↗</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button type="button" id="sidebarToggleAllBtn" onclick="window.LM_SidebarNav?.toggleAllGroups(event)" style="background:none;border:none;padding:0;font-size:10px;cursor:pointer;color:var(--text-3,#64748b);font-weight:600;transition:color 0.15s ease;" title="Expand or Collapse All Submenus">↕ Expand All</button>
+          <span style="font-size:10px;cursor:pointer;color:var(--teal,#00f0ff);font-weight:600;text-transform:none;" onclick="showPage('modules')" title="Open Full Visual Hub">App Hub ↗</span>
+        </div>
       </div>
 
       <!-- 1. BANKING & CREDIT -->

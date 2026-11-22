@@ -154,7 +154,87 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-/* ── CATEGORY PILL STRIP ───────────────────────────────────── */
+.mod-search-clear-btn {
+  position: absolute;
+  right: 56px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2, #94a3b8);
+  cursor: pointer;
+  font-size: 11px;
+  transition: all 0.15s ease;
+}
+
+.mod-search-clear-btn:hover {
+  background: rgba(244, 63, 94, 0.25);
+  color: var(--hub-rose);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.mod-search-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 8px 14px;
+  background: rgba(0, 240, 255, 0.06);
+  border: 1px dashed rgba(0, 240, 255, 0.3);
+  border-radius: 10px;
+  font-size: 12.5px;
+  color: var(--text-2, #94a3b8);
+}
+
+.mod-search-status strong {
+  color: var(--hub-teal);
+}
+
+.mod-search-status em {
+  color: var(--text, #f1f5f9);
+  font-style: normal;
+}
+
+.mod-search-status-clear {
+  background: none;
+  border: none;
+  color: var(--hub-teal);
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.mod-search-status-clear:hover {
+  background: rgba(0, 240, 255, 0.15);
+}
+
+.mod-search-highlight {
+  background: rgba(0, 240, 255, 0.28);
+  color: #ffffff;
+  border-radius: 3px;
+  padding: 0 3px;
+  font-weight: 700;
+}
+
+/* ── TOOLBAR: CATEGORIES & VIEW/SORT CONTROLS ─────────────── */
+.mod-hub-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+}
+
 .mod-categories-bar {
   display: flex;
   align-items: center;
@@ -164,12 +244,89 @@
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 4px;
-  width: 100%;
+  flex: 1;
+  min-width: 260px;
   box-sizing: border-box;
 }
 
 .mod-categories-bar::-webkit-scrollbar {
   display: none;
+}
+
+.mod-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.mod-sort-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-3, #64748b);
+}
+
+.mod-sort-label {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.5px;
+}
+
+.mod-sort-select {
+  background: var(--hub-card-bg);
+  border: 1px solid var(--hub-border);
+  border-radius: 8px;
+  color: var(--text, #f1f5f9);
+  padding: 5px 10px;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+  font-family: inherit;
+}
+
+.mod-sort-select:focus {
+  border-color: var(--hub-teal);
+}
+
+.mod-view-switcher {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--hub-border);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.mod-view-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-2, #94a3b8);
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mod-view-btn:hover {
+  color: var(--text, #f1f5f9);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.mod-view-btn.active {
+  background: rgba(0, 240, 255, 0.18);
+  color: var(--hub-teal);
+  font-weight: 700;
+  box-shadow: 0 1px 6px rgba(0, 240, 255, 0.2);
 }
 
 .mod-category-pill {
@@ -381,6 +538,168 @@
   color: var(--hub-amber);
 }
 
+/* Category Ambient Glows */
+.mod-card.cat-banking, .mod-list-row.cat-banking { border-left: 3.5px solid rgba(56, 189, 248, 0.85); }
+.mod-card.cat-wealth, .mod-list-row.cat-wealth { border-left: 3.5px solid rgba(16, 185, 129, 0.85); }
+.mod-card.cat-debt, .mod-list-row.cat-debt { border-left: 3.5px solid rgba(244, 63, 94, 0.85); }
+.mod-card.cat-business, .mod-list-row.cat-business { border-left: 3.5px solid rgba(245, 158, 11, 0.85); }
+.mod-card.cat-lifestyle, .mod-list-row.cat-lifestyle { border-left: 3.5px solid rgba(139, 92, 246, 0.85); }
+.mod-card.cat-reports, .mod-list-row.cat-reports { border-left: 3.5px solid rgba(0, 240, 255, 0.85); }
+.mod-card.cat-vault, .mod-list-row.cat-vault { border-left: 3.5px solid rgba(236, 72, 153, 0.85); }
+
+/* Quick Action Buttons */
+.mod-card-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mod-card-action-btn {
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  color: var(--hub-teal);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.2;
+}
+
+.mod-card-action-btn:hover {
+  background: var(--hub-teal);
+  color: #0b0f19;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Keyboard Focus Ring */
+.mod-card.is-keyboard-focused,
+.mod-list-row.is-keyboard-focused {
+  outline: 2px solid var(--hub-teal) !important;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.45) !important;
+  border-color: var(--hub-teal) !important;
+}
+
+/* ── COMPACT POWER-USER LIST VIEW ──────────────────────────── */
+.mod-list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mod-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--hub-card-bg);
+  border: 1px solid var(--hub-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  user-select: none;
+  gap: 12px;
+}
+
+.mod-list-row:hover {
+  background: rgba(23, 29, 58, 0.88);
+  border-color: var(--hub-border-h);
+  transform: translateX(3px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+
+.mod-list-row:active {
+  transform: scale(0.995);
+}
+
+.mod-list-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.mod-list-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.mod-list-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mod-list-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text, #f1f5f9);
+  line-height: 1.3;
+}
+
+.mod-list-cat-pill {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-3, #64748b);
+  font-weight: 700;
+}
+
+.mod-list-desc {
+  font-size: 11.5px;
+  color: var(--text-2, #94a3b8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 480px;
+  margin-top: 1px;
+}
+
+.mod-list-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.mod-list-action-btn {
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  color: var(--hub-teal);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.mod-list-action-btn:hover {
+  background: var(--hub-teal);
+  color: #0b0f19;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+}
+
 .mod-card-title {
   font-size: 15px;
   font-weight: 700;
@@ -504,6 +823,21 @@
     padding: 16px 12px 56px;
   }
 
+  .mod-hub-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .mod-toolbar-right {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .mod-list-desc {
+    max-width: 220px;
+  }
+
   .mod-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
@@ -547,5 +881,22 @@
 
   .mod-card {
     padding: 14px;
+  }
+
+  .mod-list-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .mod-list-right {
+    width: 100%;
+    justify-content: space-between;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 8px;
+  }
+
+  .mod-list-desc {
+    max-width: 100%;
   }
 }

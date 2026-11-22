@@ -110,6 +110,56 @@
           header.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         }
       });
+      this.updateToggleAllLabel(groups.length > 0 && this._openGroups.size >= Math.ceil(groups.length / 2));
+    },
+
+    toggleAllGroups: function (event) {
+      if (event) {
+        if (typeof event.stopPropagation === 'function') event.stopPropagation();
+        if (typeof event.preventDefault === 'function') event.preventDefault();
+      }
+
+      var groups = document.querySelectorAll('#sidebar .sidebar-nav-group');
+      if (!groups || groups.length === 0) return;
+
+      var allGids = [];
+      groups.forEach(function (grp) {
+        if (grp.dataset.group) allGids.push(grp.dataset.group);
+      });
+
+      // If at least half are open, collapse all. Otherwise, expand all.
+      var openCount = 0;
+      var self = this;
+      allGids.forEach(function (gid) {
+        if (self._openGroups.has(gid)) openCount++;
+      });
+
+      var shouldExpand = openCount < Math.ceil(allGids.length / 2);
+
+      allGids.forEach(function (gid) {
+        if (shouldExpand) {
+          self._openGroups.add(gid);
+        } else {
+          self._openGroups.delete(gid);
+        }
+      });
+
+      this.renderStateToDOM();
+      this.saveState();
+      this.updateToggleAllLabel(shouldExpand);
+
+      try {
+        if (window.LM_Haptic && typeof window.LM_Haptic.light === 'function') {
+          window.LM_Haptic.light();
+        }
+      } catch (e) {}
+    },
+
+    updateToggleAllLabel: function (isExpanded) {
+      var btn = document.getElementById('sidebarToggleAllBtn');
+      if (btn) {
+        btn.textContent = isExpanded ? '↕ Collapse All' : '↕ Expand All';
+      }
     },
 
     toggleGroup: function (groupId, event) {
@@ -136,6 +186,9 @@
       }
 
       this.saveState();
+
+      var groups = document.querySelectorAll('#sidebar .sidebar-nav-group');
+      this.updateToggleAllLabel(groups.length > 0 && this._openGroups.size >= Math.ceil(groups.length / 2));
 
       try {
         if (window.LM_Haptic && typeof window.LM_Haptic.light === 'function') {
