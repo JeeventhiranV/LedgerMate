@@ -424,7 +424,7 @@
               <button type="button" class="dash-trip-btn-sec" onclick="if(window.LM_TripUI)LM_TripUI.openGeneralExpenseModal('${trip.id}')" title="Log Trip Expense">
                 ⚡ + Expense
               </button>
-              <button type="button" class="dash-trip-btn-primary" onclick="if(typeof showSection==='function')showSection('trips'); if(window.LM_TripUI)LM_TripUI.openTripWorkspace('${trip.id}');" title="Open Full Trip Workspace">
+              <button type="button" class="dash-trip-btn-primary" onclick="if(typeof showPage==='function')showPage('trips'); if(window.LM_TripUI)LM_TripUI.openTripWorkspace('${trip.id}');" title="Open Full Trip Workspace">
                 Trip Hub →
               </button>
             </div>

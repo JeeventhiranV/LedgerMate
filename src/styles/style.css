@@ -1979,8 +1979,17 @@ footer span { color: var(--teal); font-weight: 600; }
 .topbar-user-menu-item:hover { background: var(--surface-h); color: var(--text); }
 .topbar-user-menu-divider { height: 1px; background: var(--border); margin: 4px 0; }
 
-/* ── Smooth page transitions ── */
-[id^="page-"] { animation: pageIn 0.2s var(--transition-fast) both; }
+/* ══════════════════════════════════════════════════════════════
+   STRICT MULTI-MODULE PAGE ISOLATION & SCROLL CONTAINMENT
+   Guarantees inactive modules and dashboard never leak or render
+   ══════════════════════════════════════════════════════════════ */
+[id^="page-"] {
+  display: none !important;
+}
+[id^="page-"].active-page {
+  display: block !important;
+  animation: pageIn 0.2s var(--transition-fast) both;
+}
 @keyframes pageIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 
 /* ── Range pills — improved ── */
