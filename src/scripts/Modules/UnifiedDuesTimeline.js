@@ -118,6 +118,16 @@
       if (item.type === 'Bill / Utility' && item.raw) {
         item.raw.paid = true;
         if (typeof window.put === 'function') await window.put('reminders', item.raw);
+      } else if (item.type === 'Credit Card' && item.raw) {
+        if (window.LM_CreditCardsService && typeof window.LM_CreditCardsService.payCardBill === 'function') {
+          await window.LM_CreditCardsService.payCardBill({
+            cardId: item.raw.id,
+            amount: item.amount,
+            paymentDate: new Date().toISOString().slice(0, 10),
+            accountId: 'Bank',
+            recordAsTransaction: false
+          });
+        }
       }
 
       if (typeof showToast === 'function') {

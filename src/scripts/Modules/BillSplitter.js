@@ -90,6 +90,19 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
       }
     } catch (e) {}
+
+    // Mirror to IndexedDB
+    try {
+      const uid = window.LM_Auth?.getCurrentUserId?.() || 'default';
+      if (typeof window.put === 'function' && window.db && window.db.objectStoreNames.contains('bill_splits_store')) {
+        window.put('bill_splits_store', {
+          id: 'splits_' + uid,
+          profile: uid,
+          groups: groups,
+          updatedAt: new Date().toISOString()
+        }).catch(function (e) {});
+      }
+    } catch (e) {}
   }
 
   /**

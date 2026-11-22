@@ -809,8 +809,18 @@
         }
       });
 
+      var partyPhone = '';
+      for (var pi = 0; pi < txs.length; pi++) {
+        if (txs[pi].partyPhone || txs[pi].phone) {
+          partyPhone = txs[pi].partyPhone || txs[pi].phone;
+          break;
+        }
+      }
+
       return {
         partyName: cleanName,
+        phone: partyPhone,
+        partyPhone: partyPhone,
         transactions: txs,
         totalCredits: _round2(totalCredits),
         totalDebits: _round2(totalDebits),
@@ -886,6 +896,11 @@
     // ── WHATSAPP SETTLEMENT REMINDERS & KHATA MESSAGES ───
     generatePartyWhatsAppReminder: function (partyName, businessId) {
       if (!partyName) return '';
+      if (typeof partyName === 'object' && partyName !== null) {
+        var pObj = partyName;
+        partyName = pObj.partyName || pObj.name || '';
+        if (!businessId && pObj.businessId) businessId = pObj.businessId;
+      }
       var bId = businessId || this.getActiveBusinessId();
       var stmt = this.getPartyStatement(partyName, bId);
       if (!stmt) return '';
@@ -910,7 +925,22 @@
             text += (idx + 1) + '. ' + t.date + ref + ': *' + currSym + ' ' + Math.round(t.amount).toLocaleString('en-IN') + '*' + dueStr + '\n';
           });
         }
-        if (biz.bankDetails && (biz.bankDetails.upiId || biz.bankDetails.accountNumber)) {
+        var upiId = (biz.bankDetails && biz.bankDetails.upiId) || (typeof state === 'object' && state.settings && (state.settings.upiId || state.settings.vpa)) || '';
+        if (upiId) {
+          text += '\n💳 *Payment Details:*\n';
+          text += '• UPI ID: `' + upiId + '`\n';
+          if (biz.bankDetails && biz.bankDetails.accountNumber) {
+            text += '• Bank: ' + (biz.bankDetails.bankName || 'Bank') + '\n';
+            text += '• A/C No: `' + biz.bankDetails.accountNumber + '`\n';
+            text += '• IFSC: `' + (biz.bankDetails.ifsc || '') + '`\n';
+            if (biz.bankDetails.holderName) text += '• Name: ' + biz.bankDetails.holderName + '\n';
+          }
+          var payUri = 'upi://pay?pa=' + encodeURIComponent(upiId) +
+                       '&pn=' + encodeURIComponent(bName) +
+                       '&am=' + netReceivable.toFixed(2) +
+                       '&cu=INR&tn=' + encodeURIComponent('Invoice Due: ' + stmt.partyName);
+          text += '\n⚡ *1-Tap UPI Payment Link:* ' + payUri + '\n';
+        } else if (biz.bankDetails && (biz.bankDetails.upiId || biz.bankDetails.accountNumber)) {
           text += '\n💳 *Payment Details:*\n';
           if (biz.bankDetails.upiId) text += '• UPI ID: `' + biz.bankDetails.upiId + '`\n';
           if (biz.bankDetails.accountNumber) {
@@ -918,13 +948,6 @@
             text += '• A/C No: `' + biz.bankDetails.accountNumber + '`\n';
             text += '• IFSC: `' + (biz.bankDetails.ifsc || '') + '`\n';
             if (biz.bankDetails.holderName) text += '• Name: ' + biz.bankDetails.holderName + '\n';
-          }
-          if (biz.bankDetails.upiId) {
-            var payUri = 'upi://pay?pa=' + encodeURIComponent(biz.bankDetails.upiId) +
-                         '&pn=' + encodeURIComponent(bName) +
-                         '&am=' + netReceivable.toFixed(2) +
-                         '&cu=INR&tn=' + encodeURIComponent('Invoice Due: ' + stmt.partyName);
-            text += '\n⚡ *1-Tap UPI Payment Link:* ' + payUri + '\n';
           }
         }
         text += '\nPlease share the payment confirmation or UTR once transferred. Thank you!';

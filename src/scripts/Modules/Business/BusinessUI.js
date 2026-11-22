@@ -189,7 +189,12 @@
       var service = _getService();
       if (!service) return;
       var text = service.generatePartyWhatsAppReminder(partyName, _activeBusinessId);
-      var url = 'https://wa.me/?text=' + encodeURIComponent(text);
+      var stmt = service.getPartyStatement(partyName, _activeBusinessId);
+      var phone = (stmt && (stmt.phone || stmt.partyPhone)) ? String(stmt.phone || stmt.partyPhone).replace(/[^\d]/g, '') : '';
+      if (phone && phone.length === 10) phone = '91' + phone;
+      var url = phone
+        ? ('https://api.whatsapp.com/send?phone=' + phone + '&text=' + encodeURIComponent(text))
+        : ('https://wa.me/?text=' + encodeURIComponent(text));
       window.open(url, '_blank');
       if (typeof showToast === 'function') {
         showToast('📱 WhatsApp reminder launched!', 'success');
