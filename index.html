@@ -232,7 +232,7 @@
     </div>
 
     <!-- ── INTERACTIVE MODULE GROUPS & SUBMENUS ───────────── -->
-    <div class="sidebar-section" style="padding-top:2px;">
+    <div class="sidebar-section sidebar-modules-section" id="sidebarModulesSection" style="padding-top:2px;">
       <div class="sidebar-section-label" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
         <span>Modules &amp; Tools</span>
         <div style="display:flex;align-items:center;gap:8px;">
@@ -2713,11 +2713,40 @@ function setGreeting() {
     localStorage.setItem(STORE_KEY, JSON.stringify([...set]));
   }
 
+  // Clear any accidental stored collapsed state for Modules & Tools
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        const cleaned = arr.filter(k => !k.toLowerCase().includes('module'));
+        localStorage.setItem(STORE_KEY, JSON.stringify(cleaned));
+      }
+    }
+  } catch (e) {}
+
   function setup() {
     const collapsed = getCollapsed();
     document.querySelectorAll('.sidebar-section').forEach(sec => {
       const label = sec.querySelector('.sidebar-section-label');
+
+      // STRICT EXCLUSION: Do not touch interactive modules section managed by SidebarNavUI
+      if (sec.id === 'sidebarModulesSection' || sec.classList.contains('sidebar-modules-section') || sec.querySelector('.sidebar-nav-group')) {
+        sec.classList.remove('collapsed');
+        const existingWrapper = sec.querySelector('.sidebar-section-items');
+        if (existingWrapper) {
+          while (existingWrapper.firstChild) {
+            sec.appendChild(existingWrapper.firstChild);
+          }
+          existingWrapper.remove();
+        }
+        const unwantedChevron = label ? label.querySelector('.sidebar-section-chevron') : null;
+        if (unwantedChevron) unwantedChevron.remove();
+        return;
+      }
+
       if (!label) return;
+      if (label.querySelector('.sidebar-section-chevron')) return;
 
       const key = label.textContent.trim();
 
