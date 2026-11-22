@@ -4692,5 +4692,133 @@ body.privacy-mode [data-amount]:active {
   }
 }
 
+/* ============================================================
+   PRIVACY "PEEK SHIELD" MASKING SYSTEM (Shift+P)
+   ============================================================ */
+body.privacy-shield-active .kpi-value,
+body.privacy-shield-active .wkpi-val,
+body.privacy-shield-active .dash-hero-val,
+body.privacy-shield-active .dash-telem-val,
+body.privacy-shield-active .tx-amount,
+body.privacy-shield-active .tx-amt,
+body.privacy-shield-active .account-balance,
+body.privacy-shield-active .acc-balance,
+body.privacy-shield-active .acc-tile-bal,
+body.privacy-shield-active .card-balance,
+body.privacy-shield-active .card-limit-val,
+body.privacy-shield-active .card-due-amt,
+body.privacy-shield-active .stock-kpi-val,
+body.privacy-shield-active .invest-card-val,
+body.privacy-shield-active .portfolio-val,
+body.privacy-shield-active .net-worth-val,
+body.privacy-shield-active .net-worth-figure,
+body.privacy-shield-active .sens-num,
+body.privacy-shield-active [data-privacy-blur] {
+  filter: blur(8px) !important;
+  user-select: none !important;
+  transition: filter 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: pointer !important;
+}
 
+body.privacy-shield-active .kpi-value:hover,
+body.privacy-shield-active .wkpi-val:hover,
+body.privacy-shield-active .dash-hero-val:hover,
+body.privacy-shield-active .dash-telem-val:hover,
+body.privacy-shield-active .tx-amount:hover,
+body.privacy-shield-active .tx-amt:hover,
+body.privacy-shield-active .account-balance:hover,
+body.privacy-shield-active .acc-balance:hover,
+body.privacy-shield-active .acc-tile-bal:hover,
+body.privacy-shield-active .card-balance:hover,
+body.privacy-shield-active .card-limit-val:hover,
+body.privacy-shield-active .card-due-amt:hover,
+body.privacy-shield-active .stock-kpi-val:hover,
+body.privacy-shield-active .invest-card-val:hover,
+body.privacy-shield-active .portfolio-val:hover,
+body.privacy-shield-active .net-worth-val:hover,
+body.privacy-shield-active .net-worth-figure:hover,
+body.privacy-shield-active .sens-num:hover,
+body.privacy-shield-active [data-privacy-blur]:hover {
+  filter: blur(0px) !important;
+}
 
+#privacyShieldBtn.active {
+  background: rgba(99, 102, 241, 0.25) !important;
+  border-color: rgba(99, 102, 241, 0.6) !important;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.4) !important;
+}
+
+/* ============================================================
+   TOPBAR ZERO-SYNC HEALTH PILL COCKPIT
+   ============================================================ */
+.topbar-sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text, #e2e8f0);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  backdrop-filter: blur(8px);
+}
+.topbar-sync-pill:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(0, 240, 255, 0.4);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.18);
+  transform: translateY(-1px);
+}
+.sync-pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  background: #10b981;
+}
+.sync-pill-dot.synced {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.65);
+}
+.sync-pill-dot.syncing {
+  background: #00f0ff;
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.85);
+  animation: syncDotPulse 0.9s infinite alternate;
+}
+.sync-pill-dot.pending {
+  background: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.7);
+  animation: syncDotPulse 1.6s infinite alternate;
+}
+.sync-pill-dot.offline {
+  background: #94a3b8;
+  box-shadow: none;
+}
+.sync-pill-dot.error {
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.85);
+}
+@keyframes syncDotPulse {
+  0% { transform: scale(0.85); opacity: 0.6; }
+  100% { transform: scale(1.3); opacity: 1; }
+}
+.sync-pill-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+.sync-pill-text {
+  font-size: 11px;
+  letter-spacing: 0.2px;
+}
+@media (max-width: 640px) {
+  .sync-pill-text {
+    display: none;
+  }
+  .topbar-sync-pill {
+    padding: 5px 8px;
+  }
+}
