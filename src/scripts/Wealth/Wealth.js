@@ -503,6 +503,10 @@ function showWealthPage() {
             </div>
           </button>
         </div>
+        <button class="btn-secondary" style="padding:9px 14px;font-size:13px;display:inline-flex;align-items:center;gap:6px;"
+                onclick="if(window.LM_AMFINavService)window.LM_AMFINavService.refreshAllMutualFunds();" title="Refresh Live AMFI India Mutual Fund NAVs">
+          ⚡ Refresh NAVs
+        </button>
         <button class="btn-submit" style="width:auto;padding:9px 18px;margin:0;font-size:13px;"
                 onclick="openAddAssetModal()">+ Add Asset</button>
         <button class="btn-secondary" style="padding:9px 14px;font-size:13px;"
@@ -945,6 +949,7 @@ function renderWealthLiabilities(container) {
         ${l.collateral ? `<div style="font-size:11px;color:var(--text-3);">Collateral: ${escapeHtml(l.collateral)}</div>` : ''}
         ${l.notes ? `<div style="font-size:11px;color:var(--text-3);">${escapeHtml(l.notes)}</div>` : ''}
         <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="section-action" onclick="openLoanPrepaymentModal('${l.id}')" style="padding:5px 10px;color:var(--teal);" title="Simulate Part-Payment & Interest Savings">🧮 Prepay Sim</button>
           <button class="section-action" onclick="openEditLiabilityModal('${l.id}')" style="padding:5px 10px;">✏️ Edit</button>
           <button class="section-action" onclick="deleteLiability('${l.id}')" style="padding:5px 10px;color:var(--rose);">🗑️ Delete</button>
         </div>
@@ -3159,6 +3164,23 @@ function openAddAssetModal(prefill = {}) {
               </div>
             </div>
 
+            <!-- AMFI Live NAV Auto-Refresh for Mutual Funds & SIPs -->
+            <div id="ast_amfi_section" class="grid-2" style="display:none;">
+              <div>
+                <label class="form-label">AMFI SCHEME CODE (LIVE NAV)</label>
+                <div style="display:flex;gap:6px;">
+                  <input id="ast_schemeCode" class="form-input" placeholder="e.g. 120503"
+                         value="${prefill.schemeCode||prefill.amfiCode||''}" />
+                  <button type="button" class="btn-secondary" style="padding:0 10px;font-size:12px;white-space:nowrap;"
+                          onclick="fetchAssetLiveNav()">⚡ Fetch</button>
+                </div>
+              </div>
+              <div>
+                <label class="form-label">LAST NAV DATE</label>
+                <input id="ast_navDate" class="form-input" value="${prefill.navDate||''}" readonly placeholder="Auto-populated" style="opacity:0.85;" />
+              </div>
+            </div>
+
             <div id="ast_principal_section" class="grid-2" style="display:none;">
               <div>
                 <label class="form-label">PRINCIPAL AMOUNT</label>
@@ -3230,6 +3252,9 @@ function openAddAssetModal(prefill = {}) {
       tenureMonths:      parseInt(document.getElementById('ast_tenure').value)||0,
       startDate:         document.getElementById('ast_startDate').value,
       notes:             document.getElementById('ast_notes').value.trim(),
+      schemeCode:        document.getElementById('ast_schemeCode')?.value.trim() || undefined,
+      amfiCode:          document.getElementById('ast_schemeCode')?.value.trim() || undefined,
+      navDate:           document.getElementById('ast_navDate')?.value || undefined,
       wealthCategory:    getAssetCategoryFromType(type),
       createdAt:         new Date().toISOString()
     };
@@ -3278,6 +3303,10 @@ function toggleAssetFields() {
   const priS = document.getElementById('ast_principal_section');
   const tenS = document.getElementById('ast_tenure_section');
   const curS = document.getElementById('ast_cur_section');
+  const amfiS = document.getElementById('ast_amfi_section');
+  if (amfiS) {
+    amfiS.style.display = ['MUTUAL_FUND', 'SIP'].includes(type) ? '' : 'none';
+  }
   if (debtTypes.includes(type)) {
     qtyS.style.display='none'; priS.style.display=''; tenS.style.display=''; curS.style.display='none';
   } else if (['REAL_ESTATE','CASH'].includes(type)) {
@@ -3286,6 +3315,33 @@ function toggleAssetFields() {
     qtyS.style.display=''; priS.style.display='none'; tenS.style.display='none'; curS.style.display='';
   }
 }
+
+/* Handler for modal AMFI live NAV auto-fetch button */
+window.fetchAssetLiveNav = async function () {
+  const code = document.getElementById('ast_schemeCode')?.value.trim();
+  if (!code) {
+    if (typeof showToast === 'function') showToast('Please enter an AMFI Scheme Code', 'info');
+    return;
+  }
+  if (!window.LM_AMFINavService) {
+    if (typeof showToast === 'function') showToast('AMFI Service unavailable', 'error');
+    return;
+  }
+  if (typeof showToast === 'function') showToast('Fetching live NAV...', 'info');
+  const res = await window.LM_AMFINavService.fetchNav(code, true);
+  if (res && res.nav > 0) {
+    const curEl = document.getElementById('ast_currentPrice');
+    const dateEl = document.getElementById('ast_navDate');
+    const nameEl = document.getElementById('ast_name');
+    if (curEl) curEl.value = res.nav;
+    if (dateEl) dateEl.value = res.navDate || '';
+    if (nameEl && !nameEl.value.trim() && res.schemeName) nameEl.value = res.schemeName;
+    updateAssetPreview();
+    if (typeof showToast === 'function') showToast(`✅ Live NAV: ₹${res.nav} (${res.navDate})`, 'success');
+  } else {
+    if (typeof showToast === 'function') showToast('Could not fetch NAV for scheme code ' + code, 'error');
+  }
+};
 
 function openEditAssetModal(id) {
   const a = (state.investments||[]).find(a=>String(a.id)===String(id));
@@ -3408,6 +3464,176 @@ async function deleteLiability(id) {
     switchWealthTab('liabilities');
   } catch(e) { showToast('Failed to delete','error'); }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   MODAL — Loan Prepayment & Payoff Optimizer Simulator
+───────────────────────────────────────────────────────────── */
+window.openLoanPrepaymentModal = function (loanId) {
+  const loan = (state.emi_loans || []).find(l => String(l.id) === String(loanId));
+  if (!loan) {
+    if (typeof showToast === 'function') showToast('Loan not found', 'error');
+    return;
+  }
+
+  const p = parseFloat(loan.outstanding || loan.principal || 0);
+  const r = parseFloat(loan.interestRate || loan.rate || 0);
+  const tenure = parseInt(loan.tenureMonths || 60);
+  const emi = parseFloat(loan.monthlyEmi || 0) || (window.LM_Amortization ? window.LM_Amortization.calculateEMI(p, r, tenure) : 0);
+
+  const existing = document.getElementById('lm-prepay-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'lm-prepay-modal';
+  modal.className = 'modal-overlay show';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.82);z-index:99999;display:flex;align-items:center;justify-content:center;padding:12px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);';
+
+  modal.innerHTML = `
+    <div class="modal-box glass" style="background:var(--card,#151922);border:1px solid var(--border,#262f45);border-radius:18px;max-width:540px;width:96%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.6);color:var(--text,#e8eaf6);font-family:Inter,sans-serif;">
+      <div style="padding:14px 20px;border-bottom:1px solid var(--border,#262f45);display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;margin:0;">🧮 Loan Prepayment & Savings Simulator</h3>
+        <button id="lm-prepay-close" style="background:none;border:none;color:var(--text2,#8896b8);font-size:24px;cursor:pointer;line-height:1;" title="Close">&times;</button>
+      </div>
+      <div style="padding:18px 20px;overflow-y:auto;">
+        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border,#262f45);border-radius:10px;padding:12px;margin-bottom:16px;">
+          <div style="font-weight:700;font-size:14px;color:var(--text,#e8eaf6);">${escapeHtml(loan.name || 'Loan')}</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;font-size:12px;">
+            <div><span style="color:var(--text3,#8896b8);">Outstanding:</span> <b style="color:var(--rose,#f43f5e);">${fmtINR(p)}</b></div>
+            <div><span style="color:var(--text3,#8896b8);">Interest:</span> <b>${r}% p.a.</b></div>
+            <div><span style="color:var(--text3,#8896b8);">Current EMI:</span> <b>${fmtINR(emi)}</b></div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <label class="form-label" style="font-size:11px;font-weight:700;letter-spacing:0.5px;color:var(--text2,#8896b8);margin-bottom:4px;display:block;">LUMP-SUM PART PAYMENT AMOUNT (₹)</label>
+            <input id="sim_lumpSum" type="number" step="1000" class="form-input" placeholder="e.g. 50000" value="${Math.min(50000, Math.round(p * 0.2))}" style="width:100%;box-sizing:border-box;" />
+          </div>
+
+          <div>
+            <label class="form-label" style="font-size:11px;font-weight:700;letter-spacing:0.5px;color:var(--text2,#8896b8);margin-bottom:4px;display:block;">REDUCTION STRATEGY</label>
+            <select id="sim_strategy" class="form-input" style="width:100%;box-sizing:border-box;">
+              <option value="reduce_tenure" selected>⚡ Reduce Loan Tenure (Keep EMI Same, Pay Off Faster)</option>
+              <option value="reduce_emi">📉 Reduce Monthly EMI (Keep Tenure Same, Lower Monthly Outflow)</option>
+            </select>
+          </div>
+
+          <!-- Live Result Box -->
+          <div id="sim_result_box" style="background:linear-gradient(135deg, rgba(0,212,180,0.08), rgba(79,142,247,0.06));border:1px solid rgba(0,212,180,0.25);border-radius:12px;padding:14px;margin-top:4px;">
+            <!-- Rendered by updateSimResult() -->
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:8px;">
+            <button id="sim_apply_btn" class="btn-submit" style="flex:1;">✅ Apply Prepayment to Loan</button>
+            <button id="sim_cancel_btn" class="btn-secondary" style="flex:1;">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  if (window.LM_hideBottomNav) window.LM_hideBottomNav();
+
+  function closeModal() {
+    modal.remove();
+    if (window.LM_syncModalState) window.LM_syncModalState();
+  }
+
+  modal.querySelector('#lm-prepay-close').onclick = closeModal;
+  modal.querySelector('#sim_cancel_btn').onclick = closeModal;
+  modal.onclick = function(e) { if (e.target === modal) closeModal(); };
+
+  function updateSimResult() {
+    const lump = parseFloat(modal.querySelector('#sim_lumpSum').value) || 0;
+    const strat = modal.querySelector('#sim_strategy').value;
+    const resBox = modal.querySelector('#sim_result_box');
+
+    if (!window.LM_Amortization) {
+      resBox.innerHTML = '<div style="color:var(--rose);">Amortization engine not loaded</div>';
+      return;
+    }
+
+    const sim = window.LM_Amortization.calculatePrepaymentSavings({
+      principal: p,
+      annualRate: r,
+      tenureMonths: tenure,
+      lumpSum: lump,
+      strategy: strat
+    });
+
+    if (strat === 'reduce_tenure') {
+      resBox.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:center;">
+          <div>
+            <div style="font-size:11px;color:var(--text3,#8896b8);">TOTAL INTEREST SAVED</div>
+            <div style="font-size:18px;font-weight:700;color:var(--emerald,#10b981);margin-top:2px;">${fmtINR(sim.interestSaved)}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3,#8896b8);">TENURE REDUCTION</div>
+            <div style="font-size:18px;font-weight:700;color:var(--teal,#00d4b4);margin-top:2px;">−${sim.monthsSaved} Months</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:var(--text2,#8896b8);text-align:center;line-height:1.4;">
+          Loan will be fully cleared in <b>${sim.newTenure} months</b> instead of ${sim.originalTenure} months!
+        </div>
+      `;
+    } else {
+      resBox.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:center;">
+          <div>
+            <div style="font-size:11px;color:var(--text3,#8896b8);">TOTAL INTEREST SAVED</div>
+            <div style="font-size:18px;font-weight:700;color:var(--emerald,#10b981);margin-top:2px;">${fmtINR(sim.interestSaved)}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3,#8896b8);">NEW LOWER MONTHLY EMI</div>
+            <div style="font-size:18px;font-weight:700;color:var(--teal,#00d4b4);margin-top:2px;">${fmtINR(sim.newEmi)}</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:var(--text2,#8896b8);text-align:center;line-height:1.4;">
+          Saves <b>${fmtINR(sim.monthlySavings)}</b> every single month for the rest of your loan tenure.
+        </div>
+      `;
+    }
+  }
+
+  modal.querySelector('#sim_lumpSum').oninput = updateSimResult;
+  modal.querySelector('#sim_strategy').onchange = updateSimResult;
+  updateSimResult();
+
+  modal.querySelector('#sim_apply_btn').onclick = async function() {
+    const lump = parseFloat(modal.querySelector('#sim_lumpSum').value) || 0;
+    if (lump <= 0) {
+      if (typeof showToast === 'function') showToast('Please enter a valid prepayment amount', 'error');
+      return;
+    }
+    const strat = modal.querySelector('#sim_strategy').value;
+    const sim = window.LM_Amortization.calculatePrepaymentSavings({
+      principal: p,
+      annualRate: r,
+      tenureMonths: tenure,
+      lumpSum: lump,
+      strategy: strat
+    });
+
+    loan.outstanding = Math.max(0, p - lump);
+    if (strat === 'reduce_tenure') {
+      loan.tenureMonths = sim.newTenure;
+    } else {
+      loan.monthlyEmi = sim.newEmi;
+    }
+    loan.updatedAt = new Date().toISOString();
+
+    if (typeof put === 'function') {
+      try { await put('emi_loans', loan); } catch(e) {}
+    }
+    if (typeof showToast === 'function') {
+      showToast(`✅ Prepayment of ${fmtINR(lump)} applied! Saved ${fmtINR(sim.interestSaved)} in interest.`, 'success');
+    }
+    closeModal();
+    if (typeof switchWealthTab === 'function') switchWealthTab('liabilities');
+  };
+};
 
 /* ─────────────────────────────────────────────────────────────
    MODAL — Edit Allocation Targets
