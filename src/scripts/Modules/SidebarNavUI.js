@@ -59,7 +59,9 @@
 
   var SidebarNavUI = {
     _openGroups: new Set(),
-    _initialized: false,
+    isGroupOpen: function (groupId) {
+      return this._openGroups.has(groupId);
+    },
 
     init: function () {
       var modSec = document.getElementById('sidebarModulesSection') || document.querySelector('.sidebar-modules-section');
@@ -172,15 +174,16 @@
         if (typeof event.preventDefault === 'function') event.preventDefault();
       }
 
-      var grp = document.getElementById('sidebarGroup-' + groupId) || document.querySelector('#sidebar .sidebar-nav-group[data-group="' + groupId + '"]');
-      if (!grp) return;
-
       var isOpen = this._openGroups.has(groupId);
       if (isOpen) {
         this._openGroups.delete(groupId);
       } else {
         this._openGroups.add(groupId);
       }
+      this.saveState();
+
+      var grp = document.getElementById('sidebarGroup-' + groupId) || document.querySelector('#sidebar .sidebar-nav-group[data-group="' + groupId + '"]');
+      if (!grp) return;
 
       var nowOpen = !isOpen;
       grp.classList.toggle('is-open', nowOpen);
@@ -188,8 +191,6 @@
       if (header) {
         header.setAttribute('aria-expanded', nowOpen ? 'true' : 'false');
       }
-
-      this.saveState();
 
       var groups = document.querySelectorAll('#sidebar .sidebar-nav-group');
       this.updateToggleAllLabel(groups.length > 0 && this._openGroups.size >= Math.ceil(groups.length / 2));
@@ -263,6 +264,7 @@
   };
 
   window.LM_SidebarNav = SidebarNavUI;
+  window.LM_SidebarNavUI = SidebarNavUI;
 
   // Auto-init on DOMContentLoaded or immediate if already ready
   if (typeof document !== 'undefined') {
