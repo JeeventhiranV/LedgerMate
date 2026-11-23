@@ -22,6 +22,12 @@ window.state = {
   ]
 };
 
+// Mock auth for Admin
+window.LM_Auth = {
+  getCurrentUser: () => ({ userId: 'admin_test_1', username: 'admin', role: 'admin' }),
+  isAdmin: () => true
+};
+
 // Load modules
 require(path.resolve(ROOT, 'src/scripts/Core/CurrencyFormatter.js'));
 require(path.resolve(ROOT, 'src/scripts/Core/DateUtils.js'));
@@ -30,6 +36,7 @@ require(path.resolve(ROOT, 'src/scripts/Modules/SidebarNavUI.js'));
 require(path.resolve(ROOT, 'src/scripts/Modules/SankeyCashFlow.js'));
 require(path.resolve(ROOT, 'src/scripts/Modules/ModuleHubUI.js'));
 require(path.resolve(ROOT, 'src/scripts/Modules/HelpFeedbackModal.js'));
+require(path.resolve(ROOT, 'src/scripts/Admin/AdminPanel.js'));
 
 (async () => {
   // ── ModuleHubUI Tests ──────────────────────────────────────────────────
@@ -99,6 +106,42 @@ require(path.resolve(ROOT, 'src/scripts/Modules/HelpFeedbackModal.js'));
     assert(typeof window.LM_HelpModal.openFAQ === 'function');
     assert(typeof window.LM_HelpModal.openFeedback === 'function');
     assert(typeof window.LM_HelpModal.close === 'function');
+  });
+
+  // ── Admin Command Center Enterprise Tests ──────────────────────────────
+  await suite.it('AdminPanel: exports comprehensive LM_Admin and StudyAdmin interfaces', () => {
+    assert(window.LM_Admin, 'window.LM_Admin must be defined');
+    assert(window.StudyAdmin, 'window.StudyAdmin must be defined for backwards compatibility');
+    assert(typeof window.LM_Admin.show === 'function', 'LM_Admin.show must be a function');
+    assert(typeof window.LM_Admin.close === 'function', 'LM_Admin.close must be a function');
+    assert(typeof window.LM_Admin.switchTab === 'function', 'LM_Admin.switchTab must be a function');
+    assert(typeof window.LM_Admin.openApproveRequestModal === 'function');
+    assert(typeof window.LM_Admin.openConfigureUserModal === 'function');
+    assert(typeof window.LM_Admin.showFinanceAccess === 'function');
+    assert(typeof window.LM_Admin.showStudyAccess === 'function');
+    assert(typeof window.LM_Admin.deleteUser === 'function');
+    assert(typeof window.StudyAdmin.open === 'function');
+    assert(typeof window.StudyAdmin.close === 'function');
+  });
+
+  await suite.it('AdminPanel: initializes accessible DOM with role="dialog", role="tablist", and keyboard navigation', () => {
+    window.LM_Admin.show('approvals');
+    const overlay = document.getElementById('adminPanelOverlay');
+    assert(overlay, 'Admin panel overlay must exist in DOM');
+    assert.strictEqual(overlay.getAttribute('role'), 'dialog');
+    assert.strictEqual(overlay.getAttribute('aria-modal'), 'true');
+    assert(overlay.innerHTML.includes('role="tablist"'), 'Must contain a role="tablist" container for tabs');
+    assert(overlay.innerHTML.includes('role="tab"'), 'Must contain role="tab" elements');
+    assert(overlay.innerHTML.includes('role="tabpanel"'), 'Must contain role="tabpanel" content viewport');
+    assert(overlay.innerHTML.includes('tab-btn-approvals'), 'Must contain approvals tab button');
+    assert(overlay.innerHTML.includes('tab-btn-users'), 'Must contain users tab button');
+
+    // Switch tab to users
+    window.LM_Admin.switchTab('users');
+
+    // Close admin panel
+    window.LM_Admin.close();
+    assert(!document.getElementById('adminPanelOverlay'), 'Overlay must be removed upon close');
   });
 
   suite.summary();

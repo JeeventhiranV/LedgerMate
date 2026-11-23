@@ -869,6 +869,7 @@
           var oilPrio = oil.isOverdue ? 'high' : 'medium';
           var oilExisting = remMap.get(oilRemId);
           var oilDueDate = oil.targetDate || new Date().toISOString().split('T')[0];
+          var isOilCompleted = oilExisting ? !!oilExisting.completed : false;
 
           var updatedOilRem = {
             id: oilRemId,
@@ -880,7 +881,8 @@
             tag: 'Vehicle',
             category: 'Maintenance',
             note: (oil.isOverdue ? '🚨 OVERDUE! ' : '⏳ Due soon: ') + (oil.kmRemaining <= 0 ? Math.abs(oil.kmRemaining) + ' km overdue' : oil.kmRemaining + ' km remaining') + '. Recommended: ' + oil.grade + ' (' + oil.oilType + '). Current Odometer: ' + (v.currentOdometer || 0) + ' km.',
-            completed: false,
+            completed: isOilCompleted,
+            completedAt: isOilCompleted ? (oilExisting?.completedAt || new Date().toISOString()) : null,
             autoRepeat: false,
             createdAt: oilExisting?.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -907,6 +909,7 @@
           var srvPrio = srv.isOverdue ? 'high' : 'medium';
           var srvExisting = remMap.get(srvRemId);
           var srvDueDate = srv.targetDate || new Date().toISOString().split('T')[0];
+          var isSrvCompleted = srvExisting ? !!srvExisting.completed : false;
 
           var updatedSrvRem = {
             id: srvRemId,
@@ -918,7 +921,8 @@
             tag: 'Vehicle',
             category: 'Maintenance',
             note: (srv.isOverdue ? '🚨 Service overdue! ' : 'Service due: ') + (srv.kmRemaining <= 0 ? Math.abs(srv.kmRemaining) + ' km past target' : srv.kmRemaining + ' km remaining') + ' (Target: ' + srv.targetOdometer + ' km).',
-            completed: false,
+            completed: isSrvCompleted,
+            completedAt: isSrvCompleted ? (srvExisting?.completedAt || new Date().toISOString()) : null,
             autoRepeat: false,
             createdAt: srvExisting?.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -944,6 +948,7 @@
         if (puc.hasPuc && puc.expiryDate && (puc.isExpired || puc.isExpiringSoon)) {
           var pucPrio = puc.isExpired ? 'high' : 'medium';
           var pucExisting = remMap.get(pucRemId);
+          var isPucCompleted = pucExisting ? !!pucExisting.completed : false;
 
           var updatedPucRem = {
             id: pucRemId,
@@ -955,7 +960,8 @@
             tag: 'Vehicle',
             category: 'Compliance',
             note: (puc.isExpired ? '⚠️ PUC EXPIRED ' + Math.abs(puc.daysRemaining) + ' days ago! Avoid traffic fine.' : 'PUC expires in ' + puc.daysRemaining + ' days.'),
-            completed: false,
+            completed: isPucCompleted,
+            completedAt: isPucCompleted ? (pucExisting?.completedAt || new Date().toISOString()) : null,
             autoRepeat: false,
             createdAt: pucExisting?.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -996,6 +1002,35 @@
           return prefixes.indexOf(String(r.id)) === -1;
         });
       }
+    },
+
+    /**
+     * Advance vehicle maintenance baseline when a reminder is marked completed
+     */
+    completeMaintenanceReminder: async function (vehicleId, type) {
+      if (!vehicleId) return false;
+      var v = this.getVehicleById(vehicleId);
+      if (!v) return false;
+
+      var todayIso = new Date().toISOString();
+      var todayDate = todayIso.split('T')[0];
+      var curOdo = Number(v.currentOdometer) || 0;
+
+      if (type === 'oil') {
+        if (!v.oil) v.oil = {};
+        v.oil.lastChangedOdometer = curOdo;
+        v.oil.lastChangedDate = todayDate;
+      } else if (type === 'service') {
+        if (!v.service) v.service = {};
+        v.service.lastServiceOdometer = curOdo;
+        v.service.lastServiceDate = todayDate;
+      }
+
+      v.updatedAt = todayIso;
+      if (typeof window.put === 'function') {
+        try { await window.put('vehicles', v); } catch (e) {}
+      }
+      return true;
     },
 
     // ── COMMON JSON EXPORT & IMPORT HOOKS ────────────────────────────────────
