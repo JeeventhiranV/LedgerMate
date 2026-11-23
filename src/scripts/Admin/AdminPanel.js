@@ -285,17 +285,17 @@
 
 <!-- Toolbar: Sub-tabs & Filter Controls -->
 <div class="adm-toolbar">
-  <div class="adm-filter-group" role="group" aria-label="Approvals Directory Type">
+  <div class="adm-filter-group adm-subnav-group" role="group" aria-label="Approvals Directory Type">
     <button class="adm-filter-pill ${_approvalsSubTab==='requests'?'active':''}" onclick="window.LM_Admin.setApprovalsSubTab('requests')">
-      📝 Access Requests (Public)
+      📝 Access Requests
     </button>
     <button class="adm-filter-pill ${_approvalsSubTab==='users'?'active':''}" onclick="window.LM_Admin.setApprovalsSubTab('users')">
-      👥 Pending Accounts (DB)
+      👥 Pending Accounts
     </button>
   </div>
 
-  <div class="adm-filter-group" role="group" aria-label="Status Filters">
-    <span style="font-size:11px;font-weight:700;color:var(--adm-text-muted);text-transform:uppercase;">Filter:</span>
+  <div class="adm-filter-group adm-status-filter-group" role="group" aria-label="Status Filters">
+    <span class="adm-filter-label" style="font-size:11px;font-weight:700;color:var(--adm-text-muted);text-transform:uppercase;">Filter:</span>
     <button class="adm-filter-pill ${_approvalsFilter==='pending'?'active':''}" onclick="window.LM_Admin.setApprovalsFilter('pending')">Pending</button>
     <button class="adm-filter-pill ${_approvalsFilter==='approved'?'active':''}" onclick="window.LM_Admin.setApprovalsFilter('approved')">Approved</button>
     <button class="adm-filter-pill ${_approvalsFilter==='rejected'?'active':''}" onclick="window.LM_Admin.setApprovalsFilter('rejected')">Rejected</button>
