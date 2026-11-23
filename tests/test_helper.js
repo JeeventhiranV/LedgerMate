@@ -68,8 +68,42 @@ function setupMockBrowser() {
   });
 
   global.window = global;
+  global.window.addEventListener = global.window.addEventListener || (() => {});
+  global.window.removeEventListener = global.window.removeEventListener || (() => {});
   global.localStorage = mockStorage(localStorageStore);
   global.sessionStorage = mockStorage(sessionStorageStore);
+
+  function _findElemById(node, id) {
+    if (!node) return null;
+    if (node.id === id) return node;
+    for (const child of (node.children || [])) {
+      const found = _findElemById(child, id);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  function _findBySelector(node, sel) {
+    if (!node) return null;
+    if (sel.startsWith('#') && node.id === sel.slice(1)) return node;
+    if (sel.startsWith('.') && node.classList && node.classList.contains(sel.slice(1))) return node;
+    if (sel.startsWith('[role="') && node.getAttribute('role') === sel.slice(7, -2)) return node;
+    for (const child of (node.children || [])) {
+      const found = _findBySelector(child, sel);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  function _findAllBySelector(node, sel, acc = []) {
+    if (!node) return acc;
+    if (sel.startsWith('[role="') && node.getAttribute('role') === sel.slice(7, -2)) acc.push(node);
+    if (sel.startsWith('.') && node.classList && node.classList.contains(sel.slice(1))) acc.push(node);
+    for (const child of (node.children || [])) {
+      _findAllBySelector(child, sel, acc);
+    }
+    return acc;
+  }
 
   // Minimal DOM Mock
   class MockElement {
@@ -78,6 +112,7 @@ function setupMockBrowser() {
       this.id = id;
       this.className = className;
       this.children = [];
+      this.parentNode = null;
       this._innerHTML = '';
       this.dataset = {};
       this.style = {};
@@ -112,30 +147,47 @@ function setupMockBrowser() {
     get textContent() { return this._innerHTML.replace(/<[^>]*>/g, ''); }
     set textContent(txt) { this._innerHTML = txt; }
 
-    querySelector() { return null; }
-    querySelectorAll() { return []; }
-    appendChild(child) { this.children.push(child); return child; }
-    removeChild(child) {
-      this.children = this.children.filter(c => c !== child);
+    querySelector(sel) { return _findBySelector(this, sel); }
+    querySelectorAll(sel) { return _findAllBySelector(this, sel); }
+    appendChild(child) {
+      if (child) {
+        child.parentNode = this;
+        this.children.push(child);
+      }
       return child;
+    }
+    removeChild(child) {
+      if (child) {
+        child.parentNode = null;
+        this.children = this.children.filter(c => c !== child);
+      }
+      return child;
+    }
+    remove() {
+      if (this.parentNode) {
+        this.parentNode.removeChild(this);
+      }
     }
     addEventListener() {}
     removeEventListener() {}
-    setAttribute(k, v) { this.attributes[k] = v; }
-    getAttribute(k) { return this.attributes[k] || null; }
+    setAttribute(k, v) { this.attributes[k] = String(v); }
+    getAttribute(k) { return this.attributes[k] !== undefined ? this.attributes[k] : null; }
   }
+
+  const mockBody = new MockElement('body');
+  const mockDocEl = new MockElement('html');
 
   global.document = {
     readyState: 'complete',
     createElement: (tag) => new MockElement(tag),
-    getElementById: () => null,
-    querySelector: () => null,
-    querySelectorAll: () => [],
+    getElementById: (id) => _findElemById(mockBody, id),
+    querySelector: (sel) => _findBySelector(mockBody, sel),
+    querySelectorAll: (sel) => _findAllBySelector(mockBody, sel),
     addEventListener: () => {},
     removeEventListener: () => {},
     dispatchEvent: () => true,
-    body: new MockElement('body'),
-    documentElement: new MockElement('html')
+    body: mockBody,
+    documentElement: mockDocEl
   };
 
   global.navigator = {

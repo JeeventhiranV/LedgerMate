@@ -208,6 +208,23 @@
     if (!rem) return;
     rem.completed = !rem.completed;
     rem.completedAt = rem.completed ? new Date().toISOString() : null;
+
+    // If marked completed and belongs to a vehicle maintenance task, advance vehicle baseline
+    if (rem.completed && rem.id) {
+      const remIdStr = String(rem.id);
+      if (remIdStr.startsWith('rem_veh_oil_')) {
+        const vId = rem.vehicleId || remIdStr.replace('rem_veh_oil_', '');
+        if (window.LM_VehicleService && typeof window.LM_VehicleService.completeMaintenanceReminder === 'function') {
+          try { await window.LM_VehicleService.completeMaintenanceReminder(vId, 'oil'); } catch (e) {}
+        }
+      } else if (remIdStr.startsWith('rem_veh_srv_')) {
+        const vId = rem.vehicleId || remIdStr.replace('rem_veh_srv_', '');
+        if (window.LM_VehicleService && typeof window.LM_VehicleService.completeMaintenanceReminder === 'function') {
+          try { await window.LM_VehicleService.completeMaintenanceReminder(vId, 'service'); } catch (e) {}
+        }
+      }
+    }
+
     await put('reminders', rem);
     autoBackup();
     renderNotifications();

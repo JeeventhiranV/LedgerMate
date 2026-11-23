@@ -98,387 +98,8 @@
   }
 
   function ensureAdminStyles() {
-    if (document.getElementById('lmAdminPanelStyles')) return;
-    const style = document.createElement('style');
-    style.id = 'lmAdminPanelStyles';
-    style.textContent = `
-:root {
-  --admin-bg: #07090f;
-  --admin-bg2: #0e1117;
-  --admin-bg3: #141820;
-  --admin-border: #1e2436;
-  --admin-border-h: #2a3148;
-  --admin-text: #e2e8f8;
-  --admin-text2: #8a95b8;
-  --admin-text3: #535d7e;
-  --admin-teal: #06d6a0;
-  --admin-blue: #4f8ef7;
-  --admin-purple: #8b5cf6;
-  --admin-gold: #f59e0b;
-  --admin-rose: #f43f5e;
-}
-[data-theme="light"], html[data-theme="light"], body[data-theme="light"] {
-  --admin-bg: #f4f6fb;
-  --admin-bg2: #ffffff;
-  --admin-bg3: #eef2fa;
-  --admin-border: #dde3f5;
-  --admin-border-h: #c5cee8;
-  --admin-text: #1a1e35;
-  --admin-text2: #475089;
-  --admin-text3: #8891be;
-  --admin-teal: #059669;
-  --admin-blue: #2563eb;
-  --admin-purple: #7c3aed;
-  --admin-gold: #d97706;
-  --admin-rose: #e11d48;
-}
-
-#adminPanelOverlay {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 100000 !important;
-  background: rgba(0, 0, 0, 0.75) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 16px !important;
-  overflow-y: auto !important;
-  box-sizing: border-box !important;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif !important;
-  animation: adminFadeIn 0.2s ease !important;
-}
-@keyframes adminFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-#adminPanel {
-  position: relative !important;
-  width: 100% !important;
-  max-width: 1060px !important;
-  background: var(--admin-bg2) !important;
-  border: 1px solid var(--admin-border-h) !important;
-  border-radius: 18px !important;
-  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.65) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  height: 84vh !important;
-  max-height: 820px !important;
-  min-height: 520px !important;
-  overflow: hidden !important;
-  color: var(--admin-text) !important;
-  box-sizing: border-box !important;
-  animation: adminSlideUp 0.24s cubic-bezier(.16,1,.3,1) !important;
-}
-@keyframes adminSlideUp {
-  from { transform: translateY(24px) scale(0.98); opacity: 0; }
-  to { transform: translateY(0) scale(1); opacity: 1; }
-}
-
-.admin-header {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  padding: 14px 20px !important;
-  border-bottom: 1px solid var(--admin-border) !important;
-  background: linear-gradient(135deg, rgba(79,142,247,0.06), rgba(139,92,246,0.06)) !important;
-  flex-shrink: 0 !important;
-  box-sizing: border-box !important;
-}
-.admin-title {
-  font-size: 16px !important;
-  font-weight: 800 !important;
-  color: var(--admin-text) !important;
-  line-height: 1.2 !important;
-}
-.admin-sub {
-  font-size: 11.5px !important;
-  color: var(--admin-text3) !important;
-  margin-top: 2px !important;
-}
-.modal-close {
-  background: var(--admin-bg3) !important;
-  border: 1px solid var(--admin-border) !important;
-  color: var(--admin-text2) !important;
-  width: 32px !important;
-  height: 32px !important;
-  border-radius: 8px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer !important;
-  font-size: 14px !important;
-  transition: all 0.2s !important;
-}
-.modal-close:hover {
-  background: rgba(244,63,94,0.15) !important;
-  border-color: var(--admin-rose) !important;
-  color: var(--admin-rose) !important;
-}
-
-.admin-body {
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-}
-
-.admin-tabs {
-  display: flex !important;
-  gap: 4px !important;
-  padding: 8px 16px 0 !important;
-  border-bottom: 1px solid var(--admin-border) !important;
-  overflow-x: auto !important;
-  flex-shrink: 0 !important;
-  background: var(--admin-bg) !important;
-  scrollbar-width: none !important;
-}
-.admin-tabs::-webkit-scrollbar { display: none !important; }
-
-.admin-nav-item {
-  padding: 8px 14px !important;
-  border: none !important;
-  background: transparent !important;
-  color: var(--admin-text3) !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  cursor: pointer !important;
-  border-radius: 8px 8px 0 0 !important;
-  white-space: nowrap !important;
-  transition: all 0.15s !important;
-  border-bottom: 2px solid transparent !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 5px !important;
-}
-.admin-nav-item:hover {
-  color: var(--admin-text) !important;
-  background: var(--admin-bg3) !important;
-}
-.admin-nav-item.active {
-  color: var(--admin-teal) !important;
-  border-bottom-color: var(--admin-teal) !important;
-  background: rgba(6,214,160,0.08) !important;
-  font-weight: 700 !important;
-}
-.admin-tab-count {
-  font-size: 10px !important;
-  padding: 1px 6px !important;
-  border-radius: 99px !important;
-  background: rgba(244,63,94,0.2) !important;
-  color: var(--admin-rose) !important;
-  font-weight: 700 !important;
-}
-
-.admin-content {
-  flex: 1 !important;
-  min-height: 0 !important;
-  overflow-y: auto !important;
-  padding: 20px !important;
-  box-sizing: border-box !important;
-}
-
-.admin-section-title {
-  font-size: 14px !important;
-  font-weight: 800 !important;
-  color: var(--admin-text) !important;
-  margin-bottom: 14px !important;
-  padding-bottom: 8px !important;
-  border-bottom: 1px solid var(--admin-border) !important;
-}
-
-.admin-pill-btn, .admin-filter-btn {
-  padding: 5px 12px !important;
-  border-radius: 20px !important;
-  border: 1px solid var(--admin-border) !important;
-  background: var(--admin-bg2) !important;
-  color: var(--admin-text3) !important;
-  font-size: 11.5px !important;
-  font-weight: 600 !important;
-  cursor: pointer !important;
-  transition: all 0.15s !important;
-}
-.admin-pill-btn:hover, .admin-filter-btn:hover {
-  color: var(--admin-text) !important;
-  border-color: var(--admin-border-h) !important;
-}
-.admin-pill-btn.active, .admin-filter-btn.active {
-  background: rgba(79,142,247,0.12) !important;
-  border-color: var(--admin-blue) !important;
-  color: var(--admin-blue) !important;
-  font-weight: 700 !important;
-}
-
-.admin-btn {
-  padding: 7px 14px !important;
-  border-radius: 8px !important;
-  border: 1px solid var(--admin-border) !important;
-  background: var(--admin-bg3) !important;
-  color: var(--admin-text2) !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  cursor: pointer !important;
-  transition: all 0.15s !important;
-  white-space: nowrap !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  box-sizing: border-box !important;
-}
-.admin-btn:hover {
-  border-color: var(--admin-blue) !important;
-  color: var(--admin-text) !important;
-}
-.admin-btn-sm {
-  padding: 5px 10px !important;
-  font-size: 11px !important;
-}
-.admin-btn-success {
-  background: rgba(6,214,160,0.12) !important;
-  border-color: rgba(6,214,160,0.4) !important;
-  color: var(--admin-teal) !important;
-}
-.admin-btn-success:hover {
-  background: var(--admin-teal) !important;
-  color: #07090f !important;
-}
-.admin-btn-warn {
-  background: rgba(245,158,11,0.12) !important;
-  border-color: rgba(245,158,11,0.4) !important;
-  color: var(--admin-gold) !important;
-}
-.admin-btn-warn:hover {
-  background: var(--admin-gold) !important;
-  color: #07090f !important;
-}
-.admin-btn-danger {
-  background: rgba(244,63,94,0.12) !important;
-  border-color: rgba(244,63,94,0.4) !important;
-  color: var(--admin-rose) !important;
-}
-.admin-btn-danger:hover {
-  background: var(--admin-rose) !important;
-  color: #ffffff !important;
-}
-
-.admin-table-wrap {
-  overflow-x: auto !important;
-  border-radius: 12px !important;
-  border: 1px solid var(--admin-border) !important;
-  margin-bottom: 16px !important;
-  background: var(--admin-bg2) !important;
-}
-.admin-table {
-  width: 100% !important;
-  border-collapse: collapse !important;
-  font-size: 12.5px !important;
-}
-.admin-table th {
-  padding: 10px 14px !important;
-  text-align: left !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  color: var(--admin-text3) !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
-  background: var(--admin-bg3) !important;
-  border-bottom: 1px solid var(--admin-border) !important;
-  white-space: nowrap !important;
-}
-.admin-table td {
-  padding: 10px 14px !important;
-  border-bottom: 1px solid var(--admin-border) !important;
-  color: var(--admin-text2) !important;
-  vertical-align: middle !important;
-}
-.admin-table tr:last-child td { border-bottom: none !important; }
-.admin-table tr:hover td { background: var(--admin-bg3) !important; }
-
-.admin-badge {
-  display: inline-block !important;
-  padding: 2px 9px !important;
-  border-radius: 99px !important;
-  font-size: 10.5px !important;
-  font-weight: 700 !important;
-  white-space: nowrap !important;
-  font-family: monospace !important;
-}
-.badge-admin { background: rgba(139,92,246,0.15) !important; color: var(--admin-purple) !important; }
-.badge-user { background: rgba(6,214,160,0.12) !important; color: var(--admin-teal) !important; }
-.badge-active { background: rgba(6,214,160,0.15) !important; color: var(--admin-teal) !important; }
-.badge-inactive { background: rgba(244,63,94,0.15) !important; color: var(--admin-rose) !important; }
-.badge-action { background: rgba(245,158,11,0.15) !important; color: var(--admin-gold) !important; }
-
-.kpi-grid {
-  display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
-  gap: 12px !important;
-  margin-bottom: 20px !important;
-}
-.kpi-card {
-  background: var(--admin-bg3) !important;
-  border: 1px solid var(--admin-border) !important;
-  border-radius: 12px !important;
-  padding: 14px !important;
-  text-align: center !important;
-}
-.kpi-value {
-  font-size: 24px !important;
-  font-weight: 800 !important;
-  color: var(--admin-text) !important;
-  line-height: 1.1 !important;
-  margin: 4px 0 !important;
-}
-.kpi-label {
-  font-size: 10.5px !important;
-  color: var(--admin-text3) !important;
-  font-weight: 700 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
-}
-
-.admin-form-card {
-  background: var(--admin-bg3) !important;
-  border: 1px solid var(--admin-border) !important;
-  border-radius: 12px !important;
-  padding: 18px !important;
-  margin-bottom: 16px !important;
-  box-sizing: border-box !important;
-}
-.form-input, .admin-input {
-  background: var(--admin-bg2) !important;
-  border: 1px solid var(--admin-border) !important;
-  color: var(--admin-text) !important;
-  padding: 8px 12px !important;
-  border-radius: 8px !important;
-  font-size: 13px !important;
-  outline: none !important;
-  box-sizing: border-box !important;
-}
-.form-input:focus, .admin-input:focus {
-  border-color: var(--admin-blue) !important;
-}
-
-@media (max-width: 768px) {
-  #adminPanelOverlay { padding: 0 !important; align-items: flex-end !important; }
-  #adminPanel {
-    max-width: 100% !important;
-    border-radius: 18px 18px 0 0 !important;
-    height: 92vh !important;
-    max-height: 94vh !important;
-    min-height: 80vh !important;
-  }
-  .admin-header { padding: 12px 14px !important; }
-  .admin-title { font-size: 14.5px !important; }
-  .admin-content { padding: 14px !important; }
-  .admin-tabs { padding: 6px 10px 0 !important; }
-  .admin-nav-item { padding: 6px 10px !important; font-size: 11.5px !important; }
-}
-`;
-    document.head.appendChild(style);
+    // Styles are centralized in responsive-upgrades.css
+    return;
   }
 
   function _isAdminUser() {
@@ -518,54 +139,101 @@
   }
 
   /* ══════════════════════════════════════════════════════
-     PANEL SHELL
+     PANEL SHELL (Accessible ARIA Container & Semantic Rail)
   ══════════════════════════════════════════════════════ */
   function _renderPanel(defaultTab) {
-    ensureAdminStyles();
     document.getElementById('adminPanelOverlay')?.remove();
 
     const overlay = document.createElement('div');
     overlay.id = 'adminPanelOverlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Admin Command Center');
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) closeAdminPanel();
     });
 
     overlay.innerHTML = `
 <div id="adminPanel">
-  <div class="admin-header">
-    <div style="display:flex;align-items:center;gap:12px;">
-      <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 12px rgba(99,102,241,0.3);">⚙️</div>
-      <div>
-        <div class="admin-title" style="display:flex;align-items:center;gap:8px;">
-          Admin Command Center
-          <span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);font-weight:700;letter-spacing:0.5px;">UNIFIED</span>
+  <!-- Enterprise Header -->
+  <header class="adm-header">
+    <div class="adm-brand-group">
+      <div class="adm-header-icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </div>
+      <div class="adm-title-block">
+        <div class="adm-title-row">
+          <span class="adm-title">Admin Command Center</span>
+          <span class="adm-env-pill">Unified Control</span>
         </div>
-        <div class="admin-sub">User Approvals · Permissions · Study Hub · System Governance</div>
+        <div class="adm-sub">Governance · Access Approvals · RBAC Permissions · System Telemetry</div>
       </div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <button onclick="window.LM_Admin.refreshCurrentTab()" class="admin-btn admin-btn-sm" title="Refresh data" style="display:flex;align-items:center;gap:4px;">🔄 Refresh</button>
-      <button onclick="window.LM_Admin.close()" class="modal-close" title="Close">✕</button>
-    </div>
-  </div>
-
-  <div class="admin-body">
-    <nav class="admin-tabs">
-      <button class="admin-nav-item ${defaultTab==='approvals'?'active':''}" data-tab="approvals" onclick="window.LM_Admin.switchTab('approvals')">
-        ⏳ Approvals <span id="adminApprovalsTabBadge" class="admin-tab-count" style="${_pendingApprovalsCount>0?'':'display:none;'}">${_pendingApprovalsCount}</span>
+    <div class="adm-header-actions">
+      <button onclick="window.LM_Admin.refreshCurrentTab()" class="adm-btn adm-btn-sm" title="Refresh current view" aria-label="Refresh Data">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+        <span>Refresh</span>
       </button>
-      <button class="admin-nav-item ${defaultTab==='users'?'active':''}" data-tab="users" onclick="window.LM_Admin.switchTab('users')">👥 Users &amp; Permissions</button>
-      <button class="admin-nav-item ${defaultTab==='study'?'active':''}" data-tab="study" onclick="window.LM_Admin.switchTab('study')">📚 Study Hub</button>
-      <button class="admin-nav-item ${defaultTab==='stats'?'active':''}" data-tab="stats" onclick="window.LM_Admin.switchTab('stats')">📊 Statistics</button>
-      <button class="admin-nav-item ${defaultTab==='appsettings'?'active':''}" data-tab="appsettings" onclick="window.LM_Admin.switchTab('appsettings')">🔧 App Settings</button>
-      <button class="admin-nav-item ${defaultTab==='backup'?'active':''}" data-tab="backup" onclick="window.LM_Admin.switchTab('backup')">🗄️ Backup &amp; Sync</button>
+      <button onclick="window.LM_Admin.close()" class="adm-btn adm-btn-icon" title="Close console (Esc)" aria-label="Close Admin Panel">✕</button>
+    </div>
+  </header>
+
+  <!-- Navigation Tab Rail -->
+  <div class="adm-body">
+    <nav class="adm-nav-rail" role="tablist" aria-label="Admin Navigation Tabs">
+      <button class="adm-tab-btn ${defaultTab==='approvals'?'active':''}" id="tab-btn-approvals" data-tab="approvals" role="tab" aria-selected="${defaultTab==='approvals'}" aria-controls="adminContent" onclick="window.LM_Admin.switchTab('approvals')">
+        <span>⏳ Approvals</span>
+        <span id="adminApprovalsTabBadge" class="adm-tab-badge" style="${_pendingApprovalsCount>0?'':'display:none;'}">${_pendingApprovalsCount}</span>
+      </button>
+      <button class="adm-tab-btn ${defaultTab==='users'?'active':''}" id="tab-btn-users" data-tab="users" role="tab" aria-selected="${defaultTab==='users'}" aria-controls="adminContent" onclick="window.LM_Admin.switchTab('users')">
+        <span>👥 Users &amp; Permissions</span>
+      </button>
+      <button class="adm-tab-btn ${defaultTab==='study'?'active':''}" id="tab-btn-study" data-tab="study" role="tab" aria-selected="${defaultTab==='study'}" aria-controls="adminContent" onclick="window.LM_Admin.switchTab('study')">
+        <span>📚 Study Hub</span>
+      </button>
+      <button class="adm-tab-btn ${defaultTab==='stats'?'active':''}" id="tab-btn-stats" data-tab="stats" role="tab" aria-selected="${defaultTab==='stats'}" aria-controls="adminContent" onclick="window.LM_Admin.switchTab('stats')">
+        <span>📊 Statistics</span>
+      </button>
+      <button class="adm-tab-btn ${defaultTab==='appsettings'?'active':''}" id="tab-btn-appsettings" data-tab="appsettings" role="tab" aria-selected="${defaultTab==='appsettings'}" aria-controls="adminContent" onclick="window.LM_Admin.switchTab('appsettings')">
+        <span>🔧 App Settings</span>
+      </button>
+      <button class="adm-tab-btn ${defaultTab==='backup'?'active':''}" id="tab-btn-backup" data-tab="backup" role="tab" aria-selected="${defaultTab==='backup'}" aria-controls="adminContent" onclick="window.LM_Admin.switchTab('backup')">
+        <span>🗄️ Backup &amp; Sync</span>
+      </button>
     </nav>
-    <div class="admin-content" id="adminContent"></div>
+
+    <!-- Main Viewport Area -->
+    <main class="adm-content" id="adminContent" role="tabpanel" aria-labelledby="tab-btn-${defaultTab || 'approvals'}"></main>
   </div>
 </div>`;
 
     document.body.appendChild(overlay);
     _switchTab(defaultTab || 'approvals');
+    _bindTabKeyNav();
+  }
+
+  /* ── Tab Keyboard Navigation (Left/Right Arrow Keys) ───── */
+  function _bindTabKeyNav() {
+    const tabs = Array.from(document.querySelectorAll('.adm-tab-btn'));
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('keydown', (e) => {
+        let targetIndex = -1;
+        if (e.key === 'ArrowRight') targetIndex = (index + 1) % tabs.length;
+        if (e.key === 'ArrowLeft')  targetIndex = (index - 1 + tabs.length) % tabs.length;
+        if (targetIndex !== -1) {
+          e.preventDefault();
+          tabs[targetIndex].focus();
+          tabs[targetIndex].click();
+        }
+      });
+    });
   }
 
   /* ══════════════════════════════════════════════════════
@@ -573,19 +241,23 @@
   ══════════════════════════════════════════════════════ */
   function _switchTab(tab) {
     _activeTab = tab;
-    document.querySelectorAll('.admin-nav-item').forEach(b =>
-      b.classList.toggle('active', b.dataset.tab === tab)
-    );
+    document.querySelectorAll('.adm-tab-btn').forEach(b => {
+      const isTarget = b.dataset.tab === tab || b.id === `tab-btn-${tab}`;
+      b.classList.toggle('active', isTarget);
+      b.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+    });
+
     const content = document.getElementById('adminContent');
     if (!content) return;
+    content.setAttribute('aria-labelledby', `tab-btn-${tab}`);
 
     switch (tab) {
       case 'approvals':   _renderApprovalsTab(content);   break;
       case 'users':       _renderUsersTab(content);       break;
       case 'study':       _renderStudyTab(content);       break;
       case 'stats':       _renderStats(content);          break;
-      case 'appsettings': content.innerHTML = _tabAppSettings(); _bindAppSettings(); break;
-      case 'backup':      content.innerHTML = _tabBackup(); _bindBackupTab();        break;
+      case 'appsettings': content.innerHTML = _tabAppSettings(); break;
+      case 'backup':      content.innerHTML = _tabBackup(); break;
     }
   }
 
@@ -595,44 +267,46 @@
   }
 
   /* ══════════════════════════════════════════════════════
-     TAB 1: APPROVALS HUB (access_requests + user_profiles)
+     TAB 1: APPROVALS HUB (access_requests & user_profiles)
   ══════════════════════════════════════════════════════ */
   async function _renderApprovalsTab(container) {
     container.innerHTML = `
-<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+<div class="adm-section-header">
   <div>
-    <div class="admin-section-title" style="margin:0;border:none;padding:0;">⏳ User Access &amp; Approvals Hub</div>
-    <div style="font-size:12px;color:var(--text-3);margin-top:2px;">Review incoming self-registration requests and activate pending accounts.</div>
+    <div class="adm-section-title">User Access &amp; Approvals Hub</div>
+    <div class="adm-section-sub">Review incoming registration requests and grant granular module access.</div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
-    <button class="admin-btn admin-btn-sm admin-btn-success" onclick="window.LM_Admin.batchApproveAllPending()" style="display:flex;align-items:center;gap:6px;">
-      ⚡ Approve All Pending
+    <button class="adm-btn adm-btn-success" onclick="window.LM_Admin.batchApproveAllPending()">
+      <span>⚡ Approve All Pending</span>
     </button>
   </div>
 </div>
 
-<!-- Sub Tabs & Status Filters -->
-<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;background:var(--bg3,rgba(255,255,255,0.03));padding:10px 14px;border-radius:12px;border:1px solid var(--border);margin-bottom:18px;">
-  <div style="display:flex;gap:6px;">
-    <button class="admin-pill-btn ${_approvalsSubTab==='requests'?'active':''}" onclick="window.LM_Admin.setApprovalsSubTab('requests')">
+<!-- Toolbar: Sub-tabs & Filter Controls -->
+<div class="adm-toolbar">
+  <div class="adm-filter-group" role="group" aria-label="Approvals Directory Type">
+    <button class="adm-filter-pill ${_approvalsSubTab==='requests'?'active':''}" onclick="window.LM_Admin.setApprovalsSubTab('requests')">
       📝 Access Requests (Public)
     </button>
-    <button class="admin-pill-btn ${_approvalsSubTab==='users'?'active':''}" onclick="window.LM_Admin.setApprovalsSubTab('users')">
+    <button class="adm-filter-pill ${_approvalsSubTab==='users'?'active':''}" onclick="window.LM_Admin.setApprovalsSubTab('users')">
       👥 Pending Accounts (DB)
     </button>
   </div>
 
-  <div style="display:flex;gap:6px;align-items:center;">
-    <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;">Filter:</span>
-    <button class="admin-filter-btn ${_approvalsFilter==='pending'?'active':''}" onclick="window.LM_Admin.setApprovalsFilter('pending')">Pending</button>
-    <button class="admin-filter-btn ${_approvalsFilter==='approved'?'active':''}" onclick="window.LM_Admin.setApprovalsFilter('approved')">Approved</button>
-    <button class="admin-filter-btn ${_approvalsFilter==='rejected'?'active':''}" onclick="window.LM_Admin.setApprovalsFilter('rejected')">Rejected</button>
-    <button class="admin-filter-btn ${_approvalsFilter==='all'?'active':''}" onclick="window.LM_Admin.setApprovalsFilter('all')">All</button>
+  <div class="adm-filter-group" role="group" aria-label="Status Filters">
+    <span style="font-size:11px;font-weight:700;color:var(--adm-text-muted);text-transform:uppercase;">Filter:</span>
+    <button class="adm-filter-pill ${_approvalsFilter==='pending'?'active':''}" onclick="window.LM_Admin.setApprovalsFilter('pending')">Pending</button>
+    <button class="adm-filter-pill ${_approvalsFilter==='approved'?'active':''}" onclick="window.LM_Admin.setApprovalsFilter('approved')">Approved</button>
+    <button class="adm-filter-pill ${_approvalsFilter==='rejected'?'active':''}" onclick="window.LM_Admin.setApprovalsFilter('rejected')">Rejected</button>
+    <button class="adm-filter-pill ${_approvalsFilter==='all'?'active':''}" onclick="window.LM_Admin.setApprovalsFilter('all')">All</button>
   </div>
 </div>
 
-<div id="approvalsListArea">
-  <div style="padding:40px;text-align:center;color:var(--text-3);">Loading approval records…</div>
+<div id="approvalsListArea" aria-live="polite">
+  <div class="adm-skeleton-row"></div>
+  <div class="adm-skeleton-row"></div>
+  <div class="adm-skeleton-row"></div>
 </div>`;
 
     await _loadApprovalsData();
@@ -656,12 +330,16 @@
 
     const sb = _getSb();
     if (!sb) {
-      area.innerHTML = '<div style="padding:32px;text-align:center;color:#fb7185;">Database client not initialized.</div>';
+      area.innerHTML = `
+<div class="adm-empty-state">
+  <div class="adm-empty-icon">⚠️</div>
+  <div class="adm-empty-title">Database Client Unavailable</div>
+  <div class="adm-empty-desc">Could not connect to Supabase backend service. Please check configuration.</div>
+</div>`;
       return;
     }
 
     if (_approvalsSubTab === 'requests') {
-      /* Query access_requests */
       try {
         let query = sb.from('access_requests').select('*').order('created_at', { ascending: false });
         if (_approvalsFilter !== 'all') {
@@ -673,10 +351,15 @@
         (data || []).forEach(r => { if (r && r.id) _requestsCache[r.id] = r; });
         _renderAccessRequestsList(area, data || []);
       } catch (err) {
-        area.innerHTML = `<div style="padding:32px;text-align:center;color:#fb7185;">Failed to load access requests: ${_esc(err.message)}</div>`;
+        area.innerHTML = `
+<div class="adm-empty-state">
+  <div class="adm-empty-icon">❌</div>
+  <div class="adm-empty-title">Failed to Load Access Requests</div>
+  <div class="adm-empty-desc">${_esc(err.message)}</div>
+  <button class="adm-btn adm-btn-sm" onclick="window.LM_Admin.refreshCurrentTab()" style="margin-top:12px;">Retry</button>
+</div>`;
       }
     } else {
-      /* Query user_profiles */
       try {
         let query = sb.from('user_profiles').select('*').order('created_at', { ascending: false });
         if (_approvalsFilter === 'pending') {
@@ -690,7 +373,13 @@
         (data || []).forEach(p => { if (p && p.id) _profilesCache[p.id] = p; });
         _renderPendingUserProfilesList(area, data || []);
       } catch (err) {
-        area.innerHTML = `<div style="padding:32px;text-align:center;color:#fb7185;">Failed to load pending accounts: ${_esc(err.message)}</div>`;
+        area.innerHTML = `
+<div class="adm-empty-state">
+  <div class="adm-empty-icon">❌</div>
+  <div class="adm-empty-title">Failed to Load Pending Accounts</div>
+  <div class="adm-empty-desc">${_esc(err.message)}</div>
+  <button class="adm-btn adm-btn-sm" onclick="window.LM_Admin.refreshCurrentTab()" style="margin-top:12px;">Retry</button>
+</div>`;
       }
     }
   }
@@ -698,10 +387,10 @@
   function _renderAccessRequestsList(area, requests) {
     if (!requests || requests.length === 0) {
       area.innerHTML = `
-<div style="text-align:center;padding:50px 20px;background:rgba(255,255,255,0.02);border:1px dashed var(--border);border-radius:14px;">
-  <div style="font-size:36px;margin-bottom:8px;">🎉</div>
-  <div style="font-size:14px;font-weight:700;color:var(--text);">No access requests found</div>
-  <div style="font-size:12px;color:var(--text-3);margin-top:4px;">No incoming requests match the "${_approvalsFilter}" filter.</div>
+<div class="adm-empty-state">
+  <div class="adm-empty-icon">📋</div>
+  <div class="adm-empty-title">No Access Requests Found</div>
+  <div class="adm-empty-desc">No incoming registration requests match the active filter "${_esc(_approvalsFilter)}".</div>
 </div>`;
       return;
     }
@@ -716,55 +405,58 @@
       const timeStr  = req.created_at ? new Date(req.created_at).toLocaleString() : 'Recent';
 
       const statusBadge = isPending
-        ? '<span class="admin-badge badge-inactive">⏳ Pending Review</span>'
+        ? '<span class="adm-badge adm-badge-pending">⏳ Pending Review</span>'
         : isApproved
-          ? '<span class="admin-badge badge-active">✅ Approved</span>'
-          : '<span class="admin-badge" style="background:rgba(239,68,68,0.15);color:#f87171;">❌ Rejected</span>';
+          ? '<span class="adm-badge adm-badge-active">✅ Approved</span>'
+          : '<span class="adm-badge adm-badge-danger">❌ Rejected</span>';
 
       return `
-<div class="admin-approval-card" style="background:var(--bg3,rgba(255,255,255,0.03));border:1px solid ${isPending?'rgba(251,191,36,0.3)':'var(--border)'};border-radius:14px;padding:16px;margin-bottom:12px;display:flex;flex-direction:column;gap:12px;">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
-    <div style="display:flex;gap:12px;align-items:center;">
-      <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(139,92,246,0.2));border:1px solid rgba(139,92,246,0.3);display:flex;align-items:center;justify-content:center;font-weight:700;color:#c084fc;font-size:15px;flex-shrink:0;">
+<div class="adm-data-card" style="border-left: 3px solid ${isPending ? 'var(--adm-warning)' : (isApproved ? 'var(--adm-success)' : 'var(--adm-danger)')};">
+  <div class="adm-card-header">
+    <div style="display:flex;gap:12px;align-items:center;min-width:0;">
+      <div style="width:38px;height:38px;border-radius:50%;background:var(--adm-brand-subtle);border:1px solid var(--adm-brand-border);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--adm-brand);font-size:14px;flex-shrink:0;">
         ${initial}
       </div>
-      <div>
-        <div style="font-weight:700;color:var(--text);font-size:14px;display:flex;align-items:center;gap:8px;">
-          ${_esc(req.name || (req.email ? req.email.split('@')[0] : 'Applicant'))}
-          <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:rgba(255,255,255,0.06);color:var(--text-2);">${appBadge}</span>
+      <div style="min-width:0;">
+        <div style="font-weight:700;color:var(--adm-text-primary);font-size:13.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span>${_esc(req.name || (req.email ? req.email.split('@')[0] : 'Applicant'))}</span>
+          <span class="adm-badge" style="background:var(--adm-surface-3);color:var(--adm-text-secondary);">${appBadge}</span>
         </div>
-        <div style="font-size:12px;color:var(--text-3);margin-top:2px;">✉️ ${_esc(req.email)} · 🕒 ${timeStr}</div>
+        <div class="adm-card-meta" style="margin-top:2px;">
+          <span>✉️ ${_esc(req.email)}</span>
+          <span>🕒 ${timeStr}</span>
+        </div>
       </div>
     </div>
     <div>${statusBadge}</div>
   </div>
 
-  ${req.message ? `<div style="background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text-2);line-height:1.5;">💬 <em>"${_esc(req.message)}"</em></div>` : ''}
+  ${req.message ? `<div style="background:var(--adm-surface-3);border:1px solid var(--adm-border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--adm-text-secondary);line-height:1.5;">💬 <em>"${_esc(req.message)}"</em></div>` : ''}
 
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-top:1px solid rgba(255,255,255,0.05);padding-top:10px;margin-top:2px;">
-    <div style="font-size:11px;color:var(--text-3);">
+  <div class="adm-card-actions">
+    <div style="font-size:11.5px;color:var(--adm-text-muted);flex:1 1 180px;">
       ${req.reviewed_at ? `Reviewed: ${new Date(req.reviewed_at).toLocaleDateString()}` : 'Awaiting admin decision'}
     </div>
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
       ${isPending ? `
-        <button class="admin-btn admin-btn-success admin-btn-sm" onclick="window.LM_Admin.openApproveRequestModal('${req.id}')">
+        <button class="adm-btn adm-btn-success adm-btn-sm" onclick="window.LM_Admin.openApproveRequestModal('${req.id}')">
           ✨ Approve &amp; Configure
         </button>
-        <button class="admin-btn admin-btn-danger admin-btn-sm" onclick="window.LM_Admin.rejectAccessRequest('${req.id}')">
+        <button class="adm-btn adm-btn-danger adm-btn-sm" onclick="window.LM_Admin.rejectAccessRequest('${req.id}')">
           ❌ Reject
         </button>
       ` : ''}
       ${isApproved ? `
-        <button class="admin-btn admin-btn-sm" onclick="window.LM_Admin.openApproveRequestModal('${req.id}')">
+        <button class="adm-btn adm-btn-sm" onclick="window.LM_Admin.openApproveRequestModal('${req.id}')">
           ⚙️ Reconfigure Access
         </button>
       ` : ''}
       ${isRejected ? `
-        <button class="admin-btn admin-btn-success admin-btn-sm" onclick="window.LM_Admin.openApproveRequestModal('${req.id}')">
+        <button class="adm-btn adm-btn-success adm-btn-sm" onclick="window.LM_Admin.openApproveRequestModal('${req.id}')">
           🔄 Re-Approve
         </button>
       ` : ''}
-      <button class="admin-btn admin-btn-sm" style="color:#f87171;" onclick="window.LM_Admin.deleteAccessRequest('${req.id}')" title="Delete request record">
+      <button class="adm-btn adm-btn-sm" style="color:var(--adm-danger);" onclick="window.LM_Admin.deleteAccessRequest('${req.id}')" title="Delete request record">
         🗑
       </button>
     </div>
@@ -778,10 +470,10 @@
   function _renderPendingUserProfilesList(area, profiles) {
     if (!profiles || profiles.length === 0) {
       area.innerHTML = `
-<div style="text-align:center;padding:50px 20px;background:rgba(255,255,255,0.02);border:1px dashed var(--border);border-radius:14px;">
-  <div style="font-size:36px;margin-bottom:8px;">👥</div>
-  <div style="font-size:14px;font-weight:700;color:var(--text);">No accounts match criteria</div>
-  <div style="font-size:12px;color:var(--text-3);margin-top:4px;">No database user profiles found for filter "${_approvalsFilter}".</div>
+<div class="adm-empty-state">
+  <div class="adm-empty-icon">👥</div>
+  <div class="adm-empty-title">No Database Accounts Match Filter</div>
+  <div class="adm-empty-desc">No registered user profiles found for filter "${_esc(_approvalsFilter)}".</div>
 </div>`;
       return;
     }
@@ -791,37 +483,40 @@
       const isPending = !u.active;
 
       return `
-<div class="admin-approval-card" style="background:var(--bg3,rgba(255,255,255,0.03));border:1px solid ${isPending?'rgba(251,113,133,0.3)':'var(--border)'};border-radius:14px;padding:16px;margin-bottom:12px;display:flex;flex-direction:column;gap:12px;">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
-    <div style="display:flex;gap:12px;align-items:center;">
-      <div style="width:40px;height:40px;border-radius:50%;background:rgba(45,212,191,0.15);border:1px solid rgba(45,212,191,0.3);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--teal);font-size:15px;flex-shrink:0;">
+<div class="adm-data-card" style="border-left: 3px solid ${isPending ? 'var(--adm-warning)' : 'var(--adm-success)'};">
+  <div class="adm-card-header">
+    <div style="display:flex;gap:12px;align-items:center;min-width:0;">
+      <div style="width:38px;height:38px;border-radius:50%;background:var(--adm-brand-subtle);border:1px solid var(--adm-brand-border);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--adm-brand);font-size:14px;flex-shrink:0;">
         ${initial}
       </div>
-      <div>
-        <div style="font-weight:700;color:var(--text);font-size:14px;display:flex;align-items:center;gap:8px;">
-          ${_esc(u.display_name || (u.email ? u.email.split('@')[0] : 'User'))}
-          <span class="admin-badge ${u.role==='admin'?'badge-admin':'badge-user'}">${u.role || 'user'}</span>
+      <div style="min-width:0;">
+        <div style="font-weight:700;color:var(--adm-text-primary);font-size:13.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span>${_esc(u.display_name || (u.email ? u.email.split('@')[0] : 'User'))}</span>
+          <span class="adm-badge ${u.role==='admin'?'adm-badge-admin':'adm-badge-user'}">${u.role || 'user'}</span>
         </div>
-        <div style="font-size:12px;color:var(--text-3);margin-top:2px;">✉️ ${_esc(u.email)} · Joined: ${new Date(u.created_at).toLocaleDateString()}</div>
+        <div class="adm-card-meta" style="margin-top:2px;">
+          <span>✉️ ${_esc(u.email)}</span>
+          <span>Joined: ${new Date(u.created_at).toLocaleDateString()}</span>
+        </div>
       </div>
     </div>
     <div>
-      <span class="admin-badge ${u.active?'badge-active':'badge-inactive'}">${u.active ? '✅ Active' : '⏳ Pending Activation'}</span>
+      <span class="adm-badge ${u.active?'adm-badge-active':'adm-badge-pending'}">${u.active ? 'Active' : 'Pending Activation'}</span>
     </div>
   </div>
 
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-top:1px solid rgba(255,255,255,0.05);padding-top:10px;">
-    <div style="font-size:11px;color:var(--text-3);">
+  <div class="adm-card-actions">
+    <div style="font-size:11.5px;color:var(--adm-text-muted);flex:1 1 180px;">
       Study Modules: ${u.study_modules === null ? 'All' : (Array.isArray(u.study_modules) ? u.study_modules.length + ' allowed' : 'Default')}
     </div>
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
       ${!u.active ? `
-        <button class="admin-btn admin-btn-success admin-btn-sm" onclick="window.LM_Admin.approveUser('${u.id}')">✅ Quick Activate</button>
-        <button class="admin-btn admin-btn-sm" style="border-color:rgba(139,92,246,0.4);color:#8b5cf6;" onclick="window.LM_Admin.openConfigureUserModal('${u.id}')">
+        <button class="adm-btn adm-btn-success adm-btn-sm" onclick="window.LM_Admin.approveUser('${u.id}')">✅ Quick Activate</button>
+        <button class="adm-btn adm-btn-sm" onclick="window.LM_Admin.openConfigureUserModal('${u.id}')">
           ⚙️ Configure Access
         </button>
       ` : `
-        <button class="admin-btn admin-btn-warn admin-btn-sm" onclick="window.LM_Admin.deactivateUser('${u.id}')">⏸ Pause Access</button>
+        <button class="adm-btn adm-btn-warning adm-btn-sm" onclick="window.LM_Admin.deactivateUser('${u.id}')">⏸ Pause Access</button>
       `}
     </div>
   </div>
@@ -844,37 +539,42 @@
     const isLedgerPrechecked = appType === 'ledger' || appType === 'finance' || appType === 'all';
 
     const financeCheckboxes = ALL_MODULES.map(m => `
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0;">
-  <input type="checkbox" id="req_fin_${m.key}" value="${m.key}" ${isLedgerPrechecked ? 'checked' : ''} style="accent-color:var(--teal);"> ${m.label}
+<label class="adm-checkbox-item">
+  <input type="checkbox" id="req_fin_${m.key}" value="${m.key}" ${isLedgerPrechecked ? 'checked' : ''}>
+  <span>${m.label}</span>
 </label>`).join('');
 
     const studyCheckboxes = STUDY_MODULES.map(m => `
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0;">
-  <input type="checkbox" id="req_std_${m.key}" value="${m.key}" ${isStudyPrechecked ? 'checked' : ''} style="accent-color:#8b5cf6;"> ${m.label}
+<label class="adm-checkbox-item">
+  <input type="checkbox" id="req_std_${m.key}" value="${m.key}" ${isStudyPrechecked ? 'checked' : ''}>
+  <span>${m.label}</span>
 </label>`).join('');
 
     const modal = document.createElement('div');
     modal.id = 'lm-approval-modal';
-    modal.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);padding:20px;';
+    modal.className = 'adm-submodal-overlay';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Approve Access Request');
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.remove();
     });
 
     modal.innerHTML = `
-<div style="background:var(--card,#151922);border:1px solid rgba(99,102,241,.3);border-radius:18px;padding:26px;max-width:540px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.9);max-height:90vh;overflow-y:auto;">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-    <div style="font-size:16px;font-weight:800;color:var(--text);">✨ Approve &amp; Configure User Access</div>
-    <button onclick="document.getElementById('lm-approval-modal')?.remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px;">✕</button>
+<div class="adm-submodal-panel" style="max-width:540px;">
+  <div class="adm-submodal-header">
+    <div class="adm-submodal-title">✨ Approve &amp; Configure User Access</div>
+    <button class="adm-btn adm-btn-icon adm-btn-sm" onclick="document.getElementById('lm-approval-modal')?.remove()" aria-label="Close dialog">✕</button>
   </div>
 
-  <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:16px;">
-    <div style="font-size:13px;font-weight:700;color:var(--text);">${_esc(name)}</div>
-    ${email ? `<div style="font-size:12px;color:var(--text-3);">${_esc(email)}</div>` : ''}
+  <div style="background:var(--adm-surface-2);border:1px solid var(--adm-border);border-radius:10px;padding:12px;margin-bottom:16px;">
+    <div style="font-size:13.5px;font-weight:700;color:var(--adm-text-primary);">${_esc(name)}</div>
+    ${email ? `<div style="font-size:12px;color:var(--adm-text-muted);margin-top:2px;">${_esc(email)}</div>` : ''}
   </div>
 
-  <div style="margin-bottom:14px;">
-    <label class="admin-label">Assign Role</label>
-    <select id="req_role_select" class="form-input">
+  <div class="adm-form-group" style="margin-bottom:14px;">
+    <label class="adm-label">Assign Role</label>
+    <select id="req_role_select" class="adm-input">
       <option value="user" selected>👤 Normal User (Restricted to granted modules)</option>
       <option value="admin">⭐ Full Administrator (Full System Access)</option>
     </select>
@@ -882,27 +582,27 @@
 
   <div style="margin-bottom:16px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-      <label class="admin-label" style="margin:0;">💰 LedgerMate Finance Modules</label>
-      <button class="admin-btn admin-btn-sm" style="font-size:10px;padding:2px 6px;" onclick="document.querySelectorAll('[id^=req_fin_]').forEach(c=>c.checked=true)">Select All</button>
+      <label class="adm-label" style="margin:0;">💰 LedgerMate Finance Modules</label>
+      <button class="adm-btn adm-btn-sm" style="font-size:11px;padding:3px 8px;" onclick="document.querySelectorAll('[id^=req_fin_]').forEach(c=>c.checked=true)">Select All</button>
     </div>
-    <div class="admin-module-grid" style="max-height:130px;overflow-y:auto;background:rgba(0,0,0,0.15);padding:8px;border-radius:8px;">${financeCheckboxes}</div>
+    <div class="adm-checkbox-grid" style="max-height:130px;">${financeCheckboxes}</div>
   </div>
 
   <div style="margin-bottom:18px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-      <label class="admin-label" style="margin:0;">📚 Study Hub Prep Modules</label>
-      <button class="admin-btn admin-btn-sm" style="font-size:10px;padding:2px 6px;" onclick="document.querySelectorAll('[id^=req_std_]').forEach(c=>c.checked=true)">Select All</button>
+      <label class="adm-label" style="margin:0;">📚 Study Hub Prep Modules</label>
+      <button class="adm-btn adm-btn-sm" style="font-size:11px;padding:3px 8px;" onclick="document.querySelectorAll('[id^=req_std_]').forEach(c=>c.checked=true)">Select All</button>
     </div>
-    <div class="admin-module-grid" style="max-height:130px;overflow-y:auto;background:rgba(0,0,0,0.15);padding:8px;border-radius:8px;">${studyCheckboxes}</div>
+    <div class="adm-checkbox-grid" style="max-height:130px;">${studyCheckboxes}</div>
   </div>
 
-  <div id="approveModalErr" style="display:none;color:#fb7185;font-size:12px;margin-bottom:12px;padding:8px 12px;background:rgba(251,113,133,0.1);border-radius:8px;"></div>
+  <div id="approveModalErr" style="display:none;color:var(--adm-danger);font-size:12px;margin-bottom:12px;padding:8px 12px;background:var(--adm-danger-subtle);border:1px solid var(--adm-danger-border);border-radius:8px;"></div>
 
-  <div style="display:flex;gap:10px;">
-    <button class="btn-submit" id="submitApproveReqBtn" onclick="window.LM_Admin.commitApproveRequest('${requestId}')">
+  <div class="adm-submodal-actions">
+    <button class="adm-btn" onclick="document.getElementById('lm-approval-modal')?.remove()">Cancel</button>
+    <button class="adm-btn adm-btn-primary" id="submitApproveReqBtn" onclick="window.LM_Admin.commitApproveRequest('${requestId}')">
       ✅ Approve &amp; Activate
     </button>
-    <button class="admin-btn" onclick="document.getElementById('lm-approval-modal')?.remove()">Cancel</button>
   </div>
 </div>`;
 
@@ -1053,37 +753,42 @@
     }
 
     const financeCheckboxes = ALL_MODULES.map(m => `
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0;">
-  <input type="checkbox" id="cfg_fin_${m.key}" value="${m.key}" ${finAllowed.includes(m.key) ? 'checked' : ''} style="accent-color:var(--teal);"> ${m.label}
+<label class="adm-checkbox-item">
+  <input type="checkbox" id="cfg_fin_${m.key}" value="${m.key}" ${finAllowed.includes(m.key) ? 'checked' : ''}>
+  <span>${m.label}</span>
 </label>`).join('');
 
     const studyCheckboxes = STUDY_MODULES.map(m => `
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0;">
-  <input type="checkbox" id="cfg_std_${m.key}" value="${m.key}" ${stdAllowed.includes(m.key) ? 'checked' : ''} style="accent-color:#8b5cf6;"> ${m.label}
+<label class="adm-checkbox-item">
+  <input type="checkbox" id="cfg_std_${m.key}" value="${m.key}" ${stdAllowed.includes(m.key) ? 'checked' : ''}>
+  <span>${m.label}</span>
 </label>`).join('');
 
     const modal = document.createElement('div');
     modal.id = 'lm-configure-user-modal';
-    modal.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);padding:20px;';
+    modal.className = 'adm-submodal-overlay';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Configure User Account');
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.remove();
     });
 
     modal.innerHTML = `
-<div style="background:var(--card,#151922);border:1px solid rgba(139,92,246,.3);border-radius:18px;padding:26px;max-width:540px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.9);max-height:90vh;overflow-y:auto;">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-    <div style="font-size:16px;font-weight:800;color:var(--text);">⚙️ Configure User Account &amp; Access</div>
-    <button onclick="document.getElementById('lm-configure-user-modal')?.remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px;">✕</button>
+<div class="adm-submodal-panel" style="max-width:540px;">
+  <div class="adm-submodal-header">
+    <div class="adm-submodal-title">⚙️ Configure User Account &amp; Access</div>
+    <button class="adm-btn adm-btn-icon adm-btn-sm" onclick="document.getElementById('lm-configure-user-modal')?.remove()" aria-label="Close dialog">✕</button>
   </div>
 
-  <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:16px;">
-    <div style="font-size:13px;font-weight:700;color:var(--text);">${_esc(name)}</div>
-    ${email ? `<div style="font-size:12px;color:var(--text-3);">${_esc(email)}</div>` : ''}
+  <div style="background:var(--adm-surface-2);border:1px solid var(--adm-border);border-radius:10px;padding:12px;margin-bottom:16px;">
+    <div style="font-size:13.5px;font-weight:700;color:var(--adm-text-primary);">${_esc(name)}</div>
+    ${email ? `<div style="font-size:12px;color:var(--adm-text-muted);margin-top:2px;">${_esc(email)}</div>` : ''}
   </div>
 
-  <div style="margin-bottom:14px;">
-    <label class="admin-label">Assign Role</label>
-    <select id="cfg_role_select" class="form-input">
+  <div class="adm-form-group" style="margin-bottom:14px;">
+    <label class="adm-label">Assign Role</label>
+    <select id="cfg_role_select" class="adm-input">
       <option value="user" ${role === 'user' ? 'selected' : ''}>👤 Normal User (Restricted to granted modules)</option>
       <option value="admin" ${role === 'admin' ? 'selected' : ''}>⭐ Full Administrator (Full System Access)</option>
     </select>
@@ -1091,36 +796,36 @@
 
   <div style="margin-bottom:16px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-      <label class="admin-label" style="margin:0;">💰 LedgerMate Finance Modules</label>
-      <button class="admin-btn admin-btn-sm" style="font-size:10px;padding:2px 6px;" onclick="document.querySelectorAll('[id^=cfg_fin_]').forEach(c=>c.checked=true)">Select All</button>
+      <label class="adm-label" style="margin:0;">💰 LedgerMate Finance Modules</label>
+      <button class="adm-btn adm-btn-sm" style="font-size:11px;padding:3px 8px;" onclick="document.querySelectorAll('[id^=cfg_fin_]').forEach(c=>c.checked=true)">Select All</button>
     </div>
-    <div class="admin-module-grid" style="max-height:130px;overflow-y:auto;background:rgba(0,0,0,0.15);padding:8px;border-radius:8px;">${financeCheckboxes}</div>
+    <div class="adm-checkbox-grid" style="max-height:130px;">${financeCheckboxes}</div>
   </div>
 
   <div style="margin-bottom:18px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-      <label class="admin-label" style="margin:0;">📚 Study Hub Prep Modules</label>
-      <button class="admin-btn admin-btn-sm" style="font-size:10px;padding:2px 6px;" onclick="document.querySelectorAll('[id^=cfg_std_]').forEach(c=>c.checked=true)">Select All</button>
+      <label class="adm-label" style="margin:0;">📚 Study Hub Prep Modules</label>
+      <button class="adm-btn adm-btn-sm" style="font-size:11px;padding:3px 8px;" onclick="document.querySelectorAll('[id^=cfg_std_]').forEach(c=>c.checked=true)">Select All</button>
     </div>
-    <div class="admin-module-grid" style="max-height:130px;overflow-y:auto;background:rgba(0,0,0,0.15);padding:8px;border-radius:8px;">${studyCheckboxes}</div>
+    <div class="adm-checkbox-grid" style="max-height:130px;">${studyCheckboxes}</div>
   </div>
 
   <!-- ✨ Personal Learning Workspace Customization Permission -->
-  <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;background:rgba(79,142,247,0.06);border:1px solid rgba(79,142,247,0.22);border-radius:10px;margin-bottom:18px;">
-    <input type="checkbox" id="cfg_study_customizer" ${canCustomizeStudy ? 'checked' : ''} style="width:16px;height:16px;margin-top:2px;accent-color:#4f8ef7;cursor:pointer;">
+  <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;background:var(--adm-surface-2);border:1px solid var(--adm-border);border-radius:10px;margin-bottom:18px;">
+    <input type="checkbox" id="cfg_study_customizer" ${canCustomizeStudy ? 'checked' : ''} style="width:16px;height:16px;margin-top:2px;accent-color:var(--adm-brand);cursor:pointer;">
     <div>
-      <div style="font-size:12px;font-weight:700;color:var(--text);">✨ Allow Personal Learning Workspace Customization</div>
-      <div style="font-size:11px;color:var(--text-3);margin-top:2px;">Allows user to add custom languages/topics, upload materials, customize dashboard widgets, and set personal milestones.</div>
+      <div style="font-size:12px;font-weight:700;color:var(--adm-text-primary);">✨ Allow Personal Learning Workspace Customization</div>
+      <div style="font-size:11.5px;color:var(--adm-text-muted);margin-top:2px;">Allows user to add custom languages/topics, upload materials, customize dashboard widgets, and set personal milestones.</div>
     </div>
   </label>
 
-  <div id="cfgModalErr" style="display:none;color:#fb7185;font-size:12px;margin-bottom:12px;padding:8px 12px;background:rgba(251,113,133,0.1);border-radius:8px;"></div>
+  <div id="cfgModalErr" style="display:none;color:var(--adm-danger);font-size:12px;margin-bottom:12px;padding:8px 12px;background:var(--adm-danger-subtle);border:1px solid var(--adm-danger-border);border-radius:8px;"></div>
 
-  <div style="display:flex;gap:10px;">
-    <button class="btn-submit" id="submitCfgUserBtn" onclick="window.LM_Admin.saveConfigureUser('${userId}')">
+  <div class="adm-submodal-actions">
+    <button class="adm-btn" onclick="document.getElementById('lm-configure-user-modal')?.remove()">Cancel</button>
+    <button class="adm-btn adm-btn-primary" id="submitCfgUserBtn" onclick="window.LM_Admin.saveConfigureUser('${userId}')">
       💾 Save &amp; Activate
     </button>
-    <button class="admin-btn" onclick="document.getElementById('lm-configure-user-modal')?.remove()">Cancel</button>
   </div>
 </div>`;
 
@@ -1173,21 +878,23 @@
   ══════════════════════════════════════════════════════ */
   async function _renderUsersTab(container) {
     container.innerHTML = `
-<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+<div class="adm-section-header">
   <div>
-    <div class="admin-section-title" style="margin:0;border:none;padding:0;">👥 Users &amp; Permissions Directory</div>
-    <div style="font-size:12px;color:var(--text-3);margin-top:2px;">Manage user accounts, administrative roles, and application module access.</div>
+    <h2 class="adm-section-title">👥 Users &amp; Permissions Directory</h2>
+    <div class="adm-section-desc">Manage tenant accounts, administrative privileges, and fine-grained application access.</div>
   </div>
-  <button class="btn-submit" onclick="window.LM_Admin.showCreateUserForm()">➕ Create New User</button>
+  <button class="adm-btn adm-btn-primary" onclick="window.LM_Admin.showCreateUserForm()">➕ Create New User</button>
 </div>
 
-<!-- Search & Action Area -->
-<div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;">
-  <input type="text" id="adminUserSearchInput" class="form-input" placeholder="🔍 Search by name or email…" value="${_esc(_userSearchQuery)}" oninput="window.LM_Admin.onUserSearch(this.value)" style="max-width:360px;">
+<!-- Search & Action Toolbar -->
+<div class="adm-toolbar">
+  <div class="adm-toolbar-search" style="flex:1 1 300px;max-width:400px;">
+    <input type="text" id="adminUserSearchInput" class="adm-input" placeholder="🔍 Search by name or email…" value="${_esc(_userSearchQuery)}" oninput="window.LM_Admin.onUserSearch(this.value)">
+  </div>
 </div>
 
 <div id="userFormArea"></div>
-<div id="userListArea"><div style="padding:40px;text-align:center;color:var(--text-3);">Loading users…</div></div>`;
+<div id="userListArea"><div style="padding:40px;text-align:center;color:var(--adm-text-muted);">Loading users…</div></div>`;
 
     await _refreshUserList();
   }
@@ -1203,11 +910,16 @@
     const area = document.getElementById('userListArea');
     if (!area) return;
 
-    area.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3);">Loading users…</div>';
+    area.innerHTML = `
+<div style="display:flex;flex-direction:column;gap:10px;padding:12px 0;">
+  <div class="adm-skeleton-row" style="border-radius:10px;"></div>
+  <div class="adm-skeleton-row" style="border-radius:10px;"></div>
+  <div class="adm-skeleton-row" style="border-radius:10px;"></div>
+</div>`;
 
     const sb = _getSb();
     if (!sb) {
-      area.innerHTML = '<div style="padding:32px;text-align:center;color:#fb7185;">Database client not initialized.</div>';
+      area.innerHTML = '<div style="padding:32px;text-align:center;color:var(--adm-danger);">Database client not initialized.</div>';
       return;
     }
 
@@ -1237,7 +949,17 @@
     }
 
     if (loadErr) {
-      area.innerHTML = `<div style="padding:32px;text-align:center;color:#fb7185;">Failed to load users: ${_esc(loadErr)}</div>`;
+      area.innerHTML = `<div style="padding:32px;text-align:center;color:var(--adm-danger);">Failed to load users: ${_esc(loadErr)}</div>`;
+      return;
+    }
+
+    if (!profiles || profiles.length === 0) {
+      area.innerHTML = `
+<div class="adm-empty-state">
+  <div class="adm-empty-icon">👥</div>
+  <div class="adm-empty-title">No Users Found</div>
+  <div class="adm-empty-desc">No registered user profiles matched your search "${_esc(_userSearchQuery)}".</div>
+</div>`;
       return;
     }
 
@@ -1245,58 +967,111 @@
       ? window.LM_Auth.getCurrentUser()?.userId
       : null;
 
-    const _row = (u) => {
+    const _tableRow = (u) => {
       const initial = (u.display_name || u.email || '?').charAt(0).toUpperCase();
 
       return `
 <tr>
   <td>
     <div style="display:flex;align-items:center;gap:10px;">
-      <div style="width:34px;height:34px;border-radius:50%;background:rgba(45,212,191,0.15);border:1px solid rgba(45,212,191,0.25);
-           display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--teal);font-size:13px;flex-shrink:0;">
+      <div style="width:34px;height:34px;border-radius:50%;background:var(--adm-brand-subtle);border:1px solid var(--adm-brand-border);
+           display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--adm-brand);font-size:13px;flex-shrink:0;">
         ${initial}
       </div>
       <div>
-        <div style="font-weight:600;color:var(--text);">${_esc(u.display_name || (u.email ? u.email.split('@')[0] : 'User'))}</div>
-        <div style="font-size:11px;color:var(--text-3);">${_esc(u.email)}</div>
+        <div style="font-weight:600;color:var(--adm-text-primary);">${_esc(u.display_name || (u.email ? u.email.split('@')[0] : 'User'))}</div>
+        <div style="font-size:11.5px;color:var(--adm-text-muted);">${_esc(u.email)}</div>
       </div>
     </div>
   </td>
-  <td><span class="admin-badge ${u.role === 'admin' ? 'badge-admin' : 'badge-user'}">${u.role || 'user'}</span></td>
-  <td><span class="admin-badge ${u.active ? 'badge-active' : 'badge-inactive'}">${u.active ? 'Active' : 'Pending'}</span></td>
-  <td style="font-size:11px;color:var(--text-3);">${new Date(u.created_at).toLocaleDateString()}</td>
-  <td>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;">
-      ${!u.active ? `<button class="admin-btn admin-btn-success admin-btn-sm" onclick="window.LM_Admin.approveUser('${u.id}')">✅ Approve</button>` : ''}
-      ${u.active  ? `<button class="admin-btn admin-btn-warn admin-btn-sm"    onclick="window.LM_Admin.deactivateUser('${u.id}')">⏸ Pause</button>` : ''}
-      <button class="admin-btn admin-btn-sm" onclick="window.LM_Admin.toggleRole('${u.id}','${u.role === 'admin' ? 'user' : 'admin'}')">
-        ${u.role === 'admin' ? '👤 Make User' : '⭐ Make Admin'}
+  <td><span class="adm-badge ${u.role === 'admin' ? 'adm-badge-admin' : 'adm-badge-user'}">${u.role || 'user'}</span></td>
+  <td><span class="adm-badge ${u.active ? 'adm-badge-active' : 'adm-badge-pending'}">${u.active ? 'Active' : 'Pending'}</span></td>
+  <td style="font-size:12px;color:var(--adm-text-muted);">${new Date(u.created_at).toLocaleDateString()}</td>
+  <td style="text-align:right;">
+    <div style="display:inline-flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+      ${!u.active ? `<button class="adm-btn adm-btn-success adm-btn-sm" onclick="window.LM_Admin.approveUser('${u.id}')">✅ Approve</button>` : ''}
+      ${u.active  ? `<button class="adm-btn adm-btn-warning adm-btn-sm" onclick="window.LM_Admin.deactivateUser('${u.id}')">⏸ Pause</button>` : ''}
+      <button class="adm-btn adm-btn-sm" onclick="window.LM_Admin.toggleRole('${u.id}','${u.role === 'admin' ? 'user' : 'admin'}')">
+        ${u.role === 'admin' ? '👤 User' : '⭐ Admin'}
       </button>
-      <button class="admin-btn admin-btn-sm" style="border-color:rgba(45,212,191,.4);color:var(--teal);" onclick="window.LM_Admin.showFinanceAccess('${u.id}')">💰 Finance</button>
-      <button class="admin-btn admin-btn-sm" style="border-color:rgba(139,92,246,.4);color:#8b5cf6;" onclick="window.LM_Admin.showStudyAccess('${u.id}')">📚 Study</button>
-      ${u.id !== currentUid ? `<button class="admin-btn admin-btn-danger admin-btn-sm" onclick="window.LM_Admin.deleteUser('${u.id}')">🗑 Delete</button>` : ''}
+      <button class="adm-btn adm-btn-sm" onclick="window.LM_Admin.showFinanceAccess('${u.id}')">💰 Finance</button>
+      <button class="adm-btn adm-btn-sm" onclick="window.LM_Admin.showStudyAccess('${u.id}')">📚 Study</button>
+      ${u.id !== currentUid ? `<button class="adm-btn adm-btn-danger adm-btn-sm" onclick="window.LM_Admin.deleteUser('${u.id}')">🗑 Delete</button>` : ''}
     </div>
   </td>
 </tr>`;
     };
 
+    const _mobileCard = (u) => {
+      const initial = (u.display_name || u.email || '?').charAt(0).toUpperCase();
+
+      return `
+<div class="adm-data-card" style="border-left: 3px solid ${u.active ? 'var(--adm-success)' : 'var(--adm-warning)'};">
+  <div class="adm-card-header">
+    <div style="display:flex;gap:12px;align-items:center;min-width:0;">
+      <div style="width:38px;height:38px;border-radius:50%;background:var(--adm-brand-subtle);border:1px solid var(--adm-brand-border);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--adm-brand);font-size:14px;flex-shrink:0;">
+        ${initial}
+      </div>
+      <div style="min-width:0;">
+        <div style="font-weight:700;color:var(--adm-text-primary);font-size:13.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span>${_esc(u.display_name || (u.email ? u.email.split('@')[0] : 'User'))}</span>
+          <span class="adm-badge ${u.role === 'admin' ? 'adm-badge-admin' : 'adm-badge-user'}">${u.role || 'user'}</span>
+        </div>
+        <div class="adm-card-meta" style="margin-top:2px;">
+          <span>✉️ ${_esc(u.email)}</span>
+          <span>Joined: ${new Date(u.created_at).toLocaleDateString()}</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <span class="adm-badge ${u.active ? 'adm-badge-active' : 'adm-badge-pending'}">${u.active ? 'Active' : 'Pending'}</span>
+    </div>
+  </div>
+
+  <div class="adm-card-actions">
+    ${!u.active ? `<button class="adm-btn adm-btn-success adm-btn-sm" onclick="window.LM_Admin.approveUser('${u.id}')">✅ Approve</button>` : ''}
+    ${u.active  ? `<button class="adm-btn adm-btn-warning adm-btn-sm" onclick="window.LM_Admin.deactivateUser('${u.id}')">⏸ Pause</button>` : ''}
+    <button class="adm-btn adm-btn-sm" onclick="window.LM_Admin.toggleRole('${u.id}','${u.role === 'admin' ? 'user' : 'admin'}')">
+      ${u.role === 'admin' ? '👤 Make User' : '⭐ Make Admin'}
+    </button>
+    <button class="adm-btn adm-btn-sm" onclick="window.LM_Admin.showFinanceAccess('${u.id}')">💰 Finance</button>
+    <button class="adm-btn adm-btn-sm" onclick="window.LM_Admin.showStudyAccess('${u.id}')">📚 Study</button>
+    ${u.id !== currentUid ? `<button class="adm-btn adm-btn-danger adm-btn-sm" onclick="window.LM_Admin.deleteUser('${u.id}')">🗑 Delete</button>` : ''}
+  </div>
+</div>`;
+    };
+
     let html = `
-<div class="admin-table-wrap">
-  <table class="admin-table">
-    <thead><tr><th>User</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+<!-- Desktop Table View -->
+<div class="adm-table-container">
+  <table class="adm-table">
+    <thead>
+      <tr>
+        <th scope="col">User</th>
+        <th scope="col">Role</th>
+        <th scope="col">Status</th>
+        <th scope="col">Joined</th>
+        <th scope="col" style="text-align:right;">Actions</th>
+      </tr>
+    </thead>
     <tbody>
-      ${profiles.length ? profiles.map(_row).join('') : '<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--text-3);">No users found</td></tr>'}
+      ${profiles.map(_tableRow).join('')}
     </tbody>
   </table>
+</div>
+
+<!-- Mobile Data Cards View -->
+<div class="adm-data-cards-grid">
+  ${profiles.map(_mobileCard).join('')}
 </div>`;
 
     const totalPages = Math.max(1, Math.ceil(_userTotal / PAGE_SIZE));
     if (totalPages > 1) {
       html += `
-<div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding:10px 14px;background:var(--surface-2,rgba(255,255,255,.04));border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--text-3);">
-  <button class="admin-btn admin-btn-sm" ${_userPage === 0 ? 'disabled' : ''} onclick="window.LM_Admin._prevPage()">← Prev</button>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding:12px 16px;background:var(--adm-surface-2);border:1px solid var(--adm-border);border-radius:10px;font-size:12.5px;color:var(--adm-text-muted);flex-wrap:wrap;gap:10px;">
+  <button class="adm-btn adm-btn-sm" ${_userPage === 0 ? 'disabled' : ''} onclick="window.LM_Admin._prevPage()">← Prev</button>
   <span>Page ${_userPage + 1} of ${totalPages} &nbsp;·&nbsp; ${_userTotal} users total</span>
-  <button class="admin-btn admin-btn-sm" ${_userPage >= totalPages - 1 ? 'disabled' : ''} onclick="window.LM_Admin._nextPage()">Next →</button>
+  <button class="adm-btn adm-btn-sm" ${_userPage >= totalPages - 1 ? 'disabled' : ''} onclick="window.LM_Admin._nextPage()">Next →</button>
 </div>`;
     }
 
@@ -1309,45 +1084,47 @@
     if (!area) return;
 
     const moduleCheckboxes = ALL_MODULES.map(m => `
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0;">
-  <input type="checkbox" name="mod_${m.key}" value="${m.key}" checked> ${m.label}
+<label class="adm-checkbox-item">
+  <input type="checkbox" name="mod_${m.key}" value="${m.key}" checked>
+  <span>${m.label}</span>
 </label>`).join('');
 
     const studyCheckboxes = STUDY_MODULES.map(m => `
-<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:3px 0;">
-  <input type="checkbox" name="stmod_${m.key}" value="${m.key}" checked> ${m.label}
+<label class="adm-checkbox-item">
+  <input type="checkbox" name="stmod_${m.key}" value="${m.key}" checked>
+  <span>${m.label}</span>
 </label>`).join('');
 
     area.innerHTML = `
-<div class="admin-form-card" id="userFormCard" style="margin-bottom:16px;background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px;">
-  <div class="admin-section-title" style="margin-bottom:16px;">➕ Create New User Account</div>
-  <div class="admin-form-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">
-    <div>
-      <label class="admin-label">Email *</label>
-      <input id="uf_email" class="form-input" type="email" placeholder="user@example.com">
+<div class="adm-form-card" id="userFormCard">
+  <div style="font-size:15px;font-weight:700;color:var(--adm-text-primary);margin-bottom:16px;">➕ Create New User Account</div>
+  <div class="adm-form-grid">
+    <div class="adm-form-group">
+      <label class="adm-label">Email *</label>
+      <input id="uf_email" class="adm-input" type="email" placeholder="user@example.com">
     </div>
-    <div>
-      <label class="admin-label">Display Name</label>
-      <input id="uf_displayName" class="form-input" placeholder="Full name">
+    <div class="adm-form-group">
+      <label class="adm-label">Display Name</label>
+      <input id="uf_displayName" class="adm-input" placeholder="Full name">
     </div>
-    <div>
-      <label class="admin-label">Password *</label>
-      <input id="uf_password" class="form-input" type="password" placeholder="min 6 characters">
+    <div class="adm-form-group">
+      <label class="adm-label">Password *</label>
+      <input id="uf_password" class="adm-input" type="password" placeholder="min 6 characters">
     </div>
-    <div>
-      <label class="admin-label">Confirm Password *</label>
-      <input id="uf_password2" class="form-input" type="password" placeholder="repeat password">
+    <div class="adm-form-group">
+      <label class="adm-label">Confirm Password *</label>
+      <input id="uf_password2" class="adm-input" type="password" placeholder="repeat password">
     </div>
-    <div>
-      <label class="admin-label">Role</label>
-      <select id="uf_role" class="form-input">
+    <div class="adm-form-group">
+      <label class="adm-label">Role</label>
+      <select id="uf_role" class="adm-input">
         <option value="user">👤 Normal User</option>
         <option value="admin">⭐ Admin</option>
       </select>
     </div>
-    <div>
-      <label class="admin-label">Activate Immediately</label>
-      <select id="uf_active" class="form-input">
+    <div class="adm-form-group">
+      <label class="adm-label">Activate Immediately</label>
+      <select id="uf_active" class="adm-input">
         <option value="true">✅ Yes — active on first login</option>
         <option value="false">⏸ No — pending approval</option>
       </select>
@@ -1355,20 +1132,20 @@
   </div>
 
   <div style="margin-top:16px;">
-    <label class="admin-label">Finance Module Access</label>
-    <div class="admin-module-grid">${moduleCheckboxes}</div>
+    <label class="adm-label" style="margin-bottom:6px;display:block;">Finance Module Access</label>
+    <div class="adm-checkbox-grid">${moduleCheckboxes}</div>
   </div>
 
   <div style="margin-top:14px;">
-    <label class="admin-label">Study Hub Module Access</label>
-    <div class="admin-module-grid">${studyCheckboxes}</div>
+    <label class="adm-label" style="margin-bottom:6px;display:block;">Study Hub Module Access</label>
+    <div class="adm-checkbox-grid">${studyCheckboxes}</div>
   </div>
 
-  <div id="userFormError" style="display:none;color:#fb7185;font-size:13px;margin-top:12px;padding:10px;background:rgba(251,113,133,0.1);border-radius:8px;"></div>
+  <div id="userFormError" style="display:none;color:var(--adm-danger);font-size:12.5px;margin-top:12px;padding:10px 14px;background:var(--adm-danger-subtle);border:1px solid var(--adm-danger-border);border-radius:8px;"></div>
 
   <div style="display:flex;gap:10px;margin-top:18px;">
-    <button class="btn-submit" onclick="window.LM_Admin.submitCreateUser()">✅ Create User</button>
-    <button class="admin-btn" onclick="document.getElementById('userFormArea').innerHTML=''">Cancel</button>
+    <button class="adm-btn adm-btn-primary" onclick="window.LM_Admin.submitCreateUser()">✅ Create User</button>
+    <button class="adm-btn" onclick="document.getElementById('userFormArea').innerHTML=''">Cancel</button>
   </div>
 </div>`;
 
@@ -1469,33 +1246,38 @@
 
     const checkboxes = ALL_MODULES.map(m => {
       const checked = allowed.indexOf(m.key) !== -1;
-      return `<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:5px 0;">
-        <input type="checkbox" id="fin_mod_${m.key}" value="${m.key}" ${checked ? 'checked' : ''} style="width:15px;height:15px;accent-color:var(--teal);">
-        ${m.label}
+      return `<label class="adm-checkbox-item">
+        <input type="checkbox" id="fin_mod_${m.key}" value="${m.key}" ${checked ? 'checked' : ''}>
+        <span>${m.label}</span>
       </label>`;
     }).join('');
 
     const modal = document.createElement('div');
     modal.id = 'lm-finance-modal';
-    modal.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);padding:20px;';
+    modal.className = 'adm-submodal-overlay';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Finance Module Permissions');
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.remove();
     });
 
     modal.innerHTML = `
-<div style="background:var(--card,#151922);border:1px solid rgba(45,212,191,.3);border-radius:16px;padding:26px;max-width:460px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.9);max-height:90vh;overflow-y:auto;">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-    <div style="font-size:16px;font-weight:700;color:var(--text);">💰 Finance Module Permissions</div>
-    <button onclick="document.getElementById('lm-finance-modal')?.remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px;">✕</button>
+<div class="adm-submodal-panel" style="max-width:480px;">
+  <div class="adm-submodal-header">
+    <div>
+      <div class="adm-submodal-title">💰 Finance Module Permissions</div>
+      <div style="font-size:12px;color:var(--adm-text-muted);margin-top:2px;">${_esc(userName)}</div>
+    </div>
+    <button class="adm-btn adm-btn-icon adm-btn-sm" onclick="document.getElementById('lm-finance-modal')?.remove()" aria-label="Close dialog">✕</button>
   </div>
-  <div style="font-size:12px;color:var(--text-3);margin-bottom:14px;">${_esc(userName)}</div>
-  <p style="font-size:13px;color:var(--text-2);line-height:1.55;margin-bottom:14px;">
-    Choose which LedgerMate finance modules this user can access. Admins always have full access.
+  <p style="font-size:12.5px;color:var(--adm-text-secondary);line-height:1.5;margin-bottom:14px;">
+    Configure granted LedgerMate financial engine access for this user account. Administrators always retain unrestricted full access.
   </p>
-  <div class="admin-module-grid" style="max-height:220px;overflow-y:auto;background:rgba(0,0,0,0.15);padding:10px;border-radius:8px;">${checkboxes}</div>
-  <div style="display:flex;gap:10px;margin-top:20px;">
-    <button class="btn-submit" onclick="window.LM_Admin.saveFinanceAccess('${userId}')">💾 Save Permissions</button>
-    <button class="admin-btn" onclick="document.getElementById('lm-finance-modal')?.remove()">Cancel</button>
+  <div class="adm-checkbox-grid" style="max-height:220px;">${checkboxes}</div>
+  <div class="adm-submodal-actions">
+    <button class="adm-btn" onclick="document.getElementById('lm-finance-modal')?.remove()">Cancel</button>
+    <button class="adm-btn adm-btn-primary" onclick="window.LM_Admin.saveFinanceAccess('${userId}')">💾 Save Permissions</button>
   </div>
 </div>`;
     document.body.appendChild(modal);
@@ -1530,54 +1312,59 @@
 
     const moduleCheckboxes = STUDY_MODULES.map(m => {
       const checked = currentModules === null || allowedKeys.indexOf(m.key) !== -1;
-      return `<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:5px 0;">
-        <input type="checkbox" id="study_mod_${m.key}" value="${m.key}" ${checked ? 'checked' : ''} style="width:15px;height:15px;cursor:pointer;accent-color:#8b5cf6;">
-        ${m.label}
+      return `<label class="adm-checkbox-item">
+        <input type="checkbox" id="study_mod_${m.key}" value="${m.key}" ${checked ? 'checked' : ''}>
+        <span>${m.label}</span>
       </label>`;
     }).join('');
 
     const modal = document.createElement('div');
     modal.id = 'lm-study-modal';
-    modal.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);padding:20px;';
+    modal.className = 'adm-submodal-overlay';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Study Module Access');
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.remove();
     });
 
     modal.innerHTML = `
-<div style="background:var(--card,#151922);border:1px solid rgba(139,92,246,.3);border-radius:16px;padding:26px;max-width:460px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.9);max-height:90vh;overflow-y:auto;">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-    <div style="font-size:16px;font-weight:700;color:var(--text);">📚 Study Module Access</div>
-    <button onclick="document.getElementById('lm-study-modal')?.remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px;">✕</button>
+<div class="adm-submodal-panel" style="max-width:480px;">
+  <div class="adm-submodal-header">
+    <div>
+      <div class="adm-submodal-title">📚 Study Module Access</div>
+      <div style="font-size:12px;color:var(--adm-text-muted);margin-top:2px;">${_esc(userName)}</div>
+    </div>
+    <button class="adm-btn adm-btn-icon adm-btn-sm" onclick="document.getElementById('lm-study-modal')?.remove()" aria-label="Close dialog">✕</button>
   </div>
-  <div style="font-size:12px;color:var(--text-3);margin-bottom:14px;">${_esc(userName)}</div>
-  <p style="font-size:13px;color:var(--text-2);line-height:1.55;margin-bottom:14px;">
-    Choose which Study Hub modules this user can open. Admins always have full access.
+  <p style="font-size:12.5px;color:var(--adm-text-secondary);line-height:1.5;margin-bottom:14px;">
+    Select which learning tracks and interview question banks are enabled.
   </p>
 
-  <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:12px 14px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.2);border-radius:10px;margin-bottom:14px;">
-    <input type="checkbox" id="study_access_enabled" ${hasAccess ? 'checked' : ''} style="width:17px;height:17px;cursor:pointer;accent-color:#8b5cf6;flex-shrink:0;">
+  <label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding:12px;background:var(--adm-surface-2);border:1px solid var(--adm-border);border-radius:10px;margin-bottom:12px;">
+    <input type="checkbox" id="study_access_enabled" ${hasAccess ? 'checked' : ''} style="width:17px;height:17px;accent-color:var(--adm-brand);flex-shrink:0;">
     <div>
-      <div style="font-size:13px;font-weight:600;color:var(--text);">Enable Study Hub access</div>
-      <div style="font-size:11px;color:var(--text-3);">Uncheck to block all study modules for this user</div>
+      <div style="font-size:13px;font-weight:600;color:var(--adm-text-primary);">Enable Study Hub access</div>
+      <div style="font-size:11.5px;color:var(--adm-text-muted);">Uncheck to suspend all study module access for this user</div>
     </div>
   </label>
 
-  <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px 12px;background:rgba(79,142,247,0.06);border:1px solid rgba(79,142,247,0.2);border-radius:10px;margin-bottom:16px;">
-    <input type="checkbox" id="study_modal_customizer" ${canCustomize ? 'checked' : ''} style="width:16px;height:16px;margin-top:2px;accent-color:#4f8ef7;cursor:pointer;">
+  <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;background:var(--adm-surface-2);border:1px solid var(--adm-border);border-radius:10px;margin-bottom:14px;">
+    <input type="checkbox" id="study_modal_customizer" ${canCustomize ? 'checked' : ''} style="width:16px;height:16px;margin-top:2px;accent-color:var(--adm-brand);flex-shrink:0;">
     <div>
-      <div style="font-size:12px;font-weight:700;color:var(--text);">✨ Personal Workspace Customization</div>
-      <div style="font-size:11px;color:var(--text-3);margin-top:1px;">Allows adding custom languages, uploading materials, and custom widgets.</div>
+      <div style="font-size:12.5px;font-weight:700;color:var(--adm-text-primary);">✨ Personal Workspace Customization</div>
+      <div style="font-size:11.5px;color:var(--adm-text-muted);margin-top:2px;">Allows adding custom languages, uploading study materials, and custom widgets.</div>
     </div>
   </label>
 
   <div id="study_module_section" style="transition:opacity .2s;${hasAccess ? '' : 'opacity:.35;pointer-events:none'}">
-    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;">Module Permissions</div>
-    <div class="admin-module-grid" style="max-height:180px;overflow-y:auto;background:rgba(0,0,0,0.15);padding:8px;border-radius:8px;">${moduleCheckboxes}</div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--adm-text-muted);margin-bottom:8px;">Module Permissions</div>
+    <div class="adm-checkbox-grid" style="max-height:180px;">${moduleCheckboxes}</div>
   </div>
 
-  <div style="display:flex;gap:10px;margin-top:20px;">
-    <button class="btn-submit" onclick="window.LM_Admin.saveStudyAccess('${userId}')">💾 Save Access</button>
-    <button class="admin-btn" onclick="document.getElementById('lm-study-modal')?.remove()">Cancel</button>
+  <div class="adm-submodal-actions">
+    <button class="adm-btn" onclick="document.getElementById('lm-study-modal')?.remove()">Cancel</button>
+    <button class="adm-btn adm-btn-primary" onclick="window.LM_Admin.saveStudyAccess('${userId}')">💾 Save Access</button>
   </div>
 </div>`;
 
@@ -1617,31 +1404,35 @@
 
     const modal = document.createElement('div');
     modal.id = 'lm-del-modal';
-    modal.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);padding:20px;';
+    modal.className = 'adm-submodal-overlay';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Confirm User Account Deletion');
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.remove();
     });
 
     modal.innerHTML = `
-<div style="background:var(--card,#151922);border:1px solid rgba(244,63,94,.3);border-radius:16px;padding:26px;max-width:440px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.9);">
+<div class="adm-submodal-panel" style="max-width:440px;border-color:var(--adm-danger-border);">
   <div style="font-size:32px;text-align:center;margin-bottom:8px;">⚠️</div>
-  <div style="font-size:16px;font-weight:700;color:var(--text);text-align:center;margin-bottom:4px;">Delete User Permanently</div>
-  <div style="font-size:13px;color:var(--text-3);text-align:center;margin-bottom:16px;">
-    Deleting <strong style="color:#f87171;">${_esc(name)}</strong>
+  <div style="font-size:16px;font-weight:700;color:var(--adm-text-primary);text-align:center;margin-bottom:4px;">Delete User Permanently</div>
+  <div style="font-size:13px;color:var(--adm-text-muted);text-align:center;margin-bottom:16px;">
+    Deleting <strong style="color:var(--adm-danger);">${_esc(name)}</strong>
   </div>
-  <div style="background:rgba(244,63,94,.06);border:1px solid rgba(244,63,94,.15);border-radius:10px;padding:12px;margin-bottom:18px;font-size:12px;color:var(--text-2);line-height:1.9;">
+  <div style="background:var(--adm-danger-subtle);border:1px solid var(--adm-danger-border);border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:12px;color:var(--adm-text-secondary);line-height:1.8;">
     <div>✗ &nbsp;LedgerMate transactions, budgets, loans, savings</div>
     <div>✗ &nbsp;Notes, credentials vault, investments, trips</div>
     <div>✗ &nbsp;Study Resources account access &amp; progress</div>
     <div>✗ &nbsp;Supabase cloud records &amp; authentication account</div>
-    <div style="margin-top:6px;color:#fb7185;font-weight:700;">⚠️ This cannot be undone.</div>
+    <div style="margin-top:6px;color:var(--adm-danger);font-weight:700;">⚠️ This action cannot be reversed.</div>
   </div>
-  <div id="lm-del-progress" style="display:none;font-size:12px;color:var(--text-2);margin-bottom:14px;line-height:1.9;padding:10px 12px;background:rgba(0,0,0,0.3);border-radius:8px;border:1px solid var(--border);"></div>
-  <div style="display:flex;gap:10px;">
-    <button id="lm-del-cancel" onclick="document.getElementById('lm-del-modal')?.remove()" class="admin-btn" style="flex:1;">Cancel</button>
-    <button id="lm-del-confirm-btn" onclick="window.LM_Admin.executeDelete('${id}')" class="admin-btn admin-btn-danger" style="flex:1;">🗑 Delete Permanently</button>
+  <div id="lm-del-progress" style="display:none;font-size:12px;color:var(--adm-text-secondary);margin-bottom:14px;line-height:1.9;padding:10px 12px;background:var(--adm-surface-3);border-radius:8px;border:1px solid var(--adm-border);"></div>
+  <div class="adm-submodal-actions">
+    <button id="lm-del-cancel" onclick="document.getElementById('lm-del-modal')?.remove()" class="adm-btn" style="flex:1;">Cancel</button>
+    <button id="lm-del-confirm-btn" onclick="window.LM_Admin.executeDelete('${id}')" class="adm-btn adm-btn-danger" style="flex:1;">🗑 Delete Permanently</button>
   </div>
 </div>`;
+
     document.body.appendChild(modal);
   }
 
@@ -1713,26 +1504,31 @@
   function _renderStudyTab(container) {
     const wkGoal = parseInt(localStorage.getItem('sr_wk_goal') || '20');
     container.innerHTML = `
-<div class="admin-section-title">📚 Study Hub Administration &amp; Settings</div>
-
-<div class="admin-form-card" style="margin-bottom:16px;background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px;">
-  <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">🎯 Weekly Study Question Goal</div>
-  <div style="font-size:12px;color:var(--text-3);margin-bottom:14px;">Set the global or default target number of interview practice questions per week.</div>
-  <div style="display:flex;gap:10px;align-items:center;">
-    <input id="adminWkGoalInput" type="number" min="1" max="500" value="${wkGoal}" class="form-input" style="max-width:140px;font-family:var(--font-m,monospace);">
-    <span style="font-size:13px;color:var(--text-2);">questions / week</span>
-    <button onclick="window.LM_Admin.saveWeeklyGoal()" class="btn-submit" style="margin-left:auto;">💾 Save Goal</button>
+<div class="adm-section-header">
+  <div>
+    <h2 class="adm-section-title">📚 Study Hub Administration &amp; Settings</h2>
+    <div class="adm-section-desc">Manage curriculum defaults, weekly question targets, and spaced repetition (SRS) tracks.</div>
   </div>
 </div>
 
-<div class="admin-form-card" style="background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px;">
-  <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">🧠 Spaced Repetition (SRS) &amp; Question Banks</div>
-  <div style="font-size:12px;color:var(--text-3);margin-bottom:14px;">Study Hub active question banks: 538+ questions across 8 curated tracks.</div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+<div class="adm-form-card">
+  <div style="font-size:14px;font-weight:700;color:var(--adm-text-primary);margin-bottom:4px;">🎯 Weekly Study Question Goal</div>
+  <div style="font-size:12px;color:var(--adm-text-muted);margin-bottom:14px;">Set the global target number of interview practice questions per week.</div>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+    <input id="adminWkGoalInput" type="number" min="1" max="500" value="${wkGoal}" class="adm-input" style="max-width:140px;font-family:monospace;">
+    <span style="font-size:13px;color:var(--adm-text-secondary);">questions / week</span>
+    <button onclick="window.LM_Admin.saveWeeklyGoal()" class="adm-btn adm-btn-primary" style="margin-left:auto;">💾 Save Goal</button>
+  </div>
+</div>
+
+<div class="adm-form-card">
+  <div style="font-size:14px;font-weight:700;color:var(--adm-text-primary);margin-bottom:4px;">🧠 Spaced Repetition (SRS) &amp; Question Banks</div>
+  <div style="font-size:12px;color:var(--adm-text-muted);margin-bottom:14px;">Study Hub active question banks: 538+ questions across 8 curated tracks.</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;">
     ${STUDY_MODULES.map(m => `
-      <div style="padding:10px 12px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:12px;font-weight:600;color:var(--text);">${m.label}</span>
-        <span style="font-size:11px;color:var(--teal);font-weight:700;">ACTIVE</span>
+      <div style="padding:12px 14px;background:var(--adm-surface-3);border:1px solid var(--adm-border);border-radius:8px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:12.5px;font-weight:600;color:var(--adm-text-primary);">${m.label}</span>
+        <span class="adm-badge adm-badge-active">ACTIVE</span>
       </div>
     `).join('')}
   </div>
@@ -1752,7 +1548,12 @@
      TAB 4: STATISTICS
   ══════════════════════════════════════════════════════ */
   async function _renderStats(container) {
-    container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-3);">Loading statistics…</div>';
+    container.innerHTML = `
+<div style="display:flex;flex-direction:column;gap:10px;padding:12px 0;">
+  <div class="adm-skeleton-row" style="border-radius:10px;"></div>
+  <div class="adm-skeleton-row" style="border-radius:10px;"></div>
+  <div class="adm-skeleton-row" style="border-radius:10px;"></div>
+</div>`;
 
     const sb = _getSb();
     let profiles = [], statsErr = null;
@@ -1786,25 +1587,33 @@
       }
     } catch {}
 
-    const stat = (icon, val, label, cls) =>
-      `<div class="kpi-card ${cls||''}">
-        <div style="font-size:22px;margin-bottom:8px;">${icon}</div>
-        <div class="kpi-value">${val}</div>
-        <div class="kpi-label">${label}</div>
+    const stat = (icon, val, label, trend) =>
+      `<div class="adm-kpi-card">
+        <div class="adm-kpi-top">
+          <span class="adm-kpi-label">${label}</span>
+          <span class="adm-kpi-icon">${icon}</span>
+        </div>
+        <div class="adm-kpi-value">${val}</div>
+        ${trend ? `<div class="adm-kpi-trend">${trend}</div>` : ''}
        </div>`;
 
     container.innerHTML = `
-<div class="admin-section-title">📊 Application &amp; Tenant Statistics</div>
-${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠️ User stats notice: ${_esc(statsErr)}</div>` : ''}
-<div class="kpi-grid" style="margin-bottom:24px;">
-  ${stat('👥', totalUsers,      'Total Registered',  'teal')}
-  ${stat('✅', activeUsers,     'Active Users',      'emerald')}
-  ${stat('⏳', pendingUsers,    'Inactive Accounts', pendingUsers > 0 ? 'rose' : '')}
-  ${stat('📝', pendingReqCount, 'Pending Requests',  pendingReqCount > 0 ? 'gold' : '')}
-  ${stat('⭐', adminCount,      'Administrators',    'violet')}
-  ${stat('↕️', txCount,         'Transactions (You)','')}
-  ${stat('🎯', budgetCount,     'Budgets (You)',     '')}
-  ${stat('📝', noteCount,       'Notes (You)',       '')}
+<div class="adm-section-header">
+  <div>
+    <h2 class="adm-section-title">📊 Application &amp; Tenant Telemetry</h2>
+    <div class="adm-section-desc">Real-time indicators across user access, database records, and system health.</div>
+  </div>
+</div>
+${statsErr ? `<div style="color:var(--adm-danger);font-size:12.5px;margin-bottom:12px;padding:8px 12px;background:var(--adm-danger-subtle);border:1px solid var(--adm-danger-border);border-radius:8px;">⚠️ User stats notice: ${_esc(statsErr)}</div>` : ''}
+<div class="adm-kpi-grid">
+  ${stat('👥', totalUsers,      'Total Registered',  'Supabase auth records')}
+  ${stat('✅', activeUsers,     'Active Accounts',   'Access enabled')}
+  ${stat('⏳', pendingUsers,    'Pending Activation',pendingUsers > 0 ? 'Requires attention' : 'All clear')}
+  ${stat('📝', pendingReqCount, 'Pending Requests',  pendingReqCount > 0 ? 'Review approvals' : 'Zero queued')}
+  ${stat('⭐', adminCount,      'Administrators',    'Full permissions')}
+  ${stat('↕️', txCount,         'Transactions',      'Active profile')}
+  ${stat('🎯', budgetCount,     'Active Budgets',    'Configured')}
+  ${stat('📝', noteCount,       'Saved Notes',       'Encrypted notes')}
 </div>`;
   }
 
@@ -1814,36 +1623,41 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
   function _tabAppSettings() {
     const s = _loadAppSettings();
     return `
-<div class="admin-section-title">🔧 Application Settings</div>
-<div class="admin-form-card" style="background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px;">
-  <div class="admin-form-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">
-    <div>
-      <label class="admin-label">App Name</label>
-      <input id="as_appName" class="form-input" value="${_esc(s.appName||'LedgerMate')}">
+<div class="adm-section-header">
+  <div>
+    <h2 class="adm-section-title">🔧 Application Settings</h2>
+    <div class="adm-section-desc">Configure global instance identity, currency localization, themes, and session security.</div>
+  </div>
+</div>
+<div class="adm-form-card">
+  <div class="adm-form-grid">
+    <div class="adm-form-group">
+      <label class="adm-label">App Name</label>
+      <input id="as_appName" class="adm-input" value="${_esc(s.appName||'LedgerMate')}">
     </div>
-    <div>
-      <label class="admin-label">Default Currency</label>
-      <select id="as_currency" class="form-input">
+    <div class="adm-form-group">
+      <label class="adm-label">Default Currency</label>
+      <select id="as_currency" class="adm-input">
         <option value="INR" ${s.currency==='INR'?'selected':''}>₹ INR</option>
         <option value="USD" ${s.currency==='USD'?'selected':''}>$ USD</option>
         <option value="EUR" ${s.currency==='EUR'?'selected':''}>€ EUR</option>
         <option value="GBP" ${s.currency==='GBP'?'selected':''}>£ GBP</option>
       </select>
     </div>
-    <div>
-      <label class="admin-label">Default Theme</label>
-      <select id="as_theme" class="form-input">
+    <div class="adm-form-group">
+      <label class="adm-label">Default Theme</label>
+      <select id="as_theme" class="adm-input">
         <option value="dark"  ${s.theme!=='light'?'selected':''}>🌙 Dark</option>
         <option value="light" ${s.theme==='light'?'selected':''}>☀️ Light</option>
       </select>
     </div>
-    <div>
-      <label class="admin-label">Session Timeout (minutes, 0=never)</label>
-      <input id="as_sessionTTL" class="form-input" type="number" min="0" max="10080" value="${s.sessionTTL||0}">
+    <div class="adm-form-group">
+      <label class="adm-label">Session Timeout (minutes, 0=never)</label>
+      <input id="as_sessionTTL" class="adm-input" type="number" min="0" max="10080" value="${s.sessionTTL||0}">
     </div>
   </div>
   <div style="margin-top:18px;">
-    <button class="btn-submit" onclick="window.LM_Admin.saveAppSettings()">💾 Save Settings</button>
+    <button class="adm-btn adm-btn-primary" onclick="window.LM_Admin.saveAppSettings()">💾 Save Settings</button>
   </div>
 </div>`;
   }
@@ -1883,31 +1697,36 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
   ══════════════════════════════════════════════════════ */
   function _tabBackup() {
     return `
-<div class="admin-section-title">🗄️ Data Backup, Cloud Sync &amp; Recovery</div>
-
-<div class="admin-form-card" style="margin-bottom:16px;background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px;">
-  <div class="admin-section-title" style="font-size:13px;margin-bottom:12px;border:none;">📤 Export Database Backup</div>
-  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-    <button class="btn-submit" onclick="window.LM_Admin.exportBackup()">📤 Download JSON Backup</button>
-    <button class="admin-btn" onclick="window.LM_Admin.syncToCloud()" style="gap:6px;">☁️ Sync to Cloud Now</button>
+<div class="adm-section-header">
+  <div>
+    <h2 class="adm-section-title">🗄️ Data Backup, Cloud Sync &amp; Recovery</h2>
+    <div class="adm-section-desc">Manage encrypted cloud synchronization, offline snapshots, and disaster recovery.</div>
   </div>
-  <div style="font-size:11px;color:var(--text-3);margin-top:8px;">Exports all IndexedDB stores as JSON. Cloud sync pushes records to Supabase.</div>
 </div>
 
-<div class="admin-form-card" style="margin-bottom:16px;background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px;">
-  <div class="admin-section-title" style="font-size:13px;margin-bottom:12px;border:none;">📥 Restore / Import</div>
+<div class="adm-form-card">
+  <div style="font-size:14px;font-weight:700;color:var(--adm-text-primary);margin-bottom:6px;">📤 Export Database Backup</div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-    <input type="file" id="restoreFile" accept=".json,.gz,.gzip,.json.gz,application/json,application/gzip,application/x-gzip,application/octet-stream,*/*" class="form-input" style="max-width:320px;">
-    <button id="adminImportBtn" class="btn-submit" onclick="window.LM_Admin.importBackup()">📥 Restore Backup</button>
+    <button class="adm-btn adm-btn-primary" onclick="window.LM_Admin.exportBackup()">📤 Download JSON Backup</button>
+    <button class="adm-btn" onclick="window.LM_Admin.syncToCloud()">☁️ Sync to Cloud Now</button>
   </div>
-  <div style="font-size:11px;color:var(--text-3);margin-top:8px;">Merges backup records into the database.</div>
+  <div style="font-size:12px;color:var(--adm-text-muted);margin-top:8px;">Exports all IndexedDB stores as JSON. Cloud sync non-destructively reconciles records to Supabase.</div>
 </div>
 
-<div class="admin-form-card" style="background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px;">
-  <div class="admin-section-title" style="font-size:13px;margin-bottom:12px;border:none;color:#fb7185;">⚠️ Danger Zone</div>
+<div class="adm-form-card">
+  <div style="font-size:14px;font-weight:700;color:var(--adm-text-primary);margin-bottom:6px;">📥 Restore / Import</div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <input type="file" id="restoreFile" accept=".json,.gz,.gzip,.json.gz,application/json,application/gzip,application/x-gzip,application/octet-stream,*/*" class="adm-input" style="max-width:320px;">
+    <button id="adminImportBtn" class="adm-btn adm-btn-primary" onclick="window.LM_Admin.importBackup()">📥 Restore Backup</button>
+  </div>
+  <div style="font-size:12px;color:var(--adm-text-muted);margin-top:8px;">Merges backup records into the database with automatic deduplication.</div>
+</div>
+
+<div class="adm-form-card" style="border-color:var(--adm-danger-border);">
+  <div style="font-size:14px;font-weight:700;color:var(--adm-danger);margin-bottom:6px;">⚠️ Danger Zone</div>
   <div style="display:flex;gap:10px;flex-wrap:wrap;">
-    <button class="admin-btn admin-btn-danger" onclick="window.LM_Admin.clearUserData()">🗑 Clear My Data</button>
-    <button class="admin-btn admin-btn-danger" onclick="window.LM_Admin.resetFactory()">⚠️ Factory Reset (All Local Data)</button>
+    <button class="adm-btn adm-btn-danger" onclick="window.LM_Admin.clearUserData()">🗑 Clear My Data</button>
+    <button class="adm-btn adm-btn-danger" onclick="window.LM_Admin.resetFactory()">⚠️ Factory Reset (All Local Data)</button>
   </div>
 </div>`;
   }
@@ -2107,34 +1926,35 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
       top: 24px;
       right: 24px;
       z-index: 2147483647;
-      background: #111420;
-      border: 1px solid rgba(251,191,36,0.5);
-      box-shadow: 0 16px 40px rgba(0,0,0,0.8), 0 0 20px rgba(251,191,36,0.2);
-      border-radius: 14px;
+      background: var(--adm-surface-1, #131720);
+      border: 1px solid var(--adm-warning-border, rgba(245,158,11,0.35));
+      box-shadow: 0 16px 40px rgba(0,0,0,0.7), 0 0 16px rgba(245,158,11,0.15);
+      border-radius: 12px;
       padding: 16px 18px;
       max-width: 380px;
       width: calc(100% - 48px);
       display: flex;
       flex-direction: column;
       gap: 10px;
-      animation: adminSlide 0.25s ease-out;
-      font-family: Inter, sans-serif;
+      animation: admSlideUp 0.22s ease-out;
+      font-family: var(--font-m, inherit);
+      box-sizing: border-box;
     `;
 
     toast.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
         <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:20px;">🔔</span>
-          <span style="font-weight:700;color:#fbbf24;font-size:13px;">${_esc(title)}</span>
+          <span style="font-size:18px;">🔔</span>
+          <span style="font-weight:700;color:var(--adm-warning, #f59e0b);font-size:13px;">${_esc(title)}</span>
         </div>
-        <button onclick="document.getElementById('lm-admin-rt-toast')?.remove()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:16px;">✕</button>
+        <button class="adm-btn adm-btn-icon adm-btn-sm" onclick="document.getElementById('lm-admin-rt-toast')?.remove()" aria-label="Close notification">✕</button>
       </div>
-      <div style="font-size:12px;color:var(--text);line-height:1.45;">${_esc(message)}</div>
+      <div style="font-size:12px;color:var(--adm-text-secondary, #94a3b8);line-height:1.45;">${_esc(message)}</div>
       <div style="display:flex;gap:8px;margin-top:2px;">
-        <button onclick="window.LM_Admin.show('approvals'); document.getElementById('lm-admin-rt-toast')?.remove();" style="flex:1;padding:7px 12px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">
+        <button class="adm-btn adm-btn-primary adm-btn-sm" onclick="window.LM_Admin.show('approvals'); document.getElementById('lm-admin-rt-toast')?.remove();" style="flex:1;">
           Review &amp; Approve
         </button>
-        <button onclick="document.getElementById('lm-admin-rt-toast')?.remove()" style="padding:7px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--text-2);font-size:12px;cursor:pointer;">
+        <button class="adm-btn adm-btn-sm" onclick="document.getElementById('lm-admin-rt-toast')?.remove()">
           Dismiss
         </button>
       </div>
@@ -2182,21 +2002,23 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
   }
 
   /* ── Keyboard & Escape Modal Dismissal ─────────────── */
-  window.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
-    const subModals = ['#lm-approval-modal', '#lm-configure-user-modal', '#lm-finance-modal', '#lm-study-modal', '#lm-del-modal'];
-    for (const sel of subModals) {
-      const el = document.querySelector(sel);
-      if (el) {
-        el.remove();
-        e.stopImmediatePropagation();
-        return;
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const subModals = ['#lm-approval-modal', '#lm-configure-user-modal', '#lm-finance-modal', '#lm-study-modal', '#lm-del-modal'];
+      for (const sel of subModals) {
+        const el = document.querySelector(sel);
+        if (el) {
+          el.remove();
+          e.stopImmediatePropagation();
+          return;
+        }
       }
-    }
-    if (document.getElementById('adminPanelOverlay')) {
-      closeAdminPanel();
-    }
-  });
+      if (document.getElementById('adminPanelOverlay')) {
+        closeAdminPanel();
+      }
+    });
+  }
 
   /* ══════════════════════════════════════════════════════
      PUBLIC API
@@ -2252,12 +2074,14 @@ ${statsErr ? `<div style="color:#fb7185;font-size:13px;margin-bottom:12px;">⚠�
   };
 
   /* Auto-initialize realtime notification engine when DOM is ready */
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading' && typeof document.addEventListener === 'function') {
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(initRealtimeNotifications, 1000);
+      });
+    } else {
       setTimeout(initRealtimeNotifications, 1000);
-    });
-  } else {
-    setTimeout(initRealtimeNotifications, 1000);
+    }
   }
 
 })();

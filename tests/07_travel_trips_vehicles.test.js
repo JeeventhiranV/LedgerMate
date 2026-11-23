@@ -138,5 +138,50 @@ require(path.resolve(ROOT, 'src/scripts/Modules/Trips/TripService.js'));
     assert.strictEqual(vigneshFin.owes, true);
   });
 
+  // ── Vehicle Maintenance Reminders Completion Tests ──────────────────────
+  await suite.it('VehicleService: preserves completed: true for oil change reminder across syncReminders', async () => {
+    // 1. Setup a test vehicle with overdue oil change
+    const vehId = 'veh_test_oil_' + Date.now();
+    await window.LM_VehicleService.saveVehicle({
+      id: vehId,
+      name: 'Yamaha Aerox',
+      regNumber: 'KA-01-EQ-9999',
+      type: 'scooter',
+      currentOdometer: 15000,
+      oil: {
+        lastChangedOdometer: 10000,
+        recommendedIntervalKm: 3000,
+        recommendedIntervalMonths: 3,
+        lastChangedDate: '2025-01-01',
+        oilType: 'scooter_4t',
+        grade: '10W-30'
+      }
+    });
+
+    // 2. Trigger syncReminders: should generate overdue reminder with completed: false
+    let reminders = await window.LM_VehicleService.syncReminders();
+    const oilRemId = 'rem_veh_oil_' + vehId;
+    let oilRem = reminders.find(r => r.id === oilRemId);
+    assert(oilRem, 'Oil change reminder must be generated');
+    assert.strictEqual(oilRem.completed, false, 'Initial overdue reminder should have completed: false');
+
+    // 3. Simulate user marking reminder as DONE
+    oilRem.completed = true;
+    oilRem.completedAt = new Date().toISOString();
+    window.state.reminders = reminders;
+
+    // 4. Trigger syncReminders again: MUST PRESERVE completed: true!
+    let secondSync = await window.LM_VehicleService.syncReminders();
+    let oilRemAfterSync = secondSync.find(r => r.id === oilRemId);
+    assert(oilRemAfterSync, 'Oil reminder should still exist in reminders');
+    assert.strictEqual(oilRemAfterSync.completed, true, 'Oil change reminder MUST preserve completed: true across sync cycles');
+
+    // 5. Test completeMaintenanceReminder helper
+    const baselineAdvanced = await window.LM_VehicleService.completeMaintenanceReminder(vehId, 'oil');
+    assert.strictEqual(baselineAdvanced, true, 'completeMaintenanceReminder should succeed');
+    const updatedVeh = window.LM_VehicleService.getVehicleById(vehId);
+    assert.strictEqual(updatedVeh.oil.lastChangedOdometer, 15000, 'Last changed odometer must advance to current');
+  });
+
   suite.summary();
 })();
