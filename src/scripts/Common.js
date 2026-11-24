@@ -3586,6 +3586,7 @@ async function exportTransactionsCSV(){
   }
   const blob = new Blob([txt],{type:'text/csv'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`transactions-${nowISO()}.csv`; a.click(); URL.revokeObjectURL(url);
 }
+window.exportTransactionsCSV = exportTransactionsCSV;
  
 const BACKUP_SCHEMA_VERSION = 1;            // bump when shape changes
 const BACKUP_INTERVAL_MS   = 1 * 60 * 1000; // scheduled backup every 5 min

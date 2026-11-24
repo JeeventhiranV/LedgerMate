@@ -1164,16 +1164,18 @@
 
       <!-- ─── TRANSACTIONS PAGE ───────────────────────── -->
         <div id="page-transactions" style="display:none;">
-         <div class="fade-up fade-up-5">
-          <div>
-      <div class="page-greeting">Smart Financial Tracking</div>
-      <h1 class="page-title">Transaction History</h1>
-         </div> 
-          <!-- <div class="section-heading" style="margin-top:24px;">
-            <div class="section-title"><span class="dot" style="background:var(--gold)" id="toggleRecentTxHDR"></span>Transaction History</div> 
-          </div>  -->
-        </div>
-       <div class="tx-card w-full text-left p-4 rounded-xl glass" id="toggleRecentTxCard">
+          <div class="fade-up fade-up-1 page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+            <div>
+              <div class="page-greeting">Smart Financial Tracking</div>
+              <h1 class="page-title">Master Transactions Ledger</h1>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="lm-btn lm-btn-primary" onclick="openAddTransactionModal()">+ Add Transaction</button>
+              <button type="button" class="lm-btn lm-btn-secondary" onclick="window.exportTransactionsCSV && window.exportTransactionsCSV()" title="Export transactions to CSV">📥 Export CSV</button>
+              <button type="button" class="lm-btn lm-btn-secondary" onclick="window.LM_CategoryRules && window.LM_CategoryRules.showRulesModal()" title="Automate category assignment">🏷️ Category Rules</button>
+            </div>
+          </div>
+       <div class="lm-card w-full text-left p-4 rounded-xl" id="toggleRecentTxCard">
 
   <!-- HEADER -->
   <div class="flex items-center justify-between mb-3"> 
