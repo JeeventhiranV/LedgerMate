@@ -104,6 +104,7 @@
       this.renderDailyRecentActivity();
       this.applyViewFilter();
       this.initInteractiveDrilldowns();
+      this.initMobileHelpers();
     },
 
     refresh: function () {
@@ -111,6 +112,7 @@
       this.renderActiveTripWidget();
       this.renderDailyRecentActivity();
       this.applyViewFilter();
+      this.initMobileHelpers();
     },
 
     setViewMode: function (mode) {
@@ -538,8 +540,116 @@
           }
         };
       }
+    },
+
+    // ─────────────────────────────────────────────────────────────
+    // 📱 MOBILE DASHBOARD DE-CONGESTION HELPERS
+    // ─────────────────────────────────────────────────────────────
+    activeMobileChartTab: 'cashflow',
+
+    switchMobileChartTab: function (tab) {
+      if (tab !== 'cashflow' && tab !== 'category') tab = 'cashflow';
+      this.activeMobileChartTab = tab;
+      try { localStorage.setItem('lm_mobile_chart_tab', tab); } catch (e) {}
+
+      var btnCf = document.getElementById('tabChartCashflow');
+      var btnCat = document.getElementById('tabChartCategory');
+      var cardCf = document.getElementById('cardNetCashflowChart');
+      var cardCat = document.getElementById('cardCategoryDoughnutChart');
+
+      if (btnCf) btnCf.classList.toggle('active', tab === 'cashflow');
+      if (btnCat) btnCat.classList.toggle('active', tab === 'category');
+
+      if (typeof window !== 'undefined' && window.innerWidth <= 640) {
+        if (cardCf) cardCf.style.display = (tab === 'cashflow') ? 'block' : 'none';
+        if (cardCat) cardCat.style.display = (tab === 'category') ? 'block' : 'none';
+        if (tab === 'cashflow' && typeof cashflowChart !== 'undefined' && cashflowChart && typeof cashflowChart.resize === 'function') {
+          cashflowChart.resize();
+        } else if (tab === 'category' && typeof doughnutChart !== 'undefined' && doughnutChart && typeof doughnutChart.resize === 'function') {
+          doughnutChart.resize();
+        }
+      } else {
+        if (cardCf) cardCf.style.display = '';
+        if (cardCat) cardCat.style.display = '';
+      }
+
+      try {
+        if (window.LM_Haptic) window.LM_Haptic.light();
+      } catch (err) {}
+    },
+
+    toggleMobileDeepAnalytics: function () {
+      var body = document.getElementById('dashAnalyticsCollapsibleBody');
+      var chevron = document.getElementById('dashAnalyticsChevron');
+      var header = document.getElementById('dashAnalyticsAccordionHeader');
+      if (!body) return;
+
+      var isCollapsed = body.classList.contains('collapsed');
+      if (isCollapsed) {
+        body.classList.remove('collapsed');
+        if (chevron) chevron.textContent = '▲';
+        if (header) {
+          header.setAttribute('aria-expanded', 'true');
+          header.classList.add('expanded');
+        }
+        try { localStorage.setItem('lm_dash_analytics_collapsed', 'false'); } catch (e) {}
+      } else {
+        body.classList.add('collapsed');
+        if (chevron) chevron.textContent = '▼';
+        if (header) {
+          header.setAttribute('aria-expanded', 'false');
+          header.classList.remove('expanded');
+        }
+        try { localStorage.setItem('lm_dash_analytics_collapsed', 'true'); } catch (e) {}
+      }
+
+      try {
+        if (window.LM_Haptic) window.LM_Haptic.selection();
+      } catch (err) {}
+    },
+
+    initMobileHelpers: function () {
+      var savedTab = null;
+      try { savedTab = localStorage.getItem('lm_mobile_chart_tab'); } catch (e) {}
+      if (savedTab) this.activeMobileChartTab = savedTab;
+      this.switchMobileChartTab(this.activeMobileChartTab);
+
+      var body = document.getElementById('dashAnalyticsCollapsibleBody');
+      var chevron = document.getElementById('dashAnalyticsChevron');
+      var header = document.getElementById('dashAnalyticsAccordionHeader');
+      if (body) {
+        var isCollapsed = true;
+        try {
+          var savedCollapsed = localStorage.getItem('lm_dash_analytics_collapsed');
+          if (savedCollapsed === 'false') isCollapsed = false;
+        } catch (e) {}
+
+        if (typeof window !== 'undefined' && window.innerWidth <= 640 && isCollapsed) {
+          body.classList.add('collapsed');
+          if (chevron) chevron.textContent = '▼';
+          if (header) {
+            header.setAttribute('aria-expanded', 'false');
+            header.classList.remove('expanded');
+          }
+        } else {
+          body.classList.remove('collapsed');
+          if (chevron) chevron.textContent = '▲';
+          if (header) {
+            header.setAttribute('aria-expanded', 'true');
+            header.classList.add('expanded');
+          }
+        }
+      }
     }
   };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', function () {
+      if (window.LM_DashboardUpgrade && typeof window.LM_DashboardUpgrade.switchMobileChartTab === 'function') {
+        window.LM_DashboardUpgrade.switchMobileChartTab(window.LM_DashboardUpgrade.activeMobileChartTab);
+      }
+    });
+  }
 
   window.LM_DashboardUpgrade = DashboardUpgrade;
 
