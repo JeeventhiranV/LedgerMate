@@ -681,12 +681,20 @@ html, body {
 
 /* ─── Native-Feeling Mobile Bottom Sheets (<= 640px) ─────── */
 @media (max-width: 640px) {
-  .modal-overlay {
+  .modal-overlay,
+  .inv-modal-overlay,
+  .notes-backdrop,
+  .cd-modal-overlay {
     align-items: flex-end !important;
     padding: 0 !important;
   }
   .modal,
-  .modal-box {
+  .modal-box,
+  .inv-modal-box,
+  .tp-modal-box,
+  .notes-modal-panel,
+  .sync-modal-dialog,
+  .cd-modal-box {
     max-width: 100% !important;
     width: 100% !important;
     max-height: 88vh !important;
@@ -703,11 +711,15 @@ html, body {
     from { transform: translateY(100%); opacity: 0.5; }
     to { transform: translateY(0); opacity: 1; }
   }
-  .modal-header {
+  .modal-header,
+  .tp-modal-header,
+  .inv-modal-header {
     position: relative !important;
     padding-top: 24px !important;
   }
-  .modal-header::before {
+  .modal-header::before,
+  .tp-modal-header::before,
+  .inv-modal-header::before {
     content: '' !important;
     display: block !important;
     width: 40px !important;
@@ -719,10 +731,12 @@ html, body {
     left: 50% !important;
     transform: translateX(-50%) !important;
   }
-    [data-theme="light"] .modal-header::before {
-      background: rgba(15, 23, 42, 0.20) !important;
-    }
+  [data-theme="light"] .modal-header::before,
+  [data-theme="light"] .tp-modal-header::before,
+  [data-theme="light"] .inv-modal-header::before {
+    background: rgba(15, 23, 42, 0.20) !important;
   }
+}
 
   /* ─── Modal Overlays & Bottom Nav Layering ─── */
   /* Ensure all modals & popups across all modules display with highest z-index cleanly above bottomNav */

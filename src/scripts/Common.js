@@ -2180,10 +2180,17 @@ function renderCashflow(){
   const cats = Array.from(new Set([...Object.keys(limits), ...Object.keys(actual)]));
 
   const dataLimit = cats.map(c => limits[c] || 0);
-  const dataActual = cats.map(c => actual[c] || 0);
-
-  const ctx = document.getElementById('budgetChart').getContext('2d');
-  if (budgetChart instanceof Chart) budgetChart.destroy();
+  const canvas = document.getElementById('budgetChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  try {
+    const existing = typeof Chart.getChart === 'function' ? Chart.getChart(canvas) : null;
+    if (existing) existing.destroy();
+  } catch (e) {}
+  if (budgetChart instanceof Chart) {
+    budgetChart.destroy();
+    budgetChart = null;
+  }
 
   budgetChart = new Chart(ctx, {
     type: 'bar',
@@ -2613,12 +2620,32 @@ if (!q) {
 
       if (!confirm('Are you sure you want to delete this transaction?')) return;
       try {
+        const deletedTx = (state.transactions || []).find((x) => x.id === id);
         await del('transactions', id);
         state.transactions = state.transactions.filter((x) => x.id !== id);
         renderAll();
         autoBackup();
         try { window.LM_Haptic?.success(); } catch (err) {}
-        showToast('Transaction deleted!', 'success');
+
+        if (typeof window.showUndoToast === 'function' && deletedTx) {
+          window.showUndoToast('Transaction deleted', async () => {
+            try {
+              await put('transactions', deletedTx);
+              state.transactions.push(deletedTx);
+              if (window.LM_CloudSync && typeof window.LM_CloudSync.removeTombstone === 'function') {
+                window.LM_CloudSync.removeTombstone('transactions', deletedTx.id);
+              }
+              renderAll();
+              autoBackup();
+              if (window.showToast) window.showToast('Transaction restored!', 'success');
+            } catch (restoreErr) {
+              console.error('[LM] Failed to undo transaction delete:', restoreErr);
+              if (window.showToast) window.showToast('Failed to restore transaction', 'error');
+            }
+          }, 6000);
+        } else {
+          showToast('Transaction deleted!', 'success');
+        }
       } catch (err) {
         showToast('Failed to delete transaction', 'error');
       }
