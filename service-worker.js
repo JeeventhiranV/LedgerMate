@@ -8,7 +8,7 @@
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v2.28.0';
+const CACHE_VERSION = 'lm-v2.29.0';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
@@ -25,6 +25,7 @@ const STATIC_ASSETS = [
   './assets/icons/icon-512.png',
 
   /* Stylesheets */
+  './src/styles/design-tokens.css',
   './src/styles/style.css',
   './src/styles/common.css',
   './src/styles/Notes.css',
@@ -42,6 +43,10 @@ const STATIC_ASSETS = [
 
   /* Core JS */
   './src/scripts/Core/AppBus.js',
+  './src/scripts/Core/VirtualList.js',
+  './src/scripts/Core/TransactionService.js',
+  './src/scripts/Core/BudgetService.js',
+  './src/scripts/Common/ModalController.js',
   './src/scripts/Auth/AuthManager.js',
   './src/scripts/Auth/UserStore.js',
   './src/scripts/Auth/StorePatch.js',
