@@ -60,42 +60,85 @@ const tx = function(store, mode) {
   return targetDb.transaction(store, mode || 'readonly').objectStore(store);
 };
 
-const getAll = async function(storeName) {
-  if (typeof window !== 'undefined' && window.getAll && window.getAll !== getAll) {
-    return window.getAll(storeName);
-  }
+const rawGetAll = async function(storeName) {
   if (typeof window !== 'undefined' && window.LM_LedgerDB && typeof window.LM_LedgerDB.getAll === 'function') {
     return window.LM_LedgerDB.getAll(storeName);
   }
-  return [];
+  var targetDb = db || (typeof window !== 'undefined' ? window.db : null);
+  if (!targetDb) return [];
+  return new Promise((res, rej) => {
+    try {
+      const store = tx(storeName);
+      const req = store.getAll();
+      req.onsuccess = () => res(req.result || []);
+      req.onerror = () => rej(req.error);
+    } catch(e) { rej(e); }
+  });
 };
 
-const put = async function(storeName, obj) {
-  if (typeof window !== 'undefined' && window.put && window.put !== put) {
-    return window.put(storeName, obj);
-  }
+const rawPut = async function(storeName, obj) {
   if (typeof window !== 'undefined' && window.LM_LedgerDB && typeof window.LM_LedgerDB.put === 'function') {
     return window.LM_LedgerDB.put(storeName, obj);
   }
-  throw new Error('[LM] IndexedDB not ready');
+  var targetDb = db || (typeof window !== 'undefined' ? window.db : null);
+  if (!targetDb) throw new Error('[LM] IndexedDB not ready');
+  return new Promise((res, rej) => {
+    try {
+      const t = targetDb.transaction(storeName, 'readwrite');
+      const s = t.objectStore(storeName);
+      const req = s.put(obj);
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => rej(req.error);
+    } catch(e) { rej(e); }
+  });
 };
 
-const del = async function(storeName, key) {
-  if (typeof window !== 'undefined' && window.del && window.del !== del) {
-    return window.del(storeName, key);
-  }
+const rawDel = async function(storeName, key) {
   if (typeof window !== 'undefined' && window.LM_LedgerDB && typeof window.LM_LedgerDB.del === 'function') {
     return window.LM_LedgerDB.del(storeName, key);
   }
-  throw new Error('[LM] IndexedDB not ready');
+  var targetDb = db || (typeof window !== 'undefined' ? window.db : null);
+  if (!targetDb) throw new Error('[LM] IndexedDB not ready');
+  return new Promise((res, rej) => {
+    try {
+      const t = targetDb.transaction(storeName, 'readwrite');
+      const s = t.objectStore(storeName);
+      const req = s.delete(key);
+      req.onsuccess = () => res();
+      req.onerror = () => rej(req.error);
+    } catch(e) { rej(e); }
+  });
+};
+
+const getAll = async function(storeName) {
+  if (typeof window !== 'undefined' && window.getAll && window.getAll !== getAll && window.getAll !== rawGetAll) {
+    return window.getAll(storeName);
+  }
+  return rawGetAll(storeName);
+};
+
+const put = async function(storeName, obj) {
+  if (typeof window !== 'undefined' && window.put && window.put !== put && window.put !== rawPut) {
+    return window.put(storeName, obj);
+  }
+  return rawPut(storeName, obj);
+};
+
+const del = async function(storeName, key) {
+  if (typeof window !== 'undefined' && window.del && window.del !== del && window.del !== rawDel) {
+    return window.del(storeName, key);
+  }
+  return rawDel(storeName, key);
 };
 
 if (typeof window !== 'undefined') {
   window.openDB = openDB;
   window.tx = tx;
-  window.getAll = getAll;
-  window.put = put;
-  window.del = del;
+  if (!window._LM_StorePatchActive) {
+    window.getAll = rawGetAll;
+    window.put = rawPut;
+    window.del = rawDel;
+  }
   window.LM_resetDB = function() {
     if (window.LM_LedgerDB && typeof window.LM_LedgerDB.resetDB === 'function') {
       window.LM_LedgerDB.resetDB();
@@ -2009,6 +2052,7 @@ function renderCashflow(){
   const cats = Array.from(new Set([...Object.keys(limits), ...Object.keys(actual)]));
 
   const dataLimit = cats.map(c => limits[c] || 0);
+  const dataActual = cats.map(c => actual[c] || 0);
   const canvas = document.getElementById('budgetChart');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');

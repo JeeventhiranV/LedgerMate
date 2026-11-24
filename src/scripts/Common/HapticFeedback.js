@@ -44,6 +44,9 @@
       // 3. Standard W3C Vibration API (Modern Android Browsers, Chrome, Firefox)
       var nav = global.navigator || (typeof navigator !== 'undefined' ? navigator : null);
       if (nav && typeof nav.vibrate === 'function') {
+        if (nav.userActivation && !nav.userActivation.hasBeenActive) {
+          return false;
+        }
         return nav.vibrate(pattern);
       }
     } catch (e) {
