@@ -2,279 +2,108 @@ let transactions = []; // All transactions will be stored here
 const fmtINR = (v) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Math.round(v) || 0);
 if (typeof window !== 'undefined') window.fmtINR = fmtINR;
 
-/* Micro-haptics helper for Android, Web & iOS WebKit */
-const LM_Haptic = (function (global) {
-  function _vibrateRaw(pattern) {
-    try {
-      if (global.localStorage && global.localStorage.getItem('lm_haptic_enabled') === 'false') return false;
-      if (global.AndroidBridge && typeof global.AndroidBridge.vibrate === 'function') {
-        global.AndroidBridge.vibrate(Array.isArray(pattern) ? (pattern[0] || 15) : (Number(pattern) || 15));
-        return true;
-      }
-      if (global.AndroidInterface && typeof global.AndroidInterface.vibrate === 'function') {
-        global.AndroidInterface.vibrate(Array.isArray(pattern) ? (pattern[0] || 15) : (Number(pattern) || 15));
-        return true;
-      }
-      if (global.webkit && global.webkit.messageHandlers && global.webkit.messageHandlers.haptic && typeof global.webkit.messageHandlers.haptic.postMessage === 'function') {
-        global.webkit.messageHandlers.haptic.postMessage(pattern);
-        return true;
-      }
-      var nav = global.navigator || (typeof navigator !== 'undefined' ? navigator : null);
-      if (nav && typeof nav.vibrate === 'function') {
-        return nav.vibrate(pattern);
-      }
-    } catch (e) {}
-    return false;
-  }
-
-  const base = {
-    light: function () { return _vibrateRaw(10); },
-    medium: function () { return _vibrateRaw(25); },
-    heavy: function () { return _vibrateRaw(45); },
-    selection: function () { return _vibrateRaw(6); },
-    success: function () { return _vibrateRaw([15, 50, 15]); },
-    warning: function () { return _vibrateRaw([35, 45, 35]); },
-    error: function () { return _vibrateRaw([50, 60, 50, 60]); },
-    vibrate: function (p) { return _vibrateRaw(p || 15); },
-    impact: function (style) {
-      const s = String(style || 'light').toLowerCase();
-      if (s === 'medium' || s === 'med') return this.medium();
-      if (s === 'heavy' || s === 'strong') return this.heavy();
-      if (s === 'selection') return this.selection();
-      return this.light();
-    },
-    notification: function (type) {
-      const t = String(type || 'success').toLowerCase();
-      if (t === 'warning' || t === 'warn') return this.warning();
-      if (t === 'error' || t === 'err' || t === 'danger') return this.error();
-      return this.success();
-    },
-    impactLight: function () { return this.light(); },
-    impactlight: function () { return this.light(); },
-    impact_light: function () { return this.light(); },
-    impactMedium: function () { return this.medium(); },
-    impactmedium: function () { return this.medium(); },
-    impact_medium: function () { return this.medium(); },
-    impactHeavy: function () { return this.heavy(); },
-    impactheavy: function () { return this.heavy(); },
-    impact_heavy: function () { return this.heavy(); },
-    selectionChange: function () { return this.selection(); },
-    selectionchange: function () { return this.selection(); },
-    selection_change: function () { return this.selection(); },
-    click: function () { return this.light(); },
-    notificationSuccess: function () { return this.success(); },
-    notificationsuccess: function () { return this.success(); },
-    notification_success: function () { return this.success(); },
-    notificationWarning: function () { return this.warning(); },
-    notificationwarning: function () { return this.warning(); },
-    notification_warning: function () { return this.warning(); },
-    notificationError: function () { return this.error(); },
-    notificationerror: function () { return this.error(); },
-    notification_error: function () { return this.error(); },
-    isSupported: function () {
-      try {
-        return !!((global.AndroidBridge && typeof global.AndroidBridge.vibrate === 'function') ||
-          (global.AndroidInterface && typeof global.AndroidInterface.vibrate === 'function') ||
-          (global.webkit && global.webkit.messageHandlers && global.webkit.messageHandlers.haptic) ||
-          (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function'));
-      } catch (e) { return false; }
-    },
-    isEnabled: function () {
-      try { return global.localStorage ? global.localStorage.getItem('lm_haptic_enabled') !== 'false' : true; } catch (e) { return true; }
-    },
-    setEnabled: function (v) {
-      try { if (global.localStorage) global.localStorage.setItem('lm_haptic_enabled', v ? 'true' : 'false'); } catch (e) {}
-    },
-    toggle: function () {
-      const next = !this.isEnabled();
-      this.setEnabled(next);
-      if (next) this.light();
-      return next;
-    }
-  };
-
-  if (typeof Proxy !== 'undefined') {
-    return new Proxy(base, {
-      get: function (target, prop) {
-        if (prop in target) return target[prop];
-        if (typeof prop === 'symbol' || prop === 'then' || prop === 'toJSON' || prop === 'valueOf' || prop === 'toString') return undefined;
-        const lower = String(prop).toLowerCase().replace(/[^a-z0-9]/g, '');
-        for (const k in target) {
-          if (k.toLowerCase().replace(/[^a-z0-9]/g, '') === lower) return target[k];
-        }
-        return function () { try { return target.light(); } catch (e) { return false; } };
-      }
-    });
-  }
-  return base;
-})(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this));
-
+/* Micro-haptics helper – delegates to resilient LM_Haptic engine */
+const LM_Haptic = (typeof window !== 'undefined' && window.LM_Haptic) ? window.LM_Haptic : {
+  light: function () { return false; },
+  medium: function () { return false; },
+  heavy: function () { return false; },
+  selection: function () { return false; },
+  success: function () { return false; },
+  warning: function () { return false; },
+  error: function () { return false; },
+  vibrate: function () { return false; },
+  impact: function () { return false; },
+  notification: function () { return false; },
+  click: function () { return false; }
+};
 if (typeof window !== 'undefined') window.LM_Haptic = LM_Haptic;
+
 const nowISO = () => new Date().toISOString().slice(0,10);
 const uid = (prefix='id') => prefix + '_' + Math.random().toString(36).slice(2,9);
-function parseCSV(text){
-  const rows = [];
-  let cur = '', inQuotes=false, row=[];
-  for (let i=0;i<text.length;i++){
-    const ch = text[i];
-    if (inQuotes){
-      if (ch==='"'){
-        if (text[i+1]==='"') { cur+='"'; i++; }
-        else { inQuotes=false; }
-      } else cur+=ch;
-    } else {
-      if (ch==='"'){ inQuotes=true; }
-      else if (ch===','){ row.push(cur); cur=''; }
-      else if (ch==='\n' || ch==='\r'){
-        if (cur!=='' || row.length){ row.push(cur); rows.push(row); row=[]; cur=''; }
-        // handle \r\n
-        if (ch==='\r' && text[i+1]==='\n') i++;
-      } else cur+=ch;
-    }
+
+/* CSV Processing – delegates to LM_CsvHelper */
+const parseCSV = function(text) {
+  if (typeof window !== 'undefined' && window.LM_CsvHelper && typeof window.LM_CsvHelper.parseCSV === 'function') {
+    return window.LM_CsvHelper.parseCSV(text);
   }
-  if (cur!=='' || row.length) { row.push(cur); rows.push(row); }
-  return rows;
-}
-function arrayToCSV(rows){
-  return rows.map(r => r.map(cell => {
-    if (cell==null) return '';
-    const s = String(cell);
-    if (/[,"\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"';
-    return s;
-  }).join(',')).join('\n');
-}
-let db = null;
-async function openDB() {
-    return new Promise((resolve, reject) => {
-        const DB_NAME    = "ledgermate_db";
-        const DB_VERSION = 21;
-
-        const req = indexedDB.open(DB_NAME, DB_VERSION);
-
-        req.onerror = (e) => {
-            console.error("❌ IndexedDB error:", e.target.error);
-            if (typeof showToast === 'function') showToast(`❌ DB error: ${e.target.error}`, "error");
-            reject(e.target.error);
-        };
-
-        req.onsuccess = (e) => {
-            db = e.target.result;
-            window.db = db;          /* expose to StorePatch + other modules */
-            db.onerror = (err) => {
-                console.error("DB runtime error:", err.target.error);
-            };
-            resolve(db);
-        };
-
-        req.onupgradeneeded = (e) => {
-            const d = e.target.result;
-            console.log("⚙️ Upgrading DB schema...");
-            showToast("⚙️ Upgrading database schema...", "info");
-
-            // Helper: create store if missing
-            const ensureStore = (name, options, indexes = []) => {
-                let store;
-                if (!d.objectStoreNames.contains(name)) {
-                    store = d.createObjectStore(name, options);
-                    console.log(`🆕 Created store: ${name}`);
-                } else {
-                    store = e.currentTarget.transaction.objectStore(name);
-                }
-                indexes.forEach((idx) => {
-                    if (!store.indexNames.contains(idx)) {
-                        store.createIndex(idx, idx);
-                        console.log(`📌 Added index '${idx}' in ${name}`);
-                    }
-                });
-                return store;
-            };
-
-            // Stores
-            ensureStore("transactions", { keyPath: "id", autoIncrement: true }, ["date", "profile"]);
-            ensureStore("budgets", { keyPath: "id", autoIncrement: true }, ["profile"]);
-            ensureStore("loans", { keyPath: "id", autoIncrement: true }, ["profile", "dueDate"]);
-            ensureStore("reminders", { keyPath: "id", autoIncrement: true }, ["profile", "date"]);
-            ensureStore("dropdowns", { keyPath: "id", autoIncrement: true });
-            ensureStore("settings", { keyPath: "key" });
-            ensureStore("users", { keyPath: "id", autoIncrement: true });
-            ensureStore("savings", { keyPath: "id", autoIncrement: true }, ["profile"]);
-            ensureStore("investments", { keyPath: "id", autoIncrement: true }, ["profile"]);
-            ensureStore("recurringTransactions", { keyPath: "id", autoIncrement: true }, ["profile"]);
-            ensureStore("auditLog", { keyPath: "id", autoIncrement: true }, ["profile", "timestamp"]);
-            ensureStore("trips", { keyPath: "id", autoIncrement: true });
-            ensureStore("trip_routes", { keyPath: "id", autoIncrement: true }, ["tripId"]);
-            ensureStore("credentials", { keyPath: "id", autoIncrement: true });
-            ensureStore("audit_logs", { keyPath: "id", autoIncrement: true }, ["profile", "timestamp"]);
-            ensureStore("notes", { keyPath: "id", autoIncrement: true }, ["title", "folderId", "pinned", "modified"]);
-            ensureStore("note_versions", { keyPath: "id", autoIncrement: true }, ["noteId", "timestamp"]);
-            ensureStore("note_attachments", { keyPath: "id", autoIncrement: true }, ["noteId"]);
-            ensureStore("note_folders", { keyPath: "id", autoIncrement: true }, ["parentId"]);
-            ensureStore("emi_loans", { keyPath: "id", autoIncrement: true });
-            ensureStore("net_worth_snapshots", { keyPath: "id", autoIncrement: true }, ["date"]);
-            ensureStore("allocation_targets", { keyPath: "id" });
-            ensureStore("sip_plan", { keyPath: "id", autoIncrement: true });
-            ensureStore("essentials_settings", { keyPath: "id", autoIncrement: true }, ["key", "profile"]);
-            ensureStore("savings_goals",       { keyPath: "id", autoIncrement: true }, ["profile", "targetDate"]);
-            ensureStore("subscriptions",       { keyPath: "id", autoIncrement: true }, ["profile"]);
-            ensureStore("fd_rd",               { keyPath: "id", autoIncrement: true }, ["profile"]);
-            ensureStore("tx_templates",        { keyPath: "id", autoIncrement: true }, ["profile"]);
-            ensureStore("dashboard_config",    { keyPath: "id" });
-            ensureStore("credit_cards",        { keyPath: "id" }, ["profile", "statement_day", "due_day"]);
-            ensureStore("vehicles",            { keyPath: "id" }, ["profile", "regNumber", "type"]);
-            ensureStore("receipt_attachments", { keyPath: "id" }, ["userId", "transactionId", "profile"]);
-            ensureStore("businesses",          { keyPath: "id" }, ["profile", "name", "category"]);
-            ensureStore("business_transactions", { keyPath: "id" }, ["profile", "businessId", "type", "date", "partyName", "paymentStatus"]);
-            ensureStore("stock_holdings",       { keyPath: "id" }, ["profile"]);
-            ensureStore("category_rules_store", { keyPath: "id" }, ["profile"]);
-            ensureStore("bill_splits_store",    { keyPath: "id" }, ["profile"]);
-            console.log("✅ DB schema upgrade complete");
-        };
-    });
-}
-/* ─── Expose key functions for cross-module access ── */
-window.LM_resetDB = function() {
-  try { if (db) { db.close(); } } catch {}
-  db        = null;
-  window.db = null;
-  window.LM_DB_READY = false;
+  return [];
 };
-window.mergeRestore       = mergeRestore;
-window.fullImportJSONText = fullImportJSONText;
-window.FinalJson          = FinalJson;
-function tx(store, mode='readonly'){
-  if (!db) throw new Error('[LM] IndexedDB not ready – openDB() not yet called');
-  return db.transaction(store, mode).objectStore(store);
+const arrayToCSV = function(rows) {
+  if (typeof window !== 'undefined' && window.LM_CsvHelper && typeof window.LM_CsvHelper.arrayToCSV === 'function') {
+    return window.LM_CsvHelper.arrayToCSV(rows);
+  }
+  return '';
+};
+if (typeof window !== 'undefined') {
+  window.parseCSV = parseCSV;
+  window.arrayToCSV = arrayToCSV;
 }
-async function getAll(storeName){
-  if (!db) return [];          /* DB not yet open – return empty silently */
-  return new Promise((res,rej)=>{
-    try {
-      const store = tx(storeName);
-      const req = store.getAll();
-      req.onsuccess = ()=>res(req.result||[]);
-      req.onerror = ()=>rej(req.error);
-    } catch(e) { rej(e); }
-  });
-}
-async function put(storeName, obj){
-  if (!db) throw new Error('[LM] IndexedDB not ready');
-  return new Promise((res,rej)=>{
-    const t = db.transaction(storeName,'readwrite');
-    const s = t.objectStore(storeName);
-    const req = s.put(obj);
-    req.onsuccess = ()=>res(req.result);
-    req.onerror = ()=>rej(req.error);
-  });
-}
-async function del(storeName, key){
-  if (!db) throw new Error('[LM] IndexedDB not ready');
-  return new Promise((res,rej)=>{
-    const t = db.transaction(storeName,'readwrite');
-    const s = t.objectStore(storeName);
-    const req = s.delete(key);
-    req.onsuccess = ()=>res();
-    req.onerror = ()=>rej(req.error);
-  });
+
+/* Core IndexedDB Storage Engine – delegates to LM_LedgerDB */
+let db = (typeof window !== 'undefined' && window.db) ? window.db : null;
+
+const openDB = async function() {
+  if (typeof window !== 'undefined' && window.LM_LedgerDB && typeof window.LM_LedgerDB.openDB === 'function') {
+    db = await window.LM_LedgerDB.openDB();
+    window.db = db;
+    return db;
+  }
+  return null;
+};
+
+const tx = function(store, mode) {
+  if (typeof window !== 'undefined' && window.LM_LedgerDB && typeof window.LM_LedgerDB.tx === 'function') {
+    return window.LM_LedgerDB.tx(store, mode);
+  }
+  var targetDb = db || (typeof window !== 'undefined' ? window.db : null);
+  if (!targetDb) throw new Error('[LM] IndexedDB not ready – openDB() not yet called');
+  return targetDb.transaction(store, mode || 'readonly').objectStore(store);
+};
+
+const getAll = async function(storeName) {
+  if (typeof window !== 'undefined' && window.getAll && window.getAll !== getAll) {
+    return window.getAll(storeName);
+  }
+  if (typeof window !== 'undefined' && window.LM_LedgerDB && typeof window.LM_LedgerDB.getAll === 'function') {
+    return window.LM_LedgerDB.getAll(storeName);
+  }
+  return [];
+};
+
+const put = async function(storeName, obj) {
+  if (typeof window !== 'undefined' && window.put && window.put !== put) {
+    return window.put(storeName, obj);
+  }
+  if (typeof window !== 'undefined' && window.LM_LedgerDB && typeof window.LM_LedgerDB.put === 'function') {
+    return window.LM_LedgerDB.put(storeName, obj);
+  }
+  throw new Error('[LM] IndexedDB not ready');
+};
+
+const del = async function(storeName, key) {
+  if (typeof window !== 'undefined' && window.del && window.del !== del) {
+    return window.del(storeName, key);
+  }
+  if (typeof window !== 'undefined' && window.LM_LedgerDB && typeof window.LM_LedgerDB.del === 'function') {
+    return window.LM_LedgerDB.del(storeName, key);
+  }
+  throw new Error('[LM] IndexedDB not ready');
+};
+
+if (typeof window !== 'undefined') {
+  window.openDB = openDB;
+  window.tx = tx;
+  window.getAll = getAll;
+  window.put = put;
+  window.del = del;
+  window.LM_resetDB = function() {
+    if (window.LM_LedgerDB && typeof window.LM_LedgerDB.resetDB === 'function') {
+      window.LM_LedgerDB.resetDB();
+    }
+    db = null;
+    window.db = null;
+    window.LM_DB_READY = false;
+  };
 }
 
 // ----------------------------
@@ -6391,42 +6220,21 @@ function renderBudgetOverview() {
 }
 
 /* ─────────────────────────────────────────────
-   SIDEBAR
+   SIDEBAR (Delegated to LM_SidebarController)
 ───────────────────────────────────────────── */
-function toggleSidebar() {
-  const sb = document.getElementById('sidebar');
-  const ov = document.getElementById('sidebarOverlay');
-  if (!sb) return;
-  const isOpen = sb.classList.toggle('open');
-  if (ov) ov.classList.toggle('show', isOpen);
-  document.body.classList.toggle('sidebar-open', isOpen);
-}
-function closeSidebar() {
-  const sb = document.getElementById('sidebar');
-  const ov = document.getElementById('sidebarOverlay');
-  if (sb) sb.classList.remove('open');
-  if (ov) ov.classList.remove('show');
-  document.body.classList.remove('sidebar-open');
-}
+const toggleSidebar = (typeof window !== 'undefined' && window.toggleSidebar) ? window.toggleSidebar : function() {
+  if (typeof window !== 'undefined' && window.LM_SidebarController) {
+    return window.LM_SidebarController.toggleSidebar();
+  }
+};
+const closeSidebar = (typeof window !== 'undefined' && window.closeSidebar) ? window.closeSidebar : function() {
+  if (typeof window !== 'undefined' && window.LM_SidebarController) {
+    return window.LM_SidebarController.closeSidebar();
+  }
+};
 
 window.toggleSidebar = toggleSidebar;
 window.closeSidebar = closeSidebar;
-
-const _sbOv = document.getElementById('sidebarOverlay');
-if (_sbOv) _sbOv.addEventListener('click', closeSidebar);
-
-document.addEventListener('click', function (e) {
-  const sidebar = document.getElementById('sidebar');
-  if (!sidebar || !sidebar.classList.contains('open')) return;
-  
-  const isMenuClick = !!e.target.closest('#menuBtn');
-  const isMoreClick = !!e.target.closest('#bnav-more');
-  const isSidebarClick = !!e.target.closest('#sidebar');
-
-  if (!isSidebarClick && !isMenuClick && !isMoreClick) {
-    closeSidebar();
-  }
-});
 
 const _bottomNavEl = document.getElementById('bottomNav');
 if (_bottomNavEl) {

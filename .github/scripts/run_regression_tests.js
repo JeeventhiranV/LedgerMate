@@ -10,6 +10,9 @@ const fs = require('fs');
 console.log('🚀 Running LedgerMate CI Regression Test Runner...');
 
 const filesToValidate = [
+  'src/scripts/Core/LedgerDB.js',
+  'src/scripts/Common/CsvHelper.js',
+  'src/scripts/Common/SidebarController.js',
   'src/scripts/Common.js',
   'src/scripts/CloudSync.js',
   'src/scripts/Auth/StorePatch.js',
