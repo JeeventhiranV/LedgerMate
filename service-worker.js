@@ -8,7 +8,7 @@
  *  • Unmatched offline fallback       → cached index.html
  * ─────────────────────────────────────────────────────────────
  */
-const CACHE_VERSION = 'lm-v2.31.0';
+const CACHE_VERSION = 'lm-v2.32.0';
 const CACHE_STATIC  = `${CACHE_VERSION}-static`;
 
 const STATIC_ASSETS = [
@@ -49,6 +49,7 @@ const STATIC_ASSETS = [
   './src/scripts/Core/ReconciliationEngine.js',
   './src/scripts/Core/FXRateService.js',
   './src/scripts/Core/GeneralLedger.js',
+  './src/scripts/Core/FinancialReportingEngine.js',
   './src/scripts/Common/ModalController.js',
   './src/scripts/Auth/AuthManager.js',
   './src/scripts/Auth/UserStore.js',
