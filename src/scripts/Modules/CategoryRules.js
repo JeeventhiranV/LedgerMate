@@ -221,6 +221,7 @@
     getRules: getRules,
     saveRules: saveRules,
     suggestCategory: suggestCategory,
+    categorize: suggestCategory,
     learnFromTransaction: learnFromTransaction,
     addRule: addRule,
     deleteRule: deleteRule,

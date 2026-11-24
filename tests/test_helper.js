@@ -16,12 +16,28 @@ class TestSuite {
     console.log(`============================================================`);
   }
 
-  async it(description, fn) {
+  it(description, fn) {
     this.total++;
     try {
-      await fn();
+      const res = fn();
+      if (res && typeof res.then === 'function') {
+        return res.then(() => {
+          console.log(`  ✅ PASS: ${description}`);
+          this.passed++;
+        }).catch(err => {
+          console.error(`  ❌ FAIL: ${description}`);
+          console.error(`     Error: ${err.message}`);
+          if (err.stack) {
+            const stackLines = err.stack.split('\n').slice(1, 3).join('\n');
+            console.error(`     ${stackLines}`);
+          }
+          this.failed++;
+          process.exitCode = 1;
+        });
+      }
       console.log(`  ✅ PASS: ${description}`);
       this.passed++;
+      return Promise.resolve();
     } catch (err) {
       console.error(`  ❌ FAIL: ${description}`);
       console.error(`     Error: ${err.message}`);
@@ -31,6 +47,7 @@ class TestSuite {
       }
       this.failed++;
       process.exitCode = 1;
+      return Promise.resolve();
     }
   }
 
