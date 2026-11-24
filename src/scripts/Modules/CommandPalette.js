@@ -34,7 +34,8 @@
     { title: '🔐 Open Credentials Vault', desc: 'Encrypted passwords and keys', icon: '🔐', action: () => window.showCredModal?.() },
     { title: '☁️ Sync with Supabase Cloud', desc: 'Immediate cloud backup push', icon: '☁️', action: () => window.LM_manualSync?.() },
     { title: '🏢 Business Hub (Credits, Debits & Charges)', desc: 'Track business income, operating expenses, gateway fees & party ledger', icon: '🏢', action: () => { if (typeof showPage === 'function') showPage('business'); } },
-    { title: '✈️ Trip Planner & Expenses', desc: 'Plan trips, collect seen/wishlist spots, day itineraries & track expenses against plans', icon: '✈️', action: () => { if (typeof showPage === 'function') showPage('trips'); } },
+    { title: '⚖️ Double-Entry General Ledger & Trial Balance', desc: 'Audit Trial Balance, Balance Sheet integrity & journal entries', icon: '⚖️', action: () => window.LM_GeneralLedger?.showGeneralLedgerModal() },
+    { title: '🌾 Indian Tax & Capital Gains Harvester', desc: 'Compare Old vs New Regime (Budget 2024), advance tax & LTCG harvesting', icon: '🌾', action: () => { if (typeof showPage === 'function') showPage('tax-planner'); } },
     { title: '📚 Open Study Resources Hub', desc: 'Interview prep, DSA, Java, React', icon: '📚', action: () => window.location.href = './study/index.html' },
     { title: '🌓 Toggle Dark / Light Theme', desc: 'Switch app visual mode', icon: '🌓', action: () => toggleTheme() }
   ];

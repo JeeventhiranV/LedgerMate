@@ -6992,6 +6992,10 @@ async function savePreferences() {
    TAX ESTIMATOR — India FY 2024-25 Old vs New Regime
 ══════════════════════════════════════════════════════════════ */
 function showTaxPage() {
+  if (window.LM_TaxIntelligence && typeof window.LM_TaxIntelligence.renderTaxPlannerUI === 'function') {
+    window.LM_TaxIntelligence.renderTaxPlannerUI('taxPlannerContent');
+    return;
+  }
   const el = document.getElementById('taxPlannerContent');
   if (!el) return;
 
