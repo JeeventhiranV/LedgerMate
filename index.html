@@ -860,7 +860,19 @@
 
         <!-- CHARTS GRID -->
         <div id="dashChartsSection" class="charts-grid fade-up fade-up-4">
-          <div class="chart-card">
+          <!-- 📱 MOBILE SEGMENTED CHART TAB SWITCHER (Visible only <= 640px) -->
+          <div class="dash-mobile-chart-tabs" id="dashMobileChartTabs">
+            <button type="button" class="dash-mchart-tab active" id="tabChartCashflow" onclick="window.LM_DashboardUpgrade?.switchMobileChartTab('cashflow')">
+              <span class="mchart-tab-icon">📈</span>
+              <span class="mchart-tab-label">Net Cashflow</span>
+            </button>
+            <button type="button" class="dash-mchart-tab" id="tabChartCategory" onclick="window.LM_DashboardUpgrade?.switchMobileChartTab('category')">
+              <span class="mchart-tab-icon">🍩</span>
+              <span class="mchart-tab-label">By Category</span>
+            </button>
+          </div>
+
+          <div class="chart-card" id="cardNetCashflowChart">
             <div class="chart-card-title" style="justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
               <span style="display:flex;align-items:center;gap:6px;">
                 <span style="color:var(--teal)">●</span> Net Cashflow
@@ -875,7 +887,7 @@
             </div>
           </div>
 
-          <div class="chart-card">
+          <div class="chart-card" id="cardCategoryDoughnutChart">
             <!-- HEADER -->
             <div class="chart-card-title" style="justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
               <!-- Title -->
@@ -913,8 +925,24 @@
           </div>
         </div>
 
-        <!-- TWO COL: TOP CATEGORIES + FORECAST -->
-       <div id="dashTopCategoriesForecastSection" class="two-col fade-up fade-up-5">
+        <!-- 📊 DEEP ANALYTICS & INSIGHTS ACCORDION (COLLAPSIBLE ON MOBILE) -->
+        <div class="dash-analytics-collapsible-wrap" id="dashAnalyticsCollapsibleWrap">
+          <div class="dash-analytics-accordion-header" id="dashAnalyticsAccordionHeader" onclick="window.LM_DashboardUpgrade?.toggleMobileDeepAnalytics()" role="button" aria-expanded="false" tabindex="0">
+            <div class="dash-aah-left">
+              <span class="dash-aah-icon">📊</span>
+              <div class="dash-aah-text">
+                <div class="dash-aah-title">Deep Analytics, Forecast &amp; Trends</div>
+                <div class="dash-aah-sub">Top categories, 30d forecast, monthly stats &amp; heatmap</div>
+              </div>
+            </div>
+            <div class="dash-aah-right">
+              <span class="dash-aah-badge">Tap to expand</span>
+              <span class="dash-aah-chevron" id="dashAnalyticsChevron">▼</span>
+            </div>
+          </div>
+          <div class="dash-analytics-collapsible-body collapsed" id="dashAnalyticsCollapsibleBody">
+            <!-- TWO COL: TOP CATEGORIES + FORECAST -->
+            <div id="dashTopCategoriesForecastSection" class="two-col fade-up fade-up-5">
 
   <!-- LEFT: TOP CATEGORIES -->
   <div>
@@ -988,51 +1016,36 @@
   </div>
 
 </div>
-        <!-- HEATMAP -->
-        <div id="dashHeatmapSection" class="fade-up fade-up-5">
-          <div class="section-heading">
-            <div class="section-title"><span class="dot" style="background:var(--emerald)"></span>Expense Heatmap (30d)</div>
-          </div>
-          <div class="heatmap-wrap">
-            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-3); font-family:var(--font-m); margin-bottom:4px;">
-              <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+            <!-- HEATMAP -->
+            <div id="dashHeatmapSection" class="fade-up fade-up-5">
+              <div class="section-heading">
+                <div class="section-title"><span class="dot" style="background:var(--emerald)"></span>Expense Heatmap (30d)</div>
+              </div>
+              <div class="heatmap-wrap">
+                <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-3); font-family:var(--font-m); margin-bottom:4px;">
+                  <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                </div>
+                <div class="heatmap-grid" id="heatmap"></div>
+                <div style="display:flex; align-items:center; gap:6px; margin-top:10px; font-size:11px; color:var(--text-3);">
+                  <span>Less</span>
+                  <div style="width:12px;height:12px;border-radius:3px;background:var(--bg3)"></div>
+                  <div style="width:12px;height:12px;border-radius:3px;" class="heatmap-day l1"></div>
+                  <div style="width:12px;height:12px;border-radius:3px;" class="heatmap-day l3"></div>
+                  <div style="width:12px;height:12px;border-radius:3px;" class="heatmap-day l5"></div>
+                  <span>More</span>
+                </div>
+              </div>
             </div>
-            <div class="heatmap-grid" id="heatmap"></div>
-            <div style="display:flex; align-items:center; gap:6px; margin-top:10px; font-size:11px; color:var(--text-3);">
-              <span>Less</span>
-              <div style="width:12px;height:12px;border-radius:3px;background:var(--bg3)"></div>
-              <div style="width:12px;height:12px;border-radius:3px;" class="heatmap-day l1"></div>
-              <div style="width:12px;height:12px;border-radius:3px;" class="heatmap-day l3"></div>
-              <div style="width:12px;height:12px;border-radius:3px;" class="heatmap-day l5"></div>
-              <span>More</span>
+
+            <!-- MONTH-OVER-MONTH ANALYTICS -->
+            <div id="dashMomSection" class="fade-up fade-up-5" style="margin-top:8px;">
+              <div class="section-heading">
+                <div class="section-title"><span class="dot" style="background:var(--violet)"></span>Month-over-Month</div>
+                <span style="font-size:11px;color:var(--text-3);">vs last month</span>
+              </div>
+              <div id="momWidget"></div>
             </div>
           </div>
-        </div>
-
-        <!-- WEALTH SUMMARY WIDGET -->
-        <div id="dashWealthWidgetSection" class="fade-up fade-up-5" style="margin-top:8px;">
-          <div class="section-heading">
-            <div class="section-title"><span class="dot" style="background:var(--blue)"></span>Wealth Summary</div>
-          </div>
-          <div id="dashWealthWidget"></div>
-        </div>
-
-        <!-- NET WORTH SPARKLINE -->
-        <div id="dashNwSparklineSection" class="fade-up fade-up-5" style="margin-top:8px;">
-          <div class="section-heading">
-            <div class="section-title"><span class="dot" style="background:var(--teal)"></span>Net Worth Trend</div>
-            <button class="section-action" onclick="showPage('wealth')">Details →</button>
-          </div>
-          <div id="nwSparklineWidget"></div>
-        </div>
-
-        <!-- MONTH-OVER-MONTH ANALYTICS -->
-        <div id="dashMomSection" class="fade-up fade-up-5" style="margin-top:8px;">
-          <div class="section-heading">
-            <div class="section-title"><span class="dot" style="background:var(--violet)"></span>Month-over-Month</div>
-            <span style="font-size:11px;color:var(--text-3);">vs last month</span>
-          </div>
-          <div id="momWidget"></div>
         </div>
 
         <!-- BUDGETS OVERVIEW -->
