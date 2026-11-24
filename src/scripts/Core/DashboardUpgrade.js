@@ -122,6 +122,13 @@
       this.updateDockButtons();
       this.applyViewFilter();
 
+      // Trigger responsive chart re-renders when switching into analytics, wealth, or all
+      if (mode === 'analytics' || mode === 'all') {
+        if (typeof renderCharts === 'function') setTimeout(renderCharts, 40);
+      } else if (mode === 'wealth') {
+        if (typeof renderDashboardWealthWidget === 'function') setTimeout(renderDashboardWealthWidget, 40);
+      }
+
       try {
         if (window.LM_Haptic) window.LM_Haptic.light();
       } catch (err) {}

@@ -797,6 +797,14 @@ body.sidebar-open #voiceTxBtn {
 .page-title { font-family: var(--font-h); font-size: clamp(18px,3.2vw,24px); font-weight: 700; letter-spacing: -0.4px; line-height: 1.15; }
 .page-title em { font-style: normal; color: var(--teal); }
 
+/* Tabular Numerics for Fintech Financial Readouts */
+.acc-bal, .kpi-value, .dash-hero-val, .tx-amount, .font-mono-nums, .inv-kpi-val, .metric-value {
+  font-variant-numeric: tabular-nums;
+  -moz-font-feature-settings: "tnum";
+  -webkit-font-feature-settings: "tnum";
+  font-feature-settings: "tnum";
+}
+
 /* ═══════════════════════════════════════════════
    RANGE PILLS
 ═══════════════════════════════════════════════ */

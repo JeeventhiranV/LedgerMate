@@ -957,3 +957,112 @@
     min-width: 100% !important;
   }
 }
+
+/* ==========================================================================
+   ☀️ LIGHT THEME OVERRIDES FOR INVESTMENTS MODULE (WCAG AA COMPLIANT)
+   ========================================================================== */
+[data-theme="light"] .inv-title-area h1 {
+  color: #0f172a;
+}
+
+[data-theme="light"] .inv-title-area p {
+  color: #64748b;
+}
+
+[data-theme="light"] .inv-calc-toggle-btn {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #334155;
+}
+
+[data-theme="light"] .inv-calc-toggle-btn:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: rgba(2, 132, 199, 0.4);
+}
+
+[data-theme="light"] .inv-kpi-card,
+[data-theme="light"] .inv-card,
+[data-theme="light"] .inv-summary-card,
+[data-theme="light"] .inv-chart-card,
+[data-theme="light"] .inv-table-card {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="light"] .inv-kpi-card:hover,
+[data-theme="light"] .inv-card:hover {
+  border-color: rgba(2, 132, 199, 0.35);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .inv-search-input {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  color: #0f172a;
+}
+
+[data-theme="light"] .inv-search-input:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+[data-theme="light"] .inv-filter-bar {
+  background: #f1f5f9;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .inv-filter-pill {
+  color: #475569;
+}
+
+[data-theme="light"] .inv-filter-pill:hover {
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="light"] .inv-filter-pill.active {
+  background: #ffffff;
+  color: #0284c7;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .inv-table th {
+  background: #f8fafc;
+  color: #475569;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .inv-table td {
+  color: #0f172a;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+[data-theme="light"] .inv-table tr:hover td {
+  background: rgba(2, 132, 199, 0.04);
+}
+
+[data-theme="light"] .inv-modal-box {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.16);
+  color: #0f172a;
+}
+
+[data-theme="light"] .inv-modal-header {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: #f8fafc;
+}
+
+[data-theme="light"] .inv-modal-footer {
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  background: #f8fafc;
+}
+
+[data-theme="light"] .inv-empty-state {
+  background: #f8fafc;
+  border: 1px dashed rgba(15, 23, 42, 0.12);
+  color: #64748b;
+}
+

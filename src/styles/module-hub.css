@@ -20,6 +20,13 @@
   --hub-border-h: rgba(0, 240, 255, 0.35);
 }
 
+[data-theme="light"] {
+  --hub-surface: rgba(255, 255, 255, 0.9);
+  --hub-card-bg: #ffffff;
+  --hub-border: rgba(15, 23, 42, 0.08);
+  --hub-border-h: rgba(2, 132, 199, 0.4);
+}
+
 /* ── CONTAINER ─────────────────────────────────────────────── */
 .mod-hub-container {
   max-width: 1240px;
@@ -900,3 +907,164 @@
     max-width: 100%;
   }
 }
+
+/* ==========================================================================
+   ☀️ LIGHT THEME OVERRIDES FOR MODULE HUB (WCAG AA COMPLIANT)
+   ========================================================================== */
+[data-theme="light"] .mod-hub-avatar {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.12), rgba(99, 102, 241, 0.12));
+  border-color: rgba(2, 132, 199, 0.25);
+  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.1);
+}
+
+[data-theme="light"] .mod-hub-title {
+  color: #0f172a;
+}
+
+[data-theme="light"] .mod-hub-subtitle {
+  color: #475569;
+}
+
+[data-theme="light"] .mod-hub-stat-pill {
+  background: rgba(2, 132, 199, 0.08);
+  color: #0284c7;
+  border-color: rgba(2, 132, 199, 0.2);
+}
+
+[data-theme="light"] .mod-search-input {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #0f172a;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="light"] .mod-search-input:focus {
+  background: #ffffff;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+[data-theme="light"] .mod-search-kbd {
+  background: #f1f5f9;
+  border-color: rgba(15, 23, 42, 0.08);
+  color: #475569;
+}
+
+[data-theme="light"] .mod-search-clear-btn {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+[data-theme="light"] .mod-sort-select {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #0f172a;
+}
+
+[data-theme="light"] .mod-view-switcher {
+  background: #f1f5f9;
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .mod-view-btn {
+  color: #475569;
+}
+
+[data-theme="light"] .mod-view-btn.active {
+  background: #ffffff;
+  color: #0284c7;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .mod-category-pill {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.08);
+  color: #475569;
+}
+
+[data-theme="light"] .mod-category-pill:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: rgba(2, 132, 199, 0.3);
+}
+
+[data-theme="light"] .mod-category-pill.active {
+  background: rgba(2, 132, 199, 0.1);
+  color: #0284c7;
+  border-color: rgba(2, 132, 199, 0.35);
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.12);
+}
+
+[data-theme="light"] .mod-category-count {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+[data-theme="light"] .mod-recent-strip {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .mod-recent-chip {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+}
+
+[data-theme="light"] .mod-recent-chip:hover {
+  background: rgba(2, 132, 199, 0.08);
+  border-color: rgba(2, 132, 199, 0.25);
+  color: #0284c7;
+}
+
+[data-theme="light"] .mod-section-header {
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .mod-section-title {
+  color: #0f172a;
+}
+
+[data-theme="light"] .mod-card {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="light"] .mod-card:hover {
+  background: #ffffff;
+  border-color: rgba(2, 132, 199, 0.35);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .mod-card-title {
+  color: #0f172a;
+}
+
+[data-theme="light"] .mod-card-desc {
+  color: #475569;
+}
+
+[data-theme="light"] .mod-list-row {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+}
+
+[data-theme="light"] .mod-list-row:hover {
+  background: #f8fafc;
+  border-color: rgba(2, 132, 199, 0.35);
+}
+
+[data-theme="light"] .mod-badge {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .mod-telemetry-badge {
+  background: #f8fafc;
+  color: #334155;
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
