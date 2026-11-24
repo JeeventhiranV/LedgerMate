@@ -37,6 +37,7 @@
         'cardOptimizerWidgetWrap',
         'dashCcUrgentBanner',
         'kpiCards',
+        'dashChartsSection',
         'healthScoreWidget',
         'dashInterlinkSection'
       ],
