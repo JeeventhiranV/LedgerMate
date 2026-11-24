@@ -713,11 +713,15 @@ function renderBudgetModalList() {
   const month = new Date().toISOString().slice(0,7);
   const monthBudgets = state.budgets.filter(b=>b.month===month);
   if (!monthBudgets.length) { wrap.innerHTML = '<div class="empty-state" style="padding:16px"><div class="empty-state-icon">🎯</div><div class="empty-state-text">No budgets for this month</div></div>'; return; }
+  const actuals = window.LM_BudgetService
+    ? window.LM_BudgetService.getCategoryActuals(month, state.transactions)
+    : null;
   wrap.innerHTML = monthBudgets.map(b => {
-    const actual = state.transactions.filter(t=>t.type==='out'&&t.category===b.category&&t.date.startsWith(month)).reduce((s,t)=>s+(+t.amount||0),0);
-    const rawPct = b.limit>0?Math.round((actual/b.limit)*100):0;
-    const pct = Math.min(rawPct,100);
-    const cls = rawPct>=100?'over':pct>90?'danger':pct>70?'warning':'safe';
+    const actual = actuals ? (actuals[b.category] || 0) : state.transactions.filter(t=>t.type==='out'&&t.category===b.category&&t.date.startsWith(month)).reduce((s,t)=>s+(+t.amount||0),0);
+    const status = window.LM_BudgetService ? window.LM_BudgetService.getBudgetStatus(b, actual) : null;
+    const rawPct = status ? status.rawPct : (b.limit>0?Math.round((actual/b.limit)*100):0);
+    const pct = status ? status.pct : Math.min(rawPct,100);
+    const cls = status ? status.cls : (rawPct>=100?'over':pct>90?'danger':pct>70?'warning':'safe');
     return `<div class="list-item" style="flex-direction:column; align-items:stretch;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <div><div class="list-item-name">${b.category}</div><div class="list-item-sub">${fmtINR(actual)} / ${fmtINR(b.limit)} (${rawPct}%)</div></div>
@@ -728,17 +732,23 @@ function renderBudgetModalList() {
   }).join('');
 }
 /* ─────────────────────────────────────────────
-   MODALS
+   MODALS (Delegated to LM_ModalController)
 ───────────────────────────────────────────── */
 function openModal(id) {
-  document.getElementById(id).classList.add('show');
-  // populate relevant lists
+  if (typeof window !== 'undefined' && window.LM_ModalController) {
+    return window.LM_ModalController.open(id);
+  }
+  const el = document.getElementById(id);
+  if (el) el.classList.add('show');
   if (id==='budgetModal') { renderBudgetModalList(); }
   if (id==='loanModal') { renderLoanList(); }
   if (id==='goalModal') { renderGoalList(); }
   if (id==='investModal') { renderInvestList(); }
 }
 function closeModal(id) {
+  if (typeof window !== 'undefined' && window.LM_ModalController) {
+    return window.LM_ModalController.close(id);
+  }
   if (!id) {
     const openModals = document.querySelectorAll('.modal-overlay.show, .stock-modal-backdrop.open');
     openModals.forEach(m => m.classList.remove('show', 'open'));
@@ -747,6 +757,9 @@ function closeModal(id) {
   const el = document.getElementById(id);
   if (el) el.classList.remove('show', 'open');
 }
+
+window.openModal = openModal;
+window.closeModal = closeModal;
 
 /**
  * Global Screen & Scroll State Preservation Helper
@@ -2159,6 +2172,102 @@ window.applyTxQuickFilter = function(filter) {
   refreshRecentList();
 };
 
+async function handleDeleteTx(id) {
+  if (!id) return;
+  try { window.LM_Haptic?.warning(); } catch (err) {}
+
+  // Interlink reversal check
+  if (window.LM_InterlinkEngine && typeof window.LM_InterlinkEngine.checkLinkedReversal === 'function') {
+    const linkedTx = await window.LM_InterlinkEngine.checkLinkedReversal(id);
+    if (linkedTx && linkedTx.interlink) {
+      const mod = (linkedTx.interlink.sourceModule || 'linked module').toUpperCase();
+      const entity = linkedTx.interlink.entityName ? ` (${linkedTx.interlink.entityName})` : '';
+      const confirmMsg = `This transaction is interlinked with ${mod}${entity}.\n\nDo you want to delete this transaction AND roll back the source balance/status?\n\nClick [OK] to delete & roll back source\nClick [Cancel] to abort.`;
+      if (!confirm(confirmMsg)) return;
+      try {
+        await window.LM_InterlinkEngine.revertInterlinkedTx(id, true);
+        renderAll();
+        autoBackup();
+        try { window.LM_Haptic?.success(); } catch (err) {}
+        showToast('Interlinked transaction deleted and source rolled back!', 'success');
+        return;
+      } catch (revErr) {
+        console.warn('[LM] Revert interlink error:', revErr);
+      }
+    }
+  }
+
+  if (!confirm('Are you sure you want to delete this transaction?')) return;
+  try {
+    const deletedTx = (state.transactions || []).find((x) => x.id === id);
+    await del('transactions', id);
+    state.transactions = state.transactions.filter((x) => x.id !== id);
+    renderAll();
+    autoBackup();
+    try { window.LM_Haptic?.success(); } catch (err) {}
+
+    if (typeof window.showUndoToast === 'function' && deletedTx) {
+      window.showUndoToast('Transaction deleted', async () => {
+        try {
+          await put('transactions', deletedTx);
+          state.transactions.push(deletedTx);
+          if (window.LM_CloudSync && typeof window.LM_CloudSync.removeTombstone === 'function') {
+            window.LM_CloudSync.removeTombstone('transactions', deletedTx.id);
+          }
+          renderAll();
+          autoBackup();
+          if (window.showToast) window.showToast('Transaction restored!', 'success');
+        } catch (restoreErr) {
+          console.error('[LM] Failed to undo transaction delete:', restoreErr);
+          if (window.showToast) window.showToast('Failed to restore transaction', 'error');
+        }
+      }, 6000);
+    } else {
+      showToast('Transaction deleted!', 'success');
+    }
+  } catch (err) {
+    showToast('Failed to delete transaction', 'error');
+  }
+}
+
+function _attachTxListDelegation(listEl) {
+  if (!listEl || listEl._lmDelegated) return;
+  listEl._lmDelegated = true;
+
+  listEl.addEventListener('click', (e) => {
+    const delBtn = e.target.closest('.delTx');
+    if (delBtn) {
+      e.stopPropagation();
+      handleDeleteTx(delBtn.dataset.id);
+      return;
+    }
+
+    const editBtn = e.target.closest('.editTx');
+    if (editBtn) {
+      e.stopPropagation();
+      openEditTransactionModal(editBtn.dataset.id);
+      return;
+    }
+
+    const splitBtn = e.target.closest('.splitTx');
+    if (splitBtn) {
+      e.stopPropagation();
+      openSplitModal(splitBtn.dataset.id);
+      return;
+    }
+
+    const badge = e.target.closest('.tx-badge-interlink');
+    if (badge) {
+      e.stopPropagation();
+      const target = badge.dataset.mod;
+      if (target && typeof showPage === 'function') {
+        showPage(target);
+      }
+      return;
+    }
+  });
+}
+
 function refreshRecentList() {
   const searchEl = document.getElementById('searchTx');
   const listEl   = document.getElementById('recentList');
@@ -2166,380 +2275,102 @@ function refreshRecentList() {
   if (!listEl) return;
 
   const q   = searchEl?.value?.toLowerCase?.()?.trim() || '';
-  const list = listEl;
-  list.innerHTML = '';
   const acc = accEl?.value || 'all';
-const today = new Date();
-  const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const isSameDay = (d1, d2) => startOfDay(d1).getTime() === startOfDay(d2).getTime();
-  const getWeekStart = d => {
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate() - (d.getDay() || 7) + 1);
-  };
-  
-  //  Split into tokens (space-separated)
-  const tokens = q ? q.split(/\s+/) : [];
-let sourceTx = state.transactions;
 
-// If NO search text (initial load), limit to 100
-if (!q) {
-    sourceTx = state.transactions
-        .slice()
-        .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
-        .slice(0, 100);
-}
-  const items = sourceTx
-    .slice()
-    .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
-    .filter((t) => {
-      if (acc !== 'all' && acc && acc !== t.account) return false;
+  _attachTxListDelegation(listEl);
 
-      // Quick filter chip check
-      if (window._lmTxQuickFilter && window._lmTxQuickFilter !== 'all') {
-        if (window._lmTxQuickFilter === 'out' && t.type !== 'out') return false;
-        if (window._lmTxQuickFilter === 'in' && t.type !== 'in') return false;
-        if (window._lmTxQuickFilter === 'transfer' && t.type !== 'transfer') return false;
-        if (window._lmTxQuickFilter === 'high' && parseFloat(t.amount || 0) < 5000) return false;
-        if (window._lmTxQuickFilter === 'recent7') {
-          const txDate = new Date(t.date || t.createdAt);
-          const diffMs = today.getTime() - txDate.getTime();
-          if (diffMs > 7 * 24 * 60 * 60 * 1000) return false;
-        }
-      }
-
-      let match = true;
-
-      for (const token of tokens) {
-        if (!token) continue;
-
-        //  Amount filters
-        const amountMatch = token.match(/^amount([<>]=?|=)(\d+(?:\.\d+)?)$/);
-        if (amountMatch) {
-          const [, operator, valueStr] = amountMatch;
-          const value   = parseFloat(valueStr);
-          const tAmount = parseFloat(t.amount);
-          if (operator === '>'  && !(tAmount >  value)) match = false;
-          if (operator === '>=' && !(tAmount >= value)) match = false;
-          if (operator === '<'  && !(tAmount <  value)) match = false;
-          if (operator === '<=' && !(tAmount <= value)) match = false;
-          if (operator === '='  && !(tAmount === value)) match = false;
-          continue;
-        }
-
-        //  Category filter
-        const categoryMatch = token.match(/^category:(.+)$/);
-        if (categoryMatch) {
-          if (!(t.category || '').toLowerCase().includes(categoryMatch[1].trim())) match = false;
-          continue;
-        }
-
-        //  Account filter
-        const accountMatch = token.match(/^account:(.+)$/);
-        if (accountMatch) {
-          if (!(t.account || '').toLowerCase().includes(accountMatch[1].trim())) match = false;
-          continue;
-        }
-
-        //  Smart date filters
-        if (token === 'today') {
-          if (!isSameDay(new Date(t.date), today)) match = false;
-          continue;
-        }
-
-        if (token === 'yesterday') {
-          const yesterday = new Date(today);
-          yesterday.setDate(today.getDate() - 1);
-          if (!isSameDay(new Date(t.date), yesterday)) match = false;
-          continue;
-        }
-
-        if (token === 'this' || token === 'last') {
-          // Handle multi-word "this week", "last month", etc.
-          continue; // handled in combo
-        }
-
-        if (token === 'week' || token === 'month') {
-          const idx = tokens.indexOf(token);
-          const prev = tokens[idx - 1];
-
-          if (prev === 'this' && token === 'week') {
-            const weekStart = startOfDay(getWeekStart(new Date(today)));
-            if (!(new Date(t.date) >= weekStart)) match = false;
-          }
-
-          if (prev === 'last' && token === 'week') {
-            const thisWeekStart = startOfDay(getWeekStart(new Date(today)));
-            const lastWeekStart = new Date(thisWeekStart);
-            lastWeekStart.setDate(lastWeekStart.getDate() - 7);
-            const lastWeekEnd = new Date(thisWeekStart);
-            if (!(new Date(t.date) >= lastWeekStart && new Date(t.date) < lastWeekEnd)) match = false;
-          }
-
-          if (prev === 'this' && token === 'month') {
-            if (!(new Date(t.date).getMonth() === today.getMonth() &&
-                  new Date(t.date).getFullYear() === today.getFullYear())) {
-              match = false;
-            }
-          }
-
-          if (prev === 'last' && token === 'month') {
-            const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-            if (!(new Date(t.date).getMonth() === lastMonth.getMonth() &&
-                  new Date(t.date).getFullYear() === lastMonth.getFullYear())) {
-              match = false;
-            }
-          }
-          continue;
-        }
-
-        //  Free text fallback
-        const searchText = [
-          t.note || '',
-          t.category || '',
-          t.account || '',
-          String(t.amount || ''),
-          t.type === 'in' ? 'income' : 'expense',
-          t.date || '',
-          t.createdAt ? new Date(t.createdAt).toLocaleString() : ''
-        ].join(' ').toLowerCase();
-
-        if (!searchText.includes(token)) match = false;
-      }
-
-      return match;
-    });
-
-
-    if (items.length === 0) {
-        list.innerHTML = '<div class="tx-empty-msg">📋 No transactions found</div>';
-        return;
+  let items = [];
+  if (window.LM_TransactionService && typeof window.LM_TransactionService.filterTransactions === 'function') {
+    items = window.LM_TransactionService.filterTransactions(state.transactions || [], q, acc, window._lmTxQuickFilter);
+  } else {
+    // Fallback filter
+    const tokens = q ? q.split(/\s+/) : [];
+    let sourceTx = (state.transactions || []).slice();
+    if (!q) {
+      sourceTx.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+      sourceTx = sourceTx.slice(0, 100);
     }
+    items = sourceTx.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date)).filter(t => {
+      if (acc !== 'all' && acc && acc !== t.account) return false;
+      return true;
+    });
+  }
 
-  // Category color palette
-  const CAT_COLORS = {
-    Food:'#f59e0b', Groceries:'#f59e0b', Snacks:'#fb923c', Dining:'#f97316',
-    Transport:'#3b82f6', Fuel:'#60a5fa', Travel:'#0ea5e9',
-    Bills:'#8b5cf6', Utilities:'#7c3aed', Subscription:'#a78bfa',
-    Shopping:'#ec4899', Clothing:'#f472b6',
-    Salary:'#10b981', Freelance:'#34d399', Investment:'#14b8a6',
-    Healthcare:'#06b6d4', Medical:'#22d3ee', Insurance:'#0891b2',
-    Entertainment:'#f97316', Education:'#6366f1',
-    Housing:'#84cc16', Rent:'#65a30d',
-    Loan:'#ef4444', Tax:'#dc2626', EMI:'#ef4444',
-    Gift:'#a855f7', Charity:'#9333ea',
-    Gym:'#fb923c', Sports:'#3b82f6', Petrol:'#60a5fa',
-    Other:'#94a3b8'
-  };
-  // Consistent hex color for any custom category not in CAT_COLORS
-  const _catColor = cat => {
-    if (CAT_COLORS[cat]) return CAT_COLORS[cat];
-    const pal = ['#f59e0b','#3b82f6','#10b981','#8b5cf6','#ec4899','#06b6d4',
-                 '#f97316','#6366f1','#84cc16','#ef4444','#a855f7','#14b8a6',
-                 '#fb923c','#0ea5e9','#65a30d','#e11d48','#7c3aed','#059669'];
-    let h = 0; for (let i = 0; i < (cat||'').length; i++) h = (h * 31 + cat.charCodeAt(i)) >>> 0;
-    return pal[h % pal.length];
-  };
-  // Icon map (defined once, not per-item)
-  const CAT_ICONS = {
-    Food:'🍽️', Groceries:'🛒', Snacks:'🧆', Dining:'🍴',
-    Transport:'🚗', Fuel:'⛽', Travel:'✈️',
-    Bills:'💡', Utilities:'🔌', Subscription:'📱',
-    Shopping:'🛍️', Clothing:'👕',
-    Salary:'💼', Freelance:'💻', Investment:'📈',
-    Healthcare:'🏥', Medical:'💊', Insurance:'🛡️',
-    Entertainment:'🎬', Education:'📚',
-    Housing:'🏠', Rent:'🏢',
-    Loan:'💸', Tax:'🏛️', EMI:'🏦',
-    Gift:'🎁', Charity:'❤️',
-    Gym:'🏋️', Sports:'⚽', Petrol:'⛽',
-    Other:'💳'
-  };
+  if (items.length === 0) {
+    if (window._lmRecentListVirtual) {
+      window._lmRecentListVirtual.destroy();
+      window._lmRecentListVirtual = null;
+    }
+    listEl.innerHTML = '<div class="tx-empty-msg">📋 No transactions found</div>';
+    return;
+  }
 
-  // Highlight search term in text
-  const hlText = (text, term) => {
-    if (!term || !text) return text || '';
-    const re = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
-    return String(text).replace(re, '<mark>$1</mark>');
-  };
-
+  // Build items with date separators
+  const displayItems = [];
   let lastDateGroup = null;
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-
-  const _getDateLabel = (dStr) => {
-    if (!dStr) return 'Transactions';
-    try {
-      const parts = dStr.split('-');
-      if (parts.length === 3) {
-        const d = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
-        if (isSameDay(d, today)) return 'Today';
-        if (isSameDay(d, yesterday)) return 'Yesterday';
-        return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-      }
-    } catch (e) {}
-    return dStr;
-  };
-
   items.forEach((t) => {
-    // Render sticky date group header when group transitions
-    const dateGroup = _getDateLabel(t.date);
-    if (dateGroup !== lastDateGroup) {
-      lastDateGroup = dateGroup;
+    const dateLabel = window.LM_TransactionService
+      ? window.LM_TransactionService.getDateLabel(t.date)
+      : (t.date || 'Transactions');
+    if (dateLabel !== lastDateGroup) {
+      lastDateGroup = dateLabel;
+      displayItems.push({ _isDateHeader: true, label: dateLabel });
+    }
+    displayItems.push(t);
+  });
+
+  // Use VirtualList for large lists (> 25 items) if available
+  if (window.LM_VirtualList && displayItems.length > 25) {
+    if (window._lmRecentListVirtual && window._lmRecentListVirtual.container === listEl) {
+      window._lmRecentListVirtual.updateItems(displayItems);
+    } else {
+      if (window._lmRecentListVirtual) window._lmRecentListVirtual.destroy();
+      window._lmRecentListVirtual = new window.LM_VirtualList({
+        container: listEl,
+        items: displayItems,
+        itemHeight: 70,
+        overscan: 6,
+        renderItem: (item) => {
+          if (item._isDateHeader) {
+            const sep = document.createElement('div');
+            sep.className = 'tx-date-separator';
+            sep.innerHTML = `<span class="tx-date-badge">${item.label}</span>`;
+            return sep;
+          }
+          if (window.LM_TransactionService) {
+            return window.LM_TransactionService.buildRowHTML(item, q);
+          }
+          return '';
+        }
+      });
+    }
+    return;
+  }
+
+  // Direct DOM render for short lists or if VirtualList is not active
+  if (window._lmRecentListVirtual) {
+    window._lmRecentListVirtual.destroy();
+    window._lmRecentListVirtual = null;
+  }
+  listEl.innerHTML = '';
+  displayItems.forEach(item => {
+    if (item._isDateHeader) {
       const sep = document.createElement('div');
       sep.className = 'tx-date-separator';
-      sep.innerHTML = `<span class="tx-date-badge">${dateGroup}</span>`;
-      list.appendChild(sep);
+      sep.innerHTML = `<span class="tx-date-badge">${item.label}</span>`;
+      listEl.appendChild(sep);
+    } else if (window.LM_TransactionService) {
+      const rowHTML = window.LM_TransactionService.buildRowHTML(item, q);
+      const temp = document.createElement('div');
+      temp.innerHTML = rowHTML;
+      listEl.appendChild(temp.firstElementChild || temp);
     }
-
-    const row = document.createElement('div');
-    row.className = 'tx-item';
-
-    const normCat     = (t.category || '').trim();
-    const iconKey     = Object.keys(CAT_ICONS).find(k => k.toLowerCase() === normCat.toLowerCase());
-    const icon        = iconKey ? CAT_ICONS[iconKey] : (normCat ? normCat.charAt(0).toUpperCase() : '💳');
-    const typeCls     = t.type === 'in' ? 'income' : 'expense';
-    const catDotColor = _catColor(normCat);
-    const simpleQ = (q && !q.includes(':') && !q.match(/^amount/)) ? q : '';
-
-    // Badges
-    const recurrenceBadge = t.recurrence && t.recurrence.toLowerCase() !== 'none'
-      ? `<span class="tx-badge-recur">🔁 ${t.recurrence.charAt(0).toUpperCase() + t.recurrence.slice(1)}</span>`
-      : '';
-    const autoBadge = t.recurringOrigin
-      ? `<span class="tx-badge-auto" title="Auto-generated">⟳ Auto</span>`
-      : '';
-    let interlinkBadge = '';
-    if (t.interlink && t.interlink.sourceModule) {
-      const srcMod = t.interlink.sourceModule;
-      const modLabels = {
-        credit_cards: { icon: '💳', name: 'Credit Card', target: 'credit-cards' },
-        loans: { icon: '🏦', name: 'Loan EMI', target: 'loans' },
-        stocks: { icon: '📈', name: 'Stock Trade', target: 'stocks' },
-        investments: { icon: '💰', name: 'Investment', target: 'investments' },
-        vehicles: { icon: '🏍️', name: 'Vehicle', target: 'vehicles' },
-        business: { icon: '💼', name: 'Business Hub', target: 'business' }
-      };
-      const info = modLabels[srcMod] || { icon: '🔗', name: srcMod, target: srcMod };
-      const entityStr = t.interlink.entityName ? ` · ${t.interlink.entityName}` : '';
-      interlinkBadge = `<span class="tx-badge-interlink" data-mod="${info.target}" title="Interlinked from ${info.name}${entityStr}. Click to view source module.">${info.icon} ${info.name}${entityStr}</span>`;
-    }
-
-    // Timestamp
-    const ts = t.createdAt ? new Date(t.createdAt).toLocaleString('en-IN', { dateStyle:'short', timeStyle:'short' }) : '';
-
-    row.innerHTML = `
-      <div class="tx-row">
-
-        <div class="tx-left">
-          <!-- Icon dot filled with category color -->
-          <div class="tx-icon-dot" style="background:${catDotColor}22;border:1.5px solid ${catDotColor}66;">${icon}</div>
-
-          <!-- Text block -->
-          <div class="tx-text">
-            <div class="tx-title">${hlText(t.note || '(No Note)', simpleQ)}</div>
-            <div class="tx-meta">
-              <span class="tx-category" style="display:inline-flex;align-items:center;gap:3px;">
-                <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${catDotColor};flex-shrink:0;"></span>
-                ${hlText(t.category || 'Uncategorized', simpleQ)}
-              </span>
-              <span class="tx-meta-sep">·</span>
-              <span class="tx-meta-acc">${hlText(t.account || '—', simpleQ)}</span>
-              <span class="tx-meta-sep">·</span><span class="tx-time">${t.date}</span>
-              ${recurrenceBadge}${autoBadge}${interlinkBadge}
-            </div>
-          </div>
-        </div>
-
-        <div class="tx-right">
-          <div class="tx-amount ${typeCls}">${t.type === 'in' ? '+' : '−'}${fmtINR(t.amount)}</div>
-          <div class="tx-actions">
-            <button data-id="${t.id}" class="editTx"  title="Edit">✏️</button>
-            <button data-id="${t.id}" class="splitTx" title="Split">✂️</button>
-            <button data-id="${t.id}" class="delTx"   title="Delete">🗑️</button>
-          </div>
-        </div>
-
-      </div>
-    `;
-    list.appendChild(row);
   });
 
-  document.querySelectorAll('.delTx').forEach((btn) =>
-    btn.onclick = async (e) => {
-      const id = e.target.dataset.id;
-      try { window.LM_Haptic?.warning(); } catch (err) {}
-
-      // Interlink reversal check
-      if (window.LM_InterlinkEngine && typeof window.LM_InterlinkEngine.checkLinkedReversal === 'function') {
-        const linkedTx = await window.LM_InterlinkEngine.checkLinkedReversal(id);
-        if (linkedTx && linkedTx.interlink) {
-          const mod = (linkedTx.interlink.sourceModule || 'linked module').toUpperCase();
-          const entity = linkedTx.interlink.entityName ? ` (${linkedTx.interlink.entityName})` : '';
-          const confirmMsg = `This transaction is interlinked with ${mod}${entity}.\n\nDo you want to delete this transaction AND roll back the source balance/status?\n\nClick [OK] to delete & roll back source\nClick [Cancel] to abort.`;
-          if (!confirm(confirmMsg)) return;
-          try {
-            await window.LM_InterlinkEngine.revertInterlinkedTx(id, true);
-            renderAll();
-            autoBackup();
-            try { window.LM_Haptic?.success(); } catch (err) {}
-            showToast('Interlinked transaction deleted and source rolled back!', 'success');
-            return;
-          } catch (revErr) {
-            console.warn('[LM] Revert interlink error:', revErr);
-          }
-        }
-      }
-
-      if (!confirm('Are you sure you want to delete this transaction?')) return;
-      try {
-        const deletedTx = (state.transactions || []).find((x) => x.id === id);
-        await del('transactions', id);
-        state.transactions = state.transactions.filter((x) => x.id !== id);
-        renderAll();
-        autoBackup();
-        try { window.LM_Haptic?.success(); } catch (err) {}
-
-        if (typeof window.showUndoToast === 'function' && deletedTx) {
-          window.showUndoToast('Transaction deleted', async () => {
-            try {
-              await put('transactions', deletedTx);
-              state.transactions.push(deletedTx);
-              if (window.LM_CloudSync && typeof window.LM_CloudSync.removeTombstone === 'function') {
-                window.LM_CloudSync.removeTombstone('transactions', deletedTx.id);
-              }
-              renderAll();
-              autoBackup();
-              if (window.showToast) window.showToast('Transaction restored!', 'success');
-            } catch (restoreErr) {
-              console.error('[LM] Failed to undo transaction delete:', restoreErr);
-              if (window.showToast) window.showToast('Failed to restore transaction', 'error');
-            }
-          }, 6000);
-        } else {
-          showToast('Transaction deleted!', 'success');
-        }
-      } catch (err) {
-        showToast('Failed to delete transaction', 'error');
-      }
-    }
-  );
-
-  document.querySelectorAll('.tx-badge-interlink').forEach((badge) => {
-    badge.onclick = (e) => {
-      e.stopPropagation();
-      const target = badge.dataset.mod;
-      if (target && typeof showPage === 'function') {
-        showPage(target);
-      }
-    };
-  });
-  document.querySelectorAll('.editTx').forEach((btn) =>
-    btn.onclick = (e) => openEditTransactionModal(e.target.dataset.id)
-  );
-  document.querySelectorAll('.splitTx').forEach((btn) =>
-    btn.onclick = (e) => openSplitModal(e.target.dataset.id)
-  );
+  // Direct onclick fallback bindings
+  document.querySelectorAll('.delTx').forEach(btn => btn.onclick = (e) => handleDeleteTx(e.target.dataset.id));
+  document.querySelectorAll('.editTx').forEach(btn => btn.onclick = (e) => openEditTransactionModal(e.target.dataset.id));
+  document.querySelectorAll('.splitTx').forEach(btn => btn.onclick = (e) => openSplitModal(e.target.dataset.id));
 }
 function openEditTransactionModal(id) {
   const t = state.transactions.find(x => x.id === id);
@@ -6247,11 +6078,15 @@ function renderBudgetOverview() {
     wrap.innerHTML = '<div class="empty-state" style="padding:24px"><div class="empty-state-icon">🎯</div><div class="empty-state-text">No budgets set for this month. <button style="color:var(--teal);background:none;border:none;cursor:pointer;font-size:13px;" onclick="showBudgetsModal();">Add one →</button></div></div>';
     return;
   }
+  const actuals = window.LM_BudgetService
+    ? window.LM_BudgetService.getCategoryActuals(month, state.transactions)
+    : null;
   wrap.innerHTML = monthBudgets.map(b => {
-    const actual = state.transactions.filter(t=>t.type==='out'&&t.category===b.category&&t.date.startsWith(month)).reduce((s,t)=>s+(+t.amount||0),0);
-    const rawPct = b.limit > 0 ? Math.round((actual/b.limit)*100) : 0;
-    const pct = Math.min(rawPct, 100);
-    const cls = rawPct >= 100 ? 'over' : pct > 90 ? 'danger' : pct > 70 ? 'warning' : 'safe';
+    const actual = actuals ? (actuals[b.category] || 0) : state.transactions.filter(t=>t.type==='out'&&t.category===b.category&&t.date.startsWith(month)).reduce((s,t)=>s+(+t.amount||0),0);
+    const status = window.LM_BudgetService ? window.LM_BudgetService.getBudgetStatus(b, actual) : null;
+    const rawPct = status ? status.rawPct : (b.limit > 0 ? Math.round((actual/b.limit)*100) : 0);
+    const pct = status ? status.pct : Math.min(rawPct, 100);
+    const cls = status ? status.cls : (rawPct >= 100 ? 'over' : pct > 90 ? 'danger' : pct > 70 ? 'warning' : 'safe');
     const pctLabel = rawPct > 100 ? `<span style="color:var(--rose);font-weight:700;font-size:11px;">+${rawPct-100}% over</span>` : `${rawPct}%`;
     const rolloverTag = b.rollover ? `<span title="Rollover Active" style="font-size:10px;padding:1px 5px;border-radius:4px;background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);margin-left:5px;font-weight:600;">🔄 Rollover</span>` : '';
     return `<div class="budget-item">

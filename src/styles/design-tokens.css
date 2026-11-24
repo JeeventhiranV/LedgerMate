@@ -1,0 +1,320 @@
+/**
+ * LedgerMate – Enterprise Design Tokens (design-tokens.css)
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Single source of truth for design tokens across the entire application:
+ *  • Theme Palettes (Fintech Dark & Enterprise Light)
+ *  • Semantic Status Colors (Success, Danger, Warning, Info, Accent)
+ *  • Typographic Scale & Font Stacks (Display, Body, Monospace)
+ *  • Spacing Grid (4px base)
+ *  • Radius Scale & Shape Tokens
+ *  • Elevation Levels & Ambient Glows
+ *  • Glass Surfaces & Hairline Borders
+ *  • Backward-Compatibility Aliases for legacy CSS variables
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+:root {
+  /* ── 1. Color Palette: Pure Neutrals & Base ── */
+  --lm-white:           #ffffff;
+  --lm-black:           #000000;
+  
+  --lm-gray-50:         #f8fafc;
+  --lm-gray-100:        #f1f5f9;
+  --lm-gray-200:        #e2e8f0;
+  --lm-gray-300:        #cbd5e1;
+  --lm-gray-400:        #94a3b8;
+  --lm-gray-500:        #64748b;
+  --lm-gray-600:        #475569;
+  --lm-gray-700:        #334155;
+  --lm-gray-800:        #1e293b;
+  --lm-gray-900:        #0f172a;
+  --lm-gray-950:        #020617;
+
+  /* ── 2. Fintech Semantic Accents ── */
+  --lm-cyan-400:        #22d3ee;
+  --lm-cyan-500:        #00f0ff;
+  --lm-cyan-600:        #00c2cf;
+  --lm-cyan-700:        #0e7490;
+
+  --lm-emerald-400:     #34d399;
+  --lm-emerald-500:     #10b981;
+  --lm-emerald-600:     #059669;
+
+  --lm-rose-400:        #fb7185;
+  --lm-rose-500:        #f43f5e;
+  --lm-rose-600:        #e11d48;
+
+  --lm-amber-400:       #fbbf24;
+  --lm-amber-500:       #f59e0b;
+  --lm-amber-600:       #d97706;
+
+  --lm-violet-400:      #a78bfa;
+  --lm-violet-500:      #8b5cf6;
+  --lm-violet-600:      #7c3aed;
+
+  --lm-sky-400:         #38bdf8;
+  --lm-sky-500:         #0ea5e9;
+  --lm-sky-600:         #0284c7;
+
+  --lm-indigo-400:      #818cf8;
+  --lm-indigo-500:      #6366f1;
+  --lm-indigo-600:      #4f46e5;
+
+  /* ── 3. Typography Stacks ── */
+  --lm-font-sans:       'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --lm-font-display:    'Sora', var(--lm-font-sans);
+  --lm-font-mono:       'DM Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Typographic Sizes */
+  --lm-text-2xs:        0.6875rem; /* 11px */
+  --lm-text-xs:         0.75rem;   /* 12px */
+  --lm-text-sm:         0.8125rem; /* 13px */
+  --lm-text-base:       0.875rem;  /* 14px */
+  --lm-text-md:         1rem;      /* 16px */
+  --lm-text-lg:         1.125rem;  /* 18px */
+  --lm-text-xl:         1.25rem;   /* 20px */
+  --lm-text-2xl:        1.5rem;    /* 24px */
+  --lm-text-3xl:        1.875rem;  /* 30px */
+  --lm-text-4xl:        2.25rem;   /* 36px */
+
+  /* Font Weights */
+  --lm-font-normal:     400;
+  --lm-font-medium:     500;
+  --lm-font-semibold:   600;
+  --lm-font-bold:       700;
+  --lm-font-extrabold:  800;
+
+  /* Line Heights */
+  --lm-leading-none:    1;
+  --lm-leading-tight:   1.2;
+  --lm-leading-snug:    1.35;
+  --lm-leading-normal:  1.5;
+  --lm-leading-relaxed: 1.625;
+
+  /* ── 4. Spacing Scale (4px increments) ── */
+  --lm-space-0-5:       2px;
+  --lm-space-1:         4px;
+  --lm-space-1-5:       6px;
+  --lm-space-2:         8px;
+  --lm-space-2-5:       10px;
+  --lm-space-3:         12px;
+  --lm-space-4:         16px;
+  --lm-space-5:         20px;
+  --lm-space-6:         24px;
+  --lm-space-8:         32px;
+  --lm-space-10:        40px;
+  --lm-space-12:        48px;
+  --lm-space-16:        64px;
+
+  /* ── 5. Radii Scale ── */
+  --lm-radius-xs:       4px;
+  --lm-radius-sm:       8px;
+  --lm-radius-md:       12px;
+  --lm-radius-lg:       16px;
+  --lm-radius-xl:       20px;
+  --lm-radius-2xl:      24px;
+  --lm-radius-3xl:      32px;
+  --lm-radius-full:     9999px;
+
+  /* ── 6. Transitions & Motion Timing ── */
+  --lm-transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --lm-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --lm-transition-slow:   350ms cubic-bezier(0.16, 1, 0.3, 1);
+  --lm-ease-spring:       cubic-bezier(0.16, 1, 0.3, 1);
+  --lm-ease-smooth:       cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── 7. Theme-Specific Tokens: DARK THEME (Default) ── */
+  --lm-theme-mode:        dark;
+
+  /* Backgrounds */
+  --lm-bg-canvas:         #070914;
+  --lm-bg-subtle:         #0c1026;
+  --lm-bg-elevated:       #111736;
+  --lm-bg-float:          #161e44;
+
+  /* Surfaces & Glass */
+  --lm-surface-card:      rgba(12, 16, 38, 0.76);
+  --lm-surface-glass:     rgba(255, 255, 255, 0.035);
+  --lm-surface-glass-h:   rgba(255, 255, 255, 0.075);
+  --lm-surface-raised:    rgba(255, 255, 255, 0.05);
+  --lm-surface-overlay:   rgba(7, 9, 20, 0.78);
+
+  /* Borders */
+  --lm-border-default:    rgba(255, 255, 255, 0.08);
+  --lm-border-subtle:     rgba(255, 255, 255, 0.04);
+  --lm-border-hover:      rgba(0, 240, 255, 0.45);
+  --lm-border-focus:      #00f0ff;
+
+  /* Text & Foreground */
+  --lm-text-primary:      #f1f5f9;
+  --lm-text-secondary:    #94a3b8;
+  --lm-text-tertiary:     #64748b;
+  --lm-text-inverse:      #070914;
+
+  /* Semantic Theme Mappings */
+  --lm-brand-primary:     var(--lm-cyan-500);
+  --lm-brand-hover:       var(--lm-cyan-400);
+  --lm-brand-dark:        var(--lm-cyan-600);
+
+  --lm-status-success:    var(--lm-emerald-500);
+  --lm-status-danger:     var(--lm-rose-500);
+  --lm-status-warning:    var(--lm-amber-500);
+  --lm-status-info:       var(--lm-sky-500);
+  --lm-status-accent:     var(--lm-violet-500);
+
+  /* Elevation & Shadows */
+  --lm-elevation-1:       0 2px 8px rgba(0, 0, 0, 0.32);
+  --lm-elevation-2:       0 8px 24px rgba(0, 0, 0, 0.45);
+  --lm-elevation-3:       0 12px 36px rgba(0, 0, 0, 0.55);
+  --lm-elevation-4:       0 20px 48px -4px rgba(0, 0, 0, 0.65);
+  --lm-elevation-card:    0 4px 24px -2px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05);
+
+  /* Fintech Glows */
+  --lm-glow-primary:      0 0 28px -4px rgba(0, 240, 255, 0.24);
+  --lm-glow-success:      0 0 24px -4px rgba(16, 185, 129, 0.24);
+  --lm-glow-danger:       0 0 24px -4px rgba(244, 63, 94, 0.24);
+
+  /* Form & Input Controls */
+  --lm-input-bg:          #111736;
+  --lm-input-border:      rgba(255, 255, 255, 0.09);
+  --lm-input-text:        #f1f5f9;
+  --lm-input-placeholder: #64748b;
+  --lm-input-focus-glow:  0 0 0 3px rgba(0, 240, 255, 0.18);
+
+  /* ── 8. Backward Compatibility Aliases for Dark Mode ── */
+  --bg:                   var(--lm-bg-canvas);
+  --bg2:                  var(--lm-bg-subtle);
+  --bg3:                  var(--lm-bg-elevated);
+  --surface:              var(--lm-surface-glass);
+  --surface-h:            var(--lm-surface-glass-h);
+  --surface-card:         var(--lm-surface-card);
+  --surface-raised:       var(--lm-surface-raised);
+  --border:               var(--lm-border-default);
+  --border-h:             var(--lm-border-hover);
+  --border-subtle:        var(--lm-border-subtle);
+  --text:                 var(--lm-text-primary);
+  --text-2:               var(--lm-text-secondary);
+  --text-3:               var(--lm-text-tertiary);
+  --teal:                 var(--lm-brand-primary);
+  --teal-d:               var(--lm-brand-dark);
+  --emerald:              var(--lm-status-success);
+  --rose:                 var(--lm-status-danger);
+  --violet:               var(--lm-status-accent);
+  --gold:                 var(--lm-status-warning);
+  --blue:                 var(--lm-sky-400);
+  --indigo:               var(--lm-indigo-500);
+  --font-h:               var(--lm-font-display);
+  --font-b:               var(--lm-font-sans);
+  --font-m:               var(--lm-font-mono);
+  --r-sm:                 var(--lm-radius-sm);
+  --r:                    14px;
+  --r-lg:                 var(--lm-radius-xl);
+  --r-xl:                 var(--lm-radius-2xl);
+  --shadow-sm:            var(--lm-elevation-1);
+  --shadow:               var(--lm-elevation-2);
+  --shadow-card:          var(--lm-elevation-card);
+  --shadow-glow:          var(--lm-glow-primary);
+  --ease-spring:          var(--lm-ease-spring);
+  --ease-smooth:          var(--lm-ease-smooth);
+  --glass-bg:             var(--lm-surface-glass);
+  --glass-border:         var(--lm-border-default);
+  --input-bg:             var(--lm-input-bg);
+  --input-text:           var(--lm-input-text);
+  --input-border:         var(--lm-input-border);
+  --btn-green:            var(--lm-status-success);
+  --text-muted:           var(--lm-text-tertiary);
+}
+
+/* ── 9. LIGHT THEME OVERRIDES ── */
+[data-theme="light"] {
+  --lm-theme-mode:        light;
+
+  /* Backgrounds */
+  --lm-bg-canvas:         #f8fafc;
+  --lm-bg-subtle:         #ffffff;
+  --lm-bg-elevated:       #f1f5f9;
+  --lm-bg-float:          #e2e8f0;
+
+  /* Surfaces & Glass */
+  --lm-surface-card:      #ffffff;
+  --lm-surface-glass:     rgba(255, 255, 255, 0.88);
+  --lm-surface-glass-h:   #ffffff;
+  --lm-surface-raised:    #f8fafc;
+  --lm-surface-overlay:   rgba(15, 23, 42, 0.45);
+
+  /* Borders */
+  --lm-border-default:    rgba(15, 23, 42, 0.08);
+  --lm-border-subtle:     rgba(15, 23, 42, 0.04);
+  --lm-border-hover:      rgba(2, 132, 199, 0.50);
+  --lm-border-focus:      #0284c7;
+
+  /* Text & Foreground */
+  --lm-text-primary:      #0f172a;
+  --lm-text-secondary:    #475569;
+  --lm-text-tertiary:     #94a3b8;
+  --lm-text-inverse:      #ffffff;
+
+  /* Semantic Theme Mappings */
+  --lm-brand-primary:     #0284c7;
+  --lm-brand-hover:       #0369a1;
+  --lm-brand-dark:        #075985;
+
+  --lm-status-success:    #059669;
+  --lm-status-danger:     #e11d48;
+  --lm-status-warning:    #d97706;
+  --lm-status-info:       #0284c7;
+  --lm-status-accent:     #7c3aed;
+
+  /* Elevation & Shadows */
+  --lm-elevation-1:       0 1px 3px rgba(15, 23, 42, 0.08);
+  --lm-elevation-2:       0 4px 16px rgba(15, 23, 42, 0.08);
+  --lm-elevation-3:       0 8px 24px rgba(15, 23, 42, 0.12);
+  --lm-elevation-4:       0 16px 36px rgba(15, 23, 42, 0.16);
+  --lm-elevation-card:    0 2px 12px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(15, 23, 42, 0.05);
+
+  /* Fintech Glows */
+  --lm-glow-primary:      0 0 20px -2px rgba(2, 132, 199, 0.20);
+  --lm-glow-success:      0 0 20px -2px rgba(5, 150, 105, 0.20);
+  --lm-glow-danger:       0 0 20px -2px rgba(225, 29, 72, 0.20);
+
+  /* Form & Input Controls */
+  --lm-input-bg:          #ffffff;
+  --lm-input-border:      rgba(15, 23, 42, 0.12);
+  --lm-input-text:        #0f172a;
+  --lm-input-placeholder: #94a3b8;
+  --lm-input-focus-glow:  0 0 0 3px rgba(2, 132, 199, 0.18);
+
+  /* ── Backward Compatibility Aliases for Light Mode ── */
+  --bg:                   var(--lm-bg-canvas);
+  --bg2:                  var(--lm-bg-subtle);
+  --bg3:                  var(--lm-bg-elevated);
+  --surface:              var(--lm-surface-glass);
+  --surface-h:            var(--lm-surface-glass-h);
+  --surface-card:         var(--lm-surface-card);
+  --surface-raised:       var(--lm-surface-raised);
+  --border:               var(--lm-border-default);
+  --border-h:             var(--lm-border-hover);
+  --border-subtle:        var(--lm-border-subtle);
+  --text:                 var(--lm-text-primary);
+  --text-2:               var(--lm-text-secondary);
+  --text-3:               var(--lm-text-tertiary);
+  --teal:                 var(--lm-brand-primary);
+  --teal-d:               var(--lm-brand-dark);
+  --emerald:              var(--lm-status-success);
+  --rose:                 var(--lm-status-danger);
+  --violet:               var(--lm-status-accent);
+  --gold:                 var(--lm-status-warning);
+  --blue:                 #0284c7;
+  --indigo:               #4f46e5;
+  --shadow-sm:            var(--lm-elevation-1);
+  --shadow:               var(--lm-elevation-2);
+  --shadow-card:          var(--lm-elevation-card);
+  --shadow-glow:          var(--lm-glow-primary);
+  --glass-bg:             var(--lm-surface-glass);
+  --glass-border:         var(--lm-border-default);
+  --input-bg:             var(--lm-input-bg);
+  --input-text:           var(--lm-input-text);
+  --input-border:         var(--lm-input-border);
+  --btn-green:            var(--lm-status-success);
+  --text-muted:           var(--lm-text-tertiary);
+}
